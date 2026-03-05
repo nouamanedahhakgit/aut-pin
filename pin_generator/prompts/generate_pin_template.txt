@@ -4,7 +4,8 @@ HOW TO USE THIS PROMPT TO GENERATE NEW PIN TEMPLATES
 
 Each pin template is a single Python file (template_N.py) that generates a
 600×1067 Pinterest pin as HTML → screenshot → PNG image.
-
+   
+   
 Steps:
   1. Open a new Claude conversation.
   2. Choose a template number (check existing: template_1 through template_5).
