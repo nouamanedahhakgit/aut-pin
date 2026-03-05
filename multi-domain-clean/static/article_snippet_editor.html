@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Article Snippets — Bulk add scripts, ads, HTML by section</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root { --bg: #0f0f12; --surface: #1a1a1f; --border: #2d2d35; --text: #e8e8ed; --muted: #8888a0; --accent: #6C8AE4; --success: #22c55e; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 0; margin: 0; }
+    h1 { font-size: 1.25rem; margin-bottom: 0.5rem; }
+    .subtitle { font-size: 0.85rem; color: var(--muted); margin-bottom: 1rem; }
+    .layout { display: grid; grid-template-columns: 400px 1fr; gap: 1rem; min-height: 70vh; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; }
+    .panel h2 { font-size: 0.8rem; text-transform: uppercase; color: var(--muted); margin-bottom: 0.75rem; }
+    select, textarea { width: 100%; padding: 0.5rem; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.85rem; }
+    select[multiple] { min-height: 120px; }
+    textarea { font-family: 'Consolas', monospace; font-size: 0.8rem; min-height: 80px; margin-bottom: 1rem; }
+    .snippet-section { margin-bottom: 1.25rem; }
+    .snippet-section label { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem; }
+    .snippet-section .hint { font-size: 0.7rem; color: var(--muted); margin-top: 0.2rem; }
+    .btn { padding: 0.5rem 1rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-right: 0.5rem; margin-bottom: 0.5rem; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-success { background: var(--success); color: #fff; }
+    .toolbar { margin-bottom: 1rem; }
+    .status { font-size: 0.8rem; color: var(--muted); margin-top: 0.5rem; }
+    .status.ok { color: var(--success); }
+    .status.error { color: #ef4444; }
+    .preview-wrap { background: #fff; border-radius: 8px; overflow: auto; min-height: 400px; }
+    .preview-wrap iframe { width: 100%; min-height: 500px; border: none; }
+    .preview-placeholder { color: var(--muted); padding: 2rem; text-align: center; }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand navbar-dark bg-dark mb-0">
+    <div class="container-fluid px-3">
+      <a class="navbar-brand fw-bold" href="/database-management">Multi-Domain</a>
+      <div class="navbar-nav">
+        <a class="nav-link" href="/database-management">Database Management</a>
+        <a class="nav-link" href="/pin-editor">Pin Editor</a>
+        <a class="nav-link" href="/article-editor">Article Template</a>
+        <a class="nav-link" href="/article-snippet-editor">Article Snippets</a>
+        <a class="nav-link" href="/article-html-editor">Article HTML/CSS</a>
+        <a class="nav-link" href="/admin/domains">Domains</a>
+        <a class="nav-link" href="/admin/titles">Titles</a>
+        <a class="nav-link" href="/admin/groups">Groups</a>
+      </div>
+    </div>
+  </nav>
+  <div class="container-fluid px-3 py-4">
+  <h1>Article Snippets — Add scripts, ads, HTML by section</h1>
+  <p class="subtitle">Edit snippets per injection point. Save stores on domain. Apply to all articles in domain (bulk, no AI).</p>
+
+  <div class="toolbar">
+    <label>Template <select id="templateSelect"><option value="">— All templates —</option></select></label>
+    <label>Domain <select id="domainSelect"><option value="">— Select domain —</option></select></label>
+    <label>Category <select id="categorySelect"><option value="">— All —</option></select></label>
+    <button type="button" class="btn btn-primary" id="btnLoadTemplate" title="Load snippets from first domain that uses this template">Load from template</button>
+    <button type="button" class="btn btn-primary" id="btnSave">Save snippets</button>
+    <button type="button" class="btn btn-success" id="btnApply">Apply to domain</button>
+    <button type="button" class="btn btn-success" id="btnApplyByTemplate" title="Apply to ALL domains with selected template">Apply to all (template)</button>
+    <button type="button" class="btn btn-success" id="btnApplyToArticles" title="Apply to selected articles only">Apply to selected articles</button>
+  </div>
+  <div class="toolbar" style="margin-top:0.5rem;">
+    <label>Articles <select id="articleSelect" multiple size="6" style="min-width:320px;"><option value="">— Select domain to load articles —</option></select></label>
+  </div>
+  <p class="status" id="status"></p>
+
+  <div class="layout">
+    <div class="panel">
+      <h2>Injection points</h2>
+      <div id="snippetsForm"></div>
+    </div>
+    <div class="panel">
+      <h2>Preview</h2>
+      <div class="preview-wrap">
+        <div class="preview-placeholder" id="previewPlaceholder">Select domain and load sample article.</div>
+        <iframe id="previewFrame" style="display:none;"></iframe>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <script>
+    const POINTS = [
+      { id: "head-end", label: "Head (scripts, meta)", hint: "Before </head> — analytics, meta tags" },
+      { id: "after-hero", label: "After hero image", hint: "Below main image" },
+      { id: "before-recipe", label: "Before recipe card", hint: "Ads, signup forms" },
+      { id: "article-end", label: "End of article", hint: "Footer, related posts" }
+    ];
+
+    let domainId = null;
+    let allDomains = [];
+    let sampleHtml = "";
+    let sampleCss = "";
+
+    (function() {
+      const p = new URLSearchParams(window.location.search);
+      const d = p.get('domain_id');
+      if (d) domainId = parseInt(d, 10);
+    })();
+
+    async function api(path, opts = {}) {
+      const r = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts });
+      const t = await r.text();
+      if (!r.ok) throw new Error(t || r.statusText);
+      return t ? JSON.parse(t) : {};
+    }
+
+    function setStatus(msg, isError) {
+      const el = document.getElementById('status');
+      el.textContent = msg;
+      el.className = 'status' + (isError ? ' error' : ' ok');
+    }
+
+    function getSnippets() {
+      const o = {};
+      POINTS.forEach(p => {
+        const v = document.getElementById('snippet_' + p.id)?.value?.trim();
+        if (v) o[p.id] = v;
+      });
+      return o;
+    }
+
+    function setSnippets(snippets) {
+      POINTS.forEach(p => {
+        const el = document.getElementById('snippet_' + p.id);
+        if (el) el.value = (snippets[p.id] || '').trim();
+      });
+    }
+
+    function updatePreview() {
+      const snippets = getSnippets();
+      const ph = document.getElementById('previewPlaceholder');
+      const frame = document.getElementById('previewFrame');
+      if (!sampleHtml) {
+        ph.style.display = 'block';
+        frame.style.display = 'none';
+        return;
+      }
+      const apply = async () => {
+        const r = await api('/api/article-preview', {
+          method: 'POST',
+          body: JSON.stringify({
+            config: { title: 'Preview', categories_list: [{ id: 1, categorie: 'dessert' }] },
+            generator: 'generator-1'
+          })
+        });
+        if (r.success && r.article_html) {
+          const html = r.article_html;
+          const css = r.article_css || '';
+          const doc = html.replace(/<link[^>]*href=["']css\.css["'][^>]*\/?>/i, '<style>' + css + '</style>');
+          const injected = await fetch('/api/article-snippet-preview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ article_html: doc, snippets })
+          }).then(r2 => r2.json());
+          frame.srcdoc = injected.html || doc;
+        }
+      };
+      fetch('/api/article-snippet-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ article_html: sampleHtml, article_css: sampleCss, snippets })
+      })
+        .then(r => r.json())
+        .then(d => {
+          if (d.html) {
+            frame.srcdoc = d.html;
+            frame.style.display = 'block';
+            ph.style.display = 'none';
+          }
+        })
+        .catch(() => { ph.style.display = 'block'; frame.style.display = 'none'; });
+    }
+
+    function refreshDomainDropdown() {
+      const template = document.getElementById('templateSelect').value.trim();
+      const sel = document.getElementById('domainSelect');
+      let domains = allDomains;
+      if (template) {
+        domains = allDomains.filter(d => (d.website_template || '').trim() === template);
+      }
+      const curVal = sel.value;
+      sel.innerHTML = '<option value="">— Select domain —</option>' +
+        domains.map(x => '<option value="' + x.id + '">' + x.id + ' — ' + (x.domain_url || x.domain_name || '') + '</option>').join('');
+      if (domainId && domains.some(d => d.id == domainId)) sel.value = domainId;
+      else if (curVal && domains.some(d => d.id == curVal)) sel.value = curVal;
+    }
+
+    async function loadDomains() {
+      try {
+        const d = await api('/api/domains');
+        allDomains = d.domains || [];
+        refreshDomainDropdown();
+        if (domainId) {
+          document.getElementById('domainSelect').value = domainId;
+          await loadDomain();
+        }
+      } catch (e) { setStatus('Failed to load domains', true); }
+    }
+
+    async function loadTemplates() {
+      try {
+        const d = await api('/api/website-templates');
+        const templates = d.templates || [];
+        const sel = document.getElementById('templateSelect');
+        sel.innerHTML = '<option value="">— All templates —</option>' +
+          templates.map(t => '<option value="' + (t || '').replace(/"/g, '&quot;') + '">' + (t || '') + '</option>').join('');
+      } catch (e) { setStatus('Failed to load templates', true); }
+    }
+
+    async function loadCategories() {
+      try {
+        const d = await api('/api/article-categories');
+        const cats = d.categories || [];
+        const sel = document.getElementById('categorySelect');
+        sel.innerHTML = '<option value="">— All —</option>' +
+          cats.map(c => '<option value="' + (c || '').replace(/"/g, '&quot;') + '">' + (c || '') + '</option>').join('');
+      } catch (e) { setStatus('Failed to load categories', true); }
+    }
+
+    async function loadFromTemplate() {
+      const template = document.getElementById('templateSelect').value.trim();
+      if (!template) { setStatus('Select a template first.', true); return; }
+      setStatus('Loading…');
+      try {
+        const d = await api('/api/domain-article-snippets/by-template/' + encodeURIComponent(template));
+        setSnippets(d.snippets || {});
+        if (d.domain_id) {
+          document.getElementById('domainSelect').value = d.domain_id;
+          domainId = d.domain_id;
+          await loadDomain();
+        }
+        setStatus('Loaded snippets from template ' + template + (d.domain_id ? ' (domain ' + d.domain_id + ')' : ''));
+      } catch (e) { setStatus('Load failed: ' + e.message, true); }
+    }
+
+    async function applyByTemplate() {
+      const template = document.getElementById('templateSelect').value.trim();
+      if (!template) { setStatus('Select a template first.', true); return; }
+      const category = document.getElementById('categorySelect').value.trim();
+      let msg = 'Apply snippets to ';
+      try {
+        const prev = await api('/api/domain-article-snippets/apply-preview?template=' + encodeURIComponent(template) + (category ? '&category=' + encodeURIComponent(category) : ''));
+        msg += prev.article_count + ' article(s) across ' + prev.domain_count + ' domain(s) [' + (prev.domain_names || []).join(', ') + ']';
+        msg += '\nTemplate: ' + template;
+        if (category) msg += '\nCategory: ' + category;
+        msg += '\n\nContinue?';
+      } catch (e) {
+        msg = (category ? 'Apply to category "' + category + '" across all domains with template "' + template + '"?'
+          : 'Apply snippets to ALL articles in ALL domains with template "' + template + '"?');
+      }
+      if (!confirm(msg)) return;
+      setStatus('Applying…');
+      try {
+        const payload = { template, snippets: getSnippets() };
+        if (category) payload.category = category;
+        const d = await api('/api/domain-article-snippets/apply-by-template', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        setStatus('Applied to ' + (d.updated || 0) + ' articles across ' + (d.domains || 0) + ' domains (template: ' + (d.template || template) + ')' + (category ? ', category: ' + category : '') + '.');
+      } catch (e) { setStatus('Apply failed: ' + e.message, true); }
+    }
+
+    async function loadDomain() {
+      const id = parseInt(document.getElementById('domainSelect').value, 10);
+      if (!id) { setStatus(''); document.getElementById('articleSelect').innerHTML = '<option value="">— Select domain to load articles —</option>'; return; }
+      domainId = id;
+      setStatus('Loading…');
+      try {
+        const category = document.getElementById('categorySelect').value.trim();
+        let titlesUrl = '/api/titles-with-article?domain_id=' + id;
+        if (category) titlesUrl += '&category=' + encodeURIComponent(category);
+        const [d, t, titlesRes] = await Promise.all([
+          api('/api/domain-article-snippets/' + id),
+          api('/api/domain-article-template/' + id),
+          api(titlesUrl)
+        ]);
+        setSnippets(d.snippets || {});
+        const titles = (titlesRes.titles || []);
+        const artSel = document.getElementById('articleSelect');
+        artSel.innerHTML = titles.length ? titles.map(x => '<option value="' + x.id + '">' + x.id + ' — ' + (x.title || '').substring(0, 50) + '</option>').join('') : '<option value="">No articles in this domain</option>';
+        const gen = (t.website_template || 'generator-1').trim();
+        const prev = await api('/api/article-preview', {
+          method: 'POST',
+          body: JSON.stringify({
+            config: { title: 'Preview', categories_list: [{ id: 1, categorie: 'dessert' }], ...(t.article_template_config || {}) },
+            generator: gen
+          })
+        });
+        if (prev.success && prev.article_html) {
+          sampleHtml = prev.article_html;
+          sampleCss = prev.article_css || '';
+          updatePreview();
+        }
+        setStatus('Loaded. ' + titles.length + ' articles.' + (category ? ' (category: ' + category + ')' : ''));
+      } catch (e) { setStatus('Load failed: ' + e.message, true); }
+    }
+
+    async function applyToSelectedArticles() {
+      const artSel = document.getElementById('articleSelect');
+      const selected = Array.from(artSel.selectedOptions).map(o => parseInt(o.value, 10)).filter(n => !isNaN(n));
+      if (!selected.length) { setStatus('Select at least one article.', true); return; }
+      const domainSel = document.getElementById('domainSelect');
+      const domainLabel = domainSel.options[domainSel.selectedIndex] ? domainSel.options[domainSel.selectedIndex].text : '';
+      const category = document.getElementById('categorySelect').value.trim();
+      let msg = 'Apply snippets to ' + selected.length + ' selected article(s)';
+      if (domainLabel) msg += ' in domain: ' + domainLabel;
+      if (category) msg += ', category: ' + category;
+      msg += '?';
+      if (!confirm(msg)) return;
+      setStatus('Applying…');
+      try {
+        const d = await api('/api/domain-article-snippets/apply-to-articles', {
+          method: 'POST',
+          body: JSON.stringify({ title_ids: selected, snippets: getSnippets() })
+        });
+        setStatus('Applied to ' + (d.updated || 0) + ' of ' + selected.length + ' article(s).');
+      } catch (e) { setStatus('Apply failed: ' + e.message, true); }
+    }
+
+    async function saveSnippets() {
+      const id = parseInt(document.getElementById('domainSelect').value, 10);
+      if (!id) { setStatus('Select domain first.', true); return; }
+      setStatus('Saving…');
+      try {
+        await api('/api/domain-article-snippets/' + id, {
+          method: 'PUT',
+          body: JSON.stringify({ snippets: getSnippets() })
+        });
+        setStatus('Snippets saved.');
+        updatePreview();
+      } catch (e) { setStatus('Save failed: ' + e.message, true); }
+    }
+
+    async function applyToAll() {
+      const id = parseInt(document.getElementById('domainSelect').value, 10);
+      if (!id) { setStatus('Select domain first.', true); return; }
+      const category = document.getElementById('categorySelect').value.trim();
+      let msg = 'Apply snippets to ';
+      try {
+        const prev = await api('/api/domain-article-snippets/apply-preview?domain_id=' + id + (category ? '&category=' + encodeURIComponent(category) : ''));
+        msg += prev.article_count + ' article(s) in domain "' + (prev.domain_name || id) + '"';
+        if (category) msg += ', category: ' + category;
+        msg += '?';
+      } catch (e) {
+        msg = (category ? 'Apply to articles in category "' + category + '" in this domain?' : 'Apply snippets to all articles in this domain?');
+      }
+      if (!confirm(msg)) return;
+      setStatus('Applying…');
+      try {
+        await saveSnippets();
+        const d = await api('/api/domain-article-snippets/' + id + '/apply', {
+          method: 'POST',
+          body: JSON.stringify(category ? { category } : {})
+        });
+        setStatus('Applied to ' + (d.updated || 0) + ' articles.' + (category ? ' (category: ' + category + ')' : ''));
+      } catch (e) { setStatus('Apply failed: ' + e.message, true); }
+    }
+
+
+    function buildForm() {
+      const form = document.getElementById('snippetsForm');
+      form.innerHTML = POINTS.map(p => `
+        <div class="snippet-section">
+          <label for="snippet_${p.id}">${p.label}</label>
+          <textarea id="snippet_${p.id}" placeholder="<!-- script, div, ads -->" data-point="${p.id}"></textarea>
+          <div class="hint">${p.hint}</div>
+        </div>
+      `).join('');
+      POINTS.forEach(p => {
+        document.getElementById('snippet_' + p.id).addEventListener('input', () => {
+          clearTimeout(window._prev);
+          window._prev = setTimeout(updatePreview, 400);
+        });
+      });
+    }
+
+    document.getElementById('templateSelect').addEventListener('change', refreshDomainDropdown);
+    document.getElementById('domainSelect').addEventListener('change', loadDomain);
+    document.getElementById('categorySelect').addEventListener('change', () => { if (domainId) loadDomain(); });
+    document.getElementById('btnLoadTemplate').addEventListener('click', loadFromTemplate);
+    document.getElementById('btnSave').addEventListener('click', saveSnippets);
+    document.getElementById('btnApply').addEventListener('click', applyToAll);
+    document.getElementById('btnApplyByTemplate').addEventListener('click', applyByTemplate);
+    document.getElementById('btnApplyToArticles').addEventListener('click', applyToSelectedArticles);
+
+    buildForm();
+    loadTemplates().then(() => loadDomains());
+    loadCategories();
+  </script>
+</body>
+</html>

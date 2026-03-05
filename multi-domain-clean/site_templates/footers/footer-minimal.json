@@ -1,0 +1,1 @@
+{"name":"footer-minimal","label":"Minimal","config":{"colors":{"bg":"#f8f9fa","text":"#555","link":"#E60023"}},"html":"<footer class=\"site-footer\"><p>Copyright {{year}} {{site_name}}</p></footer>"}

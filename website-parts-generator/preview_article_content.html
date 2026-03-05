@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Article Content Preview</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 1rem; background: #1e1e1e; color: #ddd; }
+    .toolbar { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    button { padding: 0.5rem 1rem; cursor: pointer; background: #0d7377; color: white; border: none; border-radius: 6px; }
+    button:hover { background: #14a3a8; }
+    textarea { width: 100%; min-height: 120px; font-family: monospace; font-size: 12px; padding: 0.75rem; background: #2d2d2d; color: #eee; border: 1px solid #444; border-radius: 6px; }
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 900px) { .split { grid-template-columns: 1fr; } }
+    .panel { background: #2d2d2d; border-radius: 8px; overflow: hidden; border: 1px solid #444; }
+    .panel h3 { margin: 0; padding: 0.75rem 1rem; background: #333; font-size: 14px; }
+    .panel-content { padding: 1rem; max-height: 400px; overflow: auto; }
+    #preview-frame { width: 100%; min-height: 600px; border: none; background: white; }
+    .preview-wrap { background: #fff; padding: 2rem; min-height: 600px; }
+    .error { color: #ff6b6b; padding: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Article Content Preview</h1>
+  <p>Paste the JSON response from POST /generate/article_content/1 below, then click Preview.</p>
+  <div class="toolbar">
+    <button onclick="parseAndPreview()">Preview</button>
+    <button onclick="document.getElementById('json-input').value=''">Clear</button>
+  </div>
+  <textarea id="json-input" placeholder='{
+    "success": true,
+    "html": "<article class=\"article-content article-content-1\"><section class=\"intro\"><p>Welcome to the delicious world of Creamy Garlic Chicken Skillet! This dish features juicy chicken breasts enveloped in a rich and creamy garlic parmesan sauce, all ready in just 30 minutes. Perfect for a quick weeknight dinner or a special occasion!</p></section><h2>Ingredients</h2><ul><li>4 boneless chicken breasts</li><li>2 tbsp olive oil</li><li>4 cloves garlic, minced</li><li>1 cup heavy cream</li><li>1/2 cup grated parmesan</li><li>1 tsp dried basil</li><li>Salt and pepper to taste</li></ul><h2>Instructions</h2><ol><li>Season chicken with salt and pepper. Heat oil in a large skillet over medium-high.</li><li>Cook chicken 6 minutes per side until golden. Remove and set aside.</li><li>In same skillet, sauté garlic 30 seconds. Add cream, parmesan, and basil.</li><li>Simmer 2 minutes until thickened. Return chicken to skillet and coat with sauce.</li></ol><div class=\"pro_tips_box\"><h3>Pro Tips</h3><ul><li>For extra flavor, marinate the chicken in garlic and herbs for a few hours before cooking.</li><li>Serve with a side of pasta or steamed vegetables to complete the meal.</li><li>Use freshly grated parmesan for the best taste and texture.</li><li>Adjust the thickness of the sauce by adding more cream or simmering longer.</li></ul></div><h2>FAQs</h2><ul><li><strong>Can I use boneless thighs instead of chicken breasts?</strong> Yes, boneless thighs work great and can add extra flavor.</li><li><strong>How do I store leftovers?</strong> Store in an airtight container in the refrigerator for up to 3 days.</li><li><strong>Can I make this dish ahead of time?</strong> It's best served fresh, but you can prepare the sauce ahead and reheat it when ready to serve.</li><li><strong>What can I substitute for heavy cream?</strong> You can use half-and-half or a non-dairy cream alternative if desired.</li></ul><section class=\"conclusion\"><p>Now that you have the recipe for Creamy Garlic Chicken Skillet, it’s time to gather your ingredients and get cooking! Enjoy the delightful flavors and impress your family or guests with this easy yet elegant dish.</p></section></article>",
+    "css": ".article-content-1 { --primary: #6C8AE4; --secondary: #9C6ADE; --background: #FFFFFF; --text-primary: #2D2D2D; --text-secondary: #5A5A5A; --border: #E2E8FF; } .article-content-1 h2 { font-family: 'Playfair Display, serif'; } .article-content-1 h3 { font-family: 'Playfair Display, serif'; } .article-content-1 p, .article-content-1 ul, .article-content-1 ol { font-family: 'Inter, sans-serif'; font-size: 16px; line-height: 1.5; color: var(--text-primary); } .article-content-1 ul, .article-content-1 ol { margin: 0; padding: 0; list-style-position: inside; } .article-content-1 .pro_tips_box { background-color: var(--secondary); padding: 15px; border: 1px solid var(--border); margin: 20px 0; }"
+}'></textarea>
+  <div class="split" style="margin-top: 1rem;">
+    <div class="panel">
+      <h3>Preview</h3>
+      <div class="panel-content">
+        <div id="preview-container"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Raw HTML</h3>
+      <div class="panel-content">
+        <pre id="html-output" style="margin:0; font-size:11px; white-space: pre-wrap; word-break: break-all;"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function parseAndPreview() {
+      const input = document.getElementById('json-input').value.trim();
+      const preview = document.getElementById('preview-container');
+      const htmlOut = document.getElementById('html-output');
+      preview.innerHTML = '';
+      htmlOut.textContent = '';
+
+      if (!input) {
+        preview.innerHTML = '<p class="error">Paste JSON first.</p>';
+        return;
+      }
+
+      let data;
+      try {
+        data = JSON.parse(input);
+      } catch (e) {
+        preview.innerHTML = '<p class="error">Invalid JSON: ' + e.message + '</p>';
+        return;
+      }
+
+      const html = data.html || data.article_html || '';
+      const css = data.css || data.article_css || '';
+
+      if (!html) {
+        preview.innerHTML = '<p class="error">No "html" or "article_html" in response.</p>';
+        return;
+      }
+
+      const full = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' + css + '</style></head><body><div class="preview-wrap">' + html + '</div></body></html>';
+      const iframe = document.createElement('iframe');
+      iframe.id = 'preview-frame';
+      iframe.srcdoc = full;
+      preview.appendChild(iframe);
+
+      htmlOut.textContent = html;
+    }
+  </script>
+</body>
+</html>

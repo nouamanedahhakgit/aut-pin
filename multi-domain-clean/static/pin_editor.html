@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pin Editor — Multi-Domain</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --surface: #1a1a1f;
+      --border: #2d2d35;
+      --text: #e8e8ed;
+      --muted: #8888a0;
+      --accent: #e1306c;
+      --accent-hover: #c91f56;
+      --success: #22c55e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0;
+      margin: 0;
+      overflow-x: hidden;
+    }
+    .layout {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .preview-panel { order: 1; }
+      .settings-panel { order: 2; }
+    }
+    h1 { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--text); }
+    .pin-editor-header { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .pin-editor-header h1.pin-editor-title { margin-bottom: 0; flex-shrink: 0; }
+    .pin-editor-save-wrap { display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 200px; }
+    .pin-editor-save-wrap input { width: 140px; min-width: 100px; margin-bottom: 0; }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+    .panel h2 {
+      font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--muted); margin-bottom: 0.75rem;
+    }
+    label { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem; }
+    input, select, textarea {
+      width: 100%; padding: 0.5rem 0.6rem; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text); font-size: 0.85rem; margin-bottom: 0.6rem;
+    }
+    input[type="number"] { width: 100%; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .color-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.6rem; }
+    .color-row input[type="color"] { width: 40px; height: 34px; padding: 2px; cursor: pointer; margin-bottom: 0; flex-shrink: 0; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); }
+    .color-row input[type="text"] { margin-bottom: 0; flex: 1; }
+    .palette { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 0.6rem; }
+    .palette-swatch { width: 22px; height: 22px; border-radius: 4px; cursor: pointer; border: 2px solid var(--border); flex-shrink: 0; }
+    .palette-swatch:hover { border-color: var(--accent); }
+    .palette-swatch.domain-swatch { border-color: var(--accent); border-style: dashed; }
+    .palette-domain-label { font-size: 0.65rem; color: var(--accent); margin-right: 4px; line-height: 22px; flex-shrink: 0; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+    .btn {
+      display: inline-block; padding: 0.6rem 1rem; border: none; border-radius: 8px;
+      font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: background 0.15s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-success:hover { filter: brightness(1.1); }
+    .btn-secondary { background: var(--border); color: var(--text); }
+    .btn-secondary:hover { background: var(--muted); }
+    .mb1 { margin-bottom: 1rem; }
+    .mt1 { margin-top: 1rem; }
+    .settings-panel { max-height: 90vh; overflow-y: auto; }
+    .element-tabs { display: flex; flex-wrap: wrap; gap: 2px; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+    .element-tabs .tab-btn {
+      padding: 0.4rem 0.6rem; font-size: 0.75rem; background: transparent; color: var(--muted); border: none;
+      border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; border-radius: 6px 6px 0 0;
+    }
+    .element-tabs .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+    .element-tabs .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+    .element-tab-panels { margin-top: 0.5rem; }
+    .element-tab-panel { display: none; padding: 0.25rem 0; }
+    .element-tab-panel.active { display: block; }
+    .preview-wrap {
+      position: sticky; top: 1rem; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1rem; text-align: center; min-width: 0;
+      overflow: hidden; max-width: 100%;
+    }
+    #previewBox {
+      overflow: hidden; max-width: 100%; max-height: min(500px, calc(100vh - 180px));
+      display: flex; align-items: center; justify-content: center; flex-direction: column;
+    }
+    /* Pin content is 600x1067 – scale to fit without scroll */
+    .preview-iframe-wrap {
+      width: 240px; height: 427px;
+      max-width: 100%; max-height: min(427px, calc(100vh - 220px));
+      overflow: hidden; position: relative; margin: 0 auto;
+      border-radius: 8px; border: 1px solid var(--border); background: #000;
+    }
+    .preview-iframe {
+      position: absolute; left: 0; top: 0;
+      width: 600px; height: 1067px;
+      transform: scale(0.4); transform-origin: 0 0;
+      border: none; background: #000;
+    }
+    .preview-img {
+      max-width: 100%; max-height: min(427px, calc(100vh - 200px));
+      width: auto; height: auto; object-fit: contain; border-radius: 8px; background: #000;
+    }
+    .preview-placeholder {
+      width: 240px; height: 427px;
+      max-width: 100%; max-height: min(427px, calc(100vh - 220px));
+      margin: 0 auto; background: var(--bg); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 0.85rem;
+    }
+    #generatedImageUrl { font-size: 0.75rem; word-break: break-all; margin-top: 0.5rem; }
+    #generatedImageUrl a { color: var(--accent); }
+    .status { font-size: 0.8rem; color: var(--muted); margin-top: 0.75rem; }
+    .status.error { color: #ef4444; }
+    .status.ok { color: var(--success); }
+    .form-section { margin-bottom: 1rem; }
+    .form-section h3 {
+      font-size: 0.8rem; color: var(--accent); margin-bottom: 0.5rem;
+      padding-bottom: 0.25rem; border-bottom: 1px solid var(--border);
+    }
+    .font-custom-wrap { margin-top: 0.35rem; }
+    .font-custom-wrap input { margin-bottom: 0; }
+    .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    #previewEditMenu {
+      position: fixed; z-index: 9998; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.4); padding: 0.5rem;
+      display: none; flex-direction: column; gap: 2px; min-width: 160px;
+      font-size: 0.8rem;
+    }
+    #previewEditMenu button {
+      padding: 0.5rem 0.75rem; text-align: left; border: none; background: transparent;
+      color: var(--text); cursor: pointer; border-radius: 4px; white-space: nowrap;
+    }
+    #previewEditMenu button:hover { background: var(--accent); color: #fff; }
+    body.embed-mode .navbar-pin-editor { display: none !important; }
+    body.embed-mode { height: 100vh; overflow: hidden; }
+    body.embed-mode .container-fluid { padding: 0.75rem !important; height: 100%; }
+    body.embed-mode .layout { grid-template-columns: 1fr 340px; gap: 0.75rem; align-items: stretch; max-width: none; height: 100%; min-height: 0; }
+    body.embed-mode .settings-panel { flex: 1; min-width: 0; overflow-y: auto; min-height: 0; }
+    body.embed-mode .preview-wrap { margin: 0; padding: 0.25rem; border-radius: 6px; min-width: 0; height: 100%; min-height: 0; display: flex; flex-direction: column; }
+    body.embed-mode .preview-wrap h2 { margin-bottom: 0.25rem; font-size: 0.7rem; flex-shrink: 0; }
+    body.embed-mode #previewBox { flex: 1; min-height: 0; padding: 0; margin: 0; display: flex; align-items: center; justify-content: center; }
+    body.embed-mode .preview-iframe-wrap { overflow: hidden; position: relative; margin: 0 auto; }
+    body.embed-mode .preview-iframe { width: 600px; height: 1067px; transform-origin: 0 0; border: none; }
+    body.embed-mode .preview-placeholder { margin: 0 auto; font-size: 0.7rem; padding: 0.5rem; display: flex; align-items: center; justify-content: center; }
+    body.embed-mode .preview-img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    #previewLoadingOverlay {
+      display: none; position: absolute; inset: 0; z-index: 100;
+      background: rgba(15,15,18,0.85); border-radius: 12px;
+      flex-direction: column; align-items: center; justify-content: center; gap: 1rem;
+      color: var(--text); font-size: 0.9rem;
+    }
+    #previewLoadingOverlay.visible { display: flex; }
+    .preview-loading-spinner {
+      width: 40px; height: 40px; border: 3px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: preview-loading-spin 0.8s linear infinite;
+    }
+    @keyframes preview-loading-spin { to { transform: rotate(360deg); } }
+    body.preview-loading .settings-panel { pointer-events: none; opacity: 0.6; }
+    body.preview-loading #saveToDomainWrap { pointer-events: none; opacity: 0.6; }
+  </style>
+</head>
+<body>
+  <nav id="navbarPinEditor" class="navbar navbar-expand navbar-dark bg-dark mb-0 navbar-pin-editor">
+    <div class="container-fluid px-3">
+      <a class="navbar-brand fw-bold" href="/database-management">Multi-Domain</a>
+      <div class="navbar-nav">
+        <a class="nav-link" href="/database-management">Database Management</a>
+        <a class="nav-link" href="/pin-editor">Pin Editor</a>
+        <a class="nav-link" href="/article-editor">Article Template</a>
+        <a class="nav-link" href="/article-snippet-editor">Article Snippets</a>
+        <a class="nav-link" href="/article-html-editor">Article HTML/CSS</a>
+        <a class="nav-link" href="/admin/domains">Domains</a>
+        <a class="nav-link" href="/admin/titles">Titles</a>
+        <a class="nav-link" href="/admin/groups">Groups</a>
+      </div>
+    </div>
+  </nav>
+  <div class="container-fluid px-3 py-4">
+  <div class="layout">
+    <div class="panel settings-panel">
+      <div class="pin-editor-header">
+        <h1 class="pin-editor-title">Pin Editor</h1>
+        <div id="saveToDomainWrap" class="pin-editor-save-wrap" style="display:none;">
+          <input type="text" id="templateNameForDomain" placeholder="Template name" title="Template name (for this domain)">
+          <button type="button" class="btn btn-secondary" id="btnApplyDomainColors" title="Re-apply domain colors and fonts to current template">Domain Colors</button>
+          <button type="button" class="btn btn-success" id="btnSaveToDomain">Save</button>
+        </div>
+      </div>
+      <div class="mb1">
+        <label for="templateSelect">Template</label>
+        <select id="templateSelect">
+          <option value="">— Select template —</option>
+        </select>
+      </div>
+      <div id="formContainer"></div>
+      <div class="mt1">
+        <h2>Saved JSON</h2>
+        <p class="status mb1">Use &quot;Save to domain&quot; (when opened for a domain). Image is generated and uploaded to Cloudflare when you save.</p>
+        <div class="d-flex gap-2 mb-2">
+          <button type="button" class="btn btn-secondary btn-sm" id="btnCopyJson">Copy</button>
+        </div>
+        <pre id="jsonOut" style="font-size:0.7rem; background:var(--bg); padding:0.75rem; border-radius:8px; overflow:auto; max-height:40vh; white-space:pre-wrap; word-break:break-all;">{}</pre>
+      </div>
+    </div>
+
+    <div class="preview-panel preview-wrap">
+      <div id="previewLoadingOverlay">
+        <div class="preview-loading-spinner"></div>
+        <span>Updating preview…</span>
+      </div>
+      <h2>Preview</h2>
+      <div id="previewBox">
+        <div class="preview-placeholder" id="previewPlaceholder">Select template — preview updates automatically</div>
+        <div class="preview-iframe-wrap" id="previewIframeWrap" style="display:none;">
+          <iframe id="previewIframe" class="preview-iframe" title="Pin preview"></iframe>
+        </div>
+        <img id="previewImg" class="preview-img" alt="Pin preview" style="display:none;">
+      </div>
+      <p class="status" id="previewStatus"></p>
+      <p id="generatedImageUrl" class="status" style="display:none;"></p>
+    </div>
+  </div>
+  </div>
+
+  <script>
+    let templates = [];
+    let currentTemplateName = '';
+    let templateId = '';
+    let templateData = null;
+    let domainId = null;
+    let domainTemplateId = null;
+    let domainForWebsite = null;
+    let domainColors = null;
+    let domainFonts = null;
+    let currentStyleSlots = {};
+    let currentFontSlots = {};
+
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const d = params.get('domain_id');
+      if (d) { domainId = parseInt(d, 10); }
+      const t = params.get('template_id');
+      if (t) { domainTemplateId = parseInt(t, 10); }
+      if (params.get('embed') === '1') document.body.classList.add('embed-mode');
+    })();
+
+    const PIN_W = 600, PIN_H = 1067;
+    function fitPreviewToContainer() {
+      const box = document.getElementById('previewBox');
+      const wrap = document.getElementById('previewIframeWrap');
+      const iframe = document.getElementById('previewIframe');
+      const img = document.getElementById('previewImg');
+      const ph = document.getElementById('previewPlaceholder');
+      if (!box || !wrap) return;
+      const isEmbed = document.body.classList.contains('embed-mode');
+      const w = Math.max(box.clientWidth || 340, 100);
+      const h = Math.max(box.clientHeight || 500, 200);
+      const scale = Math.min(0.4, w / PIN_W, h / PIN_H);
+      const sw = Math.round(PIN_W * scale);
+      const sh = Math.round(PIN_H * scale);
+      wrap.style.width = sw + 'px';
+      wrap.style.height = sh + 'px';
+      if (iframe) iframe.style.transform = 'scale(' + scale + ')';
+      if (ph && isEmbed) { ph.style.width = sw + 'px'; ph.style.height = sh + 'px'; }
+      if (img && isEmbed) { img.style.maxWidth = sw + 'px'; img.style.maxHeight = sh + 'px'; }
+    }
+
+    if (domainId) {
+      document.getElementById('saveToDomainWrap').style.display = 'block';
+    }
+
+    async function loadDomainForWebsite() {
+      if (!domainId) return;
+      try {
+        const d = await api('/api/domains/' + domainId);
+        domainForWebsite = d.domain_url || d.domain_name || '';
+        if (d.domain_url && !domainForWebsite) {
+          try {
+            const u = new URL(d.domain_url);
+            domainForWebsite = u.hostname || d.domain_url;
+          } catch (e) { domainForWebsite = d.domain_url; }
+        }
+        domainColors = (d.domain_colors && typeof d.domain_colors === 'object') ? d.domain_colors : null;
+        domainFonts = (d.domain_fonts && typeof d.domain_fonts === 'object') ? d.domain_fonts : null;
+      } catch (e) { domainForWebsite = null; domainColors = null; domainFonts = null; }
+    }
+
+    function getApiBase() {
+      return '';
+    }
+
+    async function api(path, options = {}) {
+      const base = getApiBase();
+      const url = (base + path).replace(/\/+/g, '/') || path;
+      const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...options });
+      if (!res.ok) throw new Error(await res.text() || res.statusText);
+      return res.json();
+    }
+
+    async function loadTemplates() {
+      let data;
+      try {
+        data = await api('/api/pin-templates');
+      } catch (e) {
+        setStatus('Cannot reach Pin API: ' + (e.message || e), true);
+        templates = [];
+        document.getElementById('templateSelect').innerHTML = '<option value="">— Select template —</option>';
+        return;
+      }
+      templates = data.templates || [];
+      const sel = document.getElementById('templateSelect');
+      sel.innerHTML = '<option value="">— Select template —</option>' + templates.map(t => `<option value="${t}">${t}</option>`).join('');
+      if (templates.length === 0) {
+        const msg = data.error || 'Pin API returned no templates.';
+        setStatus(msg + ' Start the Pin API: python generator.py --serve (from the Kimi_Agent_Pin folder, default port 5000).', true);
+      }
+    }
+
+    function deepMerge(base, override) {
+      if (!override || typeof override !== 'object') return base;
+      const out = Object.assign({}, base);
+      for (const k of Object.keys(override)) {
+        if (override[k] !== null && typeof override[k] === 'object' && !Array.isArray(override[k]) &&
+            base[k] !== null && typeof base[k] === 'object' && !Array.isArray(base[k])) {
+          out[k] = deepMerge(base[k], override[k]);
+        } else {
+          out[k] = override[k];
+        }
+      }
+      return out;
+    }
+
+    async function loadDomainTemplateForEdit() {
+      if (!domainTemplateId || !domainId) return;
+      try {
+        const saved = await api('/api/domain-templates/' + domainTemplateId);
+        const raw = (saved.template_json || '').trim();
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        const templateName = (parsed.template_name || parsed.template_id || 'template_1').toString().trim().toLowerCase().replace(/-/g, '_');
+        const savedData = parsed.template_data || parsed;
+        if (!templates.length) await loadTemplates();
+        if (templates.indexOf(templateName) === -1) {
+          setStatus('Saved template uses "' + templateName + '" which is not available from Pin API.', true);
+          return;
+        }
+        document.getElementById('templateSelect').value = templateName;
+        if (domainId) await loadDomainForWebsite();
+        const base = await api('/api/pin-template/' + encodeURIComponent(templateName));
+        if (!base.success) throw new Error(base.error);
+        currentTemplateName = base.template_name;
+        templateId = base.template_id;
+        currentStyleSlots = base.style_slots || {};
+        currentFontSlots = base.font_slots || {};
+        templateData = deepMerge(base.template_data, savedData);
+        document.getElementById('templateNameForDomain').value = (saved.name || '').trim() || 'Unnamed';
+        buildForm();
+        if (domainColors || domainFonts) applyDomainColors();
+        updateJsonOut();
+        setStatus('Editing saved template. Update and save to keep changes.');
+        await updatePreview();
+      } catch (e) {
+        setStatus('Could not load domain template: ' + (e.message || e), true);
+      }
+    }
+
+    const PALETTE_COLORS = ['#FFFFFF','#000000','#E1306C','#22C55E','#FBBF24','#3D2B4F','#1A1A1A','#6D4C41','#D4AF37','#111827','#6B7280','#F9FAFB','#FEF3C7'];
+
+    // Fonts available in Pin Editor (value = CSS font-family; label = display name). Used in JSON and taken into account when generating pins.
+    const PIN_FONTS = [
+      { value: 'Arial, sans-serif', label: 'Arial' },
+      { value: 'Arial Black, sans-serif', label: 'Arial Black' },
+      { value: 'Georgia, serif', label: 'Georgia' },
+      { value: 'Verdana, sans-serif', label: 'Verdana' },
+      { value: 'Tahoma, sans-serif', label: 'Tahoma' },
+      { value: "'Times New Roman', serif", label: 'Times New Roman' },
+      { value: "'Trebuchet MS', sans-serif", label: 'Trebuchet MS' },
+      { value: "'Courier New', monospace", label: 'Courier New' },
+      { value: "'Dancing Script', cursive", label: 'Dancing Script' },
+      { value: "'Bebas Neue', sans-serif", label: 'Bebas Neue' },
+      { value: "'Pacifico', cursive", label: 'Pacifico' },
+      { value: "'Great Vibes', cursive", label: 'Great Vibes' },
+      { value: "'Oswald', sans-serif", label: 'Oswald' },
+      { value: "'Playfair Display', serif", label: 'Playfair Display' },
+      { value: "'Montserrat', sans-serif", label: 'Montserrat' },
+      { value: "'Roboto', sans-serif", label: 'Roboto' },
+      { value: "'Open Sans', sans-serif", label: 'Open Sans' },
+      { value: "'Lato', sans-serif", label: 'Lato' },
+      { value: "'Poppins', sans-serif", label: 'Poppins' },
+      { value: "'Raleway', sans-serif", label: 'Raleway' },
+      { value: "'Merriweather', serif", label: 'Merriweather' },
+      { value: "'Source Sans 3', sans-serif", label: 'Source Sans 3' },
+      { value: "'Inter', sans-serif", label: 'Inter' },
+      { value: "'Libre Baskerville', serif", label: 'Libre Baskerville' },
+      { value: "'Crimson Text', serif", label: 'Crimson Text' },
+      { value: "'Segoe UI', system-ui, sans-serif", label: 'Segoe UI' },
+    ];
+    const FONT_OTHER_VALUE = '__other__';
+    function escapeAttr(s) {
+      if (!s) return '';
+      return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    function buildFontFamilySelect(key) {
+      const options = PIN_FONTS.map(f => '<option value="' + escapeAttr(f.value) + '">' + escapeAttr(f.label) + '</option>').join('') +
+        '<option value="' + FONT_OTHER_VALUE + '">Other (custom)</option>';
+      return '<label for="el_' + key + '_font_family">Font family</label>' +
+        '<select id="el_' + key + '_font_family">' + options + '</select>' +
+        '<div class="font-custom-wrap" id="el_' + key + '_font_family_custom_wrap" style="display:none;">' +
+        '<input type="text" id="el_' + key + '_font_family_custom" placeholder="e.g. Georgia, serif">' +
+        '</div>';
+    }
+    function setFontFamilyVal(key, v) {
+      const sel = document.getElementById('el_' + key + '_font_family');
+      const wrap = document.getElementById('el_' + key + '_font_family_custom_wrap');
+      const custom = document.getElementById('el_' + key + '_font_family_custom');
+      if (!sel) return;
+      v = (v || '').trim();
+      const found = PIN_FONTS.some(f => f.value === v);
+      if (found) {
+        sel.value = v;
+        if (wrap) wrap.style.display = 'none';
+      } else {
+        sel.value = FONT_OTHER_VALUE;
+        if (wrap) wrap.style.display = 'block';
+        if (custom) custom.value = v;
+      }
+    }
+    function getFontFamilyVal(key) {
+      const sel = document.getElementById('el_' + key + '_font_family');
+      if (!sel) return '';
+      if (sel.tagName === 'SELECT') {
+        if (sel.value === FONT_OTHER_VALUE) {
+          const custom = document.getElementById('el_' + key + '_font_family_custom');
+          return custom ? custom.value.trim() : '';
+        }
+        return sel.value || '';
+      }
+      return (sel.value || '').trim();
+    }
+
+    function toHex(str) {
+      if (!str || typeof str !== 'string') return '#000000';
+      str = str.trim();
+      const m = str.match(/^#([0-9a-fA-F]{3})$/);
+      if (m) { const s = m[1]; return '#' + s[0]+s[0]+s[1]+s[1]+s[2]+s[2]; }
+      const m6 = str.match(/^#([0-9a-fA-F]{6})$/);
+      if (m6) return '#' + m6[1].toLowerCase();
+      const rgb = str.match(/rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/);
+      if (rgb) return '#' + [1,2,3].map(i => ('0'+Number(rgb[i]).toString(16)).slice(-2)).join('');
+      return '#000000';
+    }
+    function getDomainColorValues() {
+      if (!domainColors) return [];
+      const keys = ['primary', 'secondary', 'background', 'text_primary', 'text_secondary', 'border'];
+      const seen = new Set();
+      const result = [];
+      keys.forEach(k => {
+        const v = (domainColors[k] || '').trim();
+        if (v && !seen.has(v.toLowerCase())) { seen.add(v.toLowerCase()); result.push({ hex: v, label: k }); }
+      });
+      return result;
+    }
+
+    function initColorFields() {
+      document.querySelectorAll('.color-row input[type="color"]').forEach(swatch => {
+        const tid = swatch.id.replace(/_swatch$/, '');
+        const text = document.getElementById(tid);
+        if (!text) return;
+        swatch.addEventListener('input', () => { text.value = swatch.value; triggerAutoPreview(); });
+        text.addEventListener('input', () => { const hex = toHex(text.value); if (/^#[0-9a-fA-F]{6}$/.test(hex)) swatch.value = hex; triggerAutoPreview(); });
+      });
+      const dcVals = getDomainColorValues();
+      document.querySelectorAll('.palette').forEach(pal => {
+        const textId = pal.id.replace(/_palette$/, '');
+        const text = document.getElementById(textId);
+        const swatch = document.getElementById(textId + '_swatch');
+        if (!text) return;
+        if (dcVals.length > 0) {
+          const lbl = document.createElement('span');
+          lbl.className = 'palette-domain-label';
+          lbl.textContent = 'Domain:';
+          pal.appendChild(lbl);
+          dcVals.forEach(dc => {
+            const s = document.createElement('span');
+            s.className = 'palette-swatch domain-swatch';
+            s.style.background = dc.hex;
+            s.title = dc.label + ': ' + dc.hex;
+            s.addEventListener('click', () => { text.value = dc.hex; if (swatch) { const h = toHex(dc.hex); if (/^#[0-9a-fA-F]{6}$/.test(h)) swatch.value = h; } triggerAutoPreview(); });
+            pal.appendChild(s);
+          });
+        }
+        PALETTE_COLORS.forEach(hex => {
+          const s = document.createElement('span');
+          s.className = 'palette-swatch';
+          s.style.background = hex;
+          s.title = hex;
+          s.addEventListener('click', () => { text.value = hex; if (swatch) swatch.value = hex; triggerAutoPreview(); });
+          pal.appendChild(s);
+        });
+      });
+    }
+    let previewDebounce = null;
+    let hasPreviewInIframe = false;
+    let pinPreviewClickMap = [];
+
+    function syncPreviewFromForm() {
+      const iframe = document.getElementById('previewIframe');
+      if (!iframe || !iframe.contentDocument || !templateData || !hasPreviewInIframe) return;
+      const doc = iframe.contentDocument;
+      const cls = (key) => key.replace(/_/g, '-');
+      Object.entries(templateData.elements || {}).forEach(([key, el]) => {
+        if (!el || el.type !== 'text') return;
+        const elId = doc.querySelector('.' + cls(key));
+        if (elId) {
+          const v = getVal('el_' + key);
+          elId.textContent = v !== undefined && v !== null ? String(v) : '';
+        }
+      });
+      Object.keys(templateData.images || {}).forEach((key) => {
+        const img = doc.querySelector('img.' + cls(key));
+        if (img) {
+          const v = getVal('img_' + key);
+          img.src = v || '';
+        }
+      });
+    }
+
+    function triggerAutoPreview() {
+      updateJsonOut();
+      if (!currentTemplateName) return;
+      clearTimeout(previewDebounce);
+      previewDebounce = setTimeout(updatePreview, 300);
+    }
+    function numVal(el) { const v = el && el.value; return v === '' ? undefined : Number(v); }
+
+    function buildForm() {
+      const container = document.getElementById('formContainer');
+      container.innerHTML = '';
+      if (!templateData) return;
+
+      const tabs = [];
+      const panels = [];
+
+      const nameSection = document.createElement('div');
+      nameSection.className = 'form-section';
+      nameSection.innerHTML = '<label for="pinName">Pin name</label><input type="text" id="pinName" placeholder="Recipe or pin name">';
+      tabs.push({ id: 'tab-pin-name', label: 'Pin name' });
+      panels.push(nameSection);
+
+      const images = templateData.images || {};
+      Object.keys(images).forEach(key => {
+        const sec = document.createElement('div');
+        sec.className = 'form-section';
+        sec.innerHTML = '<h3>Image: ' + key.replace(/_/g, ' ') + '</h3>' +
+          '<label for="img_' + key + '">URL</label><input type="url" id="img_' + key + '" placeholder="https://...">' +
+          '<label>Position (top, left)</label><div class="row2"><input type="number" id="img_' + key + '_top" placeholder="top"><input type="number" id="img_' + key + '_left" placeholder="left"></div>' +
+          '<label>Size (width × height)</label><div class="row2"><input type="number" id="img_' + key + '_width" placeholder="width"><input type="number" id="img_' + key + '_height" placeholder="height"></div>';
+        tabs.push({ id: 'tab-img-' + key, label: 'Img: ' + key.replace(/_/g, ' ') });
+        panels.push(sec);
+      });
+
+      const elements = templateData.elements || {};
+      Object.entries(elements).forEach(([key, el]) => {
+        if (!el || !el.type) return;
+        const sec = document.createElement('div');
+        sec.className = 'form-section';
+        let title = key.replace(/_/g, ' ');
+        if (el.type === 'text') title = 'Text: ' + title;
+        else if (el.type === 'div') title = 'Block: ' + title;
+        else if (el.type === 'stars') title = 'Stars: ' + title;
+        sec.innerHTML = '<h3>' + title + '</h3>';
+        const pos = el.position || {};
+        sec.innerHTML += '<label>Position (top, left)</label><div class="row2"><input type="number" id="el_' + key + '_top" placeholder="top"><input type="number" id="el_' + key + '_left" placeholder="left"></div>';
+        if (el.type === 'text') {
+          sec.innerHTML += '<label for="el_' + key + '">Text</label><input type="text" id="el_' + key + '" placeholder="Text">' +
+            buildFontFamilySelect(key) +
+            '<label>Font size (px)</label><input type="number" id="el_' + key + '_font_size" placeholder="36">' +
+            '<label for="el_' + key + '_font_weight">Font weight</label><input type="text" id="el_' + key + '_font_weight" placeholder="bold">' +
+            '<label for="el_' + key + '_color">Color</label><div class="color-row"><input type="color" id="el_' + key + '_color_swatch" aria-label="Pick color"><input type="text" id="el_' + key + '_color" placeholder="#FFFFFF"></div><div class="palette" id="el_' + key + '_color_palette"></div>' +
+            '<label for="el_' + key + '_background_color">Background color</label><div class="color-row"><input type="color" id="el_' + key + '_background_color_swatch" aria-label="Pick background"><input type="text" id="el_' + key + '_background_color" placeholder=""></div><div class="palette" id="el_' + key + '_background_color_palette"></div>' +
+            '<label>Width × Height (px)</label><div class="row2"><input type="number" id="el_' + key + '_width" placeholder="width"><input type="number" id="el_' + key + '_height" placeholder="height"></div>' +
+            '<label for="el_' + key + '_text_align">Text align</label><input type="text" id="el_' + key + '_text_align" placeholder="center">' +
+            '<label for="el_' + key + '_line_height">Line height</label><input type="text" id="el_' + key + '_line_height" placeholder="1.2">';
+        } else if (el.type === 'div') {
+          sec.innerHTML += '<label>Width × Height (px)</label><div class="row2"><input type="number" id="el_' + key + '_width" placeholder="width"><input type="number" id="el_' + key + '_height" placeholder="height"></div>' +
+            '<label for="el_' + key + '_background_color">Background color</label><div class="color-row"><input type="color" id="el_' + key + '_background_color_swatch" aria-label="Pick background"><input type="text" id="el_' + key + '_background_color" placeholder="#1A1A1A"></div><div class="palette" id="el_' + key + '_background_color_palette"></div>';
+        } else if (el.type === 'stars') {
+          sec.innerHTML += '<label for="el_' + key + '_count">Count</label><input type="number" id="el_' + key + '_count" placeholder="5">' +
+            '<label for="el_' + key + '_star_size">Star size (px)</label><input type="number" id="el_' + key + '_star_size" placeholder="24">' +
+            '<label for="el_' + key + '_color">Color</label><div class="color-row"><input type="color" id="el_' + key + '_color_swatch" aria-label="Pick color"><input type="text" id="el_' + key + '_color" placeholder="#FFD700"></div><div class="palette" id="el_' + key + '_color_palette"></div>';
+        }
+        tabs.push({ id: 'tab-el-' + key, label: title });
+        panels.push(sec);
+      });
+
+      const tabBar = document.createElement('div');
+      tabBar.className = 'element-tabs';
+      tabs.forEach((t, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'tab-btn' + (i === 0 ? ' active' : '');
+        btn.textContent = t.label;
+        btn.setAttribute('data-tab-index', String(i));
+        tabBar.appendChild(btn);
+      });
+
+      const panelsWrap = document.createElement('div');
+      panelsWrap.className = 'element-tab-panels';
+      panels.forEach((panel, i) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'element-tab-panel' + (i === 0 ? ' active' : '');
+        wrap.setAttribute('data-tab-index', String(i));
+        wrap.appendChild(panel);
+        panelsWrap.appendChild(wrap);
+      });
+
+      tabBar.addEventListener('click', function(e) {
+        const btn = e.target.closest('.tab-btn');
+        if (!btn) return;
+        const idx = btn.getAttribute('data-tab-index');
+        tabBar.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); });
+        btn.classList.add('active');
+        panelsWrap.querySelectorAll('.element-tab-panel').forEach(p => {
+          p.classList.toggle('active', p.getAttribute('data-tab-index') === idx);
+        });
+      });
+
+      container.appendChild(tabBar);
+      container.appendChild(panelsWrap);
+
+      document.getElementById('pinName').value = templateData.name || '';
+      Object.keys(images).forEach(key => {
+        const idata = images[key] || {};
+        const pos = idata.position || {};
+        setVal('img_' + key, templateData[key] || '');
+        setVal('img_' + key + '_top', pos.top);
+        setVal('img_' + key + '_left', pos.left);
+        setVal('img_' + key + '_width', idata.width);
+        setVal('img_' + key + '_height', idata.height);
+      });
+      Object.entries(elements).forEach(([key, el]) => {
+        if (!el) return;
+        const pos = el.position || {};
+        setVal('el_' + key + '_top', pos.top);
+        setVal('el_' + key + '_left', pos.left);
+        if (el.type === 'text') {
+          setVal('el_' + key, el.text || '');
+          setFontFamilyVal(key, el.font_family || '');
+          setVal('el_' + key + '_font_size', el.font_size);
+          setVal('el_' + key + '_font_weight', el.font_weight || '');
+          setVal('el_' + key + '_color', el.color || '');
+          setVal('el_' + key + '_background_color', el.background_color || '');
+          setVal('el_' + key + '_width', el.width);
+          setVal('el_' + key + '_height', el.height);
+          setVal('el_' + key + '_text_align', el.text_align || '');
+          setVal('el_' + key + '_line_height', el.line_height);
+        } else if (el.type === 'div') {
+          setVal('el_' + key + '_width', el.width);
+          setVal('el_' + key + '_height', el.height);
+          setVal('el_' + key + '_background_color', el.background_color || '');
+        } else if (el.type === 'stars') {
+          setVal('el_' + key + '_count', el.count);
+          setVal('el_' + key + '_star_size', el.star_size);
+          setVal('el_' + key + '_color', el.color || '');
+        }
+        if (key === 'website' && domainForWebsite) {
+          setVal('el_' + key, domainForWebsite);
+        }
+      });
+      initColorFields();
+      document.querySelectorAll('.color-row input[type="color"]').forEach(swatch => {
+        const tid = swatch.id.replace(/_swatch$/, '');
+        const text = document.getElementById(tid);
+        if (text && text.value) { const hex = toHex(text.value); if (/^#[0-9a-fA-F]{6}$/.test(hex)) swatch.value = hex; }
+      });
+      container.querySelectorAll('select[id$="_font_family"]').forEach(sel => {
+        const wrap = document.getElementById(sel.id.replace(/_font_family$/, '_font_family_custom_wrap'));
+        function toggle() { if (wrap) wrap.style.display = sel.value === FONT_OTHER_VALUE ? 'block' : 'none'; }
+        sel.addEventListener('change', toggle);
+        toggle();
+      });
+
+      // Build click-to-edit map: preview element selector -> options { label, tabIndex, fieldId }
+      const imgKeys = Object.keys(images);
+      const elKeys = Object.keys(elements);
+      pinPreviewClickMap = [];
+      imgKeys.forEach((key, i) => {
+        const sel = '.' + key.replace(/_/g, '-');
+        const tabIndex = 1 + i;
+        pinPreviewClickMap.push({ sel, options: [
+          { label: 'Edit image URL', tabIndex, fieldId: 'img_' + key },
+          { label: 'Edit position', tabIndex, fieldId: 'img_' + key + '_top' }
+        ]});
+      });
+      elKeys.forEach((key, i) => {
+        const el = elements[key];
+        if (!el) return;
+        const sel = '.' + key.replace(/_/g, '-');
+        const tabIndex = 1 + imgKeys.length + i;
+        if (el.type === 'text') {
+          pinPreviewClickMap.push({ sel, options: [
+            { label: 'Edit text', tabIndex, fieldId: 'el_' + key },
+            { label: 'Edit color', tabIndex, fieldId: 'el_' + key + '_color' },
+            { label: 'Edit font', tabIndex, fieldId: 'el_' + key + '_font_family' }
+          ]});
+        } else if (el.type === 'div') {
+          pinPreviewClickMap.push({ sel, options: [
+            { label: 'Edit background', tabIndex, fieldId: 'el_' + key + '_background_color' }
+          ]});
+        } else if (el.type === 'stars') {
+          pinPreviewClickMap.push({ sel, options: [
+            { label: 'Edit color', tabIndex, fieldId: 'el_' + key + '_color' },
+            { label: 'Edit count', tabIndex, fieldId: 'el_' + key + '_count' }
+          ]});
+        }
+      });
+    }
+
+    function focusFormFieldPin(tabIndex, fieldId) {
+      const formContainer = document.getElementById('formContainer');
+      const tabBar = formContainer && formContainer.querySelector('.element-tabs');
+      const panelsWrap = formContainer && formContainer.querySelector('.element-tab-panels');
+      if (tabBar) {
+        const btn = tabBar.querySelector('.tab-btn[data-tab-index="' + tabIndex + '"]');
+        if (btn) {
+          tabBar.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          if (panelsWrap) {
+            panelsWrap.querySelectorAll('.element-tab-panel').forEach(p => {
+              p.classList.toggle('active', p.getAttribute('data-tab-index') === String(tabIndex));
+            });
+          }
+        }
+      }
+      const field = document.getElementById(fieldId);
+      if (field) {
+        field.focus();
+        field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    function attachPreviewClickToEditPin(iframe) {
+      if (!iframe || !iframe.contentDocument || !pinPreviewClickMap.length) return;
+      const doc = iframe.contentDocument;
+      const menu = document.getElementById('previewEditMenu');
+      if (!menu) return;
+      function hideMenu() { menu.style.display = 'none'; menu.innerHTML = ''; }
+      document.addEventListener('click', function closeOnOutside(outer) {
+        if (menu.style.display !== 'flex') return;
+        if (menu.contains(outer.target)) return;
+        const d = iframe.contentDocument;
+        if (d && d.contains(outer.target)) return;
+        hideMenu();
+      });
+      doc.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const target = e.target;
+        const options = [];
+        const seen = new Set();
+        for (let i = 0; i < pinPreviewClickMap.length; i++) {
+          const m = pinPreviewClickMap[i];
+          const el = target.closest ? target.closest(m.sel) : null;
+          if (el && m.options) {
+            m.options.forEach(function(opt) {
+              const key = opt.tabIndex + ':' + opt.fieldId;
+              if (!seen.has(key)) { seen.add(key); options.push(opt); }
+            });
+          }
+        }
+        if (options.length === 0) return;
+        if (options.length === 1) {
+          focusFormFieldPin(options[0].tabIndex, options[0].fieldId);
+          return;
+        }
+        menu.innerHTML = '';
+        options.forEach(function(opt) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.textContent = opt.label;
+          btn.onclick = function() { focusFormFieldPin(opt.tabIndex, opt.fieldId); hideMenu(); };
+          menu.appendChild(btn);
+        });
+        var gap = 12;
+        var menuWidth = 180;
+        var menuHeight = 120;
+        var left = e.clientX + gap;
+        var top = e.clientY + gap;
+        if (left + menuWidth > window.innerWidth - 8) left = e.clientX - menuWidth - gap;
+        if (left < 8) left = 8;
+        if (top + menuHeight > window.innerHeight - 8) top = window.innerHeight - menuHeight - 8;
+        if (top < 8) top = 8;
+        menu.style.left = left + 'px';
+        menu.style.top = top + 'px';
+        menu.style.display = 'flex';
+      }, true);
+      doc.body.style.cursor = 'pointer';
+    }
+
+    function setVal(id, v) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.value = v === undefined || v === null ? '' : String(v);
+    }
+
+    function getVal(id) {
+      const el = document.getElementById(id);
+      return el ? el.value : '';
+    }
+
+    function collectFormIntoData() {
+      if (!templateData) return null;
+      const data = JSON.parse(JSON.stringify(templateData));
+      data.name = getVal('pinName') || data.name;
+
+      const images = data.images || {};
+      Object.keys(images).forEach(key => {
+        const input = document.getElementById('img_' + key);
+        if (input) data[key] = input.value || data[key] || '';
+        if (!data.images[key]) return;
+        if (!data.images[key].position) data.images[key].position = {};
+        const t = numVal(document.getElementById('img_' + key + '_top'));
+        const l = numVal(document.getElementById('img_' + key + '_left'));
+        if (t !== undefined) data.images[key].position.top = t;
+        if (l !== undefined) data.images[key].position.left = l;
+        const w = numVal(document.getElementById('img_' + key + '_width'));
+        const h = numVal(document.getElementById('img_' + key + '_height'));
+        if (w !== undefined) data.images[key].width = w;
+        if (h !== undefined) data.images[key].height = h;
+      });
+
+      const elements = data.elements || {};
+      Object.keys(elements).forEach(key => {
+        const e = elements[key];
+        if (!e) return;
+        if (!e.position) e.position = {};
+        const top = numVal(document.getElementById('el_' + key + '_top'));
+        const left = numVal(document.getElementById('el_' + key + '_left'));
+        if (top !== undefined) e.position.top = top;
+        if (left !== undefined) e.position.left = left;
+        if (e.type === 'text') {
+          const textEl = document.getElementById('el_' + key);
+          if (textEl) e.text = textEl.value;
+          const v = getFontFamilyVal(key); if (v) e.font_family = v;
+          const fs = numVal(document.getElementById('el_' + key + '_font_size')); if (fs !== undefined) e.font_size = fs;
+          const fw = getVal('el_' + key + '_font_weight'); if (fw) e.font_weight = fw;
+          const c = getVal('el_' + key + '_color'); if (c) e.color = c;
+          const bc = getVal('el_' + key + '_background_color'); if (bc) e.background_color = bc;
+          const w = numVal(document.getElementById('el_' + key + '_width')); if (w !== undefined) e.width = w;
+          const h = numVal(document.getElementById('el_' + key + '_height')); if (h !== undefined) e.height = h;
+          const ta = getVal('el_' + key + '_text_align'); if (ta) e.text_align = ta;
+          const lh = getVal('el_' + key + '_line_height'); if (lh) e.line_height = lh;
+        } else if (e.type === 'div') {
+          const w = numVal(document.getElementById('el_' + key + '_width')); if (w !== undefined) e.width = w;
+          const h = numVal(document.getElementById('el_' + key + '_height')); if (h !== undefined) e.height = h;
+          const bc = getVal('el_' + key + '_background_color'); if (bc) e.background_color = bc;
+        } else if (e.type === 'stars') {
+          const c = numVal(document.getElementById('el_' + key + '_count')); if (c !== undefined) e.count = c;
+          const ss = numVal(document.getElementById('el_' + key + '_star_size')); if (ss !== undefined) e.star_size = ss;
+          const col = getVal('el_' + key + '_color'); if (col) e.color = col;
+        }
+      });
+      return data;
+    }
+
+    function setStatus(msg, isError) {
+      const s = document.getElementById('previewStatus');
+      s.textContent = msg;
+      s.className = 'status ' + (isError ? 'error' : 'ok');
+    }
+
+    function showPreviewLoading() {
+      const overlay = document.getElementById('previewLoadingOverlay');
+      if (overlay) overlay.classList.add('visible');
+      document.body.classList.add('preview-loading');
+    }
+    function hidePreviewLoading() {
+      const overlay = document.getElementById('previewLoadingOverlay');
+      if (overlay) overlay.classList.remove('visible');
+      document.body.classList.remove('preview-loading');
+    }
+
+    async function updatePreview() {
+      let payload = collectFormIntoData();
+      if (!payload || !currentTemplateName) {
+        setStatus('Select a template and fill the form.', true);
+        return;
+      }
+      if (domainId && (domainColors || domainFonts)) {
+        payload = Object.assign({}, payload);
+        if (domainColors) payload.domain_colors = domainColors;
+        if (domainFonts) payload.domain_fonts = domainFonts;
+      }
+      showPreviewLoading();
+      setStatus('Updating preview (JSON only, no Cloudflare)…');
+      const placeholder = document.getElementById('previewPlaceholder');
+      const iframe = document.getElementById('previewIframe');
+      const img = document.getElementById('previewImg');
+      const urlLine = document.getElementById('generatedImageUrl');
+      if (urlLine) { urlLine.style.display = 'none'; urlLine.textContent = ''; }
+      img.style.display = 'none';
+      try {
+        const res = await fetch('/api/pin-generate?name=' + encodeURIComponent(currentTemplateName) + '&template_only=1', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!data.success) {
+          setStatus(data.error || 'Preview failed', true);
+          return;
+        }
+        if (data.template_data) {
+          document.getElementById('jsonOut').textContent = JSON.stringify({
+            template_name: currentTemplateName,
+            template_id: templateId,
+            template_data: data.template_data
+          }, null, 2);
+        }
+        if (data.index_html) {
+          iframe.srcdoc = data.index_html;
+          iframe.onload = function() { attachPreviewClickToEditPin(iframe); fitPreviewToContainer(); };
+          const wrap = document.getElementById('previewIframeWrap');
+          if (wrap) wrap.style.display = 'block';
+          placeholder.style.display = 'none';
+          hasPreviewInIframe = true;
+          setStatus('Preview updated. Edits now sync instantly.');
+          fitPreviewToContainer();
+        } else {
+          placeholder.textContent = 'Preview OK (no HTML).';
+          placeholder.style.display = 'block';
+          const wrap = document.getElementById('previewIframeWrap');
+          if (wrap) wrap.style.display = 'none';
+          hasPreviewInIframe = false;
+          setStatus('Preview generated.');
+        }
+      } catch (e) {
+        setStatus('Error: ' + e.message + '. Is the Pin API running?', true);
+        placeholder.style.display = 'block';
+        const wrap = document.getElementById('previewIframeWrap');
+        if (wrap) wrap.style.display = 'none';
+        hasPreviewInIframe = false;
+      } finally {
+        hidePreviewLoading();
+      }
+    }
+
+    const IMAGE_PLACEHOLDERS = { background: '{{main_image}}', top_image: '{{top_image}}', bottom_image: '{{bottom_image}}', avatar: '{{avatar_image}}' };
+    const TEXT_PLACEHOLDERS = { title: '{{title}}', subtitle: '{{subtitle}}', badge: '{{badge}}', website: '{{website}}', time_badge: '{{time_badge}}' };
+    function applyPlaceholders(data) {
+      if (!data) return null;
+      const out = JSON.parse(JSON.stringify(data));
+      const images = out.images || {};
+      Object.keys(images).forEach(key => {
+        out[key] = IMAGE_PLACEHOLDERS[key] || ('{{' + key + '}}');
+      });
+      const elements = out.elements || {};
+      Object.keys(elements).forEach(key => {
+        const e = elements[key];
+        if (e && e.type === 'text') e.text = TEXT_PLACEHOLDERS[key] || ('{{' + key + '}}');
+      });
+      return out;
+    }
+
+    function updateJsonOut() {
+      const payload = collectFormIntoData();
+      const out = payload ? { template_name: currentTemplateName, template_id: templateId, template_data: payload } : {};
+      document.getElementById('jsonOut').textContent = JSON.stringify(out, null, 2);
+    }
+
+    function applyDomainColors() {
+      if (!domainColors && !domainFonts) return;
+      if (!templateData) return;
+      const dc = domainColors || {};
+      const df = domainFonts || {};
+      const colorMap = {
+        primary: dc.primary || null,
+        secondary: dc.secondary || null,
+        background: dc.background || null,
+        text_primary: dc.text_primary || null,
+        text_secondary: dc.text_secondary || null,
+        border: dc.border || null,
+        on_primary: '#FFFFFF',
+        on_secondary: '#FFFFFF',
+        on_dark: '#FFFFFF',
+      };
+      if (dc.primary) {
+        colorMap.border_accent = '2px solid ' + dc.primary;
+        colorMap.border_accent_3 = '3px solid ' + dc.primary;
+      }
+      const elements = templateData.elements || {};
+      if (currentStyleSlots && Object.keys(currentStyleSlots).length > 0) {
+        Object.entries(currentStyleSlots).forEach(([elemName, propMap]) => {
+          if (!elements[elemName]) return;
+          Object.entries(propMap).forEach(([cssProp, colorKey]) => {
+            const resolved = colorMap[colorKey];
+            if (!resolved) return;
+            const fieldId = 'el_' + elemName + '_' + cssProp;
+            const field = document.getElementById(fieldId);
+            if (field) {
+              field.value = resolved;
+              const sw = document.getElementById(fieldId + '_swatch');
+              if (sw) { const h = toHex(resolved); if (/^#[0-9a-fA-F]{6}$/.test(h)) sw.value = h; }
+            }
+            if (elements[elemName]) elements[elemName][cssProp] = resolved;
+          });
+        });
+      }
+      const headingFamily = (df.heading_family || '').trim();
+      const bodyFamily = (df.body_family || '').trim();
+      if (currentFontSlots && (headingFamily || bodyFamily)) {
+        Object.entries(currentFontSlots).forEach(([elemName, role]) => {
+          if (!elements[elemName] || elements[elemName].type !== 'text') return;
+          let fam = '';
+          if (role === 'heading' && headingFamily) {
+            fam = headingFamily.indexOf(' ') >= 0 ? ("'" + headingFamily + "', serif") : (headingFamily + ', serif');
+          } else if (role === 'body' && bodyFamily) {
+            fam = bodyFamily.indexOf(' ') >= 0 ? ("'" + bodyFamily + "', sans-serif") : (bodyFamily + ', sans-serif');
+          }
+          if (fam) {
+            setFontFamilyVal(elemName, fam);
+            elements[elemName].font_family = fam;
+          }
+        });
+      }
+      updateJsonOut();
+      triggerAutoPreview();
+    }
+
+    function copyJson() {
+      const pre = document.getElementById('jsonOut');
+      const text = (pre && pre.textContent || '').trim();
+      if (!text || text === '{}') {
+        setStatus('Nothing to copy. Select a template and edit first.', true);
+        return;
+      }
+      navigator.clipboard.writeText(text).then(() => {
+        setStatus('JSON copied to clipboard.');
+        const btn = document.getElementById('btnCopyJson');
+        if (btn) { const orig = btn.textContent; btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = orig; }, 1500); }
+      }).catch(() => setStatus('Could not copy.', true));
+    }
+
+    document.getElementById('btnApplyDomainColors').addEventListener('click', async function() {
+      if (!domainId) return;
+      if (!domainColors && !domainFonts) {
+        await loadDomainForWebsite();
+      }
+      if (!domainColors && !domainFonts) {
+        setStatus('No domain colors or fonts configured. Set them in Admin > Domains.', true);
+        return;
+      }
+      applyDomainColors();
+      setStatus('Domain colors and fonts applied.');
+    });
+
+    document.getElementById('btnSaveToDomain').addEventListener('click', function() {
+      if (!domainId) return;
+      const btn = this;
+      const name = document.getElementById('templateNameForDomain').value.trim() || 'Unnamed';
+      const raw = document.getElementById('jsonOut').textContent.trim();
+      if (!raw || raw === '{}') {
+        alert('Select a template and edit first — the Saved JSON updates automatically.');
+        return;
+      }
+      try {
+        JSON.parse(raw);
+      } catch (e) {
+        alert('Invalid JSON in the Saved JSON box.');
+        return;
+      }
+      const isUpdate = domainTemplateId != null;
+      const url = isUpdate ? '/api/domain-templates/' + domainTemplateId : '/api/domain-templates';
+      const body = isUpdate
+        ? { name: name, template_json: raw }
+        : { domain_id: domainId, name: name, template_json: raw };
+      btn.disabled = true;
+      btn.textContent = 'Saving… (generating image, uploading to Cloudflare)';
+      setStatus('Saving to domain and uploading preview to Cloudflare…');
+      fetch(url, {
+        method: isUpdate ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+        .then(r => r.json())
+        .then(d => {
+          if (d.success) {
+            if (!isUpdate && d.id) domainTemplateId = d.id;
+            setStatus('Saved. Preview image uploaded to Cloudflare.');
+            alert(isUpdate ? 'Template updated.' : 'Saved to domain.');
+            if (window.opener) window.opener.location && window.opener.location.reload();
+          } else {
+            setStatus('Error: ' + (d.error || 'Unknown'), true);
+            alert('Error: ' + (d.error || 'Unknown'));
+          }
+        })
+        .catch(e => {
+          setStatus('Error: ' + e.message, true);
+          alert('Error: ' + e.message);
+        })
+        .finally(function() {
+          btn.disabled = false;
+          btn.textContent = 'Save to domain';
+        });
+    });
+
+    document.getElementById('templateSelect').addEventListener('change', async () => {
+      const name = document.getElementById('templateSelect').value;
+      if (!name) {
+        currentTemplateName = '';
+        templateId = '';
+        templateData = null;
+        hasPreviewInIframe = false;
+        buildForm();
+        document.getElementById('previewPlaceholder').style.display = 'block';
+        const w = document.getElementById('previewIframeWrap');
+        if (w) w.style.display = 'none';
+        document.getElementById('previewImg').style.display = 'none';
+        document.getElementById('generatedImageUrl').style.display = 'none';
+        document.getElementById('previewPlaceholder').textContent = 'Select template — preview updates automatically';
+        document.getElementById('jsonOut').textContent = '{}';
+        return;
+      }
+      try {
+        if (domainId) await loadDomainForWebsite();
+        const data = await api('/api/pin-template/' + encodeURIComponent(name));
+        if (!data.success) throw new Error(data.error);
+        currentTemplateName = data.template_name;
+        templateId = data.template_id;
+        templateData = data.template_data;
+        currentStyleSlots = data.style_slots || {};
+        currentFontSlots = data.font_slots || {};
+        buildForm();
+        if (domainId && (domainColors || domainFonts)) {
+          applyDomainColors();
+        }
+        updateJsonOut();
+        setStatus('Loading preview…');
+        await updatePreview();
+      } catch (e) {
+        setStatus('Failed to load template: ' + e.message, true);
+      }
+    });
+
+    document.getElementById('btnCopyJson').addEventListener('click', copyJson);
+    document.getElementById('formContainer').addEventListener('input', function(e) {
+      if (e.target && e.target.type === 'color') return;
+      updateJsonOut();
+      if (!currentTemplateName) return;
+      clearTimeout(previewDebounce);
+      previewDebounce = setTimeout(updatePreview, 500);
+    });
+    document.getElementById('formContainer').addEventListener('change', function(e) {
+      if (e.target && e.target.type === 'color') return;
+      updateJsonOut();
+      if (!currentTemplateName) return;
+      clearTimeout(previewDebounce);
+      previewDebounce = setTimeout(updatePreview, 500);
+    });
+
+    const box = document.getElementById('previewBox');
+    if (box && typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(function() { fitPreviewToContainer(); }).observe(box);
+    }
+
+    loadTemplates().then(async () => {
+      if (templates.length > 0) setStatus('Templates loaded.');
+      if (domainTemplateId && domainId) {
+        await loadDomainTemplateForEdit();
+      }
+      fitPreviewToContainer();
+    }).catch(() => setStatus('Could not load templates. Start Pin API: python generator.py --serve (port 5000).', true));
+  </script>
+  <div id="previewEditMenu"></div>
+</body>
+</html>

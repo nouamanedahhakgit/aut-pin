@@ -1,0 +1,141 @@
+{
+  "generator-1": {
+    "colors": {
+      "accent": "#6C8AE4",
+      "background": "#FFFFFF",
+      "border": "#E2E8FF",
+      "button_hover_pin": "#FF1A3C",
+      "button_hover_print": "#2D2D44",
+      "button_pin": "#E60023",
+      "button_print": "#1A1A2E",
+      "container_bg": "#F5F7FF",
+      "link": "#6C8AE4",
+      "list_marker": "#6C8AE4",
+      "primary": "#6C8AE4",
+      "secondary": "#9C6ADE",
+      "text_primary": "#2D2D2D",
+      "text_secondary": "#5A5A5A"
+    },
+    "components": {
+      "bullet_list": {
+        "color": "#F4A261",
+        "style": "disc"
+      },
+      "numbered_list": {
+        "circle_bg": "#F4A261",
+        "circle_color": "#FFFFFF",
+        "circle_size": "32px",
+        "style": "circle"
+      },
+      "pro_tips_box": {
+        "bg_color": "#FFF5F0",
+        "border_color": "#FFE8E0",
+        "border_left": "4px solid #F4A261",
+        "padding": "2rem"
+      },
+      "recipe_card": {
+        "bg": "#FFFCFA",
+        "border": "2px solid #FFE8E0",
+        "border_radius": "16px",
+        "meta_icon_color": "#F4A261",
+        "padding": "2rem"
+      }
+    },
+    "dark_mode": false,
+    "fonts": {
+      "body": {
+        "family": "'Inter', sans-serif",
+        "line_height": 1.7,
+        "size": "1rem",
+        "weight": 400
+      },
+      "heading": {
+        "family": "Playfair Display",
+        "sizes": {
+          "h1": "2.5rem",
+          "h2": "1.875rem",
+          "h3": "1.5rem"
+        },
+        "weights": [
+          400,
+          600,
+          700
+        ]
+      }
+    },
+    "layout": {
+      "border_radius": "12px",
+      "box_shadow": "0 4px 20px rgba(0,0,0,0.08)",
+      "container_padding": "2rem",
+      "list_spacing": "1rem",
+      "max_width": "800px",
+      "paragraph_spacing": "1.5rem",
+      "section_spacing": "3rem"
+    }
+  },
+  "generator-2": {
+    "colors": {
+      "primary": "#533fe9",
+      "secondary": "#333333",
+      "accent": "#E8663F",
+      "background": "#FFFFFF",
+      "container_bg": "#FFF8F5",
+      "border": "#F0E0D8",
+      "text_primary": "#2C2C2C",
+      "text_secondary": "#666666",
+      "button_print": "#2C3E50",
+      "button_pin": "#BD081C",
+      "button_hover_print": "#1A252F",
+      "button_hover_pin": "#9B0718",
+      "link": "#E8663F",
+      "list_marker": "#E8663F"
+    },
+    "fonts": {
+      "heading": {
+        "family": "Playfair Display",
+        "sizes": {
+          "h1": "2.5rem",
+          "h2": "1.875rem",
+          "h3": "1.5rem"
+        }
+      },
+      "body": {
+        "family": "'Inter', sans-serif",
+        "size": "1.125rem",
+        "line_height": 1.7
+      }
+    },
+    "layout": {
+      "max_width": "800px",
+      "section_spacing": "40px",
+      "paragraph_spacing": "20px",
+      "list_spacing": "12px",
+      "container_padding": "40px",
+      "border_radius": "8px",
+      "box_shadow": "0 4px 20px rgba(0,0,0,0.08)"
+    },
+    "components": {
+      "pro_tips_box": {
+        "bg_color": "#FFF0EB",
+        "border_color": "#E8663F",
+        "border_left": "4px solid #E8663F",
+        "padding": "24px"
+      },
+      "recipe_card": {
+        "bg": "#FFF8F5",
+        "border": "1px solid #F0E0D8",
+        "border_radius": "12px",
+        "padding": "40px",
+        "meta_icon_color": "#E8663F"
+      },
+      "numbered_list": {
+        "circle_bg": "#E8663F",
+        "circle_color": "#FFFFFF",
+        "circle_size": "28px"
+      },
+      "bullet_list": {
+        "color": "#E8663F"
+      }
+    }
+  }
+}

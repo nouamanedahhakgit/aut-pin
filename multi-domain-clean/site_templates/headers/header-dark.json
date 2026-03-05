@@ -1,0 +1,15 @@
+{
+  "name": "header-dark",
+  "label": "Dark",
+  "config": {
+    "colors": {
+      "bg": "#1a1a1f",
+      "text": "#e8e8ed",
+      "link": "#E60023",
+      "border": "#2d2d35"
+    },
+    "logo_font": "Playfair Display",
+    "nav_font": "Inter"
+  },
+  "html": "<header class=\"site-header\" style=\"background:{{bg}};border-bottom:1px solid {{border}};padding:1rem 2rem;\"><div class=\"header-inner\" style=\"max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;\"><a href=\"/\" class=\"logo\" style=\"font-family:{{logo_font}};font-size:1.5rem;color:{{text}};text-decoration:none;\">{{site_name}}</a><nav><a href=\"/\" style=\"color:{{text}};text-decoration:none;margin-right:1.5rem;font-family:{{nav_font}};\">Home</a><a href=\"/recipes/\" style=\"color:{{link}};text-decoration:none;margin-right:1.5rem;\">Recipes</a><a href=\"/categories/\" style=\"color:{{text}};text-decoration:none;\">Categories</a></nav></div></header>"
+}

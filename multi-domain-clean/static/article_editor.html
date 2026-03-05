@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Article Template Editor — Multi-Domain</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Bebas+Neue&family=Bodoni+Moda&family=Cormorant+Garamond&family=Crimson+Text&family=DM+Sans&family=Dancing+Script&family=Fraunces&family=Great+Vibes&family=Inter&family=Lato&family=Libre+Baskerville&family=Libre+Franklin&family=Lora&family=Merriweather&family=Montserrat&family=Nunito&family=Open+Sans&family=Oswald&family=Outfit&family=Pacifico&family=Playfair+Display&family=Poppins&family=PT+Sans&family=PT+Serif&family=Raleway&family=Roboto&family=Roboto+Slab&family=Source+Sans+3&family=Source+Serif+4&family=Space+Grotesk&family=Work+Sans&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --surface: #1a1a1f;
+      --border: #2d2d35;
+      --text: #e8e8ed;
+      --muted: #8888a0;
+      --accent: #6C8AE4;
+      --accent-hover: #5a7ad4;
+      --success: #22c55e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100%;
+      margin: 0;
+    }
+    body { padding: 0; margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
+    .layout {
+      flex: 1;
+      max-width: 1600px;
+      width: 100%;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 1.5rem;
+      align-items: stretch;
+      min-height: 0;
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .preview-panel { order: 1; min-height: 50vh; }
+      .settings-panel { order: 2; }
+    }
+    .nav-top { margin-bottom: 1rem; flex-shrink: 0; }
+    .nav-top a { color: var(--accent); margin-right: 1rem; font-size: 0.9rem; }
+    h1 { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+    .panel h2 {
+      font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--muted); margin-bottom: 0.75rem;
+    }
+    label { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem; }
+    input, select, textarea {
+      width: 100%; padding: 0.5rem 0.6rem; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text); font-size: 0.85rem; margin-bottom: 0.6rem;
+    }
+    input[type="number"] { width: 100%; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .color-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.6rem; }
+    .color-row input[type="color"] { width: 40px; height: 34px; padding: 2px; cursor: pointer; margin-bottom: 0; flex-shrink: 0; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); }
+    .color-row input[type="text"] { margin-bottom: 0; flex: 1; }
+    .palette { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 0.6rem; }
+    .palette-swatch { width: 22px; height: 22px; border-radius: 4px; cursor: pointer; border: 2px solid var(--border); flex-shrink: 0; }
+    .palette-swatch:hover { border-color: var(--accent); }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+    .btn {
+      display: inline-block; padding: 0.6rem 1rem; border: none; border-radius: 8px;
+      font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: background 0.15s;
+      margin-right: 0.5rem; margin-bottom: 0.5rem;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-success:hover { filter: brightness(1.1); }
+    .btn-secondary { background: var(--border); color: var(--text); }
+    .btn-secondary:hover { background: var(--muted); }
+    .mb1 { margin-bottom: 1rem; }
+    .mt1 { margin-top: 1rem; }
+    .status { font-size: 0.8rem; color: var(--muted); margin-top: 0.5rem; flex-shrink: 0; }
+    .status.error { color: #ef4444; }
+    .status.ok { color: var(--success); }
+    .settings-panel { overflow-y: auto; min-height: 0; }
+    .element-tabs { display: flex; flex-wrap: wrap; gap: 2px; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+    .element-tabs .tab-btn {
+      padding: 0.4rem 0.6rem; font-size: 0.75rem; background: transparent; color: var(--muted); border: none;
+      border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; border-radius: 6px 6px 0 0;
+    }
+    .element-tabs .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+    .element-tabs .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+    .element-tab-panels { margin-top: 0.5rem; }
+    .element-tab-panel { display: none; padding: 0.25rem 0; }
+    .element-tab-panel.active { display: block; }
+    .form-section { margin-bottom: 1rem; }
+    .form-section h3 {
+      font-size: 0.8rem; color: var(--accent); margin-bottom: 0.5rem;
+      padding-bottom: 0.25rem; border-bottom: 1px solid var(--border);
+    }
+    .preview-panel {
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+      min-width: 0;
+      min-height: 0;
+    }
+    .preview-panel h2 { flex-shrink: 0; }
+    .preview-wrap {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      border-radius: 8px;
+      overflow: auto;
+    }
+    .preview-panel-zoom-wrap {
+      flex: 1;
+      min-height: 100%;
+      min-width: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    .preview-iframe {
+      flex: 1;
+      width: 100%;
+      min-height: 0;
+      border: none;
+      border-radius: 8px;
+      background: #fff;
+    }
+    .preview-placeholder {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+      padding: 2rem;
+      text-align: center;
+    }
+    .preview-clickable { cursor: pointer; position: relative; }
+    .preview-clickable:hover::after { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,0.05); border-radius: 8px; pointer-events: none; }
+    .preview-clickable .click-hint { position: absolute; bottom: 8px; right: 8px; font-size: 0.7rem; color: var(--muted); background: var(--surface); padding: 2px 6px; border-radius: 4px; opacity: 0.9; }
+    .preview-cached-img { flex: 1; width: 100%; object-fit: contain; object-position: top; min-height: 0; border-radius: 8px; }
+    .article-modal { position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; padding: 0; }
+    .article-modal-inner { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 90vw; height: 90vh; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+    .article-modal-header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.5rem 1rem; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .article-modal-body { flex: 1; overflow: auto; padding: 1rem; background: #fff; min-height: 0; }
+    .article-preview-zoom-wrap { display: inline-block; }
+    .article-modal-body iframe { width: 100%; height: 100%; min-height: calc(90vh - 2rem); border: none; display: block; }
+    .article-modal-close { background: var(--border); color: var(--text); border: none; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    .article-modal-close:hover { background: var(--muted); }
+    textarea#jsonEdit { min-height: 200px; font-family: 'Consolas','Monaco',monospace; font-size: 0.78rem; }
+    #previewEditMenu {
+      position: fixed; z-index: 9998; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.4); padding: 0.5rem;
+      display: none; flex-direction: column; gap: 2px; min-width: 160px;
+      font-size: 0.8rem;
+    }
+    #previewEditMenu button {
+      padding: 0.5rem 0.75rem; text-align: left; border: none; background: transparent;
+      color: var(--text); cursor: pointer; border-radius: 4px; white-space: nowrap;
+    }
+    #previewEditMenu button:hover { background: var(--accent); color: #fff; }
+    .font-preview { font-size: 1.1rem; margin-top: 0.35rem; padding: 0.5rem; background: var(--bg); border-radius: 6px; min-height: 2rem; color: var(--text); }
+    body.embed-mode .navbar-article-editor { display: none !important; }
+  </style>
+<body>
+  <nav id="navbarArticleEditor" class="navbar navbar-expand navbar-dark bg-dark mb-0 flex-shrink-0 navbar-article-editor">
+    <div class="container-fluid px-3">
+      <a class="navbar-brand fw-bold" href="/database-management">Multi-Domain</a>
+      <div class="navbar-nav">
+        <a class="nav-link" href="/database-management">Database Management</a>
+        <a class="nav-link" href="/pin-editor">Pin Editor</a>
+        <a class="nav-link" href="/article-editor">Article Template</a>
+        <a class="nav-link" href="/article-snippet-editor">Article Snippets</a>
+        <a class="nav-link" href="/article-html-editor">Article HTML/CSS</a>
+        <a class="nav-link" href="/admin/domains">Domains</a>
+        <a class="nav-link" href="/admin/titles">Titles</a>
+        <a class="nav-link" href="/admin/groups">Groups</a>
+      </div>
+    </div>
+  </nav>
+  <div class="container-fluid px-3 py-4" style="flex:1;min-height:0;display:flex;flex-direction:column;">
+  <div class="layout">
+    <div class="panel settings-panel">
+      <h1>Article Template Editor</h1>
+      <p class="status mb1">Each domain uses a <strong>Python generator</strong> (HTML structure) and your <strong>custom config</strong> (colors, fonts, layout). Edit below and save.</p>
+      <div class="mb1" id="domainSection">
+        <label for="domainSelect">Domain</label>
+        <select id="domainSelect">
+          <option value="">— Select domain —</option>
+        </select>
+      </div>
+      <div class="mb1" id="domainTemplateSection" style="display:none;">
+        <label for="articleTemplateName">Template name</label>
+        <input type="text" id="articleTemplateName" class="form-control" placeholder="e.g. Summer Recipe Style, Minimal Dark">
+        <span class="form-text">Optional: give this domain&#39;s design a friendly name</span>
+      </div>
+      <div class="mb1" id="defaultDesignSection">
+        <label for="generatorSelect"><span id="generatorLabel">Base generator</span></label>
+        <select id="generatorSelect">
+          <option value="generator-1">generator-1</option>
+        </select>
+        <p id="generatorHint" class="form-text mb-0" style="font-size:0.75rem;color:var(--muted);">Python generator defines the HTML structure; you customize colors, fonts, layout below</p>
+      </div>
+      <div id="domainInfo" class="status" style="display:none;"></div>
+      <div class="mb1" id="buttonRow">
+        <button type="button" class="btn btn-secondary" id="btnLoadDefault">Load default config</button>
+        <button type="button" class="btn btn-secondary" id="btnLoadDomainColors" title="Apply domain colors & fonts to article" style="display:none;">Load domain colors</button>
+        <select id="reskinIntensity" title="How much to change" style="width:auto;margin-right:0.5rem;margin-bottom:0;">
+          <option value="subtle">Reskin: Subtle</option>
+          <option value="bold" selected>Reskin: Bold</option>
+          <option value="complete">Reskin: Complete makeover</option>
+        </select>
+        <button type="button" class="btn btn-primary" id="btnReskin" title="AI transforms colors, fonts, layout — pick intensity above">Reskin</button>
+        <button type="button" class="btn btn-success" id="btnSaveToDomain">Save to domain</button>
+        <button type="button" class="btn btn-success" id="btnSaveAsDefault">Save as default</button>
+      </div>
+
+      <div class="element-tabs" id="mainTabs">
+        <button type="button" class="tab-btn active" data-tab="colors">Colors</button>
+        <button type="button" class="tab-btn" data-tab="fonts">Fonts</button>
+        <button type="button" class="tab-btn" data-tab="layout">Layout</button>
+        <button type="button" class="tab-btn" data-tab="components">Components</button>
+        <button type="button" class="tab-btn" data-tab="json">JSON</button>
+      </div>
+      <div class="element-tab-panels">
+        <div id="panel-colors" class="element-tab-panel active">
+          <div class="form-section">
+            <h3>Palette colors</h3>
+            <div id="colorsForm"></div>
+          </div>
+        </div>
+        <div id="panel-fonts" class="element-tab-panel">
+          <div class="form-section">
+            <h3>Heading font</h3>
+            <label for="font_heading_family">Font family</label>
+            <select id="font_heading_family"></select>
+            <div id="font_heading_custom_wrap" style="display:none;margin-top:0.35rem;"><input type="text" id="font_heading_custom" placeholder="e.g. Georgia, serif"></div>
+            <div id="font_heading_preview" class="font-preview">Sample Heading Text</div>
+            <label>Heading sizes</label>
+            <div class="row2">
+              <div><label for="font_h1">H1</label><input type="text" id="font_h1" placeholder="2.5rem"></div>
+              <div><label for="font_h2">H2</label><input type="text" id="font_h2" placeholder="1.875rem"></div>
+              <div><label for="font_h3">H3</label><input type="text" id="font_h3" placeholder="1.5rem"></div>
+            </div>
+          </div>
+          <div class="form-section">
+            <h3>Body font</h3>
+            <label for="font_body_family">Font family</label>
+            <select id="font_body_family"></select>
+            <div id="font_body_custom_wrap" style="display:none;margin-top:0.35rem;"><input type="text" id="font_body_custom" placeholder="e.g. Inter, sans-serif"></div>
+            <div id="font_body_preview" class="font-preview">Sample body text for reading</div>
+            <label for="font_body_size">Size</label>
+            <input type="text" id="font_body_size" placeholder="1rem">
+            <label for="font_body_line_height">Line height</label>
+            <input type="text" id="font_body_line_height" placeholder="1.7">
+          </div>
+        </div>
+        <div id="panel-layout" class="element-tab-panel">
+          <div class="form-section">
+            <label for="layout_max_width">Max width</label>
+            <input type="text" id="layout_max_width" placeholder="800px">
+            <label for="layout_section_spacing">Section spacing</label>
+            <input type="text" id="layout_section_spacing" placeholder="3rem">
+            <label for="layout_paragraph_spacing">Paragraph spacing</label>
+            <input type="text" id="layout_paragraph_spacing" placeholder="1.5rem">
+            <label for="layout_list_spacing">List spacing</label>
+            <input type="text" id="layout_list_spacing" placeholder="1rem">
+            <label for="layout_container_padding">Container padding</label>
+            <input type="text" id="layout_container_padding" placeholder="2rem">
+            <label for="layout_border_radius">Border radius</label>
+            <input type="text" id="layout_border_radius" placeholder="12px">
+            <label for="layout_box_shadow">Box shadow</label>
+            <input type="text" id="layout_box_shadow" placeholder="0 4px 20px rgba(0,0,0,0.08)">
+          </div>
+        </div>
+        <div id="panel-components" class="element-tab-panel">
+          <div class="form-section">
+            <h3>Pro tips box</h3>
+            <label>Background</label>
+            <div class="color-row"><input type="color" id="comp_pro_bg_swatch" aria-label="BG"><input type="text" id="comp_pro_bg" placeholder="#FFF5F0"></div>
+            <div class="palette" id="comp_pro_bg_palette"></div>
+            <label>Border color</label>
+            <div class="color-row"><input type="color" id="comp_pro_border_swatch" aria-label="Border"><input type="text" id="comp_pro_border" placeholder="#FFE8E0"></div>
+            <label for="comp_pro_left">Border left</label>
+            <input type="text" id="comp_pro_left" placeholder="4px solid #F4A261">
+            <label for="comp_pro_padding">Padding</label>
+            <input type="text" id="comp_pro_padding" placeholder="2rem">
+          </div>
+          <div class="form-section">
+            <h3>Recipe card</h3>
+            <label>Background</label>
+            <div class="color-row"><input type="color" id="comp_recipe_bg_swatch" aria-label="BG"><input type="text" id="comp_recipe_bg" placeholder="#FFFCFA"></div>
+            <div class="palette" id="comp_recipe_bg_palette"></div>
+            <label for="comp_recipe_border">Border</label>
+            <input type="text" id="comp_recipe_border" placeholder="2px solid #FFE8E0">
+            <label for="comp_recipe_radius">Border radius</label>
+            <input type="text" id="comp_recipe_radius" placeholder="16px">
+            <label for="comp_recipe_padding">Padding</label>
+            <input type="text" id="comp_recipe_padding" placeholder="2rem">
+            <label>Meta icon color</label>
+            <div class="color-row"><input type="color" id="comp_recipe_meta_swatch" aria-label="Meta icon"><input type="text" id="comp_recipe_meta" placeholder="#F4A261"></div>
+            <div class="palette" id="comp_recipe_meta_palette"></div>
+          </div>
+          <div class="form-section">
+            <h3>Numbered list</h3>
+            <label>Circle background</label>
+            <div class="color-row"><input type="color" id="comp_num_bg_swatch" aria-label="Circle BG"><input type="text" id="comp_num_bg" placeholder="#F4A261"></div>
+            <div class="palette" id="comp_num_bg_palette"></div>
+            <label>Circle text color</label>
+            <div class="color-row"><input type="color" id="comp_num_color_swatch" aria-label="Circle text"><input type="text" id="comp_num_color" placeholder="#FFFFFF"></div>
+            <div class="palette" id="comp_num_color_palette"></div>
+            <label for="comp_num_size">Circle size</label>
+            <input type="text" id="comp_num_size" placeholder="32px">
+          </div>
+          <div class="form-section">
+            <h3>Bullet list</h3>
+            <label>Bullet color</label>
+            <div class="color-row"><input type="color" id="comp_bullet_color_swatch" aria-label="Color"><input type="text" id="comp_bullet_color" placeholder="#F4A261"></div>
+            <div class="palette" id="comp_bullet_color_palette"></div>
+          </div>
+        </div>
+        <div id="panel-json" class="element-tab-panel">
+          <label for="jsonEdit">Config JSON (advanced)</label>
+          <textarea id="jsonEdit" placeholder='{"colors": {...}, "fonts": {...}, "layout": {...}, "components": {...}}'></textarea>
+          <button type="button" class="btn btn-secondary btn-sm" id="btnApplyJson">Apply JSON to form</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="preview-panel">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;margin-bottom:0.75rem;">
+        <h2 style="font-size:0.85rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);margin:0;">Preview</h2>
+        <div class="d-flex align-items-center gap-1">
+          <button type="button" class="btn btn-secondary btn-sm" id="previewPanelZoomOut" title="Zoom out">−</button>
+          <span class="badge bg-secondary" id="previewPanelZoomLabel" style="min-width:2.5rem;font-size:0.7rem">100%</span>
+          <button type="button" class="btn btn-secondary btn-sm" id="previewPanelZoomIn" title="Zoom in">+</button>
+        </div>
+      </div>
+      <div id="previewBox" class="preview-wrap">
+        <div id="previewPanelZoomWrap" class="preview-panel-zoom-wrap">
+          <div class="preview-placeholder" id="previewPlaceholder">Select domain or load config — preview updates automatically.</div>
+          <div id="previewCachedWrap" class="preview-clickable" style="display:none;flex:1;min-height:0;position:relative;">
+            <img id="previewCachedImg" class="preview-cached-img" alt="Article preview" src="">
+            <span class="click-hint">Click to view full article</span>
+          </div>
+          <iframe id="previewIframe" class="preview-iframe" title="Article preview" style="display:none;"></iframe>
+        </div>
+      </div>
+      <p class="status" id="previewStatus"></p>
+    </div>
+  </div>
+  </div>
+
+  <div id="previewEditMenu"></div>
+  <div id="articleModal" class="article-modal" style="display:none;">
+    <div class="article-modal-inner">
+      <div class="article-modal-header">
+        <div class="d-flex align-items-center gap-1">
+          <button type="button" class="btn btn-secondary btn-sm" id="articlePreviewZoomOut" title="Zoom out">−</button>
+          <span class="badge bg-secondary" id="articlePreviewZoomLabel" style="min-width:3rem">100%</span>
+          <button type="button" class="btn btn-secondary btn-sm" id="articlePreviewZoomIn" title="Zoom in">+</button>
+        </div>
+        <button type="button" class="article-modal-close" id="articleModalClose">Close</button>
+      </div>
+      <div class="article-modal-body" id="articleModalBody">
+        <div class="article-preview-zoom-wrap" id="articlePreviewZoomWrap" style="width:fit-content;height:fit-content;">
+          <div class="preview-placeholder">Loading…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('embed') === '1') document.body.classList.add('embed-mode');
+    })();
+    const PALETTE_COLORS = ['#FFFFFF','#000000','#6C8AE4','#9C6ADE','#E8663F','#22c55e','#FBBF24','#3D2B4F','#1A1A1A','#F4A261','#FFE8E0','#FFF5F0','#FFFCFA','#E2E8FF','#F5F7FF','#E60023','#2D2D2D','#5A5A5A'];
+
+    const FONTS = [
+      { value: 'Arial, sans-serif', label: 'Arial' },
+      { value: 'Arial Black, sans-serif', label: 'Arial Black' },
+      { value: 'Georgia, serif', label: 'Georgia' },
+      { value: 'Verdana, sans-serif', label: 'Verdana' },
+      { value: 'Tahoma, sans-serif', label: 'Tahoma' },
+      { value: "'Times New Roman', serif", label: 'Times New Roman' },
+      { value: "'Trebuchet MS', sans-serif", label: 'Trebuchet MS' },
+      { value: "'Courier New', monospace", label: 'Courier New' },
+      { value: "'Abril Fatface', serif", label: 'Abril Fatface' },
+      { value: "'Bebas Neue', sans-serif", label: 'Bebas Neue' },
+      { value: "'Bodoni Moda', serif", label: 'Bodoni Moda' },
+      { value: "'Cormorant Garamond', serif", label: 'Cormorant Garamond' },
+      { value: "'Crimson Text', serif", label: 'Crimson Text' },
+      { value: "'Dancing Script', cursive", label: 'Dancing Script' },
+      { value: "'DM Sans', sans-serif", label: 'DM Sans' },
+      { value: "'Fraunces', serif", label: 'Fraunces' },
+      { value: "'Great Vibes', cursive", label: 'Great Vibes' },
+      { value: "'Inter', sans-serif", label: 'Inter' },
+      { value: "'Lato', sans-serif", label: 'Lato' },
+      { value: "'Libre Baskerville', serif", label: 'Libre Baskerville' },
+      { value: "'Libre Franklin', sans-serif", label: 'Libre Franklin' },
+      { value: "'Lora', serif", label: 'Lora' },
+      { value: "'Merriweather', serif", label: 'Merriweather' },
+      { value: "'Montserrat', sans-serif", label: 'Montserrat' },
+      { value: "'Nunito', sans-serif", label: 'Nunito' },
+      { value: "'Open Sans', sans-serif", label: 'Open Sans' },
+      { value: "'Oswald', sans-serif", label: 'Oswald' },
+      { value: "'Outfit', sans-serif", label: 'Outfit' },
+      { value: "'Pacifico', cursive", label: 'Pacifico' },
+      { value: "'Playfair Display', serif", label: 'Playfair Display' },
+      { value: "'Poppins', sans-serif", label: 'Poppins' },
+      { value: "'PT Sans', sans-serif", label: 'PT Sans' },
+      { value: "'PT Serif', serif", label: 'PT Serif' },
+      { value: "'Raleway', sans-serif", label: 'Raleway' },
+      { value: "'Roboto', sans-serif", label: 'Roboto' },
+      { value: "'Roboto Slab', serif", label: 'Roboto Slab' },
+      { value: "'Segoe UI', system-ui, sans-serif", label: 'Segoe UI' },
+      { value: "'Source Sans 3', sans-serif", label: 'Source Sans 3' },
+      { value: "'Source Serif 4', serif", label: 'Source Serif 4' },
+      { value: "'Space Grotesk', sans-serif", label: 'Space Grotesk' },
+      { value: "'Work Sans', sans-serif", label: 'Work Sans' }
+    ];
+    const FONT_OTHER = '__other__';
+
+    function esc(s) {
+      if (!s) return '';
+      return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function buildFontSelects() {
+      const opts = FONTS.map(f => '<option value="' + esc(f.value) + '" style="font-family:' + esc(f.value) + '">' + esc(f.label) + '</option>').join('') +
+        '<option value="' + FONT_OTHER + '">Other (custom)</option>';
+      const heading = document.getElementById('font_heading_family');
+      const body = document.getElementById('font_body_family');
+      if (heading) {
+        heading.innerHTML = opts;
+        heading.addEventListener('change', () => { toggleFontCustom('heading'); onFontChange(); });
+      }
+      if (body) {
+        body.innerHTML = opts;
+        body.addEventListener('change', () => { toggleFontCustom('body'); onFontChange(); });
+      }
+      document.getElementById('font_heading_custom')?.addEventListener('input', () => { updateFontPreview('font_heading_family', 'font_heading_preview', 'font_heading_custom', 'Sample Heading Text'); schedulePreview(); });
+      document.getElementById('font_body_custom')?.addEventListener('input', () => { updateFontPreview('font_body_family', 'font_body_preview', 'font_body_custom', 'Sample body text'); schedulePreview(); });
+    }
+
+    function toggleFontCustom(which) {
+      const sel = document.getElementById('font_' + which + '_family');
+      const wrap = document.getElementById('font_' + which + '_custom_wrap');
+      if (wrap) wrap.style.display = (sel?.value === FONT_OTHER) ? 'block' : 'none';
+    }
+
+    function onFontChange() {
+      updateFontPreview('font_heading_family', 'font_heading_preview', 'font_heading_custom', 'Sample Heading Text');
+      updateFontPreview('font_body_family', 'font_body_preview', 'font_body_custom', 'Sample body text for reading');
+      schedulePreview();
+    }
+
+    function updateFontPreview(selectId, previewId, customId, sample) {
+      const sel = document.getElementById(selectId);
+      const prev = document.getElementById(previewId);
+      const custom = document.getElementById(customId);
+      if (!sel || !prev) return;
+      let fam = sel.value === FONT_OTHER ? (custom?.value?.trim() || '') : sel.value;
+      prev.style.fontFamily = fam || 'inherit';
+      prev.textContent = sample;
+    }
+
+    function getFontValue(selectId, customId) {
+      const sel = document.getElementById(selectId);
+      const custom = document.getElementById(customId);
+      if (!sel) return '';
+      const raw = sel.value === FONT_OTHER ? (custom?.value?.trim() || '') : sel.value;
+      return fontToFamilyName(raw);
+    }
+
+    function fontToFamilyName(v) {
+      if (!v || typeof v !== 'string') return '';
+      v = v.trim();
+      const m = v.match(/^['"]?([^,'"]+)['"]?\s*(?:,\s*\w+)?$/);
+      return m ? m[1].trim() : v;
+    }
+
+    function setFontValue(selectId, customId, wrapId, v) {
+      const sel = document.getElementById(selectId);
+      const custom = document.getElementById(customId);
+      const wrap = document.getElementById(wrapId);
+      if (!sel) return;
+      v = (v || '').trim();
+      const vNorm = fontToFamilyName(v).toLowerCase();
+      const found = FONTS.find(f => fontToFamilyName(f.value).toLowerCase() === vNorm || f.label.toLowerCase() === vNorm);
+      if (found) {
+        sel.value = found.value;
+        if (custom) custom.value = '';
+        if (wrap) wrap.style.display = 'none';
+      } else if (v) {
+        sel.value = FONT_OTHER;
+        if (custom) custom.value = v;
+        if (wrap) wrap.style.display = 'block';
+      }
+    }
+
+    /** Map preview element selectors to multiple edit options. Click → show menu to choose what to edit. */
+    const PREVIEW_CLICK_MAP = [
+      { sel: 'h1', options: [{ label: 'Font', tab: 'fonts', field: 'font_heading_family' }] },
+      { sel: 'h2', options: [{ label: 'Font', tab: 'fonts', field: 'font_h2' }, { label: 'Color (primary)', tab: 'colors', field: 'color_primary' }] },
+      { sel: 'h3', options: [{ label: 'Font', tab: 'fonts', field: 'font_h3' }, { label: 'Color', tab: 'colors', field: 'color_text_primary' }] },
+      { sel: 'p', options: [{ label: 'Body font', tab: 'fonts', field: 'font_body_family' }] },
+      { sel: '.intro', options: [{ label: 'Body font', tab: 'fonts', field: 'font_body_family' }] },
+      { sel: '.hero-image', options: [{ label: 'Border radius', tab: 'layout', field: 'layout_border_radius' }, { label: 'Box shadow', tab: 'layout', field: 'layout_box_shadow' }] },
+      { sel: '.article-container', options: [{ label: 'Max width', tab: 'layout', field: 'layout_max_width' }] },
+      { sel: '.pro-tips-box', options: [{ label: 'Background', tab: 'components', field: 'comp_pro_bg' }, { label: 'Border', tab: 'components', field: 'comp_pro_border' }] },
+      { sel: '.pro-tip-number', options: [{ label: 'Circle color', tab: 'components', field: 'comp_num_bg' }, { label: 'Primary color', tab: 'colors', field: 'color_primary' }] },
+      { sel: '.instructions-list', options: [{ label: 'Numbered list', tab: 'components', field: 'comp_num_bg' }] },
+      { sel: '.instructions-list li', options: [{ label: 'Numbered list', tab: 'components', field: 'comp_num_bg' }] },
+      { sel: '.recipe-card', options: [{ label: 'Background', tab: 'components', field: 'comp_recipe_bg' }, { label: 'Border', tab: 'components', field: 'comp_recipe_border' }] },
+      { sel: '.recipe-card-header', options: [{ label: 'Meta icon color', tab: 'components', field: 'comp_recipe_meta' }] },
+      { sel: '.recipe-meta', options: [{ label: 'Meta icon color', tab: 'components', field: 'comp_recipe_meta' }, { label: 'Primary color', tab: 'colors', field: 'color_primary' }] },
+      { sel: '.ingredients-list', options: [{ label: 'Bullet color', tab: 'components', field: 'comp_bullet_color' }] },
+      { sel: '.ingredients-list li', options: [{ label: 'Bullet color', tab: 'components', field: 'comp_bullet_color' }] },
+      { sel: '.btn-print', options: [{ label: 'Button color', tab: 'colors', field: 'color_button_print' }] },
+      { sel: '.btn-pin', options: [{ label: 'Button color', tab: 'colors', field: 'color_button_pin' }] },
+    ];
+
+    function focusFormField(tab, fieldId) {
+      const tabBtn = document.querySelector('#mainTabs .tab-btn[data-tab="' + tab + '"]');
+      if (tabBtn) {
+        document.querySelectorAll('#mainTabs .tab-btn').forEach(b => b.classList.remove('active'));
+        tabBtn.classList.add('active');
+        document.querySelectorAll('.element-tab-panel').forEach(p => p.classList.remove('active'));
+        const panel = document.getElementById('panel-' + tab);
+        if (panel) panel.classList.add('active');
+      }
+      const field = document.getElementById(fieldId);
+      if (field) {
+        field.focus();
+        field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    function attachPreviewClickToEdit(iframe) {
+      if (!iframe || !iframe.contentDocument) return;
+      const doc = iframe.contentDocument;
+      const menu = document.getElementById('previewEditMenu');
+      function hideMenu() { menu.style.display = 'none'; menu.innerHTML = ''; }
+      document.addEventListener('click', function closeMenuOnOutsideClick(outer) {
+        if (menu.style.display !== 'flex') return;
+        if (menu.contains(outer.target)) return;
+        var doc = iframe.contentDocument;
+        if (doc && doc.contains(outer.target)) return;
+        hideMenu();
+      });
+      doc.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const target = e.target;
+        const options = [];
+        const seen = new Set();
+        for (let i = 0; i < PREVIEW_CLICK_MAP.length; i++) {
+          const m = PREVIEW_CLICK_MAP[i];
+          const el = target.closest ? target.closest(m.sel) : null;
+          if (el && m.options) {
+            m.options.forEach(function(opt) {
+              const key = opt.tab + ':' + opt.field;
+              if (!seen.has(key)) { seen.add(key); options.push(opt); }
+            });
+          }
+        }
+        if (options.length === 0) return;
+        if (options.length === 1) {
+          focusFormField(options[0].tab, options[0].field);
+          return;
+        }
+        menu.innerHTML = '';
+        options.forEach(function(opt) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.textContent = opt.label;
+          btn.onclick = function() { focusFormField(opt.tab, opt.field); hideMenu(); };
+          menu.appendChild(btn);
+        });
+        const rect = iframe.getBoundingClientRect();
+        const x = Math.min(Math.max(e.clientX, 0), rect.width - 10);
+        const y = Math.min(Math.max(e.clientY, 0), rect.height - 10);
+        menu.style.left = (rect.left + x) + 'px';
+        menu.style.top = (rect.top + y + 12) + 'px';
+        menu.style.display = 'flex';
+      }, true);
+      doc.body.style.cursor = 'pointer';
+    }
+
+    const COLOR_KEYS = [
+      ['primary','Primary'],
+      ['secondary','Secondary'],
+      ['accent','Accent'],
+      ['background','Background'],
+      ['container_bg','Container BG'],
+      ['border','Border'],
+      ['text_primary','Text primary'],
+      ['text_secondary','Text secondary'],
+      ['button_print','Button print'],
+      ['button_pin','Button pin'],
+      ['button_hover_print','Button hover print'],
+      ['button_hover_pin','Button hover pin'],
+      ['link','Link'],
+      ['list_marker','List marker']
+    ];
+
+    let domainId = null;
+    let domainData = null;
+
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const d = params.get('domain_id');
+      if (d) domainId = parseInt(d, 10);
+      const domainSection = document.getElementById('domainSection');
+      const domainTemplateSection = document.getElementById('domainTemplateSection');
+      const btnSaveToDomain = document.getElementById('btnSaveToDomain');
+      const btnSaveAsDefault = document.getElementById('btnSaveAsDefault');
+      const generatorLabel = document.getElementById('generatorLabel');
+      const generatorHint = document.getElementById('generatorHint');
+      if (domainId) {
+        if (domainSection) domainSection.style.display = 'none';
+        if (domainTemplateSection) domainTemplateSection.style.display = '';
+        if (btnSaveToDomain) btnSaveToDomain.style.display = '';
+        if (btnSaveAsDefault) btnSaveAsDefault.style.display = 'none';
+        if (generatorLabel) generatorLabel.textContent = 'Base structure (Python generator)';
+        if (generatorHint) generatorHint.textContent = 'HTML layout comes from this generator; you customize CSS (colors, fonts, layout) below';
+      } else {
+        if (domainSection) domainSection.style.display = '';
+        if (domainTemplateSection) domainTemplateSection.style.display = 'none';
+        if (btnSaveToDomain) btnSaveToDomain.style.display = 'none';
+        if (btnSaveAsDefault) btnSaveAsDefault.style.display = '';
+        if (generatorLabel) generatorLabel.textContent = 'Generator';
+        if (generatorHint) generatorHint.textContent = 'Edit and save as default for this generator';
+      }
+    })();
+
+    async function api(path, options = {}) {
+      const res = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...options });
+      const text = await res.text();
+      if (!res.ok) throw new Error(text || res.statusText);
+      return text ? JSON.parse(text) : {};
+    }
+
+    function setStatus(msg, isError) {
+      const el = document.getElementById('domainInfo');
+      el.textContent = msg;
+      el.className = 'status' + (isError ? ' error' : ' ok');
+      el.style.display = msg ? 'block' : 'none';
+    }
+
+    function toHex(str) {
+      if (!str || typeof str !== 'string') return '#000000';
+      str = str.trim();
+      const m3 = str.match(/^#([0-9a-fA-F]{3})$/);
+      if (m3) { const s = m3[1]; return '#' + s[0]+s[0]+s[1]+s[1]+s[2]+s[2]; }
+      const m6 = str.match(/^#([0-9a-fA-F]{6})$/);
+      if (m6) return '#' + m6[1].toLowerCase();
+      const rgb = str.match(/rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/);
+      if (rgb) return '#' + [1,2,3].map(i => ('0'+Number(rgb[i]).toString(16)).slice(-2)).join('');
+      return '#000000';
+    }
+
+    function buildColorsForm() {
+      const container = document.getElementById('colorsForm');
+      container.innerHTML = '';
+      COLOR_KEYS.forEach(([key, label]) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'form-section';
+        wrap.style.marginBottom = '0.75rem';
+        wrap.innerHTML = `<label for="color_${key}">${label}</label>
+          <div class="color-row"><input type="color" id="color_${key}_swatch" aria-label="${label}"><input type="text" id="color_${key}" placeholder="#hex"></div>
+          <div class="palette" id="color_${key}_palette"></div>`;
+        container.appendChild(wrap);
+        const palette = document.getElementById(`color_${key}_palette`);
+        PALETTE_COLORS.forEach(hex => {
+          const s = document.createElement('span');
+          s.className = 'palette-swatch';
+          s.style.background = hex;
+          s.title = hex;
+          s.addEventListener('click', () => {
+            document.getElementById(`color_${key}`).value = hex;
+            document.getElementById(`color_${key}_swatch`).value = hex;
+            schedulePreview();
+          });
+          palette.appendChild(s);
+        });
+      });
+      document.querySelectorAll('.color-row input[type="color"]').forEach(sw => {
+        const tid = sw.id.replace('_swatch','');
+        const text = document.getElementById(tid);
+        if (!text) return;
+        sw.addEventListener('input', () => { text.value = sw.value; schedulePreview(); });
+        text.addEventListener('input', () => {
+          const hex = toHex(text.value);
+          if (/^#[0-9a-fA-F]{6}$/.test(hex)) sw.value = hex;
+          schedulePreview();
+        });
+      });
+    }
+
+    function formToConfig() {
+      const c = {};
+      COLOR_KEYS.forEach(([key]) => {
+        const v = document.getElementById(`color_${key}`)?.value?.trim();
+        if (v) c[key] = v;
+      });
+      const colors = Object.keys(c).length ? c : undefined;
+
+      const fonts = {};
+      const hf = getFontValue('font_heading_family', 'font_heading_custom');
+      const bf = getFontValue('font_body_family', 'font_body_custom');
+      const bs = document.getElementById('font_body_size')?.value?.trim();
+      const bl = document.getElementById('font_body_line_height')?.value?.trim();
+      const h1 = document.getElementById('font_h1')?.value?.trim();
+      const h2 = document.getElementById('font_h2')?.value?.trim();
+      const h3 = document.getElementById('font_h3')?.value?.trim();
+      if (hf || h1 || h2 || h3) fonts.heading = { family: hf || 'Playfair Display', sizes: { h1: h1 || '2.5rem', h2: h2 || '1.875rem', h3: h3 || '1.5rem' } };
+      if (bf || bs || bl) fonts.body = { family: bf || 'Inter', size: bs || '1rem', line_height: parseFloat(bl) || 1.7 };
+
+      const layout = {};
+      ['max_width','section_spacing','paragraph_spacing','list_spacing','container_padding','border_radius','box_shadow'].forEach(k => {
+        const v = document.getElementById(`layout_${k}`)?.value?.trim();
+        if (v) layout[k] = v;
+      });
+
+      const comp = {};
+      const proBg = document.getElementById('comp_pro_bg')?.value?.trim();
+      const proBorder = document.getElementById('comp_pro_border')?.value?.trim();
+      const proLeft = document.getElementById('comp_pro_left')?.value?.trim();
+      const proPad = document.getElementById('comp_pro_padding')?.value?.trim();
+      if (proBg || proBorder || proLeft || proPad) comp.pro_tips_box = { bg_color: proBg || undefined, border_color: proBorder || undefined, border_left: proLeft || undefined, padding: proPad || undefined };
+      const recBg = document.getElementById('comp_recipe_bg')?.value?.trim();
+      const recBorder = document.getElementById('comp_recipe_border')?.value?.trim();
+      const recRadius = document.getElementById('comp_recipe_radius')?.value?.trim();
+      const recPad = document.getElementById('comp_recipe_padding')?.value?.trim();
+      const recMeta = document.getElementById('comp_recipe_meta')?.value?.trim();
+      if (recBg || recBorder || recRadius || recPad || recMeta) comp.recipe_card = { bg: recBg || undefined, border: recBorder || undefined, border_radius: recRadius || undefined, padding: recPad || undefined, meta_icon_color: recMeta || undefined };
+      const numBg = document.getElementById('comp_num_bg')?.value?.trim();
+      const numColor = document.getElementById('comp_num_color')?.value?.trim();
+      const numSize = document.getElementById('comp_num_size')?.value?.trim();
+      if (numBg || numColor || numSize) comp.numbered_list = { circle_bg: numBg, circle_color: numColor, circle_size: numSize };
+      const bulletColor = document.getElementById('comp_bullet_color')?.value?.trim();
+      if (bulletColor) comp.bullet_list = { color: bulletColor };
+
+      const out = {};
+      if (colors) out.colors = colors;
+      if (Object.keys(fonts).length) out.fonts = fonts;
+      if (Object.keys(layout).length) out.layout = layout;
+      if (Object.keys(comp).length) out.components = comp;
+      return out;
+    }
+
+    function configToForm(cfg) {
+      const c = cfg.colors || {};
+      COLOR_KEYS.forEach(([key]) => {
+        const el = document.getElementById(`color_${key}`);
+        const sw = document.getElementById(`color_${key}_swatch`);
+        if (el) { el.value = c[key] || ''; if (sw && c[key]) { const h = toHex(c[key]); if (/^#[0-9a-fA-F]{6}$/.test(h)) sw.value = h; } }
+      });
+      const f = cfg.fonts || {};
+      const h = f.heading || {};
+      const s = h.sizes || {};
+      setFontValue('font_heading_family', 'font_heading_custom', 'font_heading_custom_wrap', h.family);
+      setVal('font_h1', s.h1); setVal('font_h2', s.h2); setVal('font_h3', s.h3);
+      const b = f.body || {};
+      setFontValue('font_body_family', 'font_body_custom', 'font_body_custom_wrap', b.family); setVal('font_body_size', b.size); setVal('font_body_line_height', b.line_height);
+      const l = cfg.layout || {};
+      ['max_width','section_spacing','paragraph_spacing','list_spacing','container_padding','border_radius','box_shadow'].forEach(k => setVal('layout_'+k, l[k]));
+      const comp = cfg.components || {};
+      const pro = comp.pro_tips_box || {};
+      setVal('comp_pro_bg', pro.bg_color); setVal('comp_pro_border', pro.border_color); setVal('comp_pro_left', pro.border_left); setVal('comp_pro_padding', pro.padding);
+      const rec = comp.recipe_card || {};
+      setVal('comp_recipe_bg', rec.bg || rec.bg_color); setVal('comp_recipe_border', rec.border); setVal('comp_recipe_radius', rec.border_radius); setVal('comp_recipe_padding', rec.padding); setVal('comp_recipe_meta', rec.meta_icon_color);
+      const num = comp.numbered_list || {};
+      setVal('comp_num_bg', num.circle_bg); setVal('comp_num_color', num.circle_color); setVal('comp_num_size', num.circle_size);
+      setVal('comp_bullet_color', (comp.bullet_list || {}).color);
+      document.getElementById('jsonEdit').value = JSON.stringify(cfg, null, 2);
+      syncColorSwatches();
+      toggleFontCustom('heading');
+      toggleFontCustom('body');
+      onFontChange();
+    }
+
+    function syncColorSwatches() {
+      ['comp_pro_bg','comp_pro_border','comp_recipe_bg','comp_recipe_meta','comp_num_bg','comp_num_color','comp_bullet_color'].forEach(tid => {
+        const text = document.getElementById(tid);
+        const sw = document.getElementById(tid + '_swatch');
+        if (text && sw && text.value) { const h = toHex(text.value); if (/^#[0-9a-fA-F]{6}$/.test(h)) sw.value = h; }
+      });
+    }
+
+    function setVal(id, v) {
+      const el = document.getElementById(id);
+      if (el) el.value = v === undefined || v === null ? '' : String(v);
+    }
+
+    function getConfigFromForm() {
+      return formToConfig();
+    }
+
+    function syncFromJson() {
+      const raw = document.getElementById('jsonEdit').value.trim();
+      if (!raw) return;
+      try {
+        const cfg = JSON.parse(raw);
+        configToForm(cfg);
+        schedulePreview();
+      } catch (e) { alert('Invalid JSON: ' + e.message); }
+    }
+
+    async function loadDomains() {
+      try {
+        const d = await api('/api/domains');
+        const domains = d.domains || [];
+        const sel = document.getElementById('domainSelect');
+        sel.innerHTML = '<option value="">— Select domain —</option>' +
+          domains.map(x => `<option value="${x.id}">${x.id} — ${(x.domain_url || x.domain_name || '?')}</option>`).join('');
+        if (domainId) { sel.value = domainId; await loadDomainConfig(); }
+      } catch (e) { setStatus('Failed to load domains: ' + e.message, true); }
+    }
+
+    async function loadGenerators() {
+      try {
+        const d = await api('/api/article-generators');
+        const gens = d.generators || [];
+        const sel = document.getElementById('generatorSelect');
+        sel.innerHTML = gens.map(g => `<option value="${g}">${g}</option>`).join('');
+      } catch (_) {}
+    }
+
+    function deepMergeDefaults(base, override) {
+      const out = {};
+      for (const k of new Set([...Object.keys(base || {}), ...Object.keys(override || {})])) {
+        const a = base && base[k], b = override && override[k];
+        if (a && b && typeof a === 'object' && typeof b === 'object' && !Array.isArray(a) && !Array.isArray(b)) {
+          out[k] = deepMergeDefaults(a, b);
+        } else {
+          out[k] = (b !== undefined && b !== null && b !== '') ? b : a;
+        }
+      }
+      return out;
+    }
+
+    async function loadDomainConfig() {
+      const id = parseInt(document.getElementById('domainSelect').value, 10);
+      const btnLoadColors = document.getElementById('btnLoadDomainColors');
+      if (!id) { 
+        configToForm({}); 
+        domainData = null; 
+        const n = document.getElementById('articleTemplateName'); 
+        if (n) n.value = ''; 
+        setStatus(''); 
+        showPreviewPlaceholder(); 
+        if (btnLoadColors) btnLoadColors.style.display = 'none';
+        return; 
+      }
+      domainId = id;
+      if (btnLoadColors) btnLoadColors.style.display = '';
+      try {
+        const d = await api('/api/domain-article-template/' + id);
+        domainData = d;
+        let cfg = d.article_template_config || {};
+        const gen = (d.website_template || 'generator-1').trim();
+        try {
+          const def = await api('/api/article-generator-config?generator=' + encodeURIComponent(gen));
+          if (def.success && def.config) {
+            const defaultCfg = JSON.parse(JSON.stringify(def.config));
+            delete defaultCfg.title;
+            delete defaultCfg.categories_list;
+            delete defaultCfg.structure_template;
+            delete defaultCfg.images;
+            cfg = deepMergeDefaults(defaultCfg, cfg);
+          }
+        } catch (_) {}
+        configToForm(cfg);
+        const genSelect = document.getElementById('generatorSelect');
+        if (genSelect && gen) {
+          genSelect.value = gen;
+          if (!genSelect.querySelector('option[value="' + gen + '"]')) {
+            const opt = document.createElement('option');
+            opt.value = gen;
+            opt.textContent = gen;
+            genSelect.appendChild(opt);
+          }
+        }
+        const nameEl = document.getElementById('articleTemplateName');
+        if (nameEl) nameEl.value = (d.article_template_name || '').trim() || (d.domain_url || d.domain_name || '').trim();
+        setStatus(`Domain: ${d.domain_url || d.domain_name || id}. Base: ${d.website_template || 'generator-1'}${d.article_template_name ? ' — ' + d.article_template_name : ''}`);
+        const previewUrl = (d.article_template_preview_url || '').trim();
+        if (previewUrl && Object.keys(cfg).length > 0) {
+          showPreviewCached(previewUrl);
+        } else {
+          schedulePreview();
+        }
+      } catch (e) { setStatus('Failed to load: ' + e.message, true); }
+    }
+
+    function showPreviewPlaceholder() {
+      document.getElementById('previewPlaceholder').style.display = 'flex';
+      document.getElementById('previewCachedWrap').style.display = 'none';
+      document.getElementById('previewIframe').style.display = 'none';
+    }
+    function showPreviewCached(url) {
+      document.getElementById('previewPlaceholder').style.display = 'none';
+      document.getElementById('previewIframe').style.display = 'none';
+      const wrap = document.getElementById('previewCachedWrap');
+      const img = document.getElementById('previewCachedImg');
+      img.src = url;
+      wrap.style.display = 'flex';
+    }
+    function showPreviewIframe() {
+      document.getElementById('previewPlaceholder').style.display = 'none';
+      document.getElementById('previewCachedWrap').style.display = 'none';
+      document.getElementById('previewIframe').style.display = 'block';
+    }
+
+    async function loadDefaultConfig() {
+      const gen = (document.getElementById('generatorSelect').value || 'generator-1').trim();
+      setStatus('Loading default from ' + gen + '…');
+      try {
+        const d = await api('/api/article-generator-config?generator=' + encodeURIComponent(gen));
+        if (!d.success || !d.config) { setStatus(d.error || 'Generator not available.', true); return; }
+        const cfg = d.config;
+        delete cfg.title;
+        delete cfg.categories_list;
+        configToForm(cfg);
+        setStatus('Loaded default config.');
+        schedulePreview();
+      } catch (e) { setStatus('Failed: ' + e.message, true); }
+    }
+
+    async function reskinConfig() {
+      const cfg = getConfigFromForm();
+      if (!cfg || Object.keys(cfg).length === 0) { setStatus('Load or edit config first, then click Reskin.', true); return; }
+      const gen = (document.getElementById('generatorSelect').value || 'generator-1').trim();
+      const intensity = (document.getElementById('reskinIntensity')?.value || 'bold').trim();
+      setStatus('AI reskinning…');
+      const btn = document.getElementById('btnReskin');
+      if (btn) { btn.disabled = true; }
+      try {
+        const d = await api('/api/article-template-reskin', { method: 'POST', body: JSON.stringify({ config: cfg, generator: gen, intensity: intensity }) });
+        if (!d.success) { setStatus(d.error || 'Reskin failed', true); return; }
+        const improved = d.config;
+        if (improved) {
+          configToForm(improved);
+          document.getElementById('jsonEdit').value = JSON.stringify(improved, null, 2);
+          setStatus('Reskin applied. Generating preview…');
+          showPreviewIframe();
+          const ok = await updatePreviewAsync();
+          setStatus(ok ? 'Reskin applied. Preview updated.' : 'Reskin applied. Preview failed.');
+        } else { setStatus('No changes returned.', true); }
+      } catch (e) { setStatus('Reskin failed: ' + e.message, true); }
+      finally { if (btn) btn.disabled = false; }
+    }
+
+    async function saveAsDefault() {
+      const gen = (document.getElementById('generatorSelect').value || 'generator-1').trim();
+      const formCfg = getConfigFromForm();
+      if (!Object.keys(formCfg).length) { setStatus('Config is empty.', true); return; }
+      let fullCfg = formCfg;
+      try {
+        const def = await api('/api/article-generator-config?generator=' + encodeURIComponent(gen));
+        if (def.success && def.config) {
+          const defaultCfg = JSON.parse(JSON.stringify(def.config));
+          delete defaultCfg.title;
+          delete defaultCfg.categories_list;
+          delete defaultCfg.structure_template;
+          delete defaultCfg.images;
+          fullCfg = deepMergeDefaults(defaultCfg, formCfg);
+        }
+      } catch (_) {}
+      setStatus('Saving…');
+      try {
+        const d = await api('/api/article-generator-defaults', { method: 'PUT', body: JSON.stringify({ generator: gen, config: fullCfg }) });
+        if (d.success) setStatus('Saved as default for ' + gen + '.');
+        else setStatus(d.error || 'Save failed', true);
+      } catch (e) { setStatus('Save failed: ' + e.message, true); }
+    }
+
+    async function saveToDomain() {
+      const id = parseInt(document.getElementById('domainSelect').value, 10);
+      if (!id) { alert('Select a domain first.'); return; }
+      const genVal = (document.getElementById('generatorSelect').value || 'generator-1').trim();
+      const generatorChanged = domainData && (domainData.website_template || '').trim() !== genVal;
+      let fullCfg;
+      if (generatorChanged) {
+        fullCfg = null;
+      } else {
+        const formCfg = getConfigFromForm();
+        if (!Object.keys(formCfg).length) { alert('Config is empty.'); return; }
+        fullCfg = formCfg;
+        try {
+          const def = await api('/api/article-generator-config?generator=' + encodeURIComponent(genVal));
+          if (def.success && def.config) {
+            const defaultCfg = JSON.parse(JSON.stringify(def.config));
+            delete defaultCfg.title;
+            delete defaultCfg.categories_list;
+            delete defaultCfg.structure_template;
+            delete defaultCfg.images;
+            fullCfg = deepMergeDefaults(defaultCfg, formCfg);
+          }
+        } catch (_) {}
+      }
+      setStatus('Saving…');
+      let articlesUpdated = 0;
+      let cssWarning = null;
+      try {
+        const templateName = document.getElementById('articleTemplateName');
+        const body = { config: fullCfg, article_template_name: (templateName && templateName.value) ? templateName.value.trim() : null, website_template: genVal };
+        const d = await api('/api/domain-article-template/' + id, { method: 'PUT', body: JSON.stringify(body) });
+        if (!d.success) { setStatus(d.error || 'Save failed', true); return; }
+        if (typeof d.articles_updated === 'number') articlesUpdated = d.articles_updated;
+        if (d.css_update_warning) cssWarning = d.css_update_warning;
+        setStatus('Generating preview & screenshot…');
+        const ok = await updatePreviewAsync();
+        if (!ok) { setStatus('Saved, but preview failed.', true); return; }
+        const iframe = document.getElementById('previewIframe');
+        await new Promise(r => setTimeout(r, 400));
+        let dataUrl = null;
+        try {
+          const body = iframe.contentDocument && iframe.contentDocument.body;
+          if (body && typeof html2canvas !== 'undefined') {
+            const canvas = await html2canvas(body, { useCORS: true, logging: false, scale: 1 });
+            dataUrl = canvas.toDataURL('image/png');
+          }
+        } catch (hc) { console.warn('html2canvas:', hc); }
+        if (dataUrl) {
+          const b64 = dataUrl.indexOf('base64,') >= 0 ? dataUrl.split('base64,')[1] : dataUrl;
+          const up = await api('/api/article-template-preview-upload', { method: 'POST', body: JSON.stringify({ domain_id: id, image_base64: b64 }) });
+          if (up.success && up.preview_url) {
+            if (domainData) domainData.article_template_preview_url = up.preview_url;
+            showPreviewCached(up.preview_url);
+          }
+        }
+        let msg = 'Saved.';
+        if (articlesUpdated > 0) msg += ' ' + articlesUpdated + ' articles updated with new CSS.';
+        if (cssWarning) msg += ' ' + cssWarning;
+        else msg += ' Screenshot uploaded to Cloudflare.';
+        setStatus(msg, !!cssWarning);
+        if (domainData && genVal) domainData.website_template = genVal;
+        try { if (window.parent && window.parent !== window) window.parent.location.reload(); } catch (_) {}
+      } catch (e) { setStatus('Save failed: ' + e.message, true); }
+    }
+
+    let previewDebounce = null;
+    function schedulePreview() {
+      const cfg = getConfigFromForm();
+      document.getElementById('jsonEdit').value = JSON.stringify(cfg, null, 2);
+      clearTimeout(previewDebounce);
+      previewDebounce = setTimeout(updatePreview, 400);
+    }
+
+    async function updatePreview(opts) {
+      opts = opts || {};
+      const cfg = getConfigFromForm();
+      document.getElementById('jsonEdit').value = JSON.stringify(cfg, null, 2);
+      const gen = (document.getElementById('generatorSelect').value || 'generator-1').trim();
+      const payload = { title: 'Sample Recipe Title', categories_list: [{ id: 1, categorie: 'dessert' }], ...cfg };
+      const statusEl = document.getElementById('previewStatus');
+      const iframe = document.getElementById('previewIframe');
+      statusEl.textContent = 'Generating preview…';
+      statusEl.className = 'status';
+      try {
+        const d = await api('/api/article-preview', { method: 'POST', body: JSON.stringify({ config: payload, generator: gen }) });
+        if (!d.success) { setStatus(d.error || 'Preview failed', true); if (opts.resolve) opts.resolve(false); return; }
+        const html = (d.article_html || '').trim();
+        const css = (d.article_css || '').trim();
+        if (!html) { setStatus('No HTML returned.', true); if (opts.resolve) opts.resolve(false); return; }
+        const doc = html.replace(/<link\s+rel=["']stylesheet["'][^>]*href=["']css\.css["'][^>]*\/?>/i, '<style>' + (css || '') + '</style>');
+        const onLoad = () => {
+          statusEl.textContent = 'Preview updated. Click any element to edit.';
+          statusEl.className = 'status ok';
+          attachPreviewClickToEdit(iframe);
+          if (opts.resolve) opts.resolve(true);
+        };
+        iframe.onload = onLoad;
+        iframe.srcdoc = doc;
+        showPreviewIframe();
+      } catch (e) {
+        setStatus('Preview failed: ' + e.message, true);
+        showPreviewPlaceholder();
+        if (opts.resolve) opts.resolve(false);
+      }
+    }
+
+    function updatePreviewAsync() {
+      return new Promise((resolve) => { updatePreview({ resolve }); });
+    }
+
+    document.getElementById('mainTabs').addEventListener('click', e => {
+      const btn = e.target.closest('.tab-btn');
+      if (!btn) return;
+      const tab = btn.dataset.tab;
+      document.querySelectorAll('#mainTabs .tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.element-tab-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('panel-' + tab).classList.add('active');
+    });
+
+    let articlePreviewZoom = 1;
+    function setArticlePreviewZoom(z) {
+      articlePreviewZoom = Math.max(0.5, Math.min(2, z));
+      var wrap = document.getElementById('articlePreviewZoomWrap');
+      var label = document.getElementById('articlePreviewZoomLabel');
+      if (wrap) wrap.style.zoom = String(articlePreviewZoom);
+      if (label) label.textContent = Math.round(articlePreviewZoom * 100) + '%';
+    }
+    document.getElementById('articlePreviewZoomIn')?.addEventListener('click', function() { setArticlePreviewZoom(articlePreviewZoom + 0.25); });
+    document.getElementById('articlePreviewZoomOut')?.addEventListener('click', function() { setArticlePreviewZoom(articlePreviewZoom - 0.25); });
+
+    let previewPanelZoom = 1;
+    function setPreviewPanelZoom(z) {
+      previewPanelZoom = Math.max(0.5, Math.min(2, z));
+      var wrap = document.getElementById('previewPanelZoomWrap');
+      var label = document.getElementById('previewPanelZoomLabel');
+      if (wrap) wrap.style.zoom = String(previewPanelZoom);
+      if (label) label.textContent = Math.round(previewPanelZoom * 100) + '%';
+    }
+    document.getElementById('previewPanelZoomIn')?.addEventListener('click', function() { setPreviewPanelZoom(previewPanelZoom + 0.25); });
+    document.getElementById('previewPanelZoomOut')?.addEventListener('click', function() { setPreviewPanelZoom(previewPanelZoom - 0.25); });
+
+    async function openArticleModal() {
+      const id = parseInt(document.getElementById('domainSelect').value, 10);
+      if (!id || !domainData) { alert('Select a domain first.'); return; }
+      const modal = document.getElementById('articleModal');
+      const wrap = document.getElementById('articlePreviewZoomWrap');
+      wrap.innerHTML = '<div class="preview-placeholder">Loading article…</div>';
+      modal.style.display = 'flex';
+      setArticlePreviewZoom(1);
+      try {
+        const cfg = getConfigFromForm();
+        const gen = (domainData.website_template || 'generator-1').trim();
+        const payload = { title: 'Sample Recipe Title', categories_list: [{ id: 1, categorie: 'dessert' }], ...cfg };
+        const d = await api('/api/article-preview', { method: 'POST', body: JSON.stringify({ config: payload, generator: gen }) });
+        if (!d.success) { wrap.innerHTML = '<div class="status error">' + esc(d.error || 'Preview failed') + '</div>'; return; }
+        const html = (d.article_html || '').trim();
+        const css = (d.article_css || '').trim();
+        const doc = html.replace(/<link\s+rel=["']stylesheet["'][^>]*href=["']css\.css["'][^>]*\/?>/i, '<style>' + (css || '') + '</style>');
+        wrap.innerHTML = '<iframe id="modalArticleFrame" style="width:900px;min-height:70vh;border:none;"></iframe>';
+        document.getElementById('modalArticleFrame').srcdoc = doc;
+        setArticlePreviewZoom(articlePreviewZoom);
+      } catch (e) { wrap.innerHTML = '<div class="status error">' + esc(e.message) + '</div>'; }
+    }
+    function closeArticleModal() { document.getElementById('articleModal').style.display = 'none'; }
+    document.getElementById('articleModalClose').addEventListener('click', closeArticleModal);
+    document.getElementById('articleModal').addEventListener('click', function(e) { if (e.target === this) closeArticleModal(); });
+
+    document.getElementById('previewBox').addEventListener('click', function(e) {
+      if (document.getElementById('previewPlaceholder').style.display === 'flex') return;
+      openArticleModal();
+    });
+
+    async function loadDomainColors() {
+      const id = parseInt(document.getElementById('domainSelect').value, 10);
+      if (!id) { alert('Select a domain first.'); return; }
+      setStatus('Loading domain colors & fonts…');
+      try {
+        const [colorsRes, fontsRes] = await Promise.all([
+          api('/api/domains/' + id + '/colors'),
+          api('/api/domains/' + id + '/fonts').catch(() => ({ success: false }))
+        ]);
+        const d = colorsRes;
+        if (!d.success || !d.colors) { setStatus('No colors found for domain.', true); return; }
+        const colors = d.colors;
+        const currentCfg = getConfigFromForm();
+        const newCfg = { ...currentCfg };
+        if (!newCfg.colors) newCfg.colors = {};
+        if (colors.primary) newCfg.colors.primary = colors.primary;
+        if (colors.secondary) newCfg.colors.secondary = colors.secondary;
+        if (colors.background) newCfg.colors.background = colors.background;
+        if (colors.text_primary) newCfg.colors.text_primary = colors.text_primary;
+        if (colors.text_secondary) newCfg.colors.text_secondary = colors.text_secondary;
+        if (colors.border) newCfg.colors.border = colors.border;
+        if (colors.primary) {
+          newCfg.colors.accent = colors.primary;
+          newCfg.colors.button_print = colors.primary;
+          newCfg.colors.button_pin = '#E60023';
+          newCfg.colors.link = colors.primary;
+          newCfg.colors.list_marker = colors.primary;
+        }
+        if (colors.background) newCfg.colors.container_bg = colors.background;
+        if (!newCfg.components) newCfg.components = {};
+        if (!newCfg.components.pro_tips_box) newCfg.components.pro_tips_box = {};
+        if (!newCfg.components.recipe_card) newCfg.components.recipe_card = {};
+        if (!newCfg.components.numbered_list) newCfg.components.numbered_list = {};
+        if (!newCfg.components.bullet_list) newCfg.components.bullet_list = {};
+        if (colors.primary) {
+          newCfg.components.pro_tips_box.border_left = '4px solid ' + colors.primary;
+          newCfg.components.recipe_card.meta_icon_color = colors.primary;
+          newCfg.components.numbered_list.circle_bg = colors.primary;
+          newCfg.components.numbered_list.circle_color = '#FFFFFF';
+          newCfg.components.bullet_list.color = colors.primary;
+        }
+        if (colors.background) {
+          const bgHex = colors.background.toLowerCase();
+          if (bgHex === '#ffffff' || bgHex === '#fff') {
+            newCfg.components.pro_tips_box.bg_color = '#FFF5F0';
+            newCfg.components.pro_tips_box.border_color = '#FFE8E0';
+            newCfg.components.recipe_card.bg = '#FFFCFA';
+          } else {
+            newCfg.components.pro_tips_box.bg_color = bgHex;
+            newCfg.components.pro_tips_box.border_color = colors.border || '#E2E8FF';
+            newCfg.components.recipe_card.bg = bgHex;
+          }
+        }
+        if (fontsRes && fontsRes.success && fontsRes.fonts) {
+          const f = fontsRes.fonts;
+          newCfg.fonts = {
+            heading: { family: f.heading_family || 'Playfair Display', sizes: { h1: f.heading_h1 || '2.5rem', h2: f.heading_h2 || '1.875rem', h3: f.heading_h3 || '1.5rem' } },
+            body: { family: f.body_family || 'Inter', size: f.body_size || '1rem', line_height: parseFloat(f.body_line_height) || 1.7 }
+          };
+        }
+        configToForm(newCfg);
+        setStatus('Domain colors & fonts applied to article template.');
+        schedulePreview();
+      } catch (e) { setStatus('Failed to load domain colors: ' + e.message, true); }
+    }
+
+    document.getElementById('domainSelect').addEventListener('change', loadDomainConfig);
+    document.getElementById('generatorSelect').addEventListener('change', function() {
+      if (domainData) {
+        loadDefaultConfig();
+      } else {
+        schedulePreview();
+      }
+    });
+    document.getElementById('btnLoadDefault').addEventListener('click', loadDefaultConfig);
+    document.getElementById('btnLoadDomainColors').addEventListener('click', loadDomainColors);
+    document.getElementById('btnReskin').addEventListener('click', reskinConfig);
+    document.getElementById('btnSaveToDomain').addEventListener('click', saveToDomain);
+    document.getElementById('btnSaveAsDefault').addEventListener('click', saveAsDefault);
+    document.getElementById('btnApplyJson').addEventListener('click', syncFromJson);
+
+    ['font_heading_family','font_h1','font_h2','font_h3','font_body_family','font_body_size','font_body_line_height',
+     'layout_max_width','layout_section_spacing','layout_paragraph_spacing','layout_list_spacing','layout_container_padding','layout_border_radius','layout_box_shadow',
+     'comp_pro_bg','comp_pro_border','comp_pro_left','comp_pro_padding','comp_recipe_bg','comp_recipe_border','comp_recipe_radius','comp_recipe_padding','comp_recipe_meta',
+     'comp_num_bg','comp_num_color','comp_num_size','comp_bullet_color'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', schedulePreview);
+    });
+
+    function buildComponentPalettes() {
+      ['comp_pro_bg','comp_pro_border','comp_recipe_bg','comp_recipe_meta','comp_num_bg','comp_num_color','comp_bullet_color'].forEach(id => {
+        const pal = document.getElementById(id + '_palette');
+        if (!pal || pal.children.length) return;
+        PALETTE_COLORS.forEach(hex => {
+          const s = document.createElement('span');
+          s.className = 'palette-swatch';
+          s.style.background = hex;
+          s.title = hex;
+          s.addEventListener('click', () => {
+            const text = document.getElementById(id);
+            const sw = document.getElementById(id + '_swatch');
+            if (text) text.value = hex;
+            if (sw) sw.value = hex;
+            schedulePreview();
+          });
+          pal.appendChild(s);
+        });
+      });
+    }
+
+    buildColorsForm();
+    buildFontSelects();
+    buildComponentPalettes();
+    document.querySelectorAll('#panel-components .color-row input[type="color"]').forEach(sw => {
+      const tid = sw.id.replace('_swatch','');
+      const text = document.getElementById(tid);
+      if (!text) return;
+      sw.addEventListener('input', () => { text.value = sw.value; schedulePreview(); });
+      text.addEventListener('input', () => { const h = toHex(text.value); if (/^#[0-9a-fA-F]{6}$/.test(h)) sw.value = h; schedulePreview(); });
+    });
+
+    (async function init() {
+      await loadGenerators();
+      await loadDomains();
+      const params = new URLSearchParams(window.location.search);
+      const gen = params.get('generator');
+      if (gen) {
+        const sel = document.getElementById('generatorSelect');
+        if (!sel.querySelector('option[value="' + gen + '"]')) {
+          const opt = document.createElement('option');
+          opt.value = gen;
+          opt.textContent = gen;
+          sel.appendChild(opt);
+        }
+        sel.value = gen;
+        await loadDefaultConfig();
+      }
+    })();
+  </script>
+</body>
+</html>

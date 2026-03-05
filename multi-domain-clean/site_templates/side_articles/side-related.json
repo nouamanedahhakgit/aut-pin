@@ -1,0 +1,1 @@
+{"name":"side-related","label":"Related Posts","config":{"colors":{"bg":"#fff","text":"#2d2d2d","link":"#E60023","border":"#e5e5e5"}},"html":"<aside class=\"side-articles\"><h3>Related Recipes</h3><div class=\"side-list\">{{items}}</div></aside>"}

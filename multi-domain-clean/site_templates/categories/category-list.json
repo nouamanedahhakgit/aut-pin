@@ -1,0 +1,1 @@
+{"name":"category-list","label":"List","config":{"colors":{"bg":"#f8f9fa","text":"#2d2d2d","link":"#E60023"}},"html":"<div class=\"category-page\"><h1>{{category_name}}</h1><ul class=\"articles-list\">{{articles}}</ul></div>"}

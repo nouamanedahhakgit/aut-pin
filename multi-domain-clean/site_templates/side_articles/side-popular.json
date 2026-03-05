@@ -1,0 +1,1 @@
+{"name":"side-popular","label":"Popular","config":{"colors":{"bg":"#FFF8F0","text":"#2d2d2d","link":"#E60023","border":"#FFE8D6"}},"html":"<aside class=\"side-articles\"><h3>Popular Recipes</h3><div class=\"side-list\">{{items}}</div></aside>"}

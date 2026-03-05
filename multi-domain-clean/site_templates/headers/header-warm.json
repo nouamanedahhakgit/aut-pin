@@ -1,0 +1,15 @@
+{
+  "name": "header-warm",
+  "label": "Warm Cozy",
+  "config": {
+    "colors": {
+      "bg": "#FFF8F0",
+      "text": "#2d2d2d",
+      "link": "#E60023",
+      "border": "#FFE8D6"
+    },
+    "logo_font": "Lora",
+    "nav_font": "Source Sans 3"
+  },
+  "html": "<header class=\"site-header\" style=\"background:{{bg}};border-bottom:2px solid {{border}};padding:1.25rem 2rem;\"><div class=\"header-inner\" style=\"max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;\"><a href=\"/\" class=\"logo\" style=\"font-family:{{logo_font}};font-size:1.6rem;color:{{text}};text-decoration:none;font-weight:600;\">{{site_name}}</a><nav><a href=\"/\" style=\"color:{{text}};text-decoration:none;margin-right:1.5rem;font-family:{{nav_font}};\">Home</a><a href=\"/recipes/\" style=\"color:{{link}};text-decoration:none;margin-right:1.5rem;font-weight:500;\">Recipes</a><a href=\"/categories/\" style=\"color:{{text}};text-decoration:none;\">Categories</a></nav></div></header>"
+}

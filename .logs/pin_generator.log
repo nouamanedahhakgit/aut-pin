@@ -1,0 +1,1149 @@
+
+--- Started ---
+2026-03-04 06:05:06 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 06:05:06 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+2026-03-04 06:05:06 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 06:05:06 [INFO] [33mPress CTRL+C to quit[0m
+127.0.0.1 - - [04/Mar/2026 06:06:02] "GET /templates HTTP/1.1" 200 -
+2026-03-04 06:06:02 [INFO] 127.0.0.1 - - [04/Mar/2026 06:06:02] "GET /templates HTTP/1.1" 200 -
+127.0.0.1 - - [04/Mar/2026 06:06:04] "GET /template/template_1 HTTP/1.1" 200 -
+2026-03-04 06:06:04 [INFO] 127.0.0.1 - - [04/Mar/2026 06:06:04] "GET /template/template_1 HTTP/1.1" 200 -
+2026-03-04 06:06:07 [INFO] --- /generate | template=template_1 | template_only=False
+2026-03-04 06:06:07 [INFO]   body keys=['background', 'canvas', 'elements', 'field_prompts', 'images', 'name', 'prompt', 'domain_colors'] | variables.title=Preview
+2026-03-04 06:06:08 [INFO] AI request | title='Preview' | fields=['badge', 'title'] | model=gpt-4o-mini
+2026-03-04 06:06:11 [INFO] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-04 06:06:11 [INFO]   \u2192 badge: Must Try
+2026-03-04 06:06:11 [INFO]   \u2192 title: Delicious Preview Delight
+2026-03-04 06:06:11 [INFO] OpenAI done | 2 fields
+2026-03-04 06:06:11 [INFO]   Applied domain_colors=True domain_fonts=False (defaults)
+2026-03-04 06:06:11 [INFO] Merged template_data | elements=['overlay_band', 'badge', 'stars', 'title']
+2026-03-04 06:06:11 [INFO] Run generator | output_dir=C:\Users\leno\AppData\Local\Temp\pin_pwm7w7iu
+2026-03-04 06:06:11 [INFO] Screenshot | 600x1067 | html_len=2928
+2026-03-04 06:06:23 [INFO] Screenshot ok | size=769 KB
+2026-03-04 06:06:23 [INFO] R2 upload | bucket=elmehdi | size=769 KB
+C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\boto3\compat.py:89: PythonDeprecationWarning: Boto3 will no longer support Python 3.9 starting April 29, 2026. To continue receiving service updates, bug fixes, and security updates please upgrade to Python 3.10 or later. More information can be found here: https://aws.amazon.com/blogs/developer/python-support-policy-updates-for-aws-sdks-and-tools/
+  warnings.warn(warning, PythonDeprecationWarning)
+2026-03-04 06:06:28 [INFO] R2 upload ok | url=https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/pins/c3bb29c2d1a8407ab3965a8de35b8d89.png
+2026-03-04 06:06:28 [INFO] Response | success | image_url=https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/pins/c3bb29c2d1a8407ab3965a8de35b8d89.png
+127.0.0.1 - - [04/Mar/2026 06:06:28] "POST /generate?name=template_1 HTTP/1.1" 200 -
+2026-03-04 06:06:28 [INFO] 127.0.0.1 - - [04/Mar/2026 06:06:28] "POST /generate?name=template_1 HTTP/1.1" 200 -
+
+--- Started ---
+2026-03-04 06:07:23 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 06:07:23 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+2026-03-04 06:07:23 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 06:07:23 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 06:10:11 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 06:10:11 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+2026-03-04 06:10:11 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 06:10:11 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 06:16:30 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 06:16:30 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+2026-03-04 06:16:30 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 06:16:30 [INFO] [33mPress CTRL+C to quit[0m
+127.0.0.1 - - [04/Mar/2026 06:17:18] "GET /templates HTTP/1.1" 200 -
+2026-03-04 06:17:18 [INFO] 127.0.0.1 - - [04/Mar/2026 06:17:18] "GET /templates HTTP/1.1" 200 -
+127.0.0.1 - - [04/Mar/2026 06:17:20] "GET /template/template_1 HTTP/1.1" 200 -
+2026-03-04 06:17:20 [INFO] 127.0.0.1 - - [04/Mar/2026 06:17:20] "GET /template/template_1 HTTP/1.1" 200 -
+2026-03-04 06:17:22 [INFO] --- /generate | template=template_1 | template_only=False
+2026-03-04 06:17:22 [INFO]   body keys=['background', 'canvas', 'elements', 'field_prompts', 'images', 'name', 'prompt', 'domain_colors'] | variables.title=Preview
+2026-03-04 06:17:24 [INFO] AI request | title='Preview' | fields=['badge', 'title'] | model=gpt-4o-mini
+2026-03-04 06:17:27 [INFO] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-04 06:17:27 [INFO]   \u2192 badge: Must Try
+2026-03-04 06:17:27 [INFO]   \u2192 title: Delicious Preview Dish
+2026-03-04 06:17:27 [INFO] OpenAI done | 2 fields
+2026-03-04 06:17:27 [INFO]   Applied domain_colors=True domain_fonts=False (defaults)
+2026-03-04 06:17:27 [INFO] Merged template_data | elements=['overlay_band', 'badge', 'stars', 'title']
+2026-03-04 06:17:27 [INFO] Run generator | output_dir=C:\Users\leno\AppData\Local\Temp\pin_63rj7hif
+2026-03-04 06:17:27 [INFO] Screenshot | 600x1067 | html_len=2925
+2026-03-04 06:17:52 [INFO] Screenshot ok | size=769 KB
+2026-03-04 06:17:52 [INFO] R2 upload | bucket=elmehdi | size=769 KB
+C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\boto3\compat.py:89: PythonDeprecationWarning: Boto3 will no longer support Python 3.9 starting April 29, 2026. To continue receiving service updates, bug fixes, and security updates please upgrade to Python 3.10 or later. More information can be found here: https://aws.amazon.com/blogs/developer/python-support-policy-updates-for-aws-sdks-and-tools/
+  warnings.warn(warning, PythonDeprecationWarning)
+2026-03-04 06:17:57 [INFO] R2 upload ok | url=https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/pins/85415487b27543daad6f9e913b67e0b0.png
+2026-03-04 06:17:57 [INFO] Response | success | image_url=https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/pins/85415487b27543daad6f9e913b67e0b0.png
+127.0.0.1 - - [04/Mar/2026 06:17:57] "POST /generate?name=template_1 HTTP/1.1" 200 -
+2026-03-04 06:17:57 [INFO] 127.0.0.1 - - [04/Mar/2026 06:17:57] "POST /generate?name=template_1 HTTP/1.1" 200 -
+127.0.0.1 - - [04/Mar/2026 06:17:59] "GET /template/template_2 HTTP/1.1" 200 -
+2026-03-04 06:17:59 [INFO] 127.0.0.1 - - [04/Mar/2026 06:17:59] "GET /template/template_2 HTTP/1.1" 200 -
+2026-03-04 06:18:02 [INFO] --- /generate | template=template_2 | template_only=False
+2026-03-04 06:18:02 [INFO]   body keys=['bottom_image', 'canvas', 'elements', 'field_prompts', 'images', 'name', 'prompt', 'top_image', 'domain_colors'] | variables.title=Preview
+2026-03-04 06:18:02 [INFO] AI request | title='Preview' | fields=['subtitle', 'title'] | model=gpt-4o-mini
+2026-03-04 06:18:03 [INFO] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-04 06:18:03 [INFO]   \u2192 subtitle: TASTY AND TEMPTING
+2026-03-04 06:18:03 [INFO]   \u2192 title: PREVIEW
+2026-03-04 06:18:03 [INFO] OpenAI done | 2 fields
+2026-03-04 06:18:03 [INFO]   Applied domain_colors=True domain_fonts=False (defaults)
+2026-03-04 06:18:03 [INFO] Merged template_data | elements=['purple_banner', 'subtitle', 'title', 'website_bar', 'website']
+2026-03-04 06:18:03 [INFO] Run generator | output_dir=C:\Users\leno\AppData\Local\Temp\pin_yfttlusw
+2026-03-04 06:18:03 [INFO] Screenshot | 600x1067 | html_len=2508
+2026-03-04 06:18:08 [INFO] Screenshot ok | size=967 KB
+2026-03-04 06:18:08 [INFO] R2 upload | bucket=elmehdi | size=967 KB
+2026-03-04 06:18:14 [INFO] R2 upload ok | url=https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/pins/f3ba572ebed74aa0a0ac87b7eca1fbf8.png
+2026-03-04 06:18:14 [INFO] Response | success | image_url=https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/pins/f3ba572ebed74aa0a0ac87b7eca1fbf8.png
+127.0.0.1 - - [04/Mar/2026 06:18:14] "POST /generate?name=template_2 HTTP/1.1" 200 -
+2026-03-04 06:18:14 [INFO] 127.0.0.1 - - [04/Mar/2026 06:18:14] "POST /generate?name=template_2 HTTP/1.1" 200 -
+127.0.0.1 - - [04/Mar/2026 06:18:20] "GET /templates HTTP/1.1" 200 -
+2026-03-04 06:18:20 [INFO] 127.0.0.1 - - [04/Mar/2026 06:18:20] "GET /templates HTTP/1.1" 200 -
+127.0.0.1 - - [04/Mar/2026 06:18:22] "GET /template/template_3 HTTP/1.1" 200 -
+2026-03-04 06:18:22 [INFO] 127.0.0.1 - - [04/Mar/2026 06:18:22] "GET /template/template_3 HTTP/1.1" 200 -
+2026-03-04 06:18:24 [INFO] --- /generate | template=template_3 | template_only=False
+2026-03-04 06:18:24 [INFO]   body keys=['avatar', 'background', 'canvas', 'elements', 'field_prompts', 'images', 'name', 'prompt', 'domain_colors'] | variables.title=Preview
+2026-03-04 06:18:24 [INFO] AI request | title='Preview' | fields=['title'] | model=gpt-4o-mini
+2026-03-04 06:18:26 [INFO] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-04 06:18:26 [INFO]   \u2192 title: Delicious Preview Bites for Entertaining
+2026-03-04 06:18:26 [INFO] OpenAI done | 1 fields
+2026-03-04 06:18:26 [INFO]   Applied domain_colors=True domain_fonts=False (defaults)
+2026-03-04 06:18:26 [INFO] Merged template_data | elements=['overlay_box', 'title', 'stars', 'website']
+2026-03-04 06:18:26 [INFO] Run generator | output_dir=C:\Users\leno\AppData\Local\Temp\pin_3dw5yg_h
+2026-03-04 06:18:26 [INFO] Screenshot | 600x1067 | html_len=3345
+2026-03-04 06:18:30 [INFO] Screenshot ok | size=695 KB
+2026-03-04 06:18:30 [INFO] R2 upload | bucket=elmehdi | size=695 KB
+2026-03-04 06:18:34 [INFO] R2 upload ok | url=https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/pins/e78c61eaa4cd454b825d4a67a7d2fa56.png
+2026-03-04 06:18:34 [INFO] Response | success | image_url=https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/pins/e78c61eaa4cd454b825d4a67a7d2fa56.png
+127.0.0.1 - - [04/Mar/2026 06:18:34] "POST /generate?name=template_3 HTTP/1.1" 200 -
+2026-03-04 06:18:34 [INFO] 127.0.0.1 - - [04/Mar/2026 06:18:34] "POST /generate?name=template_3 HTTP/1.1" 200 -
+127.0.0.1 - - [04/Mar/2026 06:18:36] "GET /template/template_4 HTTP/1.1" 200 -
+2026-03-04 06:18:36 [INFO] 127.0.0.1 - - [04/Mar/2026 06:18:36] "GET /template/template_4 HTTP/1.1" 200 -
+2026-03-04 06:18:38 [INFO] --- /generate | template=template_4 | template_only=False
+2026-03-04 06:18:38 [INFO]   body keys=['bottom_image', 'canvas', 'elements', 'field_prompts', 'images', 'name', 'prompt', 'top_image', 'domain_colors'] | variables.title=Preview
+2026-03-04 06:18:38 [INFO] AI request | title='Preview' | fields=['subtitle', 'title', 'time_badge'] | model=gpt-4o-mini
+2026-03-04 06:18:41 [INFO] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-04 06:18:41 [INFO]   \u2192 subtitle: Taste the Excitement
+2026-03-04 06:18:41 [INFO]   \u2192 title: SNEAK PEEK<brDELICIOUS RECIPE
+2026-03-04 06:18:41 [INFO]   \u2192 time_badge: in just 15 minutes
+2026-03-04 06:18:41 [INFO] OpenAI done | 3 fields
+2026-03-04 06:18:41 [INFO]   Applied domain_colors=True domain_fonts=False (defaults)
+2026-03-04 06:18:41 [INFO] Merged template_data | elements=['text_band', 'subtitle', 'title', 'time_badge']
+2026-03-04 06:18:41 [INFO] Run generator | output_dir=C:\Users\leno\AppData\Local\Temp\pin_lpc6d63u
+2026-03-04 06:18:41 [INFO] Screenshot | 600x1067 | html_len=2661
+2026-03-04 06:18:45 [INFO] Screenshot ok | size=960 KB
+2026-03-04 06:18:45 [INFO] R2 upload | bucket=elmehdi | size=960 KB
+2026-03-04 06:18:51 [INFO] R2 upload ok | url=https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/pins/5262a6afdd394c7c86666c782f05bb44.png
+2026-03-04 06:18:51 [INFO] Response | success | image_url=https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/pins/5262a6afdd394c7c86666c782f05bb44.png
+127.0.0.1 - - [04/Mar/2026 06:18:51] "POST /generate?name=template_4 HTTP/1.1" 200 -
+2026-03-04 06:18:51 [INFO] 127.0.0.1 - - [04/Mar/2026 06:18:51] "POST /generate?name=template_4 HTTP/1.1" 200 -
+
+--- Started ---
+2026-03-04 06:24:03 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 06:24:03 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+2026-03-04 06:24:03 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 06:24:03 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 06:38:11 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 06:38:11 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+2026-03-04 06:38:11 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 06:38:11 [INFO] [33mPress CTRL+C to quit[0m
+127.0.0.1 - - [04/Mar/2026 06:38:45] "GET /templates HTTP/1.1" 200 -
+2026-03-04 06:38:45 [INFO] 127.0.0.1 - - [04/Mar/2026 06:38:45] "GET /templates HTTP/1.1" 200 -
+127.0.0.1 - - [04/Mar/2026 06:38:47] "GET /template/template_1 HTTP/1.1" 200 -
+2026-03-04 06:38:47 [INFO] 127.0.0.1 - - [04/Mar/2026 06:38:47] "GET /template/template_1 HTTP/1.1" 200 -
+2026-03-04 06:38:49 [INFO] --- /generate | template=template_1 | template_only=False
+2026-03-04 06:38:49 [INFO]   body keys=['background', 'canvas', 'elements', 'field_prompts', 'images', 'name', 'prompt', 'domain_colors'] | variables.title=Preview
+2026-03-04 06:38:49 [INFO] AI request | title='Preview' | fields=['badge', 'title'] | model=gpt-4o-mini
+2026-03-04 06:38:51 [INFO] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-04 06:38:51 [INFO]   \u2192 badge: Must Try
+2026-03-04 06:38:51 [INFO]   \u2192 title: Delicious Preview Recipe
+2026-03-04 06:38:51 [INFO] OpenAI done | 2 fields
+2026-03-04 06:38:51 [INFO]   Applied domain_colors=True domain_fonts=False (defaults)
+2026-03-04 06:38:51 [INFO] Merged template_data | elements=['overlay_band', 'badge', 'stars', 'title']
+2026-03-04 06:38:51 [INFO] Run generator | output_dir=C:\Users\leno\AppData\Local\Temp\pin_ksgu7_o8
+2026-03-04 06:38:51 [INFO] Screenshot | 600x1067 | html_len=2927
+2026-03-04 06:39:02 [INFO] Screenshot ok | size=769 KB
+2026-03-04 06:39:02 [INFO] R2 upload | bucket=elmehdi | size=769 KB
+C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\boto3\compat.py:89: PythonDeprecationWarning: Boto3 will no longer support Python 3.9 starting April 29, 2026. To continue receiving service updates, bug fixes, and security updates please upgrade to Python 3.10 or later. More information can be found here: https://aws.amazon.com/blogs/developer/python-support-policy-updates-for-aws-sdks-and-tools/
+  warnings.warn(warning, PythonDeprecationWarning)
+2026-03-04 06:39:07 [INFO] R2 upload ok | url=https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/pins/b7b5f17c5d2a4104b1f983b75307cd65.png
+2026-03-04 06:39:07 [INFO] Response | success | image_url=https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/pins/b7b5f17c5d2a4104b1f983b75307cd65.png
+127.0.0.1 - - [04/Mar/2026 06:39:07] "POST /generate?name=template_1 HTTP/1.1" 200 -
+2026-03-04 06:39:07 [INFO] 127.0.0.1 - - [04/Mar/2026 06:39:07] "POST /generate?name=template_1 HTTP/1.1" 200 -
+
+--- Started ---
+2026-03-04 06:39:35 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 06:39:35 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+2026-03-04 06:39:35 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 06:39:35 [INFO] [33mPress CTRL+C to quit[0m
+127.0.0.1 - - [04/Mar/2026 06:40:17] "GET /templates HTTP/1.1" 200 -
+2026-03-04 06:40:17 [INFO] 127.0.0.1 - - [04/Mar/2026 06:40:17] "GET /templates HTTP/1.1" 200 -
+127.0.0.1 - - [04/Mar/2026 06:40:19] "GET /template/template_3 HTTP/1.1" 200 -
+2026-03-04 06:40:19 [INFO] 127.0.0.1 - - [04/Mar/2026 06:40:19] "GET /template/template_3 HTTP/1.1" 200 -
+2026-03-04 06:40:21 [INFO] --- /generate | template=template_3 | template_only=False
+2026-03-04 06:40:21 [INFO]   body keys=['avatar', 'background', 'canvas', 'elements', 'field_prompts', 'images', 'name', 'prompt', 'domain_colors'] | variables.title=Preview
+2026-03-04 06:40:22 [INFO] AI request | title='Preview' | fields=['title'] | model=gpt-4o-mini
+2026-03-04 06:40:24 [INFO] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-04 06:40:24 [INFO]   \u2192 title: Delicious Preview Bites
+2026-03-04 06:40:24 [INFO] OpenAI done | 1 fields
+2026-03-04 06:40:24 [INFO]   Applied domain_colors=True domain_fonts=False (defaults)
+2026-03-04 06:40:24 [INFO] Merged template_data | elements=['overlay_box', 'title', 'stars', 'website']
+2026-03-04 06:40:24 [INFO] Run generator | output_dir=C:\Users\leno\AppData\Local\Temp\pin_f_ojp5kq
+2026-03-04 06:40:24 [INFO] Screenshot | 600x1067 | html_len=3328
+2026-03-04 06:40:29 [INFO] Screenshot ok | size=691 KB
+2026-03-04 06:40:29 [INFO] R2 upload | bucket=elmehdi | size=691 KB
+C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\boto3\compat.py:89: PythonDeprecationWarning: Boto3 will no longer support Python 3.9 starting April 29, 2026. To continue receiving service updates, bug fixes, and security updates please upgrade to Python 3.10 or later. More information can be found here: https://aws.amazon.com/blogs/developer/python-support-policy-updates-for-aws-sdks-and-tools/
+  warnings.warn(warning, PythonDeprecationWarning)
+2026-03-04 06:40:33 [INFO] R2 upload ok | url=https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/pins/7bb220db8f1a4fb0917bd6c08d9bb4f9.png
+2026-03-04 06:40:33 [INFO] Response | success | image_url=https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/pins/7bb220db8f1a4fb0917bd6c08d9bb4f9.png
+127.0.0.1 - - [04/Mar/2026 06:40:33] "POST /generate?name=template_3 HTTP/1.1" 200 -
+2026-03-04 06:40:33 [INFO] 127.0.0.1 - - [04/Mar/2026 06:40:33] "POST /generate?name=template_3 HTTP/1.1" 200 -
+127.0.0.1 - - [04/Mar/2026 06:40:35] "GET /template/template_4 HTTP/1.1" 200 -
+2026-03-04 06:40:35 [INFO] 127.0.0.1 - - [04/Mar/2026 06:40:35] "GET /template/template_4 HTTP/1.1" 200 -
+2026-03-04 06:40:37 [INFO] --- /generate | template=template_4 | template_only=False
+2026-03-04 06:40:37 [INFO]   body keys=['bottom_image', 'canvas', 'elements', 'field_prompts', 'images', 'name', 'prompt', 'top_image', 'domain_colors'] | variables.title=Preview
+2026-03-04 06:40:37 [INFO] AI request | title='Preview' | fields=['subtitle', 'title', 'time_badge'] | model=gpt-4o-mini
+2026-03-04 06:40:39 [INFO] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-04 06:40:39 [INFO]   \u2192 subtitle: Sneak Peek
+2026-03-04 06:40:39 [INFO]   \u2192 title: TASTY TREATS<br>FOR EVERYONE
+2026-03-04 06:40:39 [INFO]   \u2192 time_badge: in just 15 minutes
+2026-03-04 06:40:39 [INFO] OpenAI done | 3 fields
+2026-03-04 06:40:39 [INFO]   Applied domain_colors=True domain_fonts=False (defaults)
+2026-03-04 06:40:39 [INFO] Merged template_data | elements=['text_band', 'subtitle', 'title', 'time_badge']
+2026-03-04 06:40:39 [INFO] Run generator | output_dir=C:\Users\leno\AppData\Local\Temp\pin_5v7qzeya
+2026-03-04 06:40:39 [INFO] Screenshot | 600x1067 | html_len=2650
+2026-03-04 06:40:44 [INFO] Screenshot ok | size=963 KB
+2026-03-04 06:40:44 [INFO] R2 upload | bucket=elmehdi | size=963 KB
+2026-03-04 06:40:50 [INFO] R2 upload ok | url=https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/pins/e87bab0fb8a64aeea5862f503d5631db.png
+2026-03-04 06:40:50 [INFO] Response | success | image_url=https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/pins/e87bab0fb8a64aeea5862f503d5631db.png
+127.0.0.1 - - [04/Mar/2026 06:40:50] "POST /generate?name=template_4 HTTP/1.1" 200 -
+2026-03-04 06:40:50 [INFO] 127.0.0.1 - - [04/Mar/2026 06:40:50] "POST /generate?name=template_4 HTTP/1.1" 200 -
+127.0.0.1 - - [04/Mar/2026 06:57:36] "GET /templates HTTP/1.1" 200 -
+2026-03-04 06:57:36 [INFO] 127.0.0.1 - - [04/Mar/2026 06:57:36] "GET /templates HTTP/1.1" 200 -
+127.0.0.1 - - [04/Mar/2026 06:57:38] "GET /template/template_1 HTTP/1.1" 200 -
+2026-03-04 06:57:38 [INFO] 127.0.0.1 - - [04/Mar/2026 06:57:38] "GET /template/template_1 HTTP/1.1" 200 -
+2026-03-04 06:57:40 [INFO] --- /generate | template=template_1 | template_only=False
+2026-03-04 06:57:40 [INFO]   body keys=['background', 'canvas', 'elements', 'field_prompts', 'images', 'name', 'prompt', 'domain_colors'] | variables.title=Preview
+2026-03-04 06:57:40 [INFO] AI request | title='Preview' | fields=['badge', 'title'] | model=gpt-4o-mini
+2026-03-04 06:57:42 [INFO] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-04 06:57:42 [INFO]   \u2192 badge: Must Try
+2026-03-04 06:57:42 [INFO]   \u2192 title: Delicious Preview Recipe
+2026-03-04 06:57:42 [INFO] OpenAI done | 2 fields
+2026-03-04 06:57:42 [INFO]   Applied domain_colors=True domain_fonts=False (defaults)
+2026-03-04 06:57:42 [INFO] Merged template_data | elements=['overlay_band', 'badge', 'stars', 'title']
+2026-03-04 06:57:42 [INFO] Run generator | output_dir=C:\Users\leno\AppData\Local\Temp\pin_pvvji_c8
+2026-03-04 06:57:42 [INFO] Screenshot | 600x1067 | html_len=2927
+127.0.0.1 - - [04/Mar/2026 06:57:48] "GET /templates HTTP/1.1" 200 -
+2026-03-04 06:57:48 [INFO] 127.0.0.1 - - [04/Mar/2026 06:57:48] "GET /templates HTTP/1.1" 200 -
+127.0.0.1 - - [04/Mar/2026 06:57:50] "GET /template/template_3 HTTP/1.1" 200 -
+2026-03-04 06:57:50 [INFO] 127.0.0.1 - - [04/Mar/2026 06:57:50] "GET /template/template_3 HTTP/1.1" 200 -
+2026-03-04 06:57:52 [INFO] --- /generate | template=template_3 | template_only=False
+2026-03-04 06:57:52 [INFO]   body keys=['avatar', 'background', 'canvas', 'elements', 'field_prompts', 'images', 'name', 'prompt', 'domain_colors'] | variables.title=Preview
+2026-03-04 06:57:52 [INFO] AI request | title='Preview' | fields=['title'] | model=gpt-4o-mini
+2026-03-04 06:57:53 [INFO] Screenshot ok | size=769 KB
+2026-03-04 06:57:53 [INFO] R2 upload | bucket=elmehdi | size=769 KB
+2026-03-04 06:57:54 [INFO] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-04 06:57:54 [INFO]   \u2192 title: Delicious Preview Platter Ideas
+2026-03-04 06:57:54 [INFO] OpenAI done | 1 fields
+2026-03-04 06:57:54 [INFO]   Applied domain_colors=True domain_fonts=False (defaults)
+2026-03-04 06:57:54 [INFO] Merged template_data | elements=['overlay_box', 'title', 'stars', 'website']
+2026-03-04 06:57:54 [INFO] Run generator | output_dir=C:\Users\leno\AppData\Local\Temp\pin_7c1wwppz
+2026-03-04 06:57:54 [INFO] Screenshot | 600x1067 | html_len=3336
+2026-03-04 06:57:57 [INFO] R2 upload ok | url=https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/pins/cbb59c99f2484499b0068c5541322aa3.png
+2026-03-04 06:57:57 [INFO] Response | success | image_url=https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/pins/cbb59c99f2484499b0068c5541322aa3.png
+127.0.0.1 - - [04/Mar/2026 06:57:57] "POST /generate?name=template_1 HTTP/1.1" 200 -
+2026-03-04 06:57:57 [INFO] 127.0.0.1 - - [04/Mar/2026 06:57:57] "POST /generate?name=template_1 HTTP/1.1" 200 -
+2026-03-04 06:58:00 [INFO] Screenshot ok | size=693 KB
+2026-03-04 06:58:00 [INFO] R2 upload | bucket=elmehdi | size=693 KB
+2026-03-04 06:58:04 [INFO] R2 upload ok | url=https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/pins/1da30018179842a2a013bb0b2b25e772.png
+2026-03-04 06:58:04 [INFO] Response | success | image_url=https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/pins/1da30018179842a2a013bb0b2b25e772.png
+127.0.0.1 - - [04/Mar/2026 06:58:04] "POST /generate?name=template_3 HTTP/1.1" 200 -
+2026-03-04 06:58:04 [INFO] 127.0.0.1 - - [04/Mar/2026 06:58:04] "POST /generate?name=template_3 HTTP/1.1" 200 -
+127.0.0.1 - - [04/Mar/2026 06:58:06] "GET /template/template_4 HTTP/1.1" 200 -
+2026-03-04 06:58:06 [INFO] 127.0.0.1 - - [04/Mar/2026 06:58:06] "GET /template/template_4 HTTP/1.1" 200 -
+2026-03-04 06:58:08 [INFO] --- /generate | template=template_4 | template_only=False
+2026-03-04 06:58:08 [INFO]   body keys=['bottom_image', 'canvas', 'elements', 'field_prompts', 'images', 'name', 'prompt', 'top_image', 'domain_colors'] | variables.title=Preview
+2026-03-04 06:58:08 [INFO] AI request | title='Preview' | fields=['subtitle', 'title', 'time_badge'] | model=gpt-4o-mini
+2026-03-04 06:58:10 [INFO] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-04 06:58:10 [INFO]   \u2192 subtitle: Deliciously Simple
+2026-03-04 06:58:10 [INFO]   \u2192 title: TASTY DISH<br>FOR EVERYONE
+2026-03-04 06:58:10 [INFO]   \u2192 time_badge: ready in 30 min
+2026-03-04 06:58:10 [INFO] OpenAI done | 3 fields
+2026-03-04 06:58:10 [INFO]   Applied domain_colors=True domain_fonts=False (defaults)
+2026-03-04 06:58:10 [INFO] Merged template_data | elements=['text_band', 'subtitle', 'title', 'time_badge']
+2026-03-04 06:58:10 [INFO] Run generator | output_dir=C:\Users\leno\AppData\Local\Temp\pin_97_yodpg
+2026-03-04 06:58:10 [INFO] Screenshot | 600x1067 | html_len=2653
+
+--- Started ---
+2026-03-04 06:58:13 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 06:58:13 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+2026-03-04 06:58:13 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 06:58:13 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 08:07:58 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 08:07:58 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+2026-03-04 08:07:58 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 08:07:58 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 12:27:27 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 12:27:27 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.88.135:5000
+2026-03-04 12:27:27 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.88.135:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 12:27:27 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 13:30:45 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 13:30:45 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.88.135:5000
+2026-03-04 13:30:45 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.88.135:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 13:30:45 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 15:46:18 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 15:46:18 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+2026-03-04 15:46:18 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 15:46:18 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 17:29:24 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 17:29:24 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+2026-03-04 17:29:24 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 17:29:24 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 18:11:59 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 18:11:59 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+2026-03-04 18:11:59 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 18:11:59 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 21:12:13 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 21:12:13 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+2026-03-04 21:12:13 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 21:12:13 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 21:23:10 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 21:23:10 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+2026-03-04 21:23:10 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 21:23:10 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 21:23:40 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 21:23:40 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+2026-03-04 21:23:40 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 21:23:40 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 21:33:35 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 21:33:35 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+2026-03-04 21:33:35 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 21:33:35 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 21:45:46 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 21:45:46 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+2026-03-04 21:45:46 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 21:45:46 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 22:03:12 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 22:03:12 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+2026-03-04 22:03:12 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 22:03:12 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 22:21:59 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 22:21:59 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+2026-03-04 22:21:59 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 22:21:59 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 22:23:10 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 22:23:10 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+2026-03-04 22:23:10 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 22:23:10 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 22:25:10 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 22:25:10 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+2026-03-04 22:25:10 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 22:25:10 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 22:28:42 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 22:28:42 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+2026-03-04 22:28:42 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 22:28:42 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 22:31:34 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 22:31:34 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+2026-03-04 22:31:34 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 22:31:34 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 22:31:50 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 22:31:50 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+2026-03-04 22:31:50 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 22:31:50 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 22:39:17 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 22:39:17 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+2026-03-04 22:39:17 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 22:39:17 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 22:46:45 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 22:46:45 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+2026-03-04 22:46:45 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 22:46:45 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 22:51:36 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 22:51:36 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+2026-03-04 22:51:36 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 22:51:36 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 22:52:37 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 22:52:37 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+2026-03-04 22:52:37 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 22:52:37 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-04 23:50:05 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-04 23:50:05 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+2026-03-04 23:50:05 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+[33mPress CTRL+C to quit[0m
+2026-03-04 23:50:05 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-05 06:20:53 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-05 06:20:53 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://127.0.0.1:5000
+2026-03-05 06:20:53 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://127.0.0.1:5000
+[33mPress CTRL+C to quit[0m
+2026-03-05 06:20:53 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-05 06:38:24 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-05 06:38:24 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+2026-03-05 06:38:24 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+[33mPress CTRL+C to quit[0m
+2026-03-05 06:38:24 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-05 06:46:12 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-05 06:46:12 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+2026-03-05 06:46:12 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+[33mPress CTRL+C to quit[0m
+2026-03-05 06:46:12 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-05 06:58:00 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-05 06:58:00 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+2026-03-05 06:58:00 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+[33mPress CTRL+C to quit[0m
+2026-03-05 06:58:00 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-05 07:13:23 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-05 07:13:23 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+2026-03-05 07:13:23 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+[33mPress CTRL+C to quit[0m
+2026-03-05 07:13:23 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-05 07:24:24 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-05 07:24:24 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+2026-03-05 07:24:24 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+[33mPress CTRL+C to quit[0m
+2026-03-05 07:24:24 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-05 07:32:56 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-05 07:32:56 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+2026-03-05 07:32:56 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+[33mPress CTRL+C to quit[0m
+2026-03-05 07:32:56 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-05 07:36:31 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-05 07:36:31 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+2026-03-05 07:36:31 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+[33mPress CTRL+C to quit[0m
+2026-03-05 07:36:31 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-05 08:02:54 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-05 08:02:54 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+2026-03-05 08:02:54 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+[33mPress CTRL+C to quit[0m
+2026-03-05 08:02:54 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-05 08:03:58 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-05 08:03:58 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+2026-03-05 08:03:58 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.101:5000
+[33mPress CTRL+C to quit[0m
+2026-03-05 08:03:58 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-05 09:21:27 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-05 09:21:27 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\wrdp\wordup\automatisation\automation\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://127.0.0.1:5000
+2026-03-05 09:21:27 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://127.0.0.1:5000
+[33mPress CTRL+C to quit[0m
+2026-03-05 09:21:27 [INFO] [33mPress CTRL+C to quit[0m
