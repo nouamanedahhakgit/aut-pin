@@ -353,38 +353,38 @@ def get_user_group_ids(user_id, is_admin=False):
         return list(expanded)
 
 def get_user_config_for_api(user_id):
-    """Get user's API configuration, falling back to system defaults."""
+    """Get user's API configuration from database only."""
     keys = get_user_api_keys(user_id)
     
-    # Build config dict with user keys or system defaults
+    # Build config dict with user keys
     config = {}
     
     # OpenAI
-    config["openai_api_key"] = keys.get("openai_api_key") or os.getenv("OPENAI_API_KEY")
-    config["openai_model"] = keys.get("openai_model") or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    config["openai_api_key"] = keys.get("openai_api_key")
+    config["openai_model"] = keys.get("openai_model") or "gpt-4o-mini"
     
     # OpenRouter
-    config["openrouter_api_key"] = keys.get("openrouter_api_key") or os.getenv("OPENROUTER_API_KEY")
-    config["openrouter_model"] = keys.get("openrouter_model") or os.getenv("OPENROUTER_MODEL", "openai/gpt-oss-120b")
+    config["openrouter_api_key"] = keys.get("openrouter_api_key")
+    config["openrouter_model"] = keys.get("openrouter_model") or "openai/gpt-oss-120b"
     
     # Local
-    config["local_api_url"] = keys.get("local_api_url") or os.getenv("LOCAL_API_URL", "http://localhost:11434/api/generate")
-    config["local_models"] = keys.get("local_models") or os.getenv("LOCAL_MODELS", "qwen3:8b,llama3.2:3b")
+    config["local_api_url"] = keys.get("local_api_url") or "http://localhost:11434/api/generate"
+    config["local_models"] = keys.get("local_models") or "qwen3:8b,llama3.2:3b"
     
     # Midjourney
-    config["midjourney_api_token"] = keys.get("midjourney_api_token") or os.getenv("MIDJOURNEY_API_TOKEN")
-    config["midjourney_channel_id"] = keys.get("midjourney_channel_id") or os.getenv("MIDJOURNEY_CHANNEL_ID")
+    config["midjourney_api_token"] = keys.get("midjourney_api_token")
+    config["midjourney_channel_id"] = keys.get("midjourney_channel_id")
     
     # R2
-    config["r2_account_id"] = keys.get("r2_account_id") or os.getenv("R2_ACCOUNT_ID")
-    config["r2_access_key_id"] = keys.get("r2_access_key_id") or os.getenv("R2_ACCESS_KEY_ID")
-    config["r2_secret_access_key"] = keys.get("r2_secret_access_key") or os.getenv("R2_SECRET_ACCESS_KEY")
-    config["r2_bucket_name"] = keys.get("r2_bucket_name") or os.getenv("R2_BUCKET_NAME")
-    config["r2_public_url"] = keys.get("r2_public_url") or os.getenv("R2_PUBLIC_URL")
+    config["r2_account_id"] = keys.get("r2_account_id")
+    config["r2_access_key_id"] = keys.get("r2_access_key_id")
+    config["r2_secret_access_key"] = keys.get("r2_secret_access_key")
+    config["r2_bucket_name"] = keys.get("r2_bucket_name")
+    config["r2_public_url"] = keys.get("r2_public_url")
     
     # Cloudflare
-    config["cloudflare_account_id"] = keys.get("cloudflare_account_id") or os.getenv("CLOUDFLARE_ACCOUNT_ID")
-    config["cloudflare_api_token"] = keys.get("cloudflare_api_token") or os.getenv("CLOUDFLARE_API_TOKEN")
+    config["cloudflare_account_id"] = keys.get("cloudflare_account_id")
+    config["cloudflare_api_token"] = keys.get("cloudflare_api_token")
     
     return config
 
@@ -446,6 +446,17 @@ def _save_bulk_history(history):
 
 
 _bulk_history = _load_bulk_history()
+
+# On startup, any jobs that were left "running" in history are actually dead because the server restarted.
+history_changed_on_startup = False
+for jid, p in list(_bulk_history.items()):
+    if isinstance(p, dict) and p.get("status") == "running":
+        p["status"] = "error"
+        p["message"] = "Server restarted"
+        history_changed_on_startup = True
+
+if history_changed_on_startup:
+    _save_bulk_history(_bulk_history)
 
 
 @app.route("/favicon.ico")
@@ -533,7 +544,6 @@ def base_layout(content, title, nav_extra=None):
     <div class="navbar-nav ms-auto">
       {nav_extra_html}
       <a class="nav-link" href="/admin/domains">Domains</a>
-      <a class="nav-link" href="/admin/groups">Groups</a>
       <a class="nav-link" href="/admin/titles">Titles</a>
       {f'<a class="nav-link" href="/admin/users">👥 Users</a>' if session.get('is_admin') else ''}
       <a class="nav-link" href="/profile">👤 {session.get('username', 'Profile')}</a>
@@ -3276,8 +3286,9 @@ def api_bulk_run():
     return jsonify({"success": True, "message": f"Done: {', '.join(done)}"})
 
 
-def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scope="override", scope_content=None, scope_images=None, ai_provider=None, openrouter_models=None):
+def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scope="override", scope_content=None, scope_images=None, ai_provider=None, openrouter_models=None, user_id=None):
     """Run bulk-run for all rows in one group. scope_content/scope_images for per-phase skip."""
+    user_config = get_user_config_for_api(user_id) if user_id else {}
     sc = scope_content if scope_content is not None else scope
     si = scope_images if scope_images is not None else scope
     with get_connection() as conn:
@@ -3391,7 +3402,7 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                     prompt = (row.get("prompt") or "").strip() if row else ""
                     prompt_ing = (row.get("prompt_image_ingredients") or "").strip() if row else ""
                     if prompt:
-                        urls, err = generate_4_images(prompt, key_prefix="main_image", cancel_check=cancel_check)
+                        urls, err = generate_4_images(prompt, key_prefix="main_image", cancel_check=cancel_check, user_config=user_config)
                         if err and err == "Cancelled":
                             break
                         if not err:
@@ -3402,7 +3413,7 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                                 src = BOTTOM_SOURCE_INDEX[i]
                                 if src < len(urls) and urls[src]:
                                     try:
-                                        bottom_urls[i] = flip_image_vertical_and_upload(urls[src], "bottom_image")
+                                        bottom_urls[i] = flip_image_vertical_and_upload(urls[src], "bottom_image", user_config=user_config)
                                     except Exception:
                                         bottom_urls[i] = None
                             with get_connection() as conn:
@@ -3414,7 +3425,7 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                                         if cur.rowcount == 0:
                                             db_execute(conn, "INSERT INTO article_content (title_id, language_code, main_image, top_image, bottom_image) VALUES (?, 'en', ?, ?, ?)", (tid, main_url, main_url, bottom_url))
                     if prompt_ing and not (job_id and _bulk_cancel.get(job_id)):
-                        urls2, err2 = generate_4_images(prompt_ing, key_prefix="ingredient_image", cancel_check=cancel_check)
+                        urls2, err2 = generate_4_images(prompt_ing, key_prefix="ingredient_image", cancel_check=cancel_check, user_config=user_config)
                         if err2 == "Cancelled":
                             break
                         if not err2:
@@ -3514,7 +3525,7 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
     return ok, failed
 
 
-def _run_bulk_group_async(job_id, group_id, mode, scope="override", scope_content=None, scope_images=None, ai_provider=None, openrouter_models=None):
+def _run_bulk_group_async(job_id, group_id, mode, scope="override", scope_content=None, scope_images=None, ai_provider=None, openrouter_models=None, user_id=None):
     """scope_content/scope_images passed through to _bulk_run_one_group."""
     """Background thread for bulk-run-group."""
     try:
@@ -3554,7 +3565,7 @@ def _run_bulk_group_async(job_id, group_id, mode, scope="override", scope_conten
                 "failed": failed,
                 "message": f"Row {idx + 1}/{total}",
             })
-        ok, failed = _bulk_run_one_group(group_id, mode, progress_updater=upd, job_id=job_id, scope=scope, scope_content=scope_content, scope_images=scope_images, ai_provider=ai_provider, openrouter_models=openrouter_models)
+        ok, failed = _bulk_run_one_group(group_id, mode, progress_updater=upd, job_id=job_id, scope=scope, scope_content=scope_content, scope_images=scope_images, ai_provider=ai_provider, openrouter_models=openrouter_models, user_id=user_id)
         if _bulk_cancel.get(job_id):
             _bulk_progress[job_id].update({"status": "cancelled", "message": f"Cancelled. {ok} rows done" + (f", {failed} failed" if failed else ""), "ok": ok, "failed": failed})
         else:
@@ -3685,7 +3696,7 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, scope="overri
         return 0, 1, str(e)[:200]
 
 
-def _run_bulk_all_groups_async(job_id, mode, concurrency_type="row", concurrency_n=1, scope="override", scope_content=None, scope_images=None, ai_provider=None, openrouter_models=None):
+def _run_bulk_all_groups_async(job_id, mode, concurrency_type="row", concurrency_n=1, scope="override", scope_content=None, scope_images=None, ai_provider=None, openrouter_models=None, user_id=None):
     """Background thread for bulk-run-all-groups. scope_content/scope_images for per-phase skip."""
     _progress_lock = threading.Lock()
     try:
@@ -3703,7 +3714,7 @@ def _run_bulk_all_groups_async(job_id, mode, concurrency_type="row", concurrency
             _bulk_progress[job_id].update({"message": f"Running {n} groups in parallel...", "total_groups": num_groups})
             grp_done = [0]
             with ThreadPoolExecutor(max_workers=n) as ex:
-                futures = {ex.submit(_bulk_run_one_group, gid, mode, None, job_id, scope, scope_content, scope_images, ai_provider, openrouter_models): gid for gid in group_ids}
+                futures = {ex.submit(_bulk_run_one_group, gid, mode, None, job_id, scope, scope_content, scope_images, ai_provider, openrouter_models, user_id): gid for gid in group_ids}
                 for future in as_completed(futures):
                     if _bulk_cancel.get(job_id):
                         for f in futures:
@@ -3951,7 +3962,7 @@ def api_bulk_run_cancel():
 
 @app.route("/api/bulk-run-clear", methods=["POST"])
 def api_bulk_run_clear():
-    """Clear done/error/cancelled jobs from running tasks. Keeps running jobs."""
+    """Clear done/error/cancelled jobs from running tasks. Keeps genuinely running jobs."""
     req = request.get_json(silent=True) or {}
     only_done = req.get("only_done", False)  # if True, clear only done; else clear done+error+cancelled
     to_remove = []
@@ -3968,10 +3979,18 @@ def api_bulk_run_clear():
     hist_remove = []
     for jid, p in list(_bulk_history.items()):
         s = (p or {}).get("status", "")
+        
+        # If it's marked as running in history but not in our active progress, it's dead
+        is_actually_running = jid in _bulk_progress and _bulk_progress[jid].get("status") == "running"
+        if is_actually_running:
+            continue
+            
         if s == "running":
+            # If it reached here, it's a "dead" running job (not in _bulk_progress)
+            pass
+        elif only_done and s != "done":
             continue
-        if only_done and s != "done":
-            continue
+            
         hist_remove.append(jid)
     for jid in hist_remove:
         _bulk_history.pop(jid, None)
@@ -4019,7 +4038,9 @@ def api_bulk_run_group():
                 WHERE COALESCE(t.group_id, d.group_id) = ?""", (group_id,))
             domain_ids = [dict_row(r).get("id") for r in cur.fetchall() if dict_row(r).get("id")]
         _bulk_progress[job_id] = {"status": "running", "message": "Starting...", "current_title": "", "type": "group", "group_id": group_id, "mode": mode, "domain_ids": domain_ids, "created_at": time.time(), "steps": []}
-        threading.Thread(target=_run_bulk_group_async, args=(job_id, group_id, mode, scope, scope_content, scope_images, ai_provider, openrouter_models), daemon=True).start()
+        user = get_current_user()
+        user_id = user["id"] if user else None
+        threading.Thread(target=_run_bulk_group_async, args=(job_id, group_id, mode, scope, scope_content, scope_images, ai_provider, openrouter_models, user_id), daemon=True).start()
         return jsonify({"success": True, "job_id": job_id})
     ok, failed = _bulk_run_one_group(group_id, mode, scope=scope, scope_content=scope_content, scope_images=scope_images, ai_provider=ai_provider, openrouter_models=openrouter_models)
     if ok == 0 and failed == 0:
@@ -4488,7 +4509,9 @@ def api_bulk_run_all_groups():
             cur = db_execute(conn, "SELECT DISTINCT id FROM domains")
             domain_ids = [dict_row(r).get("id") for r in cur.fetchall() if dict_row(r).get("id")]
         _bulk_progress[job_id] = {"status": "running", "message": "Starting...", "current_title": "", "type": "all", "mode": mode, "domain_ids": domain_ids, "created_at": time.time(), "steps": []}
-        threading.Thread(target=_run_bulk_all_groups_async, args=(job_id, mode, concurrency_type, concurrency_n, scope, scope_content, scope_images, ai_provider, openrouter_models), daemon=True).start()
+        user = get_current_user()
+        user_id = user["id"] if user else None
+        threading.Thread(target=_run_bulk_all_groups_async, args=(job_id, mode, concurrency_type, concurrency_n, scope, scope_content, scope_images, ai_provider, openrouter_models, user_id), daemon=True).start()
         return jsonify({"success": True, "job_id": job_id})
     total_ok, total_failed = 0, 0
     for gid in group_ids:
@@ -4935,7 +4958,7 @@ def _update_article_html_pin_image(title_id):
         log.info("[inject-pin-image] Updated %s with pin_image for title_id=%s", ", ".join([u.split("=")[0].strip() for u in updates]), title_id)
 
 
-def _do_generate_main_image(title_id):
+def _do_generate_main_image(title_id, user_id=None):
     """Core logic for generate-main-image. Raises on error."""
     from imagine import generate_4_images
     with get_connection() as conn:
@@ -4953,7 +4976,8 @@ def _do_generate_main_image(title_id):
         title_ids = [dict_row(r).get("id") for r in cur.fetchall()]
     if len(title_ids) < 4:
         raise ValueError("Need 4 domains (A,B,C,D) in group")
-    urls, err = generate_4_images(prompt, key_prefix="main_image")
+    user_config = get_user_config_for_api(user_id) if user_id else {}
+    urls, err = generate_4_images(prompt, key_prefix="main_image", user_config=user_config)
     if err:
         raise ValueError(err)
     from imagine import flip_image_vertical_and_upload
@@ -4963,7 +4987,7 @@ def _do_generate_main_image(title_id):
         src = BOTTOM_SOURCE_INDEX[i]
         if src < len(urls) and urls[src]:
             try:
-                bottom_urls[i] = flip_image_vertical_and_upload(urls[src], "bottom_image")
+                bottom_urls[i] = flip_image_vertical_and_upload(urls[src], "bottom_image", user_config=user_config)
             except Exception:
                 bottom_urls[i] = None
     with get_connection() as conn:
@@ -5017,7 +5041,7 @@ def api_generate_main_image():
     return jsonify({"success": True, "message": "Main images generated"})
 
 
-def _do_generate_ingredient_image(title_id):
+def _do_generate_ingredient_image(title_id, user_id=None):
     """Core logic for generate-ingredient-image. Raises on error."""
     from imagine import generate_4_images
     with get_connection() as conn:
@@ -5035,7 +5059,8 @@ def _do_generate_ingredient_image(title_id):
         title_ids = [dict_row(r).get("id") for r in cur.fetchall()]
     if len(title_ids) < 4:
         raise ValueError("Need 4 domains (A,B,C,D) in group")
-    urls, err = generate_4_images(prompt, key_prefix="ingredient_image")
+    user_config = get_user_config_for_api(user_id) if user_id else {}
+    urls, err = generate_4_images(prompt, key_prefix="ingredient_image", user_config=user_config)
     if err:
         raise ValueError(err)
     with get_connection() as conn:
@@ -6269,13 +6294,26 @@ def api_domain_website_template_put(pk):
 
 
 @app.route("/api/generate-color-palette", methods=["POST"])
+@login_required
 def api_generate_color_palette():
     """Use OpenAI to generate a matching color palette with guaranteed text contrast for recipe blogs."""
-    if not OPENAI_API_KEY:
-        return jsonify({"success": False, "error": "OPENAI_API_KEY not set"}), 500
+    user = get_current_user()
+    user_config = get_user_config_for_api(user["id"])
+    openai_key = user_config.get("openai_api_key")
+    openrouter_key = user_config.get("openrouter_api_key")
+    
+    if not openai_key and not openrouter_key:
+        return jsonify({"success": False, "error": "OpenAI or OpenRouter API key not configured in your profile"}), 500
     try:
-        from config import get_openai_client
-        client, ai_model = get_openai_client()
+        if openrouter_key:
+            import openai
+            client = openai.OpenAI(base_url="https://openrouter.ai/api/v1", api_key=openrouter_key)
+            ai_model = user_config.get("openrouter_model") or "openai/gpt-4o-mini"
+        else:
+            import openai
+            client = openai.OpenAI(api_key=openai_key)
+            ai_model = user_config.get("openai_model") or "gpt-4o-mini"
+            
         prompt = """Generate a single harmonious color palette for a recipe/food blog. Return ONLY valid JSON, no markdown.
 
 RULES (mandatory):
@@ -7151,6 +7189,10 @@ def api_domains_generate_page(domain_id, slug):
         return jsonify({"success": False, "error": "Page not configured"}), 400
     data = request.get_json(silent=True) or {}
     theme = (data.get("theme") or data.get("template") or "ai").strip()
+    
+    user = get_current_user()
+    user_id = user["id"] if user else 1
+    
     try:
         with get_connection() as conn:
             cur = db_execute(conn, "SELECT domain_url, domain_name, writers, domain_colors, domain_fonts, categories_list FROM domains WHERE id = ?", (domain_id,))
@@ -7183,7 +7225,7 @@ def api_domains_generate_page(domain_id, slug):
             import random
             design_seed = random.choice(design_styles)
             log.info(f"[domain-pages] AI generating {slug} for domain {domain_id} ({domain_name}), design: {design_seed}")
-            out = _generate_single_domain_page_with_openai(domain_name, slug, design_seed, writers=writers if slug == "about-us" else None)
+            out = _generate_single_domain_page_with_openai(domain_name, slug, design_seed, writers=writers if slug == "about-us" else None, user_id=user_id)
 
         stored = json.dumps({"main_html": out["main_html"], "main_css": out.get("main_css", ""), "theme": theme})
         with get_connection() as conn:
@@ -7673,16 +7715,25 @@ Design: {design}. Output ONLY the blocks below.
 DOMAIN_PAGE_MODEL = os.environ.get("DOMAIN_PAGE_MODEL", "anthropic/claude-3-haiku")
 
 
-def _generate_single_domain_page_with_openai(domain_name: str, slug: str, design_seed: str, writers=None) -> dict:
-    """Generate one domain page with OpenAI/OpenRouter. When OPENROUTER_API_KEY is set, uses DOMAIN_PAGE_MODEL (default: gpt-3.5-turbo). Returns {main_html, main_css}."""
-    from config import get_openai_client, OPENROUTER_API_KEY
-    if OPENROUTER_API_KEY:
+def _generate_single_domain_page_with_openai(domain_name: str, slug: str, design_seed: str, writers=None, user_id=None) -> dict:
+    """Generate one domain page with OpenAI/OpenRouter."""
+    user_config = get_user_config_for_api(user_id) if user_id else {}
+    
+    openrouter_key = user_config.get("openrouter_api_key")
+    openai_key = user_config.get("openai_api_key")
+    
+    if openrouter_key:
         import openai
-        client = openai.OpenAI(base_url="https://openrouter.ai/api/v1", api_key=OPENROUTER_API_KEY)
-        ai_model = DOMAIN_PAGE_MODEL
+        client = openai.OpenAI(base_url="https://openrouter.ai/api/v1", api_key=openrouter_key)
+        ai_model = user_config.get("openrouter_model") or DOMAIN_PAGE_MODEL
         log.info(f"[domain-pages] {slug}: using OpenRouter + {ai_model}")
+    elif openai_key:
+        import openai
+        client = openai.OpenAI(api_key=openai_key)
+        ai_model = user_config.get("openai_model") or DOMAIN_PAGE_MODEL
     else:
-        client, ai_model = get_openai_client()
+        raise ValueError("No API key configured for OpenAI or OpenRouter")
+        
     domain_clean = _domain_url_to_display_name(domain_name)
     writers_list = writers if isinstance(writers, list) else []
     writers_json = "No writers configured. Create one founder with a plausible name, title (e.g. Owner & Founder), and 2-sentence bio."
@@ -7778,7 +7829,9 @@ def _generate_domain_template_preview(template_json_str: str, domain_colors: dic
                 png_bytes = base64.b64decode(b64)
                 if png_bytes and len(png_bytes) >= 100:
                     import r2_upload
-                    return r2_upload.upload_bytes_to_r2(png_bytes, "template_preview", "image/png")
+                    user = get_current_user()
+                    user_config = get_user_config_for_api(user["id"]) if user else {}
+                    return r2_upload.upload_bytes_to_r2(png_bytes, "template_preview", "image/png", user_config=user_config)
             except Exception:
                 pass
     except Exception:
@@ -8036,17 +8089,33 @@ def admin_domains():
             for g in all_groups:
                 g["hierarchy"] = build_hierarchy(g["id"], all_groups)
             
+            # Get all descendant groups
+            def get_descendants(gid):
+                result = [gid]
+                cur = db_execute(conn, "SELECT id FROM `groups` WHERE parent_group_id = ?", (gid,))
+                children = [dict_row(r)["id"] for r in cur.fetchall()]
+                for child_id in children:
+                    result.extend(get_descendants(child_id))
+                return result
+
+            # Get user assignments for top-level groups if admin
+            group_users_map = {}
+            if is_admin:
+                for g in all_groups:
+                    descendants = get_descendants(g["id"])
+                    if descendants:
+                        placeholders = ",".join(["?"] * len(descendants))
+                        cur = db_execute(conn, f"""
+                            SELECT DISTINCT u.username 
+                            FROM user_groups ug 
+                            JOIN users u ON ug.user_id = u.id 
+                            WHERE ug.group_id IN ({placeholders})
+                        """, tuple(descendants))
+                        users = [dict_row(r)["username"] for r in cur.fetchall()]
+                        group_users_map[g["id"]] = users
+
             # Get statistics for each group (domains and articles)
             for g in all_groups:
-                # Get all descendant groups
-                def get_descendants(gid):
-                    result = [gid]
-                    cur = db_execute(conn, "SELECT id FROM `groups` WHERE parent_group_id = ?", (gid,))
-                    children = [dict_row(r)["id"] for r in cur.fetchall()]
-                    for child_id in children:
-                        result.extend(get_descendants(child_id))
-                    return result
-                
                 group_ids = get_descendants(g["id"])
                 placeholders = ",".join(["?"] * len(group_ids))
                 
@@ -8073,92 +8142,121 @@ def admin_domains():
                 row = dict_row(cur.fetchone())
                 g["created_at"] = row.get("created_at") if row else None
             
-            # Show group selector page
-            group_cards = ""
+            # Group the all_groups by user
+            groups_by_user = {}
             for g in all_groups:
-                created_at = g.get("created_at")
-                if created_at:
-                    if isinstance(created_at, str):
-                        created_date = created_at[:10]
-                    else:
-                        created_date = created_at.strftime("%Y-%m-%d")
+                if is_admin:
+                    users = group_users_map.get(g["id"], [])
+                    user_key = ", ".join(sorted(users)) if users else "Unassigned"
                 else:
-                    created_date = "N/A"
+                    user_key = "Your Groups"
                 
-                # Get domain list with article stats for this group
-                group_ids = get_descendants(g["id"])
-                placeholders = ",".join(["?"] * len(group_ids))
-                cur = db_execute(conn, f"""
-                    SELECT 
-                        d.domain_url,
-                        d.domain_index,
-                        d.group_id,
-                        COUNT(DISTINCT t.id) as total_articles,
-                        SUM(CASE WHEN ac.article_html IS NOT NULL AND TRIM(ac.article_html) != '' THEN 1 ELSE 0 END) as with_html
-                    FROM domains d
-                    LEFT JOIN titles t ON t.domain_id = d.id
-                    LEFT JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
-                    WHERE d.group_id IN ({placeholders})
-                    GROUP BY d.id, d.domain_url, d.domain_index, d.group_id
-                    ORDER BY d.group_id, d.domain_index
-                """, tuple(group_ids))
-                domains = [dict_row(r) for r in cur.fetchall()]
+                if user_key not in groups_by_user:
+                    groups_by_user[user_key] = []
+                groups_by_user[user_key].append(g)
+            
+            # Show group selector page
+            group_cards_html = ""
+            
+            # Sort user keys: Unassigned at the end, others alphabetically
+            user_keys = sorted(list(groups_by_user.keys()), key=lambda k: (k == "Unassigned", k))
+            
+            for user_key in user_keys:
+                user_groups = groups_by_user[user_key]
+                if not user_groups:
+                    continue
+                    
+                if is_admin:
+                    group_cards_html += f'<h4 class="mt-4 mb-3 border-bottom pb-2 text-secondary">👤 User: {html.escape(user_key)}</h4>'
                 
-                # Create mini table with 4 domains per row (A, B, C, D)
-                domain_table = '<table class="table table-sm table-bordered mb-0" style="font-size:0.7rem"><tbody>'
+                group_cards_html += '<div class="row g-3 mb-4">'
                 
-                # Group domains by their group_id (subgroups)
-                from itertools import groupby
-                for subgroup_id, subgroup_domains in groupby(domains, key=lambda x: x["group_id"]):
-                    subgroup_list = list(subgroup_domains)
-                    if subgroup_list:
-                        domain_table += '<tr>'
-                        labels = ['A', 'B', 'C', 'D']
-                        for i in range(4):
-                            if i < len(subgroup_list):
-                                domain = subgroup_list[i]
-                                total = domain.get("total_articles") or 0
-                                with_html = domain.get("with_html") or 0
-                                without_html = total - with_html
-                                domain_name = domain["domain_url"][:15] + "..." if len(domain["domain_url"]) > 15 else domain["domain_url"]
-                                domain_table += f'''
-                                <td class="p-1" title="{html.escape(domain["domain_url"])}">
-                                    <strong>{labels[i]}:</strong> {html.escape(domain_name)} <small class="text-success">✓{with_html}</small>/<small class="text-warning">{without_html}</small>
-                                </td>
-                                '''
-                            else:
-                                domain_table += f'<td class="p-1 text-muted"><strong>{labels[i]}:</strong> -</td>'
-                        domain_table += '</tr>'
-                
-                domain_table += '</tbody></table>'
-                
-                domain_display = domain_table if domains else '<span class="text-muted small">No domains</span>'
-                
-                group_cards += f'''
-                <div class="col-lg-4 col-md-6">
-                  <div class="card h-100 group-card shadow-sm" style="cursor:pointer; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'" onclick="window.location.href='/admin/domains?group_id={g["id"]}'">
-                    <div class="card-body">
-                      <h5 class="card-title text-truncate mb-2" title="{html.escape(g["name"])}">{html.escape(g["name"])}</h5>
-                      <p class="card-text small text-muted mb-2">
-                        📅 {created_date}
-                      </p>
-                      <div class="mb-2">
-                        <span class="badge bg-primary">{g["domain_count"]} Domain{"s" if g["domain_count"] != 1 else ""}</span>
-                        <span class="badge bg-info">{g["total_articles"]} Article{"s" if g["total_articles"] != 1 else ""}</span>
+                for g in user_groups:
+                    created_at = g.get("created_at")
+                    if created_at:
+                        if isinstance(created_at, str):
+                            created_date = created_at[:10]
+                        else:
+                            created_date = created_at.strftime("%Y-%m-%d")
+                    else:
+                        created_date = "N/A"
+                    
+                    # Get domain list with article stats for this group
+                    group_ids = get_descendants(g["id"])
+                    placeholders = ",".join(["?"] * len(group_ids))
+                    cur = db_execute(conn, f"""
+                        SELECT 
+                            d.domain_url,
+                            d.domain_index,
+                            d.group_id,
+                            COUNT(DISTINCT t.id) as total_articles,
+                            SUM(CASE WHEN ac.article_html IS NOT NULL AND TRIM(ac.article_html) != '' THEN 1 ELSE 0 END) as with_html
+                        FROM domains d
+                        LEFT JOIN titles t ON t.domain_id = d.id
+                        LEFT JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
+                        WHERE d.group_id IN ({placeholders})
+                        GROUP BY d.id, d.domain_url, d.domain_index, d.group_id
+                        ORDER BY d.group_id, d.domain_index
+                    """, tuple(group_ids))
+                    domains = [dict_row(r) for r in cur.fetchall()]
+                    
+                    # Create mini table with 4 domains per row (A, B, C, D)
+                    domain_table = '<table class="table table-sm table-bordered mb-0" style="font-size:0.7rem"><tbody>'
+                    
+                    # Group domains by their group_id (subgroups)
+                    from itertools import groupby
+                    for subgroup_id, subgroup_domains in groupby(domains, key=lambda x: x["group_id"]):
+                        subgroup_list = list(subgroup_domains)
+                        if subgroup_list:
+                            domain_table += '<tr>'
+                            labels = ['A', 'B', 'C', 'D']
+                            for i in range(4):
+                                if i < len(subgroup_list):
+                                    domain = subgroup_list[i]
+                                    total = domain.get("total_articles") or 0
+                                    with_html = domain.get("with_html") or 0
+                                    without_html = total - with_html
+                                    domain_name = domain["domain_url"][:15] + "..." if len(domain["domain_url"]) > 15 else domain["domain_url"]
+                                    domain_table += f'''
+                                    <td class="p-1" title="{html.escape(domain["domain_url"])}">
+                                        <strong>{labels[i]}:</strong> {html.escape(domain_name)} <small class="text-success">✓{with_html}</small>/<small class="text-warning">{without_html}</small>
+                                    </td>
+                                    '''
+                                else:
+                                    domain_table += f'<td class="p-1 text-muted"><strong>{labels[i]}:</strong> -</td>'
+                            domain_table += '</tr>'
+                    
+                    domain_table += '</tbody></table>'
+                    
+                    domain_display = domain_table if domains else '<span class="text-muted small">No domains</span>'
+                    
+                    group_cards_html += f'''
+                    <div class="col-lg-4 col-md-6">
+                      <div class="card h-100 group-card shadow-sm" style="cursor:pointer; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'" onclick="window.location.href='/admin/domains?group_id={g["id"]}'">
+                        <div class="card-body">
+                          <h5 class="card-title text-truncate mb-2" title="{html.escape(g["name"])}">{html.escape(g["name"])}</h5>
+                          <p class="card-text small text-muted mb-2">
+                            📅 {created_date}
+                          </p>
+                          <div class="mb-2">
+                            <span class="badge bg-primary">{g["domain_count"]} Domain{"s" if g["domain_count"] != 1 else ""}</span>
+                            <span class="badge bg-info">{g["total_articles"]} Article{"s" if g["total_articles"] != 1 else ""}</span>
+                          </div>
+                          <div class="mb-2" style="font-size:0.75rem">
+                            <span class="text-success">✅ {g["articles_with_html"]}</span>
+                            <span class="text-muted mx-1">/</span>
+                            <span class="text-warning">⏳ {g["articles_without_html"]}</span>
+                          </div>
+                          <div class="mb-2" style="max-height:200px; overflow-y:auto; overflow-x:hidden;">
+                            {domain_display}
+                          </div>
+                          <a href="/admin/domains?group_id={g["id"]}" class="btn btn-sm btn-primary w-100">View Domains</a>
+                        </div>
                       </div>
-                      <div class="mb-2" style="font-size:0.75rem">
-                        <span class="text-success">✅ {g["articles_with_html"]}</span>
-                        <span class="text-muted mx-1">/</span>
-                        <span class="text-warning">⏳ {g["articles_without_html"]}</span>
-                      </div>
-                      <div class="mb-2" style="max-height:200px; overflow-y:auto; overflow-x:hidden;">
-                        {domain_display}
-                      </div>
-                      <a href="/admin/domains?group_id={g["id"]}" class="btn btn-sm btn-primary w-100">View Domains</a>
                     </div>
-                  </div>
-                </div>
-                '''
+                    '''
+                
+                group_cards_html += '</div>'
             
             content = f'''
             <style>
@@ -8177,9 +8275,7 @@ def admin_domains():
               <strong>📁 Select a top-level parent group to manage domains</strong><br>
               Showing only top-level parent groups. Each group can have multiple subgroups with domains.
             </div>
-            <div class="row g-3">
-              {group_cards if group_cards else '<div class="col-12"><div class="alert alert-warning">No groups yet. Create your first group to get started!</div></div>'}
-            </div>
+            {group_cards_html if group_cards_html else '<div class="alert alert-warning">No groups yet. Create your first group to get started!</div>'}
             
             <div id="createGroupModal" class="modal fade" tabindex="-1">
               <div class="modal-dialog">
@@ -15320,10 +15416,15 @@ def _fetch_article_preview(config, generator):
     )
 
 
-def _reskin_article_template_config(config, generator, intensity="bold"):
+def _reskin_article_template_config(config, generator, intensity="bold", user_id=None):
     """Use OpenAI to improve design. Fetches HTML+CSS from preview, sends to model, returns new config."""
-    if not OPENAI_API_KEY:
-        raise ValueError("OPENAI_API_KEY not set. Add it to .env to use Reskin.")
+    user_config = get_user_config_for_api(user_id) if user_id else {}
+    openai_key = user_config.get("openai_api_key")
+    openrouter_key = user_config.get("openrouter_api_key")
+    
+    if not openai_key and not openrouter_key:
+        raise ValueError("OpenAI or OpenRouter API key not configured in your profile. Add it to use Reskin.")
+        
     intensity = (intensity or "bold").lower().strip()
     if intensity not in RESKIN_INTENSITY:
         intensity = "bold"
@@ -15336,8 +15437,15 @@ def _reskin_article_template_config(config, generator, intensity="bold"):
     css_snippet = (css_full or "")[:5000]
     if not html_snippet and not css_snippet:
         raise ValueError("Preview returned no HTML or CSS.")
-    from config import get_openai_client
-    client, ai_model = get_openai_client()
+        
+    if openrouter_key:
+        import openai
+        client = openai.OpenAI(base_url="https://openrouter.ai/api/v1", api_key=openrouter_key)
+        ai_model = user_config.get("openrouter_model") or "openai/gpt-4o-mini"
+    else:
+        import openai
+        client = openai.OpenAI(api_key=openai_key)
+        ai_model = user_config.get("openai_model") or "gpt-4o-mini"
     prompt = RESKIN_PROMPT_BASE.format(
         intensity_instructions=intensity_instructions,
         html_snippet=html_snippet,
@@ -15385,8 +15493,12 @@ def api_article_template_reskin():
     cfg = {k: v for k, v in full_cfg.items() if k not in strip_keys}
     if not cfg:
         return jsonify({"success": False, "error": "Config has no design fields (colors, fonts, layout, components)"}), 400
+        
+    user = get_current_user()
+    user_id = user["id"] if user else 1
+        
     try:
-        improved = _reskin_article_template_config(full_cfg, generator, intensity)
+        improved = _reskin_article_template_config(full_cfg, generator, intensity, user_id=user_id)
         return jsonify({"success": True, "config": improved})
     except ValueError as e:
         return jsonify({"success": False, "error": str(e)}), 400
@@ -15415,7 +15527,9 @@ def api_article_template_preview_upload():
         return jsonify({"success": False, "error": "Image too small"}), 400
     try:
         import r2_upload
-        url = r2_upload.upload_bytes_to_r2(png_bytes, "article_template_preview", "image/png")
+        user = get_current_user()
+        user_config = get_user_config_for_api(user["id"]) if user else {}
+        url = r2_upload.upload_bytes_to_r2(png_bytes, "article_template_preview", "image/png", user_config=user_config)
     except Exception as e:
         log.warning("[article-template-preview-upload] R2 upload failed: %s", e)
         return jsonify({"success": False, "error": "Upload failed: " + str(e), "hint": "Check R2 config in .env"}), 500
@@ -16847,9 +16961,9 @@ def admin_users():
     <script>
     const allUsers = {users_json};
     
-    function editUser(userId) {{
-        window.location.href = '/admin/users/' + userId + '/edit';
-    }}
+    function editUser(userId) {
+        alert("To edit a user's API keys or settings, please log in as that user and visit their /profile page. Admins can currently only activate/deactivate users or manage their domains from this screen.");
+    }
     
     function cloneProfile(clickedUserId) {{
         const targetUser = allUsers.find(u => u.id === clickedUserId);

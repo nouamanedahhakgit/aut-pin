@@ -1,3 +1,5 @@
 _archive/*
 .cursor/*
 website-parts-generator/prompts/*
+multi-domain-clean/__pycache__/imagine.cpython-39.pyc
+multi-domain-clean/__pycache__/r2_upload.cpython-39.pyc

@@ -59,19 +59,19 @@ def split_midjourney_grid(image) -> list:
     ]
 
 
-def _r2_put(image, key_prefix: str) -> str:
+def _r2_put(image, key_prefix: str, user_config: dict = None) -> str:
     buf = BytesIO()
     image.save(buf, format="PNG")
-    return r2_upload.upload_bytes_to_r2(buf.getvalue(), key_prefix, "image/png")
+    return r2_upload.upload_bytes_to_r2(buf.getvalue(), key_prefix, "image/png", user_config=user_config)
 
 
-def flip_image_vertical_and_upload(image_url: str, key_prefix: str = "bottom_image") -> str:
+def flip_image_vertical_and_upload(image_url: str, key_prefix: str = "bottom_image", user_config: dict = None) -> str:
     """Download image from URL, flip horizontally (mirror left-right), upload to R2. Returns public URL."""
     if not Image:
         raise RuntimeError("Pillow required for flip_image_vertical_and_upload")
     img = download_image(image_url)
     flipped = img.transpose(Image.FLIP_LEFT_RIGHT)
-    return _r2_put(flipped, key_prefix)
+    return _r2_put(flipped, key_prefix, user_config=user_config)
 
 
 def _append_ar(prompt: str, ar: str = "1:1") -> str:
@@ -79,17 +79,22 @@ def _append_ar(prompt: str, ar: str = "1:1") -> str:
     return prompt if suffix in prompt else (prompt + suffix)
 
 
-def create_imagine_task(prompt: str) -> tuple:
+def create_imagine_task(prompt: str, user_config: dict = None) -> tuple:
     """Start Midjourney job. Returns (jobid, error_or_None)."""
+    user_config = user_config or {}
+    mj_token = user_config.get("midjourney_api_token") or MIDJOURNEY_API_TOKEN
+    mj_channel = user_config.get("midjourney_channel_id") or MIDJOURNEY_CHANNEL_ID
+    
     prompt = _normalize_prompt(prompt)
     if len(prompt) < 10:
         return None, "Prompt too short"
     prompt = _append_ar(prompt)
-    if not MIDJOURNEY_API_TOKEN or not MIDJOURNEY_CHANNEL_ID:
-        return None, "Midjourney not configured"
-    body = {"prompt": prompt, "channel": MIDJOURNEY_CHANNEL_ID, "stream": False}
+    if not mj_token or not mj_channel:
+        return None, "Midjourney not configured in user profile"
+    body = {"prompt": prompt, "channel": mj_channel, "stream": False}
+    headers = {"Authorization": f"Bearer {mj_token}", "Content-Type": "application/json"}
     try:
-        resp = requests.post(IMAGINE_ENDPOINT, headers=HEADERS, json=body, timeout=60)
+        resp = requests.post(IMAGINE_ENDPOINT, headers=headers, json=body, timeout=60)
         if resp.status_code == 201:
             data = resp.json()
             jobid = data.get("jobid") or data.get("job_id") or data.get("id")
@@ -100,12 +105,15 @@ def create_imagine_task(prompt: str) -> tuple:
         return None, str(e)
 
 
-def poll_job(jobid: str) -> tuple:
+def poll_job(jobid: str, user_config: dict = None) -> tuple:
     """Poll job status. Returns (status, data). status in completed, failed, pending."""
+    user_config = user_config or {}
+    mj_token = user_config.get("midjourney_api_token") or MIDJOURNEY_API_TOKEN
+    
     try:
         resp = requests.get(
             f"{JOB_STATUS_ENDPOINT}/{jobid}",
-            headers={"Authorization": f"Bearer {MIDJOURNEY_API_TOKEN}"},
+            headers={"Authorization": f"Bearer {mj_token}"},
             timeout=30,
         )
         if resp.status_code != 200:
@@ -177,42 +185,48 @@ def _extract_useapi_urls(job_data: dict) -> list:
     return unique
 
 
-def process_grid_to_r2(grid_url: str, key_prefix: str) -> tuple:
+def process_grid_to_r2(grid_url: str, key_prefix: str, user_config: dict = None) -> tuple:
     """Download grid, split into 4, upload to R2. Returns ([url1, url2, url3, url4], error_or_None)."""
-    if not R2_ACCOUNT_ID or not R2_ACCESS_KEY_ID or not R2_SECRET_ACCESS_KEY or not R2_BUCKET_NAME or not R2_PUBLIC_URL:
-        return [], "R2 not configured"
+    user_config = user_config or {}
+    account_id = user_config.get("r2_account_id") or R2_ACCOUNT_ID
+    access_key = user_config.get("r2_access_key_id") or R2_ACCESS_KEY_ID
+    secret_key = user_config.get("r2_secret_access_key") or R2_SECRET_ACCESS_KEY
+    bucket_name = user_config.get("r2_bucket_name") or R2_BUCKET_NAME
+    public_url = user_config.get("r2_public_url") or R2_PUBLIC_URL
+    if not account_id or not access_key or not secret_key or not bucket_name or not public_url:
+        return [], "R2 not configured in user profile"
     try:
         img = download_image(grid_url)
         splits = split_midjourney_grid(img)
         prefix = f"{key_prefix}/{uuid.uuid4().hex[:8]}"
         urls = []
         for i, s in enumerate(splits):
-            url = _r2_put(s, prefix)
+            url = _r2_put(s, prefix, user_config=user_config)
             urls.append(url)
         return urls, None
     except Exception as e:
         return [], str(e)
 
 
-def generate_4_images(prompt: str, key_prefix: str = "multi-domain", cancel_check=None) -> tuple:
+def generate_4_images(prompt: str, key_prefix: str = "multi-domain", cancel_check=None, user_config: dict = None) -> tuple:
     """
     Create Midjourney job, poll until done, get 4 images, upload to R2.
     Returns ([url1, url2, url3, url4], error_or_None).
     Image 1 -> A, 2 -> B, 3 -> C, 4 -> D.
     cancel_check: optional callable; if it returns True, abort and return ([], "Cancelled").
     """
-    jobid, err = create_imagine_task(prompt)
+    jobid, err = create_imagine_task(prompt, user_config=user_config)
     if err:
         return [], err
     start = time.time()
     while time.time() - start < MAX_JOB_SECONDS:
         if cancel_check and cancel_check():
             return [], "Cancelled"
-        status, data = poll_job(jobid)
+        status, data = poll_job(jobid, user_config=user_config)
         if status == "completed":
             grid_url = _get_grid_url(data)
             if grid_url:
-                return process_grid_to_r2(grid_url, key_prefix)
+                return process_grid_to_r2(grid_url, key_prefix, user_config=user_config)
             urls = _extract_useapi_urls(data)
             if len(urls) >= 4:
                 try:
@@ -220,13 +234,13 @@ def generate_4_images(prompt: str, key_prefix: str = "multi-domain", cancel_chec
                     for i in range(4):
                         img = download_image(urls[i])
                         prefix = f"{key_prefix}/{uuid.uuid4().hex[:8]}"
-                        url = _r2_put(img, prefix)
+                        url = _r2_put(img, prefix, user_config=user_config)
                         result.append(url)
                     return result, None
                 except Exception as e:
                     return [], str(e)
             if len(urls) == 1:
-                return process_grid_to_r2(urls[0], key_prefix)
+                return process_grid_to_r2(urls[0], key_prefix, user_config=user_config)
             if len(urls) > 0:
                 return [], f"Expected grid (1 URL) or 4 images, got {len(urls)}"
             return [], "No grid or image URLs in response"

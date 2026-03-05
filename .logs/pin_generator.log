@@ -1147,3 +1147,47 @@ API server: http://0.0.0.0:5000
  * Running on http://127.0.0.1:5000
 [33mPress CTRL+C to quit[0m
 2026-03-05 09:21:27 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-05 09:36:26 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-05 09:36:26 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\aut-pin\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.109.135:5000
+2026-03-05 09:36:26 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.109.135:5000
+[33mPress CTRL+C to quit[0m
+2026-03-05 09:36:26 [INFO] [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-05 10:42:53 [INFO] Pin API server: http://0.0.0.0:5000
+2026-03-05 10:42:53 [INFO]   Editor: http://0.0.0.0:5000/  or  /editor
+[generators] _base pre-imported OK from C:\Users\leno\Documents\GitHub\aut-pin\pin_generator\generators\_base.py
+API server: http://0.0.0.0:5000
+  Editor:  http://0.0.0.0:5000/  or  /editor
+  GET  /templates        -> list template names
+  GET  /template/<name>  -> default template_data for editor
+  POST /generate?name=template_1   Body: JSON template_data overrides
+ * Serving Flask app 'generator'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.109.135:5000
+2026-03-05 10:42:53 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.109.135:5000
+[33mPress CTRL+C to quit[0m
+2026-03-05 10:42:53 [INFO] [33mPress CTRL+C to quit[0m
