@@ -51,19 +51,16 @@ MIDJOURNEY_API_TOKEN = os.getenv("MIDJOURNEY_API_TOKEN", "")
 MIDJOURNEY_CHANNEL_ID = os.getenv("MIDJOURNEY_CHANNEL_ID", "")
 USEAPI_BASE_URL = os.getenv("USEAPI_BASE_URL", "https://api.useapi.net/v3/midjourney")
 
-# External article generator API
-GENERATE_ARTICLE_API_URL = os.getenv("GENERATE_ARTICLE_API_URL", "http://localhost:8000")
-# Website parts generator (headers, footers, categories, sidebars)
-WEBSITE_PARTS_API_URL = os.getenv("WEBSITE_PARTS_API_URL", "http://localhost:8010")
+# Microservice API base URLs (from .env; multi-domain-clean calls these over HTTP)
+GENERATE_ARTICLE_API_URL = os.getenv("GENERATE_ARTICLE_API_URL", "http://localhost:8000")   # articles-website-generator
+WEBSITE_PARTS_API_URL = os.getenv("WEBSITE_PARTS_API_URL", "http://localhost:8010")         # website-parts-generator
+PIN_API_URL = os.getenv("PIN_API_URL", "http://localhost:5000")                            # pin_generator --serve
+PIN_EDITOR_URL = os.getenv("PIN_EDITOR_URL", "http://localhost:8080")                      # optional pin editor
 # Path to article generators folder (for creating new templates)
 _automation_dir = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 ARTICLE_GENERATORS_DIR = os.getenv("ARTICLE_GENERATORS_DIR", os.path.join(_automation_dir, "articles-website-generator", "generators"))
 # Base directory for generated static projects (when no output_path specified)
 STATIC_PROJECT_OUTPUT_DIR = os.getenv("STATIC_PROJECT_OUTPUT_DIR", os.path.join(_automation_dir, "output", "static-projects"))
-
-# Pinterest Pin Editor (generate image from JSON)
-PIN_EDITOR_URL = os.getenv("PIN_EDITOR_URL", "http://localhost:8080")  # serve.py
-PIN_API_URL = os.getenv("PIN_API_URL", "http://localhost:5000")  # Kimi_Agent_Pin generator.py --serve
 
 # Cloudflare Pages (deploy static projects)
 CLOUDFLARE_ACCOUNT_ID = os.getenv("CLOUDFLARE_ACCOUNT_ID", "")

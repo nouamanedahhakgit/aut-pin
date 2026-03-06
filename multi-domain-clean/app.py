@@ -22,7 +22,7 @@ import urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, request, redirect, url_for, jsonify, send_from_directory, send_file, session, make_response
 import requests as requests_lib
-from db import get_connection, init_db, dict_row, execute as db_execute, last_insert_id
+from db import get_connection, init_db, dict_row, execute as db_execute, last_insert_id, get_fk_children
 from rewrite import rewrite, generate_article_content_for_a
 from config import GENERATE_ARTICLE_API_URL, PIN_EDITOR_URL, PIN_API_URL, ARTICLE_GENERATORS_DIR, OPENAI_API_KEY, OPENAI_MODEL, WEBSITE_PARTS_API_URL, STATIC_PROJECT_OUTPUT_DIR, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, get_ai_config
 import imagine
@@ -31,9 +31,20 @@ import openai
 from pinterest_upload import _build_article_url as pinterest_build_article_url
 
 SITE_TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "site_templates")
+try:
+    from logs_dashboard import get_log_apps, fetch_logs, LOG_APPS
+except ImportError:
+    get_log_apps = lambda: []
+    fetch_logs = lambda **kw: {"lines": [], "stats": {"by_app": {}, "by_level": {}, "by_hour": {}}, "apps": []}
+    LOG_APPS = []
 
 # Domain colors: used for header, footer, sidebar, category, articles. Each domain has its own palette.
 DEFAULT_DOMAIN_COLORS = {"primary": "#2ecc71", "secondary": "#27ae60", "background": "#FFFFFF", "text_primary": "#000000", "text_secondary": "#333333", "border": "#E0E0E0"}
+# Bulk deploy job tracking (in-memory): job_id -> {total, items: [(domain_id, url)], status: {domain_id: "pending"|"running"|"done"|"error"}, current: str, errors: {}, created_at}
+BULK_DEPLOY_JOBS = {}
+BULK_DEPLOY_JOBS_LOCK = threading.Lock()
+BULK_DEPLOY_CANCEL = {}  # job_id -> True if cancel requested
+
 # Distinct palettes for bulk add: background white, normal text; primary/secondary/border matching accent colors
 GOOD_BULK_COLOR_PALETTES = [
     {"primary": "#6C8AE4", "secondary": "#9C6ADE", "background": "#FFFFFF", "text_primary": "#000000", "text_secondary": "#333333", "border": "#E2E8FF"},
@@ -56,8 +67,39 @@ DEFAULT_DOMAIN_FONTS = {
 FONT_FAMILY_OPTIONS = ["Inter", "Playfair Display", "Lora", "Merriweather", "Source Serif 4", "Fraunces", "Source Sans 3", "Open Sans", "Lato", "DM Sans", "PT Sans", "Work Sans", "Georgia", "Arial"]
 
 # OpenRouter models for content generation (rotation or user selection). Keep in sync with articles-website-generator route.py
+# Each entry: {"id": "<openrouter model id>", "label": "<display name with pricing>"}
+# Ordered by: best quality for SEO/article writing, then best value, then trending
 OPENROUTER_MODELS = [
-    "deepseek/deepseek-v3.2"
+    # Paid models — ordered by best SEO/article quality
+    {"id": "google/gemini-2.5-pro",                  "label": "Gemini 2.5 Pro — $1.25in/$5out /1M  [Best SEO, 2M ctx]",       "free": False},
+    {"id": "anthropic/claude-3.7-sonnet",             "label": "Claude 3.7 Sonnet — $3in/$15out /1M  [Top Writing Quality]",   "free": False},
+    {"id": "openai/gpt-4o",                           "label": "GPT-4o — $2.50in/$10out /1M  [Reliable, Great SEO]",           "free": False},
+    {"id": "deepseek/deepseek-v3.2",                  "label": "DeepSeek V3.2 — $0.14in/$0.28out /1M  [Best Value, Trending]", "free": False},
+    {"id": "google/gemini-2.0-flash",                 "label": "Gemini 2.0 Flash — $0.10in/$0.40out /1M  [Fast & Cheap]",      "free": False},
+    {"id": "anthropic/claude-3.5-haiku",              "label": "Claude 3.5 Haiku — $0.80in/$4out /1M  [Fast Claude]",          "free": False},
+    {"id": "openai/gpt-4o-mini",                      "label": "GPT-4o Mini — $0.15in/$0.60out /1M  [Budget OpenAI]",          "free": False},
+    {"id": "deepseek/deepseek-r1",                    "label": "DeepSeek R1 — $0.55in/$2.19out /1M  [Reasoning, Detailed]",    "free": False},
+    {"id": "meta-llama/llama-3.3-70b-instruct",       "label": "Llama 3.3 70B — $0.12in/$0.30out /1M  [Open Source]",         "free": False},
+    {"id": "mistralai/mistral-large-2411",             "label": "Mistral Large — $2in/$6out /1M  [EU Alternative]",             "free": False},
+    # Free models — rate-limited, good for testing / zero cost
+    {"id": "google/gemini-2.0-flash-exp:free",        "label": "[FREE] Gemini 2.0 Flash Exp — $0  [Best Free, Rate Limited]",  "free": True},
+    {"id": "deepseek/deepseek-r1:free",               "label": "[FREE] DeepSeek R1 — $0  [Free Reasoning, Rate Limited]",      "free": True},
+    {"id": "deepseek/deepseek-v3:free",               "label": "[FREE] DeepSeek V3 — $0  [Free, Rate Limited]",                "free": True},
+    {"id": "meta-llama/llama-3.3-70b-instruct:free",  "label": "[FREE] Llama 3.3 70B — $0  [Free Open Source, Rate Limited]",  "free": True},
+    {"id": "qwen/qwen2.5-72b-instruct:free",          "label": "[FREE] Qwen 2.5 72B — $0  [Free, Rate Limited]",               "free": True},
+    {"id": "mistralai/mistral-7b-instruct:free",      "label": "[FREE] Mistral 7B — $0  [Free Basic, Rate Limited]",           "free": True},
+]
+
+# OpenAI models for content generation (user can select in Run modals; profile default is pre-selected)
+# Each entry: {"id": "<openai model id>", "label": "<display name with pricing>"}
+OPENAI_MODELS = [
+    {"id": "gpt-4o",       "label": "GPT-4o — $2.50in / $10out /1M  [Best Balance, Top SEO]"},
+    {"id": "gpt-4o-mini",  "label": "GPT-4o Mini — $0.15in / $0.60out /1M  [Best Budget]"},
+    {"id": "o3-mini",      "label": "o3-mini — $1.10in / $4.40out /1M  [Reasoning, Structured]"},
+    {"id": "o1-mini",      "label": "o1-mini — $1.10in / $4.40out /1M  [Reasoning, Fast]"},
+    {"id": "o1",           "label": "o1 — $15in / $60out /1M  [Advanced Reasoning]"},
+    {"id": "gpt-4-turbo",  "label": "GPT-4 Turbo — $10in / $30out /1M  [Legacy, High Quality]"},
+    {"id": "gpt-4",        "label": "GPT-4 — $30in / $60out /1M  [Legacy Classic]"},
 ]
 
 # Local models for content generation (e.g., Ollama, LM Studio, etc.)
@@ -204,7 +246,8 @@ RANDOM_COLOR_PALETTES = [
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
-_bulk_progress = {}  # job_id -> { status, current_title, message, ok, failed, type, group_id?, mode, created_at }
+_bulk_progress = {}  # job_id -> { status, message, error_detail?, current_title, ok, failed, type, group_id?, mode, created_at }
+BULK_ERROR_DETAIL_MAX = 2000  # max chars for error_detail so user can copy and send to support
 _BULK_HISTORY_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bulk_jobs_history.json")
 
 # Authentication helpers
@@ -262,6 +305,17 @@ def get_user_api_keys(user_id):
         cur = db_execute(conn, "SELECT * FROM user_api_keys WHERE user_id = ?", (user_id,))
         keys = dict_row(cur.fetchone())
         return keys if keys else {}
+
+
+def _parse_bulk_max_concurrency(value):
+    """Parse profile bulk_max_concurrency (1-20). Returns int; default 6 when missing/invalid."""
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return 6
+    try:
+        n = int(value)
+        return max(1, min(n, 20))
+    except (TypeError, ValueError):
+        return 6
 
 def is_profile_complete(user_id):
     """Check if user has completed required profile fields."""
@@ -359,6 +413,14 @@ def get_user_config_for_api(user_id):
     # Build config dict with user keys
     config = {}
     
+    # AI Provider
+    config["ai_provider"] = keys.get("ai_provider")
+    if not config["ai_provider"]:
+        if keys.get("openrouter_api_key"):
+            config["ai_provider"] = "openrouter"
+        else:
+            config["ai_provider"] = "openai"
+    
     # OpenAI
     config["openai_api_key"] = keys.get("openai_api_key")
     config["openai_model"] = keys.get("openai_model") or "gpt-4o-mini"
@@ -366,6 +428,21 @@ def get_user_config_for_api(user_id):
     # OpenRouter
     config["openrouter_api_key"] = keys.get("openrouter_api_key")
     config["openrouter_model"] = keys.get("openrouter_model") or "openai/gpt-oss-120b"
+    
+    # Fallback to provider based on available keys if standard provider key is missing
+    if config["ai_provider"] == "openai" and not config["openai_api_key"] and config["openrouter_api_key"]:
+        config["ai_provider"] = "openrouter"
+    elif config["ai_provider"] == "openrouter" and not config["openrouter_api_key"] and config["openai_api_key"]:
+        config["ai_provider"] = "openai"
+    elif config["ai_provider"] == "local" and not config["local_api_url"]:
+        if config["openrouter_api_key"]:
+            config["ai_provider"] = "openrouter"
+        elif config["openai_api_key"]:
+            config["ai_provider"] = "openai"
+            
+    if config["ai_provider"] == "openai" and not config["openai_api_key"]:
+        if config["openrouter_api_key"]:
+            config["ai_provider"] = "openrouter"
     
     # Local
     config["local_api_url"] = keys.get("local_api_url") or "http://localhost:11434/api/generate"
@@ -523,7 +600,7 @@ def base_layout(content, title, nav_extra=None):
   .run-domain-action-pill .pill-label {{ font-size: 0.7rem; }}
   .run-domain-action-pill .pill-btns {{ display: flex; gap: 2px; flex-wrap: wrap; justify-content: center; }}
   .run-domain-action-pill .pill-btns .btn {{ padding: 0.1rem 0.25rem; font-size: 0.6rem; }}
-  .run-domain-action-pill .pill-hint {{ display: block; font-size: 0.55rem; line-height: 1.1; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }}
+  .run-domain-action-pill .pill-hint {{ display: block; font-size: 0.55rem; line-height: 1.2; max-width: 100%; margin-top: 1px; white-space: normal; }}
   .progress-workflow-section {{ background: #f8f9fa; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 0.75rem; border: 1px solid #e9ecef; }}
   .progress-workflow-section .workflow-label {{ font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6c757d; font-weight: 700; margin-bottom: 0.5rem; }}
   .workflow-pipeline {{ display: flex; align-items: center; gap: 0; flex-wrap: wrap; }}
@@ -536,6 +613,11 @@ def base_layout(content, title, nav_extra=None):
   .workflow-connector {{ width: 24px; height: 3px; background: #dee2e6; flex-shrink: 0; border-radius: 2px; }}
   .workflow-connector.active {{ background: #198754; }}
   @keyframes workflow-pulse {{ 0%,100% {{ opacity: 1; }} 50% {{ opacity: 0.8; }} }}
+  .progress-now-banner {{ background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); color: #fff; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }}
+  .progress-now-banner .now-label {{ opacity: 0.9; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }}
+  .progress-row-bar {{ height: 10px; background: #e9ecef; border-radius: 5px; overflow: hidden; margin: 0.5rem 0; }}
+  .progress-row-bar .progress-row-fill {{ height: 100%; background: #0d6efd; border-radius: 5px; transition: width 0.3s ease; }}
+  .progress-row-bar.done .progress-row-fill {{ background: #198754; }}
 </style></head>
 <body class="bg-light">
 <nav class="navbar navbar-expand navbar-dark bg-dark mb-0">
@@ -545,6 +627,7 @@ def base_layout(content, title, nav_extra=None):
       {nav_extra_html}
       <a class="nav-link" href="/admin/domains">Domains</a>
       <a class="nav-link" href="/admin/titles">Titles</a>
+      <a class="nav-link" href="/admin/logs">📋 Logs</a>
       {f'<a class="nav-link" href="/admin/users">👥 Users</a>' if session.get('is_admin') else ''}
       <a class="nav-link" href="/profile">👤 {session.get('username', 'Profile')}</a>
       <a class="nav-link" href="/logout">Logout</a>
@@ -580,7 +663,7 @@ function viewContent(tid) {{
     var html = raw.startsWith('<') ? raw : raw.replace(/\\n/g, '<br>');
     var css = (d.article_css || '').toString().trim();
     if(css) html = '<style>' + css + '</style><div class="article-preview">' + (html || '') + '</div>';
-    var meta = (d.model_used || d.generated_at || d.generation_time_seconds != null) ? '<p class="mb-2 small text-muted">Model: ' + (d.model_used || '-') + (d.generated_at ? ' &bull; Generated: ' + d.generated_at : '') + (d.generation_time_seconds != null ? ' &bull; Time: ' + d.generation_time_seconds + 's' : '') + '</p>' : '';
+    var meta = (d.model_used || d.generated_at || d.generation_time_seconds != null || d.generation_cost_usd != null) ? '<p class="mb-2 small text-muted">Model: ' + (d.model_used || '-') + (d.generated_at ? ' &bull; Generated: ' + d.generated_at : '') + (d.generation_time_seconds != null ? ' &bull; Time: ' + d.generation_time_seconds + 's' : '') + (d.generation_cost_usd != null && d.generation_cost_usd !== '' ? ' &bull; Cost: $' + Number(d.generation_cost_usd).toFixed(4) : '') + '</p>' : '';
     var editLink = '<p class="mb-2"><a href="/article-html-editor?title_id='+tid+'" target="_blank" class="btn btn-sm btn-outline-primary">Edit HTML/CSS (no regeneration)</a></p>';
     document.getElementById('viewModalBody').innerHTML = meta + editLink + (html || '<em>Empty</em>');
     document.getElementById('viewModalTitle').textContent = 'Content';
@@ -606,7 +689,7 @@ function viewDomainSingle(tid, label) {{
     var adisp = raw.startsWith('<') ? raw : raw.replace(/\\n/g,'<br>') || '<em>Empty</em>';
     var css = (d.article_css || '').toString().trim();
     if(css) adisp = '<style>' + css + '</style><div class="article-preview">' + adisp + '</div>';
-    if(d.model_used || d.generated_at || d.generation_time_seconds != null) html += '<div class="mb-2 small text-muted">Model: ' + (d.model_used || '-') + (d.generated_at ? ' &bull; Generated: ' + d.generated_at : '') + (d.generation_time_seconds != null ? ' &bull; Time: ' + d.generation_time_seconds + 's' : '') + '</div>';
+    if(d.model_used || d.generated_at || d.generation_time_seconds != null || d.generation_cost_usd != null) html += '<div class="mb-2 small text-muted">Model: ' + (d.model_used || '-') + (d.generated_at ? ' &bull; Generated: ' + d.generated_at : '') + (d.generation_time_seconds != null ? ' &bull; Time: ' + d.generation_time_seconds + 's' : '') + (d.generation_cost_usd != null && d.generation_cost_usd !== '' ? ' &bull; Cost: $' + Number(d.generation_cost_usd).toFixed(4) : '') + '</div>';
     html += '<div class="mb-3"><strong>Article</strong><div class="border rounded p-2">'+adisp+'</div></div>';
     var r = (d.recipe || '').toString();
     var rdisp = (r.startsWith('{{') ? '<pre>'+r+'</pre>' : r.replace(/\\n/g,'<br>')) || '<em>Empty</em>';
@@ -662,7 +745,7 @@ function viewContentAll(idsStr, labelsStr) {{
         var css = (d.article_css || '').toString().trim();
         if(css) disp = '<style>' + css + '</style><div class="article-preview">' + disp + '</div>';
         var l = labels[i] || ('Domain '+(i+1));
-        var meta = (d.model_used || d.generated_at || d.generation_time_seconds != null) ? '<span class="small text-muted">Model: ' + (d.model_used || '-') + (d.generated_at ? ' &bull; ' + d.generated_at : '') + (d.generation_time_seconds != null ? ' &bull; ' + d.generation_time_seconds + 's' : '') + '</span>' : '';
+        var meta = (d.model_used || d.generated_at || d.generation_time_seconds != null || d.generation_cost_usd != null) ? '<span class="small text-muted">Model: ' + (d.model_used || '-') + (d.generated_at ? ' &bull; ' + d.generated_at : '') + (d.generation_time_seconds != null ? ' &bull; ' + d.generation_time_seconds + 's' : '') + (d.generation_cost_usd != null && d.generation_cost_usd !== '' ? ' &bull; $' + Number(d.generation_cost_usd).toFixed(4) : '') + '</span>' : '';
         html += '<div class="mb-3"><strong>'+l+'</strong>' + (meta ? ' ' + meta : '') + '<div class="border rounded p-2">'+disp+'</div></div>';
       }});
       document.getElementById('viewModalBody').innerHTML = html || '<em>Empty</em>';
@@ -693,14 +776,52 @@ function viewRecipeAll(idsStr, labelsStr) {{
     .catch(function(e){{ alert('Error: '+e); }})
     .finally(function() {{ hideGlobalLoading(); }});
 }}
+function _applyProfileAiDefaults(prefix) {{
+  fetch('/api/profile-ai-defaults').then(function(r){{ return r.json(); }}).then(function(d){{
+    var sel = document.getElementById(prefix + 'AiProvider');
+    if (sel && d.ai_provider) {{ sel.value = d.ai_provider; }}
+    var oaiWrap = document.getElementById(prefix + 'OpenAIWrap');
+    var orWrap = document.getElementById(prefix + 'OpenRouterWrap');
+    var orOpts = document.getElementById(prefix + 'OrOpts');
+    if (oaiWrap) oaiWrap.style.display = (d.ai_provider === 'openai') ? 'block' : 'none';
+    if (orWrap) orWrap.style.display = (d.ai_provider === 'openrouter') ? 'block' : 'none';
+    if (orOpts) orOpts.style.display = (d.ai_provider === 'openrouter') ? 'block' : 'none';
+    var oaiSel = document.getElementById(prefix + 'OpenAIModel');
+    if (oaiSel && d.openai_model) {{
+      for (var i = 0; i < oaiSel.options.length; i++) {{ if (oaiSel.options[i].value === d.openai_model) {{ oaiSel.selectedIndex = i; break; }} }}
+    }}
+    var orModelsEl = document.getElementById(prefix + 'OpenRouterModels');
+    if (orModelsEl && orModelsEl.options && d.openrouter_model) {{
+      var found = false;
+      for (var i = 0; i < orModelsEl.options.length; i++) {{
+        orModelsEl.options[i].selected = (orModelsEl.options[i].value === d.openrouter_model) || (!found && i < 2);
+        if (orModelsEl.options[i].value === d.openrouter_model) found = true;
+      }}
+      if (!found) {{ for (var i = 0; i < Math.min(2, orModelsEl.options.length); i++) {{ orModelsEl.options[i].selected = true; }} }}
+    }}
+    var bulkMax = typeof d.bulk_max_concurrency === 'number' ? d.bulk_max_concurrency : (parseInt(d.bulk_max_concurrency, 10) || 6);
+    bulkMax = Math.max(1, Math.min(bulkMax, 20));
+    var gN = document.getElementById('bulkGroupConcurrencyN');
+    var aN = document.getElementById('allGroupsConcurrencyN');
+    if (gN) {{ gN.value = bulkMax; }}
+    if (aN) {{ aN.value = bulkMax; }}
+    document.querySelectorAll('input[name="bulkGroupConcurrencyPreset"][value="max"]').forEach(function(r){{ r.checked = true; }});
+    document.querySelectorAll('input[name="allGroupsConcurrencyPreset"][value="max"]').forEach(function(r){{ r.checked = true; }});
+    _updateBulkModalAiHints(prefix);
+  }}).catch(function(){{}});
+}}
 function _updateBulkModalAiHints(prefix) {{
   var sel = document.getElementById(prefix + 'AiProvider');
   var provider = (sel && sel.value) ? sel.value : 'openrouter';
   var wrap = document.getElementById(prefix + 'OpenRouterWrap');
+  var orOpts = document.getElementById(prefix + 'OrOpts');
+  var oaiWrap = document.getElementById(prefix + 'OpenAIWrap');
   var modeSelect = document.querySelector('input[name="' + prefix + 'OpenRouterMode"][value="select"]');
   var modelsEl = document.getElementById(prefix + 'OpenRouterModels');
   if (wrap) wrap.style.display = (provider === 'openrouter') ? 'block' : 'none';
-  if (modelsEl) modelsEl.style.display = (provider === 'openrouter' && modeSelect && modeSelect.checked) ? 'block' : 'none';
+  if (orOpts) orOpts.style.display = (provider === 'openrouter') ? 'block' : 'none';
+  if (oaiWrap) oaiWrap.style.display = (provider === 'openai') ? 'block' : 'none';
+  if (modelsEl) modelsEl.style.display = (provider === 'openrouter' && (!modeSelect || modeSelect.checked)) ? 'block' : 'none';
   /* Wire radio-button toggles so model select shows/hides when switching Rotation ↔ Select */
   document.querySelectorAll('input[name="' + prefix + 'OpenRouterMode"]').forEach(function(radio) {{
     if (radio._orWired) return;
@@ -712,14 +833,43 @@ function _updateBulkModalAiHints(prefix) {{
   }});
   if (provider === 'openrouter' && modelsEl && (!modelsEl.options || modelsEl.options.length === 0) && !window._openRouterModelsLoaded) {{
     window._openRouterModelsLoaded = true;
-    fetch('/api/openrouter-models').then(function(r){{ return r.json(); }}).then(function(d){{
-      var models = d.models || [];
+    Promise.all([fetch('/api/openrouter-models').then(function(r){{ return r.json(); }}), fetch('/api/profile-ai-defaults').then(function(r){{ return r.json(); }})]).then(function(arr){{
+      var modelOptions = (arr[0].model_options || arr[0].models || []);
+      var models = (arr[0].models || modelOptions.map(function(m){{ return typeof m === 'string' ? m : m.id; }}));
+      var profile = arr[1] || {{}};
+      var defaultOr = profile.openrouter_model || (models[0] || '');
       window._openRouterModelsList = models;
+      window._openRouterModelOptionsList = modelOptions;
       ['bulkModal','bulkGroupModal','bulkAllGroupsModal'].forEach(function(p){{
         var m = document.getElementById(p + 'OpenRouterModels');
-        if (m) {{ m.innerHTML = ''; models.forEach(function(id){{ var o = document.createElement('option'); o.value = id; o.textContent = id; m.appendChild(o); }}); }}
+        if (m) {{
+          m.innerHTML = '';
+          modelOptions.forEach(function(item){{ var id = typeof item === 'string' ? item : item.id; var label = typeof item === 'string' ? item : (item.label || item.id); var isFree = item.free === true || (typeof id === 'string' && id.endsWith(':free')); var o = document.createElement('option'); o.value = id; o.textContent = label; o.setAttribute('data-free', isFree ? 'true' : 'false'); m.appendChild(o); }});
+          var selCount = 0;
+          for (var i = 0; i < m.options.length; i++) {{
+            var opt = m.options[i];
+            if (opt.value === defaultOr && opt.getAttribute('data-free') !== 'true') {{ opt.selected = true; selCount++; }}
+          }}
+          for (var i = 0; i < m.options.length && selCount < 2; i++) {{
+            if (!m.options[i].selected && m.options[i].getAttribute('data-free') !== 'true') {{ m.options[i].selected = true; selCount++; }}
+          }}
+        }}
       }});
     }}).catch(function(){{}});
+  }}
+  if (provider === 'openai') {{
+    var oaiEl = document.getElementById(prefix + 'OpenAIModel');
+    if (oaiEl && (!oaiEl.options || oaiEl.options.length === 0) && !window._openAIModelsLoaded) {{
+      window._openAIModelsLoaded = true;
+      Promise.all([fetch('/api/openai-models').then(function(r){{ return r.json(); }}), fetch('/api/profile-ai-defaults').then(function(r){{ return r.json(); }})]).then(function(arr){{
+        var modelOptions = arr[0].model_options || arr[0].models || [];
+        var defaultOai = (arr[1] || {{}}).openai_model || 'gpt-4o-mini';
+        ['bulkModal','bulkGroupModal','bulkAllGroupsModal'].forEach(function(p){{
+          var m = document.getElementById(p + 'OpenAIModel');
+          if (m) {{ m.innerHTML = ''; modelOptions.forEach(function(item){{ var id = typeof item === 'string' ? item : item.id; var label = typeof item === 'string' ? item : (item.label || item.id); var o = document.createElement('option'); o.value = id; o.textContent = label; m.appendChild(o); }}); for (var i = 0; i < m.options.length; i++) {{ if (m.options[i].value === defaultOai) {{ m.selectedIndex = i; break; }} }} }}
+        }});
+      }}).catch(function(){{}});
+    }}
   }}
   fetch('/api/ai-config?provider=' + encodeURIComponent(provider)).then(function(r){{ return r.json(); }}).then(function(cfg) {{
     var hint = 'AI: ' + (cfg.label || cfg.provider + '/' + cfg.model);
@@ -738,32 +888,84 @@ function _getOpenRouterModelsParam(prefix) {{
   for (var i = 0; i < modelsEl.options.length; i++) {{ if (modelsEl.options[i].selected) selected.push(modelsEl.options[i].value); }}
   return selected.length ? '&openrouter_models=' + encodeURIComponent(selected.join(',')) : '';
 }}
+function _getAiModelParams(prefix) {{
+  var sel = document.getElementById(prefix + 'AiProvider');
+  if (!sel || !sel.value) return '';
+  if (sel.value === 'openai') {{
+    var oaiEl = document.getElementById(prefix + 'OpenAIModel');
+    if (oaiEl && oaiEl.value) return '&openai_model=' + encodeURIComponent(oaiEl.value);
+  }} else if (sel.value === 'openrouter') {{
+    var orEl = document.getElementById(prefix + 'OpenRouterModels');
+    if (orEl && orEl.options) {{
+      for (var i = 0; i < orEl.options.length; i++) {{ if (orEl.options[i].selected) return '&openrouter_model=' + encodeURIComponent(orEl.options[i].value); }}
+    }}
+  }}
+  return '';
+}}
+function _filterOrModels(prefix, filterType) {{
+  window['_orFilter_' + prefix] = filterType;
+  ['All','Free','Paid'].forEach(function(f) {{
+    var btn = document.getElementById(prefix + 'OrFilter' + f);
+    if (!btn) return;
+    var active = f.toLowerCase() === filterType;
+    btn.className = btn.className.replace(/\bbtn-primary\b/g, 'btn-outline-secondary').replace(/\bbtn-outline-secondary\b/g, active ? 'btn-primary' : 'btn-outline-secondary');
+  }});
+  var modelsEl = document.getElementById(prefix + 'OpenRouterModels');
+  if (!modelsEl || !modelsEl.options) return;
+  for (var i = 0; i < modelsEl.options.length; i++) {{
+    var opt = modelsEl.options[i];
+    var isFree = opt.getAttribute('data-free') === 'true';
+    var show = filterType === 'all' || (filterType === 'free' && isFree) || (filterType === 'paid' && !isFree);
+    opt.style.display = show ? '' : 'none';
+    if (!show) opt.selected = false;
+  }}
+}}
+function _resetOpenRouterModels(prefix) {{
+  var modelsEl = document.getElementById(prefix + 'OpenRouterModels');
+  if (!modelsEl) return;
+  if (modelsEl.options) {{
+    _filterOrModels(prefix, 'all');
+    var selCount = 0;
+    for (var i = 0; i < modelsEl.options.length; i++) {{
+      var isPaid = modelsEl.options[i].getAttribute('data-free') !== 'true';
+      modelsEl.options[i].selected = (isPaid && selCount < 2);
+      if (isPaid && selCount < 2) selCount++;
+    }}
+  }}
+}}
 function _updateBulkModalButtons(d) {{
   var btnArticle = document.getElementById('bulkModalBtnArticle');
   var btnImages = document.getElementById('bulkModalBtnImages');
+  var btnPinterest = document.getElementById('bulkModalBtnPinterest');
   var btnAll = document.getElementById('bulkModalBtnAll');
   var sc = (document.querySelector('input[name="bulkModalScopeContent"]:checked') || {{}}).value || 'empty_only';
   var si = (document.querySelector('input[name="bulkModalScopeImages"]:checked') || {{}}).value || 'empty_only';
+  var sp = (document.querySelector('input[name="bulkModalScopePins"]:checked') || {{}}).value || 'empty_only';
   var nc = sc === 'override' ? (d.total || 0) : (d.no_html_css || 0);
   var ni = si === 'override' ? (d.total || 0) : (d.no_images || 0);
-  if (btnArticle) btnArticle.textContent = 'Run content(' + nc + ')';
+  var np = sp === 'override' ? (d.total || 0) : (d.no_pins || 0);
+  if (btnArticle) btnArticle.textContent = 'Run content (' + nc + ')';
   if (btnImages) btnImages.textContent = 'Run images (' + ni + ')';
-  if (btnAll) btnAll.textContent = 'Run all (' + nc + ', ' + ni + ')';
+  if (btnPinterest) btnPinterest.textContent = 'Run Pinterest (' + np + ')';
+  if (btnAll) btnAll.textContent = 'Run all (' + nc + ', ' + ni + ', ' + np + ')';
 }}
 function openBulkModal(taId) {{
   document.getElementById('bulkModalTitleId').value = taId;
+  _applyProfileAiDefaults('bulkModal');
   var btnArticle = document.getElementById('bulkModalBtnArticle');
   var btnImages = document.getElementById('bulkModalBtnImages');
+  var btnPinterest = document.getElementById('bulkModalBtnPinterest');
   var btnAll = document.getElementById('bulkModalBtnAll');
   if (btnArticle) btnArticle.textContent = 'Run content';
   if (btnImages) btnImages.textContent = 'Run images';
-  if (btnAll) btnAll.textContent = 'Run all (content first, then images)';
+  if (btnPinterest) btnPinterest.textContent = 'Run Pinterest';
+  if (btnAll) btnAll.textContent = 'Run all (content, images, Pinterest)';
   fetch('/api/bulk-row-counts?title_id=' + encodeURIComponent(taId)).then(function(r){{ return r.json(); }}).then(function(d) {{
     window._bulkModalCounts = d;
     _updateBulkModalButtons(d);
     _updateBulkModalAiHints('bulkModal');
     var handler = function(){{ _updateBulkModalButtons(window._bulkModalCounts || {{}}); }};
-    ['bulkModalScopeContent','bulkModalScopeImages'].forEach(function(name){{
+    ['bulkModalScopeContent','bulkModalScopeImages','bulkModalScopePins'].forEach(function(name){{
       document.querySelectorAll('input[name="' + name + '"]').forEach(function(el){{
         if (window._bulkModalScopeHandler) el.removeEventListener('change', window._bulkModalScopeHandler);
         el.addEventListener('change', handler);
@@ -782,10 +984,12 @@ function runBulk(mode) {{
   bootstrap.Modal.getInstance(document.getElementById('bulkModal')).hide();
   var scEl = document.querySelector('input[name="bulkModalScopeContent"]:checked');
   var siEl = document.querySelector('input[name="bulkModalScopeImages"]:checked');
+  var spEl = document.querySelector('input[name="bulkModalScopePins"]:checked');
   var scopeContent = (scEl && scEl.value) || 'override';
   var scopeImages = (siEl && siEl.value) || 'override';
+  var scopePins = (spEl && spEl.value) || 'override';
     var aiProvider = (document.getElementById('bulkModalAiProvider') || {{}}).value || '';
-    var url = '/api/bulk-run?title_id=' + tid + '&mode=' + mode + '&scope_content=' + scopeContent + '&scope_images=' + scopeImages + (aiProvider ? '&ai_provider=' + encodeURIComponent(aiProvider) : '') + _getOpenRouterModelsParam('bulkModal');
+    var url = '/api/bulk-run?title_id=' + tid + '&mode=' + mode + '&scope_content=' + scopeContent + '&scope_images=' + scopeImages + '&scope_pins=' + scopePins + (aiProvider ? '&ai_provider=' + encodeURIComponent(aiProvider) : '') + _getOpenRouterModelsParam('bulkModal') + _getAiModelParams('bulkModal');
   fetch(url, {{ method: 'POST' }}).then(r=>r.json()).then(d=>{{
     if (typeof notifyTaskComplete==='function' && document.hidden) notifyTaskComplete('Run', d.success ? 'done' : 'error', d.success ? 'Done' : d.error);
     alert(d.success ? 'Done' : 'Error: ' + (d.error||''));
@@ -795,29 +999,36 @@ function runBulk(mode) {{
 function _updateBulkGroupModalButtons(d) {{
   var btnArticle = document.getElementById('bulkGroupBtnArticle');
   var btnImages = document.getElementById('bulkGroupBtnImages');
+  var btnPinterest = document.getElementById('bulkGroupBtnPinterest');
   var btnAll = document.getElementById('bulkGroupBtnAll');
   var sc = (document.querySelector('input[name="bulkGroupModalScopeContent"]:checked') || {{}}).value || 'empty_only';
   var si = (document.querySelector('input[name="bulkGroupModalScopeImages"]:checked') || {{}}).value || 'empty_only';
+  var sp = (document.querySelector('input[name="bulkGroupModalScopePins"]:checked') || {{}}).value || 'empty_only';
   var nc = sc === 'override' ? (d.total || 0) : (d.no_html_css || 0);
   var ni = si === 'override' ? (d.total || 0) : (d.no_images || 0);
-  if (btnArticle) btnArticle.textContent = 'Run content(' + nc + ')';
+  var np = sp === 'override' ? (d.total || 0) : (d.rows_needs_pins != null ? d.rows_needs_pins : d.no_pins || 0);
+  if (btnArticle) btnArticle.textContent = 'Run content (' + nc + ')';
   if (btnImages) btnImages.textContent = 'Run images (' + ni + ')';
-  if (btnAll) btnAll.textContent = 'Run all (' + nc + ', ' + ni + ')';
+  if (btnPinterest) btnPinterest.textContent = 'Run Pinterest (' + np + ')';
+  if (btnAll) btnAll.textContent = 'Run all (' + nc + ', ' + ni + ', ' + np + ')';
 }}
 function openBulkGroupModal(gid) {{
   document.getElementById('bulkGroupModalGroupId').value = gid;
+  _applyProfileAiDefaults('bulkGroupModal');
   var btnArticle = document.getElementById('bulkGroupBtnArticle');
   var btnImages = document.getElementById('bulkGroupBtnImages');
+  var btnPinterest = document.getElementById('bulkGroupBtnPinterest');
   var btnAll = document.getElementById('bulkGroupBtnAll');
   if (btnArticle) btnArticle.textContent = 'Run content';
   if (btnImages) btnImages.textContent = 'Run images';
-  if (btnAll) btnAll.textContent = 'Run all (content first, then images)';
+  if (btnPinterest) btnPinterest.textContent = 'Run Pinterest';
+  if (btnAll) btnAll.textContent = 'Run all (content, images, Pinterest)';
   fetch('/api/bulk-group-counts?group_id=' + encodeURIComponent(gid)).then(function(r){{ return r.json(); }}).then(function(d) {{
     window._bulkGroupModalCounts = d;
     _updateBulkGroupModalButtons(d);
     _updateBulkModalAiHints('bulkGroupModal');
     var handler = function(){{ _updateBulkGroupModalButtons(window._bulkGroupModalCounts || {{}}); }};
-    ['bulkGroupModalScopeContent','bulkGroupModalScopeImages'].forEach(function(name){{
+    ['bulkGroupModalScopeContent','bulkGroupModalScopeImages','bulkGroupModalScopePins'].forEach(function(name){{
       document.querySelectorAll('input[name="' + name + '"]').forEach(function(el){{
         if (window._bulkGroupModalScopeHandler) el.removeEventListener('change', window._bulkGroupModalScopeHandler);
         el.addEventListener('change', handler);
@@ -836,37 +1047,93 @@ function runBulkGroupFromModal(mode) {{
   bootstrap.Modal.getInstance(document.getElementById('bulkGroupModal')).hide();
   var scEl = document.querySelector('input[name="bulkGroupModalScopeContent"]:checked');
   var siEl = document.querySelector('input[name="bulkGroupModalScopeImages"]:checked');
+  var spEl = document.querySelector('input[name="bulkGroupModalScopePins"]:checked');
   var scopeContent = (scEl && scEl.value) || 'override';
   var scopeImages = (siEl && siEl.value) || 'override';
+  var scopePins = (spEl && spEl.value) || 'override';
   var aiProvider = (document.getElementById('bulkGroupModalAiProvider') || {{}}).value || '';
-  var url = '/api/bulk-run-group?group_id=' + gid + '&mode=' + mode + '&scope_content=' + scopeContent + '&scope_images=' + scopeImages + (aiProvider ? '&ai_provider=' + encodeURIComponent(aiProvider) : '') + _getOpenRouterModelsParam('bulkGroupModal');
+  var preset = (document.querySelector('input[name="bulkGroupConcurrencyPreset"]:checked') || {{}}).value || 'low';
+  var n = preset === 'low' ? 1 : preset === 'medium' ? 2 : Math.max(1, Math.min(parseInt((document.getElementById('bulkGroupConcurrencyN')||{{}}).value, 10) || 6, 20));
+  var url = '/api/bulk-run-group?group_id=' + gid + '&mode=' + mode + '&scope_content=' + scopeContent + '&scope_images=' + scopeImages + '&scope_pins=' + scopePins + '&concurrency_n=' + n + (aiProvider ? '&ai_provider=' + encodeURIComponent(aiProvider) : '') + _getOpenRouterModelsParam('bulkGroupModal') + _getAiModelParams('bulkGroupModal');
   var asyncUrl = url + (url.indexOf('?')>=0 ? '&' : '?') + 'async=1';
+  if (typeof requestTaskNotificationPermission==='function') requestTaskNotificationPermission();
+  var modal = document.getElementById('progressModal');
+  var body = document.getElementById('progressModalBody');
+  if (modal && body) {{
+    renderProgressBodyFromMode(mode, 'running', 'Starting job...', '', []);
+    document.getElementById('progressBgBtn').style.display = 'none';
+    new bootstrap.Modal(modal).show();
+  }}
   fetch(asyncUrl, {{ method: 'POST' }}).then(r=>r.json()).then(function(d){{
-    if (d.error) {{ alert('Error: ' + d.error); return; }}
-    if (d.success && d.job_id && typeof refreshRunningTasks==='function') refreshRunningTasks();
-  }}).catch(function(e){{ alert('Error: ' + e); }});
+    if (d.error) {{ if (body) body.innerHTML = '<p class="text-danger">' + d.error + '</p>'; return; }}
+    var jobId = d.job_id;
+    if (d.success && jobId) {{
+      if (typeof refreshRunningTasks==='function') refreshRunningTasks();
+      if (modal && body) {{
+        window._currentProgressJobId = jobId;
+        document.getElementById('progressBgBtn').style.display = 'inline-block';
+        function poll() {{
+          fetch('/api/bulk-run-status?job_id=' + encodeURIComponent(jobId)).then(r=>r.json()).then(function(s){{
+            if (body) renderProgressBody(s, body);
+            if (s.status === 'done' || s.status === 'error' || s.status === 'cancelled') {{
+              if (_progressPollInterval) {{ clearInterval(_progressPollInterval); _progressPollInterval = null; }}
+              document.getElementById('progressBgBtn').style.display = 'none';
+              if (typeof notifyTaskComplete==='function') notifyTaskComplete(workflowStepsFromStatus(s)[0] || 'Run', s.status, s.message);
+              if (typeof refreshAfterRun==='function') refreshAfterRun();
+              if (typeof refreshRunningTasks==='function') refreshRunningTasks();
+              setTimeout(function(){{ if (bootstrap.Modal.getInstance(modal)) bootstrap.Modal.getInstance(modal).hide(); }}, 2000);
+            }}
+          }}).catch(function(){{}});
+        }}
+        poll();
+        _progressPollInterval = setInterval(poll, 800);
+      }}
+    }}
+  }}).catch(function(e){{
+    if (body) body.innerHTML = '<p class="text-danger">Error: ' + (e.message || e) + '</p>';
+  }});
   if (typeof refreshRunningTasks==='function') setTimeout(refreshRunningTasks, 500);
+}}
+function runBulkGroupDeployCloudflare() {{
+  var gid = document.getElementById('bulkGroupModalGroupId').value;
+  if (!gid) return;
+  bootstrap.Modal.getInstance(document.getElementById('bulkGroupModal')).hide();
+  fetch('/api/bulk-deploy-group?group_id=' + gid, {{ method: 'POST' }}).then(r=>r.json()).then(function(d){{
+    if (d.error) {{ alert('Error: ' + d.error); return; }}
+    if (d.success && d.bulk_job_id) {{
+      var url = '/admin/domains?group_id=' + gid + '&bulk_job_id=' + d.bulk_job_id;
+      window.location.href = url;
+    }} else {{
+      alert(d.message || 'No domains to deploy in this group.');
+    }}
+  }}).catch(function(e){{ alert('Error: ' + e); }});
 }}
 function _updateBulkAllGroupsModalButtons(d) {{
   var btnArticle = document.getElementById('bulkAllGroupsBtnArticle');
   var btnImages = document.getElementById('bulkAllGroupsBtnImages');
+  var btnPinterest = document.getElementById('bulkAllGroupsBtnPinterest');
   var btnAll = document.getElementById('bulkAllGroupsBtnAll');
   var sc = (document.querySelector('input[name="bulkAllGroupsModalScopeContent"]:checked') || {{}}).value || 'empty_only';
   var si = (document.querySelector('input[name="bulkAllGroupsModalScopeImages"]:checked') || {{}}).value || 'empty_only';
+  var sp = (document.querySelector('input[name="bulkAllGroupsModalScopePins"]:checked') || {{}}).value || 'empty_only';
   var nc = sc === 'override' ? (d.total || 0) : (d.rows_needs_content != null ? d.rows_needs_content : d.no_html_css || 0);
   var ni = si === 'override' ? (d.total || 0) : (d.rows_needs_images != null ? d.rows_needs_images : d.no_images || 0);
-  if (btnArticle) btnArticle.textContent = 'Run content(' + nc + ')';
+  var np = sp === 'override' ? (d.total_rows != null ? d.total_rows : d.total || 0) : (d.rows_needs_pins != null ? d.rows_needs_pins : d.no_pins || 0);
+  if (btnArticle) btnArticle.textContent = 'Run content (' + nc + ')';
   if (btnImages) btnImages.textContent = 'Run images (' + ni + ')';
-  if (btnAll) btnAll.textContent = 'Run all (' + nc + ', ' + ni + ')';
+  if (btnPinterest) btnPinterest.textContent = 'Run Pinterest (' + np + ')';
+  if (btnAll) btnAll.textContent = 'Run all (' + nc + ', ' + ni + ', ' + np + ')';
 }}
 function openBulkGroupModal(groupId, groupName) {{
   var modal = document.getElementById('bulkGroupModal');
   var btnArticle = document.getElementById('bulkGroupBtnArticle');
   var btnImages = document.getElementById('bulkGroupBtnImages');
+  var btnPinterest = document.getElementById('bulkGroupBtnPinterest');
   var btnAll = document.getElementById('bulkGroupBtnAll');
   if (btnArticle) btnArticle.textContent = 'Run content';
   if (btnImages) btnImages.textContent = 'Run images';
-  if (btnAll) btnAll.textContent = 'Run all (content first, then images)';
+  if (btnPinterest) btnPinterest.textContent = 'Run Pinterest';
+  if (btnAll) btnAll.textContent = 'Run all (content, images, Pinterest)';
   document.getElementById('bulkGroupModalTitle').textContent = 'Run for group: ' + groupName;
   document.getElementById('bulkGroupModalGroupId').value = groupId;
   
@@ -875,7 +1142,7 @@ function openBulkGroupModal(groupId, groupName) {{
     _updateBulkGroupModalButtons(d);
     _updateBulkModalAiHints('bulkGroupModal');
     var handler = function(){{ _updateBulkGroupModalButtons(window._bulkGroupModalCounts || {{}}); }};
-    ['bulkGroupModalScopeContent','bulkGroupModalScopeImages'].forEach(function(name){{
+    ['bulkGroupModalScopeContent','bulkGroupModalScopeImages','bulkGroupModalScopePins'].forEach(function(name){{
       document.querySelectorAll('input[name="' + name + '"]').forEach(function(el){{
         if (window._bulkGroupModalScopeHandler) el.removeEventListener('change', window._bulkGroupModalScopeHandler);
         el.addEventListener('change', handler);
@@ -889,39 +1156,23 @@ function openBulkGroupModal(groupId, groupName) {{
   new bootstrap.Modal(modal).show();
 }}
 
-function _updateBulkGroupModalButtons(d) {{
-  var btnArticle = document.getElementById('bulkGroupBtnArticle');
-  var btnImages = document.getElementById('bulkGroupBtnImages');
-  var btnAll = document.getElementById('bulkGroupBtnAll');
-  var sc = (document.querySelector('input[name="bulkGroupModalScopeContent"]:checked') || {{}}).value || 'empty_only';
-  var si = (document.querySelector('input[name="bulkGroupModalScopeImages"]:checked') || {{}}).value || 'empty_only';
-  var nc = sc === 'override' ? (d.total || 0) : (d.rows_needs_content != null ? d.rows_needs_content : d.no_html_css || 0);
-  var ni = si === 'override' ? (d.total || 0) : (d.rows_needs_images != null ? d.rows_needs_images : d.no_images || 0);
-  if (btnArticle) btnArticle.textContent = 'Run content (' + nc + ')';
-  if (btnImages) btnImages.textContent = 'Run images (' + ni + ')';
-  if (btnAll) btnAll.textContent = 'Run all (' + nc + ', ' + ni + ')';
-}}
-
-function runBulkGroupFromModal(mode) {{
-  var groupId = document.getElementById('bulkGroupModalGroupId').value;
-  bootstrap.Modal.getInstance(document.getElementById('bulkGroupModal')).hide();
-  runBulkGroup(groupId, mode);
-}}
-
 function openBulkAllGroupsModal() {{
+  _applyProfileAiDefaults('bulkAllGroupsModal');
   var modal = document.getElementById('bulkAllGroupsModal');
   var btnArticle = document.getElementById('bulkAllGroupsBtnArticle');
   var btnImages = document.getElementById('bulkAllGroupsBtnImages');
+  var btnPinterest = document.getElementById('bulkAllGroupsBtnPinterest');
   var btnAll = document.getElementById('bulkAllGroupsBtnAll');
   if (btnArticle) btnArticle.textContent = 'Run content';
   if (btnImages) btnImages.textContent = 'Run images';
-  if (btnAll) btnAll.textContent = 'Run all (content first, then images)';
+  if (btnPinterest) btnPinterest.textContent = 'Run Pinterest';
+  if (btnAll) btnAll.textContent = 'Run all (content, images, Pinterest)';
   fetch('/api/bulk-all-groups-counts').then(function(r){{ return r.json(); }}).then(function(d) {{
     window._bulkAllGroupsModalCounts = d;
     _updateBulkAllGroupsModalButtons(d);
     _updateBulkModalAiHints('bulkAllGroupsModal');
     var handler = function(){{ _updateBulkAllGroupsModalButtons(window._bulkAllGroupsModalCounts || {{}}); }};
-    ['bulkAllGroupsModalScopeContent','bulkAllGroupsModalScopeImages'].forEach(function(name){{
+    ['bulkAllGroupsModalScopeContent','bulkAllGroupsModalScopeImages','bulkAllGroupsModalScopePins'].forEach(function(name){{
       document.querySelectorAll('input[name="' + name + '"]').forEach(function(el){{
         if (window._bulkAllGroupsModalScopeHandler) el.removeEventListener('change', window._bulkAllGroupsModalScopeHandler);
         el.addEventListener('change', handler);
@@ -936,16 +1187,21 @@ function openBulkAllGroupsModal() {{
 }}
 function runBulkAllGroups(mode) {{
   bootstrap.Modal.getInstance(document.getElementById('bulkAllGroupsModal')).hide();
-  var ct = document.querySelector('input[name="allGroupsConcurrency"]:checked');
-  var concurrencyType = (ct && ct.value) || 'row';
-  var n = concurrencyType === 'row' ? document.getElementById('allGroupsConcurrencyN').value : document.getElementById('allGroupsGroupN').value;
-  n = Math.max(1, Math.min(parseInt(n, 10) || 1, concurrencyType === 'row' ? 20 : 10));
+  var preset = (document.querySelector('input[name="allGroupsConcurrencyPreset"]:checked') || {{}}).value || 'low';
+  var concurrencyType = preset === 'group' ? 'group' : 'row';
+  var n = 1;
+  if (preset === 'low') n = 1;
+  else if (preset === 'medium') n = 2;
+  else if (preset === 'max') n = Math.max(1, Math.min(parseInt((document.getElementById('allGroupsConcurrencyN')||{{}}).value, 10) || 6, 20));
+  else if (preset === 'group') n = Math.max(1, Math.min(parseInt((document.getElementById('allGroupsGroupN')||{{}}).value, 10) || 2, 10));
   var scEl = document.querySelector('input[name="bulkAllGroupsModalScopeContent"]:checked');
   var siEl = document.querySelector('input[name="bulkAllGroupsModalScopeImages"]:checked');
+  var spEl = document.querySelector('input[name="bulkAllGroupsModalScopePins"]:checked');
   var scopeContent = (scEl && scEl.value) || 'override';
   var scopeImages = (siEl && siEl.value) || 'override';
+  var scopePins = (spEl && spEl.value) || 'override';
   var aiProvider = (document.getElementById('bulkAllGroupsModalAiProvider') || {{}}).value || '';
-  var url = '/api/bulk-run-all-groups?mode=' + mode + '&concurrency_type=' + concurrencyType + '&concurrency_n=' + n + '&scope_content=' + scopeContent + '&scope_images=' + scopeImages + (aiProvider ? '&ai_provider=' + encodeURIComponent(aiProvider) : '') + _getOpenRouterModelsParam('bulkAllGroupsModal');
+  var url = '/api/bulk-run-all-groups?mode=' + mode + '&concurrency_type=' + concurrencyType + '&concurrency_n=' + n + '&scope_content=' + scopeContent + '&scope_images=' + scopeImages + '&scope_pins=' + scopePins + (aiProvider ? '&ai_provider=' + encodeURIComponent(aiProvider) : '') + _getOpenRouterModelsParam('bulkAllGroupsModal') + _getAiModelParams('bulkAllGroupsModal');
   var asyncUrl = url + (url.indexOf('?')>=0 ? '&' : '?') + 'async=1';
   fetch(asyncUrl, {{ method: 'POST' }}).then(r=>r.json()).then(function(d){{
     if (d.error) {{ alert('Error: ' + d.error); return; }}
@@ -981,7 +1237,9 @@ function runBulkChoice(foreground) {{
 }}
 function refreshAfterRun() {{
   if(window.location.pathname.indexOf('admin/domains')>=0) {{
-    location.reload();
+    if (typeof refreshRunningTasks==='function') refreshRunningTasks();
+  }} else if(window.location.pathname.indexOf('database-management')>=0 || window.location.pathname==='/') {{
+    if (typeof refreshGroups==='function') refreshGroups();
   }} else if(typeof refreshGroups==='function') {{
     refreshGroups();
   }}
@@ -999,9 +1257,10 @@ function refreshGroups() {{
 }}
 var _progressPollInterval = null;
 function workflowStepsFromStatus(s) {{
+  if(s.type==='deploy') return ['Deploy to Cloudflare'];
   if(s.type==='single' && s.action) return [s.action];
   var m = (s.mode||'').toLowerCase();
-  if(m==='all') return ['Article A+BCD','Main image','Ingredient image'];
+  if(m==='all') return ['Article A+BCD','Main image','Ingredient image','Pin image'];
   if(m==='article') return ['Article A+BCD'];
   if(m==='images') return ['Main image','Ingredient image'];
   if(m==='main_image') return ['Main image'];
@@ -1009,16 +1268,23 @@ function workflowStepsFromStatus(s) {{
   if(m==='pin_image') return ['Pin image'];
   return ['Run'];
 }}
-function workflowState(st, i, steps) {{
+function workflowState(st, i, steps, currentPhase) {{
   if(st==='done'||st==='cancelled') return 'done';
   if(st==='error') return i===steps.length-1?'error':'done';
+  if(st==='running' && typeof currentPhase==='number' && currentPhase>=1) {{
+    var stepNum = i + 1;
+    if (stepNum < currentPhase) return 'done';
+    if (stepNum === currentPhase) return 'running';
+    return 'pending';
+  }}
   return i===0?'running':'pending';
 }}
 function renderProgressBody(s, body) {{
   var wSteps = workflowStepsFromStatus(s);
   var st = s.status || '';
+  var currentPhase = s.current_phase;
   var wHtml = '<div class="progress-workflow-section"><div class="workflow-label">Workflow</div><div class="workflow-pipeline">' + wSteps.map(function(label,i){{
-    var state = workflowState(st, i, wSteps);
+    var state = workflowState(st, i, wSteps, currentPhase);
     var sep = i>0 ? '<span class="workflow-connector ' + (state!=='pending'?'active':'') + '"></span>' : '';
     return sep + '<span class="workflow-node state-' + state + '"><span class="node-num">' + (i+1) + '</span>' + (String(label).replace(/</g,'&lt;').replace(/>/g,'&gt;')) + '</span>';
   }}).join('') + '</div></div>';
@@ -1035,11 +1301,31 @@ function renderProgressBody(s, body) {{
   var progressSteps = steps.filter(function(st){{ return /R\d+.*:.*\[.*\].*[✓✗]/.test(st); }});
   var completedSteps = progressSteps;
   var remaining = (typeof totalRows==='number' && typeof done==='number') ? Math.max(0, totalRows - done) : null;
+  var nowLabel = '';
+  if (st === 'running' && wSteps.length) {{
+    if (typeof currentPhase==='number' && currentPhase>=1 && currentPhase<=wSteps.length)
+      nowLabel = wSteps[currentPhase-1];
+    else
+      nowLabel = (s.message||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }} else if (st==='done' || st==='cancelled') {{
+    nowLabel = (s.message||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }} else {{
+    nowLabel = (s.message||'Starting...').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }}
+  var nowBanner = nowLabel ? '<div class="progress-now-banner"><span class="now-label">' + (st==='running' ? 'Now working on' : (st==='done' ? 'Done' : st==='error' ? 'Error' : st==='cancelled' ? 'Stopped' : 'Status')) + '</span><span>' + nowLabel + '</span></div>' : '';
+  var rowDone = (typeof done==='number' ? done : processedCount);
+  var progressBarHtml = '';
+  if (typeof totalRows==='number' && totalRows>0 && (rowDone!==undefined || processedCount!==undefined)) {{
+    var filled = Math.min(totalRows, typeof rowDone==='number' ? rowDone : (processedCount||0));
+    var pct = Math.round((filled/totalRows)*100);
+    var barDone = (st==='done'||st==='cancelled') ? ' done' : '';
+    progressBarHtml = '<div class="progress-workflow-section"><div class="d-flex justify-content-between align-items-center mb-1"><span class="workflow-label mb-0">Row progress</span><span class="small fw-medium">' + filled + ' / ' + totalRows + '</span></div><div class="progress-row-bar' + barDone + '"><div class="progress-row-fill" style="width:' + pct + '%"></div></div></div>';
+  }}
   var articlesHtml = '';
   if (activeTitles.length > 0 || activeArticles.length > 0 || completedSteps.length > 0 || (remaining !== null && remaining > 0) || (processedCount !== undefined && processedCount > 0)) {{
     articlesHtml = '<div class="progress-workflow-section" style="margin-top:0.5rem;"><div class="workflow-label">Articles (ID + title + domain + group)</div><div class="progress-articles-list" style="font-size:0.75rem;line-height:1.5;max-height:40vh;overflow-y:auto">';
     if (activeArticles.length > 0 || activeTitles.length > 0) {{
-      articlesHtml += '<div class="fw-medium text-primary mb-1" style="font-size:0.7rem">Processing (' + (activeArticles.length || activeTitles.length) + '):</div>';
+      articlesHtml += '<div class="fw-medium text-primary mb-1" style="font-size:0.7rem">⟳ Processing (' + (activeArticles.length || activeTitles.length) + '):</div>';
       if (activeArticles.length > 0) {{
         activeArticles.forEach(function(a) {{
           var tid = a.tid || '';
@@ -1061,7 +1347,7 @@ function renderProgressBody(s, body) {{
       }}
     }}
     if (completedSteps.length > 0) {{
-      articlesHtml += '<div class="fw-medium text-success mt-2 mb-1" style="font-size:0.7rem">Completed (' + completedSteps.length + '):</div>';
+      articlesHtml += '<div class="fw-medium mt-2 mb-1" style="font-size:0.7rem;color:#198754">✓ Completed (' + completedSteps.length + '):</div>';
       completedSteps.forEach(function(st) {{
         var reason = '';
         var stBase = st;
@@ -1081,7 +1367,6 @@ function renderProgressBody(s, body) {{
     articlesHtml += '</div></div>';
   }}
   
-  // For test_content jobs: add View/Retry buttons when done/error
   var actionBtns = '';
   if (s.type === 'test_content' && (st === 'done' || st === 'error')) {{
     var ok = s.ok || 0;
@@ -1093,9 +1378,15 @@ function renderProgressBody(s, body) {{
     actionBtns += '</div>';
   }}
   
-  var stepsHtml = steps.length > 5 ? '<div class="progress-steps-log small font-monospace" style="font-size:0.65rem;max-height:20vh;overflow-y:auto;background:#f8f9fa;border-radius:4px;padding:4px 6px;margin-top:6px">' + steps.slice(-20).map(function(st){{ return '<div class="text-nowrap" style="line-height:1.35">' + st.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>'; }}).join('') + '</div>' : '';
+  var errorDetailText = s.error_detail || (st === 'error' ? (s.message || '') : '') || '';
+  var errorDetailEsc = String(errorDetailText).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  var errorBlock = errorDetailText ? '<div class="progress-workflow-section mt-2 border border-danger rounded p-2"><div class="d-flex justify-content-between align-items-center mb-1"><span class="workflow-label text-danger">Error details (copy to send to support)</span><button type="button" class="btn btn-sm btn-outline-secondary" onclick="var e=document.getElementById(\\'progressErrorDetail\\');if(e)navigator.clipboard.writeText(e.innerText).then(function(){{alert(\\'Copied. You can paste it to send to support.\\');}}).catch(function(){{alert(\\'Copy failed\\');}});">Copy to clipboard</button></div><pre id="progressErrorDetail" class="small font-monospace mb-0" style="white-space:pre-wrap;word-break:break-word;max-height:20vh;overflow-y:auto;background:#fff3cd;padding:6px;">' + errorDetailEsc + '</pre></div>' : '';
+  
+  var showSteps = (s.type==='deploy' && steps.length) || steps.length > 5;
+  var stepsLabel = s.type==='deploy' ? 'Domains' : 'Steps';
+  var stepsHtml = showSteps ? '<div class="progress-workflow-section mt-2"><div class="workflow-label">' + stepsLabel + '</div><div class="progress-steps-log small font-monospace" style="font-size:0.65rem;max-height:20vh;overflow-y:auto;background:#f8f9fa;border-radius:4px;padding:4px 6px">' + steps.slice(-30).map(function(st){{ return '<div class="text-nowrap" style="line-height:1.35">' + String(st).replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>'; }}).join('') + '</div></div>' : '';
   var current = (s.current_title||'') && activeTitles.length === 0 && !articlesHtml ? '<span class="text-info">' + String(s.current_title).replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>' : '';
-  body.innerHTML = '<div class="progress-summary">' + wHtml + '<div class="d-flex justify-content-between align-items-center gap-2 flex-wrap"><span class="fw-medium">' + (s.status||'') + '</span><span class="badge bg-secondary" style="font-size:0.7rem">' + (s.message||'') + '</span></div>' + (current ? '<div class="mt-1 text-truncate" style="font-size:0.75rem">' + current + '</div>' : '') + articlesHtml + stepsHtml + actionBtns + '</div>';
+  body.innerHTML = '<div class="progress-summary">' + nowBanner + progressBarHtml + wHtml + '<div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mt-1"><span class="fw-medium text-secondary" style="font-size:0.8rem">' + (s.status||'') + '</span><span class="badge bg-secondary" style="font-size:0.7rem">' + (s.message||'') + '</span></div>' + (current ? '<div class="mt-1 text-truncate" style="font-size:0.75rem">' + current + '</div>' : '') + articlesHtml + stepsHtml + errorBlock + actionBtns + '</div>';
   var logEl = body.querySelector('.progress-steps-log');
   if(logEl) logEl.scrollTop = logEl.scrollHeight;
   var titleEl = document.getElementById('progressModalTitle');
@@ -1167,6 +1458,7 @@ function openProgressModalForJob(jobId) {{
         clearInterval(iv);
         _progressPollInterval = null;
         if (typeof notifyTaskComplete==='function') notifyTaskComplete(workflowStepsFromStatus(s)[0] || 'Run', s.status, s.message);
+        if(typeof refreshAfterRun==='function') refreshAfterRun();
         if(typeof refreshRunningTasks==='function') refreshRunningTasks();
       }}
     }}).catch(function(){{}});
@@ -1223,9 +1515,9 @@ function refreshRunningTasks() {{
         if(action.indexOf('ingredient')>=0||action==='i') badges += '<span class="badge bg-warning text-dark me-1" title="Ingredient image">I</span>';
         if(action.indexOf('pin')>=0||action==='p') badges += '<span class="badge bg-secondary me-1" title="Pin image">P</span>';
       }} else {{
-        badges = '<span class="badge bg-secondary me-1">' + (mode==='all'?'Art+M+I':(mode==='article'?'Art':(mode==='images'?'M+I':mode))) + '</span>';
+        badges = '<span class="badge bg-secondary me-1">' + (mode==='all'?'Art+M+I+Pin':(mode==='article'?'Art':(mode==='images'?'M+I':(mode==='pin_image'?'Pin':mode)))) + '</span>';
       }}
-      var typeLabel = j.type==='all' ? 'All groups' : (j.type==='single' ? ((j.action||'') + (j.title_id ? ' (id '+j.title_id+')' : '')) : ('Group '+j.group_id));
+      var typeLabel = j.type==='deploy' ? '☁️ Deploy to Cloudflare' : (j.type==='all' ? 'All groups' : (j.type==='single' ? ((j.action||'') + (j.title_id ? ' (id '+j.title_id+')' : '')) : ('Group '+j.group_id)));
       var modeLabel = j.type==='single' ? '' : (' (' + (j.mode||'all').toUpperCase() + ')');
       var statusClass = j.status==='running' ? 'text-primary' : (j.status==='done' ? 'text-success' : (j.status==='cancelled' ? 'text-warning' : 'text-danger'));
       var activeLine = (j.current_title||'') ? ('<br><span class="text-info small">Processing: ' + (j.current_title||'').replace(/</g,'&lt;') + '</span>') : '';
@@ -1269,7 +1561,7 @@ function refreshRunningTasks() {{
       btn.addEventListener('click', function(e){{ e.stopPropagation(); openTaskArticlesModal(this.getAttribute('data-job-id')); }});
     }});
     el.querySelectorAll('.run-task-stop').forEach(function(btn){{
-      btn.addEventListener('click', function(e){{ e.stopPropagation(); cancelBulkJob(btn.getAttribute('data-job-id')); }});
+      btn.addEventListener('click', function(e){{ e.stopPropagation(); cancelBulkJob(btn.getAttribute('data-job-id'), btn); }});
     }});
     el.querySelectorAll('.run-task-row[data-job-id]').forEach(function(row){{
       var jid = row.getAttribute('data-job-id');
@@ -1336,9 +1628,43 @@ function clearBulkJobs() {{
     if(d.success && typeof refreshRunningTasks==='function') refreshRunningTasks();
   }});
 }}
-function cancelBulkJob(jobId) {{
-  fetch('/api/bulk-run-cancel?job_id=' + jobId, {{ method: 'POST' }}).then(r=>r.json()).then(d=>{{
-    if(d.success) refreshRunningTasks();
+function cancelBulkJob(jobId, stopBtn) {{
+  if(!jobId) return;
+  var modal = document.getElementById('progressModal');
+  var body = document.getElementById('progressModalBody');
+  var titleEl = document.getElementById('progressModalTitle');
+  if(stopBtn) {{ stopBtn.textContent = 'Stopping…'; stopBtn.disabled = true; }}
+  if(modal && body) {{
+    if(titleEl) titleEl.textContent = 'Stopping task';
+    body.innerHTML = '<div class="progress-summary"><p class="mb-2"><span class="spinner-border spinner-border-sm me-2" role="status"></span><strong>Stopping job…</strong></p><p class="text-muted small mb-0">Request sent. The task will stop as soon as the current work finishes.</p></div>';
+    var bgBtn = document.getElementById('progressBgBtn');
+    if(bgBtn) bgBtn.style.display = 'none';
+    new bootstrap.Modal(modal).show();
+  }}
+  fetch('/api/bulk-run-cancel?job_id=' + encodeURIComponent(jobId), {{ method: 'POST' }}).then(r=>r.json()).then(function(d){{
+    if(d.success) {{
+      window._currentProgressJobId = jobId;
+      var iv = null;
+      function poll() {{
+        fetch('/api/bulk-run-status?job_id=' + encodeURIComponent(jobId)).then(r=>r.json()).then(function(s){{
+          if(body && typeof renderProgressBody==='function') renderProgressBody(s, body);
+          if(titleEl) titleEl.textContent = (s.status==='cancelled' ? 'Stopped' : s.status==='done' ? 'Done' : s.status==='error' ? 'Error' : 'Workflow progress');
+          if(s.status === 'done' || s.status === 'error' || s.status === 'cancelled') {{
+            if(iv) clearInterval(iv);
+            if(typeof refreshRunningTasks==='function') refreshRunningTasks();
+            setTimeout(function(){{ if(modal && bootstrap.Modal.getInstance(modal)) bootstrap.Modal.getInstance(modal).hide(); }}, 2000);
+          }}
+        }}).catch(function(){{}});
+      }}
+      poll();
+      iv = setInterval(poll, 600);
+    }} else {{
+      if(body) body.innerHTML = '<p class="text-danger mb-0">Could not stop: ' + (d.error || 'Unknown error') + '</p>';
+      if(stopBtn) {{ stopBtn.textContent = 'Stop'; stopBtn.disabled = false; }}
+    }}
+  }}).catch(function(err){{
+    if(body) body.innerHTML = '<p class="text-danger mb-0">Error requesting stop: ' + (err.message || err) + '</p>';
+    if(stopBtn) {{ stopBtn.textContent = 'Stop'; stopBtn.disabled = false; }}
   }});
 }}
 function generateForFilteredArticles() {{
@@ -1439,9 +1765,10 @@ function _updateSingleActionOpenRouterOptions() {{
   if (orWrap) orWrap.style.display = (provider === 'openrouter') ? 'block' : 'none';
   if (localWrap) localWrap.style.display = (provider === 'local') ? 'block' : 'none';
   if (modelsEl) modelsEl.style.display = (provider === 'openrouter' && modeSelect && modeSelect.checked) ? 'block' : 'none';
-  if (provider === 'openrouter' && modelsEl && (!modelsEl.options || modelsEl.options.length === 0) && window._openRouterModelsList) {{
+  if (provider === 'openrouter' && modelsEl && (!modelsEl.options || modelsEl.options.length === 0) && (window._openRouterModelOptionsList || window._openRouterModelsList)) {{
     modelsEl.innerHTML = '';
-    window._openRouterModelsList.forEach(function(id){{ var o = document.createElement('option'); o.value = id; o.textContent = id; modelsEl.appendChild(o); }});
+    var opts = window._openRouterModelOptionsList || (window._openRouterModelsList || []).map(function(id){{ return {{id: id, label: id}}; }});
+    opts.forEach(function(item){{ var id = typeof item === 'string' ? item : item.id; var label = typeof item === 'string' ? item : (item.label || item.id); var isFree = item.free === true || (typeof id === 'string' && id.endsWith(':free')); var o = document.createElement('option'); o.value = id; o.textContent = label; o.setAttribute('data-free', isFree ? 'true' : 'false'); modelsEl.appendChild(o); }});
   }}
   if (provider === 'local' && !window._localModelsLoaded) {{
     window._localModelsLoaded = true;
@@ -1491,12 +1818,13 @@ function openSingleActionModal(url, data, label) {{
     }}
     if (!window._openRouterModelsList && document.getElementById('singleActionOpenRouterModels').options.length === 0) {{
       fetch('/api/openrouter-models').then(function(r){{ return r.json(); }}).then(function(d){{
+        window._openRouterModelOptionsList = d.model_options || (d.models || []).map(function(id){{ return {{id: id, label: id}}; }});
         window._openRouterModelsList = d.models || [];
         window._openRouterModelsLoaded = true;
         _updateSingleActionOpenRouterOptions();
         ['bulkModal','bulkGroupModal','bulkAllGroupsModal'].forEach(function(p){{
           var m = document.getElementById(p + 'OpenRouterModels');
-          if (m) {{ m.innerHTML = ''; (window._openRouterModelsList || []).forEach(function(id){{ var o = document.createElement('option'); o.value = id; o.textContent = id; m.appendChild(o); }}); }}
+          if (m) {{ m.innerHTML = ''; (window._openRouterModelOptionsList || []).forEach(function(item){{ var id = typeof item === 'string' ? item : item.id; var label = typeof item === 'string' ? item : (item.label || item.id); var isFree = item.free === true || (typeof id === 'string' && id.endsWith(':free')); var o = document.createElement('option'); o.value = id; o.textContent = label; o.setAttribute('data-free', isFree ? 'true' : 'false'); m.appendChild(o); }}); }}
         }});
       }}).catch(function(){{}});
     }} else {{ _updateSingleActionOpenRouterOptions(); }}
@@ -1688,11 +2016,11 @@ function runSingleAction(foreground) {{
 }}
 </script>
 <div id="viewModal" class="modal fade" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="viewModalTitle">View</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body" id="viewModalBody"></div></div></div></div>
-<div id="bulkModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Run for this row</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="bulkModalTitleId"><p class="mb-2">What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkModalBtnArticle" class="btn btn-outline-success" onclick="runBulk('article')">Run content</button><button type="button" id="bulkModalBtnImages" class="btn btn-outline-info" onclick="runBulk('images')">Run images</button><button type="button" id="bulkModalBtnAll" class="btn btn-primary" onclick="runBulk('all')">Run all (content first, then images)</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter" selected>OpenRouter</option><option value="openai">OpenAI</option></select><div id="bulkModalOpenRouterWrap" class="mb-3" style="display:none"><p class="mb-1 fw-medium small">OpenRouter:</p><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalOpenRouterMode" value="rotation" checked> Rotation (try next on failure)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalOpenRouterMode" value="select"> Select model(s)</label></div><select id="bulkModalOpenRouterModels" class="form-select form-select-sm" multiple style="max-height:100px;width:100%"></select></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeContent" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeContent" value="empty_only" checked> Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for images (main+ingredient):</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeImages" value="override"> Override existing</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeImages" value="empty_only" checked> Only rows without main+ingredient images</label></div><p class="small text-muted mt-2 mb-0">Note: Articles without article_html will be skipped for image generation.</p></div></div></div></div>
-<div id="bulkGroupModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="bulkGroupModalTitle">Run for group</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="bulkGroupModalGroupId"><p class="mb-2">Run for all rows in this group. What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkGroupBtnArticle" class="btn btn-outline-success" onclick="runBulkGroupFromModal('article')">Run content</button><button type="button" id="bulkGroupBtnImages" class="btn btn-outline-info" onclick="runBulkGroupFromModal('images')">Run images</button><button type="button" id="bulkGroupBtnAll" class="btn btn-primary" onclick="runBulkGroupFromModal('all')">Run all (content first, then images)</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkGroupModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter" selected>OpenRouter</option><option value="openai">OpenAI</option></select><div id="bulkGroupModalOrOpts" class="mb-3 p-2 bg-light border rounded small" style="display:none;"><div class="fw-medium mb-1">OpenRouter:</div><div class="mb-2"><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeRot" value="rotation" checked><label class="form-check-label" for="bulkGroupModalOrModeRot">Rotation (try next on failure)</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeFall" value="fallback"><label class="form-check-label" for="bulkGroupModalOrModeFall">Fallback (run all simultaneously, use first success)</label></div></div><div class="fw-medium mb-1">Select model(s) <span class="text-muted fw-normal">(drag to reorder)</span></div><div class="openrouter-models-container border bg-white rounded p-1 mb-1" id="bulkGroupModalOrModels"></div><button type="button" class="btn btn-outline-secondary btn-sm" onclick="_resetOpenRouterModels('bulkGroupModal')">Reset to defaults</button></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopeContent" id="bgmScopeContent1" value="override"><label class="form-check-label small" for="bgmScopeContent1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkGroupModalScopeContent" id="bgmScopeContent2" value="empty_only" checked><label class="form-check-label small" for="bgmScopeContent2">Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for images:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopeImages" id="bgmScopeImages1" value="override"><label class="form-check-label small" for="bgmScopeImages1">Override existing</label></div><div class="form-check"><input class="form-check-input" type="radio" name="bulkGroupModalScopeImages" id="bgmScopeImages2" value="empty_only" checked><label class="form-check-label small" for="bgmScopeImages2">Only rows without main+ingredient images</label></div></div></div></div></div>
+<div id="bulkModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Run for this row</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="bulkModalTitleId"><p class="mb-2">What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkModalBtnArticle" class="btn btn-outline-success" onclick="runBulk('article')">Run content</button><button type="button" id="bulkModalBtnImages" class="btn btn-outline-info" onclick="runBulk('images')">Run images</button><button type="button" id="bulkModalBtnPinterest" class="btn btn-outline-danger" onclick="runBulk('pin_image')">Run Pinterest</button><button type="button" id="bulkModalBtnAll" class="btn btn-primary" onclick="runBulk('all')">Run all (content, images, Pinterest)</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter">OpenRouter</option><option value="openai" selected>OpenAI</option></select><div id="bulkModalOpenAIWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenAI model:</p><select id="bulkModalOpenAIModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkModalOpenRouterWrap" class="mb-3" style="display:none"><p class="mb-1 fw-medium small">OpenRouter:</p><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalOpenRouterMode" value="rotation" checked> Rotation (try next on failure)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalOpenRouterMode" value="select"> Select model(s)</label></div><div class="d-flex align-items-center gap-2 mb-1"><div class="btn-group btn-group-sm"><button type="button" id="bulkModalOrFilterAll" class="btn btn-primary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkModal','all')">All</button><button type="button" id="bulkModalOrFilterFree" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkModal','free')">Free</button><button type="button" id="bulkModalOrFilterPaid" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkModal','paid')">Paid</button></div></div><select id="bulkModalOpenRouterModels" class="form-select form-select-sm" multiple style="max-height:100px;width:100%"></select></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeContent" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeContent" value="empty_only" checked> Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for images (main+ingredient):</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeImages" value="override"> Override existing</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeImages" value="empty_only" checked> Only rows without main+ingredient images</label></div><p class="mb-2 fw-medium small">Scope for Pinterest:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopePins" value="override"> Override existing</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopePins" value="empty_only" checked> Only rows without pin images</label></div><p class="small text-muted mt-2 mb-0">Note: Articles without article_html will be skipped for image generation.</p></div></div></div></div>
+<div id="bulkGroupModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="bulkGroupModalTitle">Run for group</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="bulkGroupModalGroupId"><p class="mb-2">Run for all rows in this group. What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkGroupBtnArticle" class="btn btn-outline-success" onclick="runBulkGroupFromModal('article')">Run content</button><button type="button" id="bulkGroupBtnImages" class="btn btn-outline-info" onclick="runBulkGroupFromModal('images')">Run images</button><button type="button" id="bulkGroupBtnPinterest" class="btn btn-outline-danger" onclick="runBulkGroupFromModal('pin_image')">Run Pinterest</button><button type="button" id="bulkGroupBtnAll" class="btn btn-primary" onclick="runBulkGroupFromModal('all')">Run all (content, images, Pinterest)</button><hr class="my-2"><button type="button" id="bulkGroupBtnDeployCf" class="btn btn-info" onclick="runBulkGroupDeployCloudflare()">☁️ Deploy all to Cloudflare</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkGroupModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter">OpenRouter</option><option value="openai" selected>OpenAI</option></select><div id="bulkGroupModalOpenAIWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenAI model:</p><select id="bulkGroupModalOpenAIModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkGroupModalOrOpts" class="mb-3 p-2 bg-light border rounded small" style="display:none;"><div class="fw-medium mb-1">OpenRouter:</div><div class="mb-2"><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeRot" value="rotation" checked><label class="form-check-label" for="bulkGroupModalOrModeRot">Rotation (try next on failure)</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeFall" value="fallback"><label class="form-check-label" for="bulkGroupModalOrModeFall">Fallback (run all simultaneously, use first success)</label></div></div><div class="d-flex align-items-center gap-2 mb-1"><span class="fw-medium">Select model(s)</span><div class="btn-group btn-group-sm"><button type="button" id="bulkGroupModalOrFilterAll" class="btn btn-primary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkGroupModal','all')">All</button><button type="button" id="bulkGroupModalOrFilterFree" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkGroupModal','free')">Free</button><button type="button" id="bulkGroupModalOrFilterPaid" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkGroupModal','paid')">Paid</button></div></div><select id="bulkGroupModalOpenRouterModels" class="form-select form-select-sm mb-1" multiple style="max-height:120px;width:100%"></select><button type="button" class="btn btn-outline-secondary btn-sm" onclick="_resetOpenRouterModels('bulkGroupModal')">Reset to defaults</button></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopeContent" id="bgmScopeContent1" value="override"><label class="form-check-label small" for="bgmScopeContent1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkGroupModalScopeContent" id="bgmScopeContent2" value="empty_only" checked><label class="form-check-label small" for="bgmScopeContent2">Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for images:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopeImages" id="bgmScopeImages1" value="override"><label class="form-check-label small" for="bgmScopeImages1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkGroupModalScopeImages" id="bgmScopeImages2" value="empty_only" checked><label class="form-check-label small" for="bgmScopeImages2">Only rows without main+ingredient images</label></div><p class="mb-2 fw-medium small">Scope for Pinterest:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopePins" id="bgmScopePins1" value="override"><label class="form-check-label small" for="bgmScopePins1">Override existing</label></div><div class="form-check"><input class="form-check-input" type="radio" name="bulkGroupModalScopePins" id="bgmScopePins2" value="empty_only" checked><label class="form-check-label small" for="bgmScopePins2">Only rows without pin images</label></div><hr class="my-3"><p class="mb-2 fw-medium">Concurrency:</p><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkGroupConcurrencyPreset" value="low"> Low — 1 row</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkGroupConcurrencyPreset" value="medium"> Medium — 2 rows</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkGroupConcurrencyPreset" value="max" checked> Max — <input type="number" id="bulkGroupConcurrencyN" value="6" min="1" max="20" class="form-control form-control-sm d-inline-block" style="width:55px"> rows</label></div></div></div></div></div>
 
-<div id="bulkAllGroupsModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Run for all groups</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><p class="mb-2">Run for all rows in all groups. What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkAllGroupsBtnArticle" class="btn btn-outline-success" onclick="runBulkAllGroups('article')">Run content</button><button type="button" id="bulkAllGroupsBtnImages" class="btn btn-outline-info" onclick="runBulkAllGroups('images')">Run images</button><button type="button" id="bulkAllGroupsBtnAll" class="btn btn-primary" onclick="runBulkAllGroups('all')">Run all (content first, then images)</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkAllGroupsModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter" selected>OpenRouter</option><option value="openai">OpenAI</option></select><div id="bulkAllGroupsModalOpenRouterWrap" class="mb-3" style="display:none"><p class="mb-1 fw-medium small">OpenRouter:</p><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalOpenRouterMode" value="rotation" checked> Rotation (try next on failure)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalOpenRouterMode" value="select"> Select model(s)</label></div><select id="bulkAllGroupsModalOpenRouterModels" class="form-select form-select-sm" multiple style="max-height:100px;width:100%"></select></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeContent" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeContent" value="empty_only" checked> Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for images:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeImages" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeImages" value="empty_only" checked> Only rows without main+ingredient images</label></div><hr class="my-3"><p class="mb-2 fw-medium">Concurrency:</p><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrency" value="row" checked> Row by row — max <input type="number" id="allGroupsConcurrencyN" value="3" min="1" max="20" class="form-control form-control-sm d-inline-block" style="width:60px"> rows at a time</label></div><div><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrency" value="group"> Group by group — max <input type="number" id="allGroupsGroupN" value="2" min="1" max="10" class="form-control form-control-sm d-inline-block" style="width:60px"> groups at a time (rows run one by one per group)</label></div><p class="small text-muted mt-2 mb-0">Note: Articles without article_html will be skipped for image generation.</p></div></div></div></div>
-<div id="singleActionModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="singleActionModalTitle">Run</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="singleActionUrl"><input type="hidden" id="singleActionData"><input type="hidden" id="singleActionLabel"><div id="singleActionAiProviderWrap" class="mb-3" style="display:none"><p class="mb-2 fw-medium small">AI provider:</p><select id="singleActionAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter" selected>OpenRouter</option><option value="openai">OpenAI</option><option value="local">Local</option></select><div id="singleActionOpenRouterWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenRouter:</p><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="singleActionOpenRouterMode" value="rotation" checked> Rotation (try next on failure)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="singleActionOpenRouterMode" value="select"> Select model(s)</label></div><select id="singleActionOpenRouterModels" class="form-select form-select-sm" multiple style="max-height:100px;width:100%"></select></div><div id="singleActionLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model:</p><select id="singleActionLocalModel" class="form-select form-select-sm" style="width:100%"></select></div></div><p class="mb-3" id="singleActionPrompt">Run in background?</p><div class="d-flex gap-2"><button type="button" class="btn btn-primary" onclick="runSingleAction(false)">Background</button></div></div></div></div></div>
+<div id="bulkAllGroupsModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Run for all groups</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><p class="mb-2">Run for all rows in all groups. What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkAllGroupsBtnArticle" class="btn btn-outline-success" onclick="runBulkAllGroups('article')">Run content</button><button type="button" id="bulkAllGroupsBtnImages" class="btn btn-outline-info" onclick="runBulkAllGroups('images')">Run images</button><button type="button" id="bulkAllGroupsBtnPinterest" class="btn btn-outline-danger" onclick="runBulkAllGroups('pin_image')">Run Pinterest</button><button type="button" id="bulkAllGroupsBtnAll" class="btn btn-primary" onclick="runBulkAllGroups('all')">Run all (content, images, Pinterest)</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkAllGroupsModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter">OpenRouter</option><option value="openai" selected>OpenAI</option></select><div id="bulkAllGroupsModalOpenAIWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenAI model:</p><select id="bulkAllGroupsModalOpenAIModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkAllGroupsModalOpenRouterWrap" class="mb-3" style="display:none"><p class="mb-1 fw-medium small">OpenRouter:</p><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalOpenRouterMode" value="rotation" checked> Rotation (try next on failure)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalOpenRouterMode" value="select"> Select model(s)</label></div><div class="d-flex align-items-center gap-2 mb-1"><div class="btn-group btn-group-sm"><button type="button" id="bulkAllGroupsModalOrFilterAll" class="btn btn-primary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkAllGroupsModal','all')">All</button><button type="button" id="bulkAllGroupsModalOrFilterFree" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkAllGroupsModal','free')">Free</button><button type="button" id="bulkAllGroupsModalOrFilterPaid" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkAllGroupsModal','paid')">Paid</button></div></div><select id="bulkAllGroupsModalOpenRouterModels" class="form-select form-select-sm" multiple style="max-height:100px;width:100%"></select></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeContent" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeContent" value="empty_only" checked> Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for images:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeImages" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeImages" value="empty_only" checked> Only rows without main+ingredient images</label></div><p class="mb-2 fw-medium small">Scope for Pinterest:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopePins" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopePins" value="empty_only" checked> Only rows without pin images</label></div><hr class="my-3"><p class="mb-2 fw-medium">Concurrency (rows A B C D at a time):</p><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrencyPreset" value="low"> Low — 1 row at a time</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrencyPreset" value="medium"> Medium — 2 rows at a time</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrencyPreset" value="max" checked> Max — <input type="number" id="allGroupsConcurrencyN" value="6" min="1" max="20" class="form-control form-control-sm d-inline-block" style="width:55px"> rows at a time</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrencyPreset" value="group"> Group — max <input type="number" id="allGroupsGroupN" value="2" min="1" max="10" class="form-control form-control-sm d-inline-block" style="width:55px"> groups in parallel</label></div><p class="small text-muted mt-2 mb-0">Note: Articles without article_html will be skipped for image generation.</p></div></div></div></div>
+<div id="singleActionModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="singleActionModalTitle">Run</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="singleActionUrl"><input type="hidden" id="singleActionData"><input type="hidden" id="singleActionLabel"><div id="singleActionAiProviderWrap" class="mb-3" style="display:none"><p class="mb-2 fw-medium small">AI provider:</p><select id="singleActionAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter">OpenRouter</option><option value="openai" selected>OpenAI</option><option value="local">Local</option></select><div id="singleActionOpenRouterWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenRouter:</p><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="singleActionOpenRouterMode" value="rotation" checked> Rotation (try next on failure)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="singleActionOpenRouterMode" value="select"> Select model(s)</label></div><select id="singleActionOpenRouterModels" class="form-select form-select-sm" multiple style="max-height:100px;width:100%"></select></div><div id="singleActionLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model:</p><select id="singleActionLocalModel" class="form-select form-select-sm" style="width:100%"></select></div></div><p class="mb-3" id="singleActionPrompt">Run in background?</p><div class="d-flex gap-2"><button type="button" class="btn btn-primary" onclick="runSingleAction(false)">Background</button></div></div></div></div></div>
 <div id="pinPickerModal" class="modal fade" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Select Pin Template</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="pinPickerTitleId"><div id="pinPickerLoading" class="text-center py-4"><div class="spinner-border spinner-border-sm"></div> Loading templates...</div><div id="pinPickerEmpty" class="text-center py-4 text-muted" style="display:none">No templates found for this domain.<br>Add templates in Admin &rarr; Domains &rarr; Templates.</div><div id="pinPickerGrid" class="d-flex flex-wrap gap-3 justify-content-center" style="display:none"></div><div id="pinPickerActions" class="d-flex flex-wrap gap-2 mt-3 pt-3 border-top align-items-center" style="display:none"><span class="me-auto small text-muted" id="pinPickerSelected"></span><label class="d-flex align-items-center gap-1 small mb-0"><input type="checkbox" id="pinPickerPostToPinterest"> Pin (open Pinterest) after</label><button type="button" class="btn btn-primary btn-sm" onclick="runPinPicker(true)">Foreground</button><button type="button" class="btn btn-outline-secondary btn-sm" onclick="runPinPicker(false)">Background</button></div></div></div></div></div>
 <div id="bulkChoiceModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Run</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="bulkChoiceUrl"><input type="hidden" id="bulkChoiceMode"><p class="mb-3">Run in foreground or background?</p><div class="d-flex gap-2"><button type="button" class="btn btn-primary" onclick="runBulkChoice(true)">Foreground</button><button type="button" class="btn btn-outline-secondary" onclick="runBulkChoice(false)">Background</button></div></div></div></div></div>
 <div id="progressModal" class="modal fade" tabindex="-1" data-bs-backdrop="static"><div class="modal-dialog modal-dialog-scrollable" style="max-width:680px"><div class="modal-content"><div class="modal-header py-1"><h6 class="modal-title mb-0" id="progressModalTitle">Workflow progress</h6><button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body py-2" id="progressModalBody" style="max-height:65vh"><p class="mb-0 small">Please wait.</p></div><div class="modal-footer py-1"><button type="button" class="btn btn-outline-secondary btn-sm" id="progressBgBtn" onclick="runInBackground()" style="display:none">Run in background</button></div></div></div></div>
@@ -1870,32 +2198,6 @@ function deleteAllDomains() {{
     .finally(function() {{ if (typeof hideGlobalLoading === 'function') hideGlobalLoading(); }});
 }}
 
-function clearCurrentGroup() {{
-  var groupId = null; // Will be set from URL params
-  var urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.has('group_id')) {{
-    groupId = parseInt(urlParams.get('group_id'));
-  }}
-  if (!groupId) return;
-  if (!confirm('Remove all domains from this group?')) return;
-  if (typeof showGlobalLoading === 'function') showGlobalLoading();
-  fetch('/api/domains/clear-group/' + groupId, {{
-    method: 'POST',
-    headers: {{ 'Content-Type': 'application/json' }}
-  }})
-    .then(function(r) {{ return r.json(); }})
-    .then(function(data) {{
-      if (data.success) {{
-        alert('Cleared ' + (data.count || 0) + ' domains from group');
-        location.reload();
-      }} else {{
-        alert(data.error || 'Failed to clear group');
-      }}
-    }})
-    .catch(function(err) {{ alert(err.message || 'Network error'); }})
-    .finally(function() {{ if (typeof hideGlobalLoading === 'function') hideGlobalLoading(); }});
-}}
-
 function deleteCurrentGroupDomains() {{
   var groupId = null;
   var urlParams = new URLSearchParams(window.location.search);
@@ -1917,6 +2219,38 @@ function deleteCurrentGroupDomains() {{
       }} else {{
         alert(data.error || 'Failed to delete domains');
       }}
+    }})
+    .catch(function(err) {{ alert(err.message || 'Network error'); }})
+    .finally(function() {{ if (typeof hideGlobalLoading === 'function') hideGlobalLoading(); }});
+}}
+function clearArticlesCurrentGroup() {{
+  var groupId = null;
+  var urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('group_id')) {{ groupId = parseInt(urlParams.get('group_id')); }}
+  if (!groupId) return;
+  if (!confirm('Clear all article content (HTML, images, recipe) for every title in this group?\\n\\nTitles and domains will remain. You can regenerate content with Run.')) return;
+  if (typeof showGlobalLoading === 'function') showGlobalLoading();
+  fetch('/api/domains/clear-articles-group/' + groupId, {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }} }})
+    .then(function(r) {{ return r.json(); }})
+    .then(function(data) {{
+      if (data.success) {{ alert(data.message || 'Cleared ' + (data.count || 0) + ' article(s)'); location.reload(); }}
+      else {{ alert(data.error || 'Failed'); }}
+    }})
+    .catch(function(err) {{ alert(err.message || 'Network error'); }})
+    .finally(function() {{ if (typeof hideGlobalLoading === 'function') hideGlobalLoading(); }});
+}}
+function deleteTitlesCurrentGroup() {{
+  var groupId = null;
+  var urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('group_id')) {{ groupId = parseInt(urlParams.get('group_id')); }}
+  if (!groupId) return;
+  if (!confirm('Permanently delete ALL titles in this group (and their article content)?\\n\\nDomains will remain. This cannot be undone.')) return;
+  if (typeof showGlobalLoading === 'function') showGlobalLoading();
+  fetch('/api/domains/delete-titles-group/' + groupId, {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }} }})
+    .then(function(r) {{ return r.json(); }})
+    .then(function(data) {{
+      if (data.success) {{ alert(data.message || 'Deleted ' + (data.count || 0) + ' title(s)'); location.reload(); }}
+      else {{ alert(data.error || 'Failed'); }}
     }})
     .catch(function(err) {{ alert(err.message || 'Network error'); }})
     .finally(function() {{ if (typeof hideGlobalLoading === 'function') hideGlobalLoading(); }});
@@ -2021,7 +2355,7 @@ def _get_groups_with_domains_and_titles(filter_group_id=None, filter_domain_id=N
             titles = [dict_row(r) for r in cur.fetchall()]
         else:
             titles = []
-        cur = db_execute(conn, "SELECT title_id, recipe, article_html, article_css, main_image, ingredient_image, pin_image, model_used, generated_at, generation_time_seconds FROM article_content WHERE language_code = 'en'")
+        cur = db_execute(conn, "SELECT title_id, recipe, article_html, article_css, main_image, ingredient_image, pin_image, model_used, generated_at, generation_time_seconds, generation_cost_usd, usage_json FROM article_content WHERE language_code = 'en'")
         ac_map = {}
         for r in cur.fetchall():
             row = dict_row(r)
@@ -2043,6 +2377,8 @@ def _get_groups_with_domains_and_titles(filter_group_id=None, filter_domain_id=N
                 "model_used": (row.get("model_used") or "").strip(),
                 "generated_at": row.get("generated_at"),
                 "generation_time_seconds": row.get("generation_time_seconds"),
+                "generation_cost_usd": row.get("generation_cost_usd"),
+                "usage_json": row.get("usage_json"),
             }
     domain_titles = {}
     for t in titles:
@@ -2060,7 +2396,8 @@ def _get_groups_with_domains_and_titles(filter_group_id=None, filter_domain_id=N
     result = []
     for g in groups:
         g["domains"] = sorted(group_domains.get(g["id"], []), key=lambda x: x.get("domain_index") or 0)
-        result.append(g)
+        if g["domains"]:  # only include groups that have at least one domain
+            result.append(g)
     ungrouped = group_domains.get(None, [])
     if ungrouped:
         for d in ungrouped:
@@ -2172,13 +2509,27 @@ def _render_groups_html(groups_data, ac_map):
                     if c_ok:
                         mu = (ac_i.get("model_used") or "").strip()
                         ga = ac_i.get("generated_at")
-                        ga_str = (str(ga)[:10] if ga else "") or ""
-                        gs = ac_i.get("generation_time_seconds")
-                        gs_str = (f"{gs}s" if gs is not None else "") or ""
-                        if mu or ga_str or gs_str:
-                            short_model = (mu.replace("openrouter -> ", "OR ")[:25] + ("…" if len(mu) > 25 else "")) if mu else ""
-                            title_esc = (mu or "-").replace('"', "&quot;") + "; Generated: " + ga_str + ("; Time: " + gs_str if gs_str else "")
-                            pill_hint = f'<span class="pill-hint small text-muted" title="Model: {title_esc}">{short_model}{" · " + ga_str if ga_str else ""}{" · " + gs_str if gs_str else ""}</span>'
+                        # Short model: last segment after / or after " -> ", e.g. deepseek/deepseek-v3.2 -> deepseek-v3.2
+                        short_model = ""
+                        if mu:
+                            if "/" in mu:
+                                short_model = mu.split("/")[-1].strip()
+                            elif " -> " in mu:
+                                short_model = mu.split(" -> ")[-1].strip()
+                            else:
+                                short_model = mu
+                            short_model = (short_model[:20] + "…") if len(short_model) > 20 else short_model
+                        # Date DD-MM-YY
+                        date_dd_mm_yy = ""
+                        if ga:
+                            s = str(ga)[:10]  # YYYY-MM-DD
+                            if len(s) == 10 and s[4] == "-" and s[7] == "-":
+                                date_dd_mm_yy = f"{s[8:10]}-{s[5:7]}-{s[2:4]}"  # DD-MM-YY
+                            else:
+                                date_dd_mm_yy = s
+                        if short_model or date_dd_mm_yy:
+                            display = (short_model or "") + (" ·<br>" if short_model and date_dd_mm_yy else "") + (date_dd_mm_yy or "")
+                            pill_hint = f'<span class="pill-hint small text-muted" title="{html.escape(mu or "-")}">{display}</span>'
                     if i == 0:
                         btns = f'<button type="button" class="btn btn-success btn-sm" onclick="openSingleActionModal(\'/api/generate-article-external\',{{title_id:{tid_i}}},\'Article A\')" title="Article">Art</button>'
                         btns += f'<button type="button" class="btn btn-info btn-sm text-white" onclick="openSingleActionModal(\'/api/generate-main-image\',{{title_id:{tid_i}}},\'Main image\')" title="Main image">M</button>'
@@ -2232,7 +2583,7 @@ def _render_groups_html(groups_data, ac_map):
             total_titles = len(sorted_titles)
             pagination_html = ""
             if total_titles > 0:
-                pagination_html = f'<div id="group-pager-{grp_key}" class="d-flex align-items-center gap-2 mt-2 pt-2 border-top small flex-wrap"><label class="d-flex align-items-center gap-1 small text-muted mb-0">Per page: <input type="text" id="group-perpage-{grp_key}" value="20" size="4" class="form-control form-control-sm d-inline-block" style="width:4rem;" title="Enter number or \'all\'" onchange="showGroupPage(\'{grp_key}\', 1)" onkeypress="if(event.key===\'Enter\')showGroupPage(\'{grp_key}\',1)"></label><button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="showGroupPage(\'{grp_key}\', 1)" title="Apply">↻</button><span class="group-pager-nav"></span></div>'
+                pagination_html = f'<div id="group-pager-{grp_key}" class="d-flex align-items-center gap-2 mt-2 pt-2 border-top small flex-wrap"><label class="d-flex align-items-center gap-1 small text-muted mb-0">Per page: <input type="text" id="group-perpage-{grp_key}" value="20" size="4" class="form-control form-control-sm d-inline-block" style="width:4rem;" title="Enter number or \'all\'" onchange="showGroupPage(\'{grp_key}\', 1)" onblur="showGroupPage(\'{grp_key}\', 1)" onkeypress="if(event.key===\'Enter\'){{ event.preventDefault(); showGroupPage(\'{grp_key}\', 1); }}"></label><button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="showGroupPage(\'{grp_key}\', 1)" title="Apply">↻</button><span class="group-pager-nav"></span></div>'
             empty_li = '<li class="text-muted small py-2">-</li>'
             run_col_html = f'<ul id="group-rows-{grp_key}" class="list-unstyled mb-0">{run_col_html or empty_li}</ul>{pagination_html}'
         run_grp_btn = ""
@@ -2271,6 +2622,104 @@ def _nav_groups_dropdown(groups_data):
     return f'<li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" aria-expanded="false">Groups</a><ul class="dropdown-menu dropdown-menu-end">{chr(10).join(items)}</ul></li>'
 
 
+def _database_management_group_selector(user_id, is_admin, user_domain_ids):
+    """Return HTML for database-management when no group_id: parent groups + subgroups, links to /database-management?group_id=X."""
+    with get_connection() as conn:
+        user_group_ids = get_user_group_ids(user_id, is_admin)
+        if not is_admin:
+            if user_group_ids:
+                placeholders = ",".join(["?"] * len(user_group_ids))
+                cur = db_execute(conn, f"SELECT id, name, parent_group_id FROM `groups` WHERE id IN ({placeholders}) ORDER BY name", tuple(user_group_ids))
+            else:
+                cur = db_execute(conn, "SELECT id, name, parent_group_id FROM `groups` WHERE 1=0")
+        else:
+            cur = db_execute(conn, "SELECT id, name, parent_group_id FROM `groups` ORDER BY name")
+        all_groups = [dict_row(r) for r in cur.fetchall()]
+
+        def get_top_parent(gid, groups_list):
+            current = gid
+            visited = set()
+            while current and current not in visited:
+                visited.add(current)
+                g = next((x for x in groups_list if x["id"] == current), None)
+                if g and g.get("parent_group_id"):
+                    current = g["parent_group_id"]
+                else:
+                    return current
+            return gid
+
+        top_parent_ids = set()
+        for g in all_groups:
+            top_parent_ids.add(get_top_parent(g["id"], all_groups))
+        all_groups = [g for g in all_groups if g["id"] in top_parent_ids]
+
+        def get_descendants(gid):
+            result = [gid]
+            cur = db_execute(conn, "SELECT id FROM `groups` WHERE parent_group_id = ?", (gid,))
+            children = [dict_row(r)["id"] for r in cur.fetchall()]
+            for child_id in children:
+                result.extend(get_descendants(child_id))
+            return result
+
+        for g in all_groups:
+            group_ids = get_descendants(g["id"])
+            placeholders = ",".join(["?"] * len(group_ids))
+            cur = db_execute(conn, f"""
+                SELECT COUNT(DISTINCT d.id) as domain_count,
+                    COUNT(DISTINCT t.id) as total_articles,
+                    SUM(CASE WHEN ac.article_html IS NOT NULL AND TRIM(ac.article_html) != '' THEN 1 ELSE 0 END) as articles_with_html
+                FROM domains d
+                LEFT JOIN titles t ON t.domain_id = d.id
+                LEFT JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
+                WHERE d.group_id IN ({placeholders})
+            """, tuple(group_ids))
+            stats = dict_row(cur.fetchone())
+            g["domain_count"] = stats.get("domain_count") or 0
+            g["total_articles"] = stats.get("total_articles") or 0
+            g["articles_with_html"] = stats.get("articles_with_html") or 0
+            g["articles_without_html"] = g["total_articles"] - g["articles_with_html"]
+
+        group_cards_html = ""
+        for g in all_groups:
+            group_cards_html += f'''
+            <div class="col-lg-4 col-md-6">
+              <div class="card h-100 group-card shadow-sm" style="cursor:pointer; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'" onclick="window.location.href='/database-management?group_id={g["id"]}'">
+                <div class="card-body">
+                  <h5 class="card-title text-truncate mb-2" title="{html.escape(g["name"])}">{html.escape(g["name"])}</h5>
+                  <div class="mb-2">
+                    <span class="badge bg-primary">{g["domain_count"]} Domain{"s" if g["domain_count"] != 1 else ""}</span>
+                    <span class="badge bg-info">{g["total_articles"]} Article{"s" if g["total_articles"] != 1 else ""}</span>
+                  </div>
+                  <div class="mb-2" style="font-size:0.75rem">
+                    <span class="text-success">✅ {g["articles_with_html"]}</span>
+                    <span class="text-muted mx-1">/</span>
+                    <span class="text-warning">⏳ {g["articles_without_html"]}</span>
+                  </div>
+                  <a href="/database-management?group_id={g["id"]}" class="btn btn-sm btn-primary w-100">Open group</a>
+                </div>
+              </div>
+            </div>
+            '''
+    html_content = f'''
+    <style>
+    .group-card {{ border-left: 4px solid #0d6efd; }}
+    .group-card:hover {{ box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15) !important; }}
+    </style>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="mb-0">Select a Group</h2>
+      <a href="/admin/domains" class="btn btn-outline-secondary btn-sm">📋 Domains Admin</a>
+    </div>
+    <div class="alert alert-info">
+      <strong>📁 Select a group to run database management</strong><br>
+      Top-level parent groups. Click a group to see domains and run content generation for that group only.
+    </div>
+    <div class="row g-3">
+    {group_cards_html if group_cards_html else '<div class="col-12"><div class="alert alert-warning">No groups. Add domains and group them from <a href="/admin/domains">Domains Admin</a>.</div></div>'}
+    </div>
+    '''
+    return html_content
+
+
 @app.route("/database-management", methods=["GET"])
 @login_required
 def database_management():
@@ -2282,85 +2731,55 @@ def database_management():
     filter_group_id = request.args.get("group_id")
     filter_group_id = int(filter_group_id) if filter_group_id and str(filter_group_id).isdigit() else None
     
-    # Support filtering by domain_id
     filter_domain_id = request.args.get("domain_id")
     filter_domain_id = int(filter_domain_id) if filter_domain_id and str(filter_domain_id).isdigit() else None
     
-    # Get user's accessible domains
+    # When coming with domain_id: show only the group that contains this domain (redirect to group_id)
+    if filter_domain_id and not filter_group_id:
+        with get_connection() as conn:
+            cur = db_execute(conn, "SELECT group_id FROM domains WHERE id = ?", (filter_domain_id,))
+            row = dict_row(cur.fetchone())
+        if row and row.get("group_id"):
+            return redirect(url_for("database_management", group_id=row["group_id"]))
+    
     user_domain_ids = get_user_domain_ids(user_id, is_admin)
+    
+    # No group selected: show group selector (parent + subgroups), like /admin/domains
+    if not filter_group_id:
+        selector_html = _database_management_group_selector(user_id, is_admin, user_domain_ids)
+        return base_layout(selector_html, "Database Management", nav_extra="")
     
     groups_data, ac_map = _get_groups_with_domains_and_titles(
         filter_group_id=filter_group_id,
-        filter_domain_id=filter_domain_id,
+        filter_domain_id=None,
         user_domain_ids=user_domain_ids if not is_admin else None
     )
     
     groups_html = _render_groups_html(groups_data, ac_map)
     err = request.args.get("err", "")
     
-    # Build filter info
     filter_info = ""
-    if filter_group_id:
-        with get_connection() as conn:
-            cur = db_execute(conn, "SELECT name FROM `groups` WHERE id = ?", (filter_group_id,))
-            g = dict_row(cur.fetchone())
-            if g:
-                filter_info = f'''
-                <div class="alert alert-info alert-dismissible">
-                    <strong>Filtered by group:</strong> {html.escape(g["name"])}
-                    <button type="button" class="btn-close" onclick="window.location.href='/database-management'"></button>
-                </div>
-                '''
-    elif filter_domain_id:
-        with get_connection() as conn:
-            cur = db_execute(conn, "SELECT domain_name FROM domains WHERE id = ?", (filter_domain_id,))
-            d = dict_row(cur.fetchone())
-            if d:
-                filter_info = f'''
-                <div class="alert alert-info alert-dismissible">
-                    <strong>Filtered by domain:</strong> {html.escape(d["domain_name"])}
-                    <button type="button" class="btn-close" onclick="window.location.href='/database-management'"></button>
-                </div>
-                '''
-    
-    if filter_group_id:
-        group_name = next((g["name"] for g in groups_data if g["id"] == filter_group_id), "Current Group")
-        escaped_group_name = html.escape(group_name).replace("'", "\\'")
-        run_all_btn = f'<button type="button" class="btn btn-primary btn-sm ms-2" onclick="openBulkGroupModal({filter_group_id}, \'{escaped_group_name}\')" title="Run for all rows in this group">Run this group</button>'
-    else:
-        run_all_btn = '<button type="button" class="btn btn-primary btn-sm ms-2" onclick="openBulkAllGroupsModal()" title="Run for all groups">Run all groups</button>' if any(grp.get("id") is not None for grp in groups_data) else ""
-    
-    # Add link to admin/domains
-    admin_domains_btn = '<a href="/admin/domains" class="btn btn-outline-secondary btn-sm ms-2">📋 Domains Admin</a>'
-    
-    # Build group filter dropdown
     with get_connection() as conn:
-        if not is_admin and user_domain_ids:
-            placeholders = ",".join(["?"] * len(user_domain_ids))
-            cur = db_execute(conn, f"""
-                SELECT DISTINCT g.id, g.name, g.parent_group_id
-                FROM `groups` g
-                JOIN domains d ON d.group_id = g.id
-                WHERE d.id IN ({placeholders})
-                ORDER BY g.name
-            """, tuple(user_domain_ids))
-        else:
-            cur = db_execute(conn, "SELECT id, name, parent_group_id FROM `groups` ORDER BY name")
-        all_groups = [dict_row(r) for r in cur.fetchall()]
+        cur = db_execute(conn, "SELECT name FROM `groups` WHERE id = ?", (filter_group_id,))
+        g = dict_row(cur.fetchone())
+        if g:
+            filter_info = f'''
+            <div class="alert alert-info alert-dismissible">
+                <strong>Group:</strong> {html.escape(g["name"])}
+                <button type="button" class="btn-close" onclick="window.location.href='/database-management'"></button>
+            </div>
+            '''
     
-    group_filter_options = '<option value="">-- All Groups --</option>'
-    for g in all_groups:
-        selected = 'selected' if filter_group_id == g["id"] else ''
-        group_name_escaped = html.escape(g["name"])
-        group_filter_options += f'<option value="{g["id"]}" {selected}>{group_name_escaped}</option>'
+    group_name = next((x["name"] for x in groups_data if x.get("id") == filter_group_id), "Current Group")
+    escaped_group_name = html.escape(group_name).replace("'", "\\'")
+    run_btn = f'<button type="button" class="btn btn-primary btn-sm ms-2" onclick="openBulkGroupModal({filter_group_id}, \'{escaped_group_name}\')" title="Run for rows in this group only">Run this group</button>'
+    admin_domains_btn = '<a href="/admin/domains" class="btn btn-outline-secondary btn-sm ms-2">📋 Domains Admin</a>'
+    back_btn = '<a href="/database-management" class="btn btn-outline-secondary btn-sm">← Select group</a>'
     
     content_html = f"""
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-        <h1 class="h3 mb-0 fw-bold">Database Management{run_all_btn}</h1>
+        <h1 class="h3 mb-0 fw-bold">Database Management {back_btn} {run_btn}</h1>
         <div class="d-flex gap-2 flex-wrap">
-            <select class="form-select form-select-sm" style="width:200px" onchange="window.location.href='/database-management?group_id='+this.value">
-                {group_filter_options}
-            </select>
             {admin_domains_btn}
         </div>
     </div>
@@ -2368,18 +2787,14 @@ def database_management():
     {filter_info}
     <div id="running-tasks-panel" class="mb-3" style="display:none"></div>
     <div class="mb-4 groups-scroll-wrapper" style="overflow-x:auto;padding-bottom:0.5rem;">
-      <div id="groups-container" style="display:flex;flex-direction:row;flex-wrap:nowrap;gap:1rem;min-width:min-content;">{groups_html or "<p class='text-muted'>No groups. Add domains and group them from Admin Domains.</p>"}</div>
+      <div id="groups-container" style="display:flex;flex-direction:row;flex-wrap:nowrap;gap:1rem;min-width:min-content;">{groups_html or "<p class='text-muted'>No rows in this group.</p>"}</div>
     </div>
     <script>
-    // Initialize pagination for all groups on page load
     document.addEventListener('DOMContentLoaded', function() {{
-      // Find all group containers and initialize their pagination
       var groupPagers = document.querySelectorAll('[id^="group-pager-"]');
       groupPagers.forEach(function(pager) {{
         var grpKey = pager.id.replace('group-pager-', '');
-        if (typeof showGroupPage === 'function') {{
-          showGroupPage(grpKey, 1);
-        }}
+        if (typeof showGroupPage === 'function') showGroupPage(grpKey, 1);
       }});
     }});
     </script>
@@ -2393,6 +2808,202 @@ def api_database_management_groups():
     """Return groups HTML fragment for 60s auto-refresh."""
     groups_data, ac_map = _get_groups_with_domains_and_titles()
     return _render_groups_html(groups_data, ac_map) or "<p class='text-muted'>No groups.</p>"
+
+
+# --------------------------------------------------------------------------- Logs dashboard (all microservices)
+@app.route("/api/logs/apps", methods=["GET"])
+@login_required
+def api_logs_apps():
+    """List log app names that have log files."""
+    return jsonify({"apps": get_log_apps()})
+
+
+@app.route("/api/logs", methods=["GET"])
+@login_required
+def api_logs():
+    """Fetch logs with filters. Query: apps (comma), tail, search, level, dedupe (1/0)."""
+    apps = request.args.get("apps", "")
+    apps = [a.strip() for a in apps.split(",") if a.strip()] if apps else None
+    tail = int(request.args.get("tail", 1500))
+    tail = max(100, min(tail, 10000))
+    search = (request.args.get("search") or "").strip() or None
+    level = (request.args.get("level") or "").strip().upper() or None
+    if level and level not in ("INFO", "WARNING", "ERROR", "DEBUG", "CRITICAL"):
+        level = None
+    dedupe = request.args.get("dedupe", "1").strip().lower() in ("1", "true", "yes")
+    try:
+        data = fetch_logs(apps=apps, tail=tail, search=search, level_filter=level, dedupe=dedupe)
+        return jsonify(data)
+    except Exception as e:
+        log.warning("[api/logs] %s", e)
+        return jsonify({"lines": [], "stats": {"by_app": {}, "by_level": {}, "by_hour": {}}, "apps": get_log_apps(), "error": str(e)}), 500
+
+
+@app.route("/admin/logs", methods=["GET"])
+@login_required
+def admin_logs():
+    """Unified log dashboard for all microservices."""
+    user = get_current_user()
+    content = _render_logs_dashboard()
+    return base_layout(content, "Logs Dashboard", nav_extra="")
+
+
+def _render_logs_dashboard():
+    """Render the logs dashboard HTML (filters, chart placeholders, log viewer)."""
+    apps_json = json.dumps(get_log_apps())
+    return f"""
+<div class="logs-dashboard container-fluid px-0">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <h1 class="h3 mb-0 fw-bold">📋 Logs Dashboard</h1>
+    <div class="d-flex gap-2 align-items-center">
+      <label class="form-check-label small">Auto-refresh</label>
+      <input type="checkbox" id="logsAutoRefresh" class="form-check-input" checked>
+      <span class="small text-muted" id="logsLastUpdate">—</span>
+    </div>
+  </div>
+  <div class="row g-3 mb-3">
+    <div class="col-12 col-md-6 col-lg-4">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-header bg-primary text-white py-2 small fw-bold">Filters</div>
+        <div class="card-body py-2">
+          <div class="mb-2">
+            <label class="form-label small mb-0">Apps</label>
+            <select id="logsApps" class="form-select form-select-sm" multiple size="4">
+              <option value="multi-domain-clean">multi-domain-clean</option>
+              <option value="articles-website-generator">articles-website-generator</option>
+              <option value="pin_generator">pin_generator</option>
+              <option value="website-parts-generator">website-parts-generator</option>
+            </select>
+            <small class="text-muted">Hold Ctrl to select multiple; empty = all</small>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small mb-0">Search</label>
+            <input type="text" id="logsSearch" class="form-control form-control-sm" placeholder="Filter lines...">
+          </div>
+          <div class="mb-2">
+            <label class="form-label small mb-0">Level</label>
+            <select id="logsLevel" class="form-select form-select-sm">
+              <option value="">All</option>
+              <option value="ERROR">ERROR</option>
+              <option value="WARNING">WARNING</option>
+              <option value="INFO">INFO</option>
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small mb-0">Tail (lines per app)</label>
+            <input type="number" id="logsTail" class="form-control form-control-sm" value="1500" min="100" max="10000" step="100">
+          </div>
+          <div class="form-check">
+            <input type="checkbox" id="logsDedupe" class="form-check-input" checked>
+            <label class="form-check-label small" for="logsDedupe">Collapse duplicate lines (first + last)</label>
+          </div>
+          <button type="button" id="logsRefreshBtn" class="btn btn-primary btn-sm mt-2">Refresh</button>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-6 col-lg-8">
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-secondary text-white py-2 small fw-bold">Volume</div>
+        <div class="card-body py-2">
+          <div class="row g-2 small">
+            <div class="col-4"><div class="p-2 bg-light rounded text-center"><span id="logsStatInfo">0</span> INFO</div></div>
+            <div class="col-4"><div class="p-2 bg-warning bg-opacity-25 rounded text-center"><span id="logsStatWarn">0</span> WARN</div></div>
+            <div class="col-4"><div class="p-2 bg-danger bg-opacity-25 rounded text-center"><span id="logsStatErr">0</span> ERROR</div></div>
+          </div>
+          <canvas id="logsChartHour" height="80" class="w-100 mt-2"></canvas>
+        </div>
+      </div>
+      <div class="card border-0 shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center py-2">
+          <span class="small fw-bold">Log viewer</span>
+          <span class="badge bg-dark" id="logsLineCount">0 lines</span>
+        </div>
+        <div class="card-body p-0">
+          <div id="logsViewer" class="logs-viewer font-monospace small" style="height:60vh;overflow:auto;background:#1e1e1e;color:#d4d4d4;padding:0.5rem 0.75rem;white-space:pre-wrap;word-break:break-all;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function() {{
+  var appsDefault = {apps_json};
+  var refreshInterval = null;
+  function getSelectedApps() {{
+    var sel = document.getElementById('logsApps');
+    if (!sel) return [];
+    return Array.from(sel.selectedOptions).map(function(o) {{ return o.value; }});
+  }}
+  function loadLogs() {{
+    var apps = getSelectedApps();
+    var search = (document.getElementById('logsSearch') || {{}}).value || '';
+    var level = (document.getElementById('logsLevel') || {{}}).value || '';
+    var tail = parseInt((document.getElementById('logsTail') || {{}}).value, 10) || 1500;
+    var dedupe = (document.getElementById('logsDedupe') || {{}}).checked !== false;
+    var q = 'tail=' + tail + '&dedupe=' + (dedupe ? '1' : '0');
+    if (apps.length) q += '&apps=' + encodeURIComponent(apps.join(','));
+    if (search) q += '&search=' + encodeURIComponent(search);
+    if (level) q += '&level=' + encodeURIComponent(level);
+    fetch('/api/logs?' + q).then(function(r) {{ return r.json(); }}).then(function(d) {{
+      var lines = d.lines || [];
+      var stats = d.stats || {{}};
+      var byLevel = stats.by_level || {{}};
+      document.getElementById('logsStatInfo').textContent = byLevel.INFO || 0;
+      document.getElementById('logsStatWarn').textContent = byLevel.WARNING || 0;
+      document.getElementById('logsStatErr').textContent = byLevel.ERROR || 0;
+      document.getElementById('logsLineCount').textContent = lines.length + ' lines';
+      document.getElementById('logsLastUpdate').textContent = new Date().toLocaleTimeString();
+      var viewer = document.getElementById('logsViewer');
+      var html = '';
+      var appColors = {{'multi-domain-clean':'#4ec9b0','articles-website-generator':'#569cd6','pin_generator':'#dcdcaa','website-parts-generator':'#ce9178'}};
+      for (var i = 0; i < lines.length; i++) {{
+        var L = lines[i];
+        var cls = 'log-line';
+        if (L.level === 'ERROR') cls += ' text-danger';
+        else if (L.level === 'WARNING') cls += ' text-warning';
+        var appStyle = appColors[L.app] ? 'border-left:3px solid ' + appColors[L.app] + ';' : '';
+        var rep = L.repeated > 1 ? ' <span class="badge bg-secondary">×' + L.repeated + '</span>' : '';
+        var raw = (L.raw || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        html += '<div class="' + cls + '" style="' + appStyle + 'padding:2px 6px;margin:1px 0;">' + raw + rep + '</div>';
+      }}
+      viewer.innerHTML = html || '<span class="text-muted">No lines. Adjust filters or run services.</span>';
+      // Chart: by_hour
+      var byHour = stats.by_hour || {{}};
+      var labels = Object.keys(byHour);
+      var values = labels.map(function(k) {{ return byHour[k]; }});
+      var canvas = document.getElementById('logsChartHour');
+      if (canvas && typeof Chart !== 'undefined') {{
+        if (window._logsChart) window._logsChart.destroy();
+        window._logsChart = new Chart(canvas.getContext('2d'), {{
+          type: 'bar',
+          data: {{ labels: labels.slice(-24), datasets: [{{ label: 'Lines', data: values.slice(-24), backgroundColor: 'rgba(54,162,235,0.6)' }}] }},
+          options: {{ responsive: true, maintainAspectRatio: true, scales: {{ y: {{ beginAtZero: true }} }} }}
+        }});
+      }} else if (canvas && labels.length) {{
+        canvas.parentNode.innerHTML = '<div class="small text-muted">Logs by hour: ' + labels.slice(-12).join(', ') + '</div>';
+      }}
+    }}).catch(function(e) {{
+      document.getElementById('logsViewer').innerHTML = '<span class="text-danger">Failed to load: ' + e.message + '</span>';
+    }});
+  }}
+  document.getElementById('logsRefreshBtn').onclick = loadLogs;
+  document.getElementById('logsApps').querySelectorAll('option').forEach(function(o) {{
+    if (appsDefault.indexOf(o.value) >= 0) o.selected = true;
+  }});
+  loadLogs();
+  document.getElementById('logsAutoRefresh').addEventListener('change', function() {{
+    if (this.checked) {{
+      refreshInterval = setInterval(loadLogs, 10000);
+    }} else {{
+      clearInterval(refreshInterval);
+      refreshInterval = null;
+    }}
+  }});
+  if (document.getElementById('logsAutoRefresh').checked) refreshInterval = setInterval(loadLogs, 10000);
+}})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+"""
 
 
 @app.route("/database-management/rewrite", methods=["POST"])
@@ -2432,11 +3043,13 @@ def _parse_openrouter_models(req):
     return [x.strip() for x in s.split(",") if x.strip()] or None
 
 
-def _do_generate_article_external(title_id, recipe_from_a=None, ai_provider=None, openrouter_models=None, local_model=None, user_id=None):
+def _do_generate_article_external(title_id, recipe_from_a=None, ai_provider=None, openrouter_models=None, openai_model=None, openrouter_model=None, local_model=None, user_id=None):
     """Call external API http://localhost:8000/generate-article/{website_template} and save to article_content.
     When recipe_from_a is provided (from Domain A), B/C/D use it to generate from recipe instead of from title.
     ai_provider: optional override (openrouter, openai, local).
     openrouter_models: optional list of OpenRouter model ids to use (rotation over this list). If None, generator uses its full list.
+    openai_model: optional OpenAI model id (e.g. gpt-4o-mini) when ai_provider=openai; overrides profile default.
+    openrouter_model: optional OpenRouter default model id when ai_provider=openrouter; overrides profile default.
     local_model: optional Local model id (e.g., qwen3:8b) when ai_provider=local.
     user_id: optional user ID to use user-specific API keys."""
     with get_connection() as conn:
@@ -2476,22 +3089,61 @@ def _do_generate_article_external(title_id, recipe_from_a=None, ai_provider=None
     payload = {"title": title_text}
     
     # Add user-specific API keys to payload
+    if not user_id:
+        log.warning("[generate-article-external] user_id is None — API keys will not be sent. Add keys in Profile.")
     if user_id:
         user_config = get_user_config_for_api(user_id)
         # Add API keys to payload so external generator can use them
         if user_config.get("openai_api_key"):
             payload["openai_api_key"] = user_config["openai_api_key"]
+            payload["openai_model"] = (openai_model and str(openai_model).strip()) or user_config.get("openai_model") or "gpt-4o-mini"
         if user_config.get("openrouter_api_key"):
             payload["openrouter_api_key"] = user_config["openrouter_api_key"]
+            payload["openrouter_model"] = (openrouter_model and str(openrouter_model).strip()) or user_config.get("openrouter_model") or "openai/gpt-oss-120b"
         if user_config.get("local_api_url"):
             payload["local_api_url"] = user_config["local_api_url"]
         if user_config.get("local_models"):
             payload["local_models"] = user_config["local_models"]
-    
+        # Use caller's ai_provider (e.g. from Run all groups modal) when passed; otherwise fall back to profile
+        if ai_provider and str(ai_provider).strip():
+            payload["ai_provider"] = str(ai_provider).strip().lower()
+        elif user_config.get("ai_provider"):
+            ai_provider = user_config.get("ai_provider")
+            payload["ai_provider"] = user_config["ai_provider"]
+        elif user_config.get("openai_api_key") and not user_config.get("openrouter_api_key"):
+            ai_provider = "openai"
+            payload["ai_provider"] = "openai"
+        elif user_config.get("openrouter_api_key") and not user_config.get("openai_api_key"):
+            ai_provider = "openrouter"
+            payload["ai_provider"] = "openrouter"
+            
     if ai_provider and str(ai_provider).strip():
         payload["ai_provider"] = str(ai_provider).strip().lower()
+    has_openai = bool(payload.get("openai_api_key"))
+    has_openrouter = bool(payload.get("openrouter_api_key"))
+    log.info("[generate-article-external] title_id=%s ai_provider=%s has_openai_key=%s has_openrouter_key=%s", title_id, payload.get("ai_provider"), has_openai, has_openrouter)
+    if "ai_provider" not in payload or not payload["ai_provider"]:
+        if payload.get("openrouter_api_key") and not payload.get("openai_api_key"):
+            payload["ai_provider"] = "openrouter"
+        elif payload.get("openai_api_key") and not payload.get("openrouter_api_key"):
+            payload["ai_provider"] = "openai"
+        
+    # Require API keys from Profile when using OpenAI/OpenRouter (do not fall back to generator .env)
+    provider = (payload.get("ai_provider") or "").strip().lower()
+    if provider == "openai" and not payload.get("openai_api_key"):
+        if not user_id:
+            raise ValueError("Login required. API keys are read from your Profile (multi-domain-clean). Log in and try again.")
+        raise ValueError("Add your OpenAI API key in Profile (multi-domain-clean → Profile). The generator does not use its own .env when you run from here.")
+    if provider == "openrouter" and not payload.get("openrouter_api_key"):
+        if not user_id:
+            raise ValueError("Login required. API keys are read from your Profile (multi-domain-clean). Log in and try again.")
+        raise ValueError("Add your OpenRouter API key in Profile (multi-domain-clean → Profile). The generator does not use its own .env when you run from here.")
     if openrouter_models is not None and isinstance(openrouter_models, list) and len(openrouter_models) > 0:
         payload["openrouter_models"] = [str(m).strip() for m in openrouter_models if str(m).strip()]
+    if openai_model and str(openai_model).strip() and payload.get("openai_api_key"):
+        payload["openai_model"] = str(openai_model).strip()
+    if openrouter_model and str(openrouter_model).strip() and payload.get("openrouter_api_key"):
+        payload["openrouter_model"] = str(openrouter_model).strip()
     if local_model and str(local_model).strip():
         payload["local_model"] = str(local_model).strip()
     if domain_index is not None:
@@ -2635,6 +3287,12 @@ def _do_generate_article_external(title_id, recipe_from_a=None, ai_provider=None
             except urllib.error.HTTPError as e:
                 err_body = e.read().decode() if e.fp else str(e)
                 log.warning("[generate-article-external] external API HTTP %s response: %s", e.code, err_body[:1500])
+                if e.code == 401 or "invalid_api_key" in err_body.lower() or "incorrect api key" in err_body.lower():
+                    _app_log("article", False, "API key invalid or expired", reason=err_body[:300], title_id=title_id)
+                    raise ValueError(
+                        "API key invalid or expired. Update your OpenAI (or OpenRouter) key in multi-domain-clean → Profile and try again. "
+                        "Keys are read from your Profile, not from the generator's .env."
+                    )
                 if "insufficient_quota" in err_body or "quota" in err_body.lower():
                     _app_log("article", False, f"OpenAI quota exceeded (HTTP {e.code})", reason=err_body[:300], title_id=title_id)
                     raise ValueError(f"OpenAI quota exceeded — check billing. HTTP {e.code}: {err_body[:300]}")
@@ -2759,6 +3417,20 @@ def _do_generate_article_external(title_id, recipe_from_a=None, ai_provider=None
     model_used = (out.get("model_used") or "").strip()
     generated_at = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     generation_time_seconds = int(round(time.time() - t0))
+    # Cost/usage from OpenAI or OpenRouter (generator may return usage and/or generation_cost_usd)
+    usage_raw = out.get("usage")
+    if isinstance(usage_raw, dict):
+        usage_json_str = json.dumps(usage_raw, ensure_ascii=False)
+    else:
+        usage_json_str = (usage_raw or "").strip() if isinstance(usage_raw, str) else ""
+    cost_val = out.get("generation_cost_usd")
+    if cost_val is None and isinstance(usage_raw, dict):
+        cost_val = usage_raw.get("cost")
+    if cost_val is not None:
+        try:
+            cost_val = float(cost_val)
+        except (TypeError, ValueError):
+            cost_val = None
     
     # Prepare writer data for saving
     writer_json = ""
@@ -2773,7 +3445,8 @@ def _do_generate_article_external(title_id, recipe_from_a=None, ai_provider=None
         out.get("pinterest_keywords", ""), out.get("focus_keyphrase", ""), out.get("meta_description", ""),
         out.get("keyphrase_synonyms", ""), article_css,
         main_img, ing_img, top_img, bottom_img, avatar_img,
-        writer_json, writer_avatar_url, model_used, generated_at, generation_time_seconds, title_id
+        writer_json, writer_avatar_url, model_used, generated_at, generation_time_seconds,
+        cost_val, usage_json_str, title_id
     )
     with get_connection() as conn:
         cur = db_execute(conn, "SELECT id FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
@@ -2782,13 +3455,14 @@ def _do_generate_article_external(title_id, recipe_from_a=None, ai_provider=None
                 recipe_title_pin=?, pinterest_title=?, pinterest_description=?, pinterest_keywords=?,
                 focus_keyphrase=?, meta_description=?, keyphrase_synonyms=?, article_css=?,
                 main_image=?, ingredient_image=?, top_image=?, bottom_image=?, avatar_image=?,
-                writer=?, writer_avatar=?, model_used=?, generated_at=?, generation_time_seconds=?
+                writer=?, writer_avatar=?, model_used=?, generated_at=?, generation_time_seconds=?,
+                generation_cost_usd=?, usage_json=?
                 WHERE title_id=? AND language_code='en'""", (vals[0],) + vals)
         else:
             db_execute(conn, """INSERT INTO article_content (title_id, language_code, article_html, article, recipe, prompt, prompt_image_ingredients,
                 recipe_title_pin, pinterest_title, pinterest_description, pinterest_keywords, focus_keyphrase, meta_description, keyphrase_synonyms, article_css,
-                main_image, ingredient_image, top_image, bottom_image, avatar_image, writer, writer_avatar, model_used, generated_at, generation_time_seconds)
-                VALUES (?, 'en', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                main_image, ingredient_image, top_image, bottom_image, avatar_image, writer, writer_avatar, model_used, generated_at, generation_time_seconds, generation_cost_usd, usage_json)
+                VALUES (?, 'en', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (title_id, vals[0]) + vals[:-1])
     _update_article_html_images(title_id)
     _update_article_html_pin_image(title_id)
@@ -2807,6 +3481,33 @@ def api_ai_config():
 def api_openrouter_models():
     """Return list of OpenRouter model ids for content generation (rotation or select)."""
     return jsonify({"models": OPENROUTER_MODELS})
+
+
+@app.route("/api/openai-models", methods=["GET"])
+def api_openai_models():
+    """Return list of OpenAI model ids for content generation (user select in Run modals)."""
+    return jsonify({"models": OPENAI_MODELS})
+
+
+@app.route("/api/profile-ai-defaults", methods=["GET"])
+@login_required
+def api_profile_ai_defaults():
+    """Return current user's Profile AI defaults: ai_provider, openai_model, openrouter_model. Used by Run modals to pre-select."""
+    user = get_current_user()
+    if not user:
+        return jsonify({"ai_provider": "openai", "openai_model": "gpt-4o-mini", "openrouter_model": "openai/gpt-oss-120b"})
+    config = get_user_config_for_api(user["id"])
+    try:
+        bulk_max = int(config.get("bulk_max_concurrency") or 6)
+        bulk_max = max(1, min(bulk_max, 20))
+    except (TypeError, ValueError):
+        bulk_max = 6
+    return jsonify({
+        "ai_provider": (config.get("ai_provider") or "openai").lower(),
+        "openai_model": config.get("openai_model") or "gpt-4o-mini",
+        "openrouter_model": config.get("openrouter_model") or "openai/gpt-oss-120b",
+        "bulk_max_concurrency": bulk_max,
+    })
 
 
 @app.route("/api/local-models", methods=["GET"])
@@ -2832,6 +3533,8 @@ def api_generate_article_external():
     title_id = req.get("title_id")
     ai_provider = (req.get("ai_provider") or "").strip() or None
     openrouter_models = _parse_openrouter_models(req)
+    openai_model = (req.get("openai_model") or "").strip() or None
+    openrouter_model = (req.get("openrouter_model") or "").strip() or None
     local_model = (req.get("local_model") or "").strip() or None
     log.info("[api/generate-article-external] request payload=%s", dict(data) if hasattr(data, "items") else data)
     async_mode = str(req.get("async") or "").lower() in ("1", "true", "yes")
@@ -2850,14 +3553,15 @@ def api_generate_article_external():
         _bulk_progress[job_id] = {"status": "running", "message": "Calling external Article API...", "current_title": "", "type": "single", "action": "Article A", "title_id": title_id, "domain_id": domain_id, "created_at": time.time()}
         def task():
             try:
-                _do_generate_article_external(title_id, ai_provider=ai_provider, openrouter_models=openrouter_models, local_model=local_model, user_id=user_id)
+                _do_generate_article_external(title_id, ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model, local_model=local_model, user_id=user_id)
                 _bulk_progress[job_id].update({"status": "done", "message": "Article content generated", "has_article_html": True})
             except Exception as e:
-                _bulk_progress[job_id].update({"status": "error", "message": str(e)})
+                err = str(e)[:BULK_ERROR_DETAIL_MAX]
+                _bulk_progress[job_id].update({"status": "error", "message": err, "error_detail": err})
         threading.Thread(target=task, daemon=True).start()
         return jsonify({"success": True, "job_id": job_id})
     try:
-        article, article_css = _do_generate_article_external(title_id, ai_provider=ai_provider, openrouter_models=openrouter_models, local_model=local_model, user_id=user_id)
+        article, article_css = _do_generate_article_external(title_id, ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model, local_model=local_model, user_id=user_id)
     except ValueError as e:
         return jsonify({"success": False, "error": str(e)}), 400
     resp = {"success": True, "message": "Article content generated"}
@@ -2894,7 +3598,7 @@ def _do_generate_article_a(title_id, prompt=""):
     if not article_html_val:
         article_html_val = (out.get("article") or "").strip()
     provider, model_name = get_ai_config()
-    model_used = f"openrouter -> {model_name}" if provider == "openrouter" else "openai"
+    model_used = f"{provider} -> {model_name}" if provider and model_name else (f"{provider}" if provider else "openai")
     generated_at = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     vals = (article_html_val, out.get("recipe", ""), out.get("prompt", ""), out.get("prompt_image_ingredients", ""),
             out.get("recipe_title_pin", ""), out.get("pinterest_title", ""), out.get("pinterest_description", ""),
@@ -2940,7 +3644,8 @@ def api_generate_article_a():
                 _do_generate_article_a(title_id, prompt)
                 _bulk_progress[job_id].update({"status": "done", "message": "Article content generated"})
             except Exception as e:
-                _bulk_progress[job_id].update({"status": "error", "message": str(e)})
+                err = str(e)[:BULK_ERROR_DETAIL_MAX]
+                _bulk_progress[job_id].update({"status": "error", "message": err, "error_detail": err})
         threading.Thread(target=task, daemon=True).start()
         return jsonify({"success": True, "job_id": job_id})
     _do_generate_article_a(title_id, prompt)
@@ -2986,7 +3691,8 @@ def api_generate_article_bcd():
                 _do_generate_article_bcd(title_id, ai_provider=ai_provider)
                 _bulk_progress[job_id].update({"status": "done", "message": "Article content generated (domain template)"})
             except Exception as e:
-                _bulk_progress[job_id].update({"status": "error", "message": str(e)})
+                err = str(e)[:BULK_ERROR_DETAIL_MAX]
+                _bulk_progress[job_id].update({"status": "error", "message": err, "error_detail": err})
         threading.Thread(target=task, daemon=True).start()
         return jsonify({"success": True, "job_id": job_id})
     _do_generate_article_bcd(title_id, ai_provider=ai_provider)
@@ -3050,6 +3756,24 @@ def _row_any_needs_content(conn, title_id_a, scope_content):
     return False
 
 
+def _row_any_needs_pins(conn, title_id_a, scope_images):
+    """For a row (A,B,C,D), return True if any needs pin_image. Used with empty_only to exclude rows where all 4 have pin."""
+    if scope_images != "empty_only":
+        return True
+    cur = db_execute(conn, "SELECT t.group_id, t.title, d.group_id as d_group_id FROM titles t JOIN domains d ON t.domain_id = d.id WHERE t.id = ?", (title_id_a,))
+    r = dict_row(cur.fetchone())
+    if not r:
+        return True
+    gid = r.get("group_id") if r.get("group_id") is not None else r.get("d_group_id")
+    cur = db_execute(conn, """SELECT t.id FROM titles t JOIN domains d ON t.domain_id = d.id
+        WHERE COALESCE(t.group_id, d.group_id) = ? AND t.title = ? ORDER BY d.domain_index""", (gid, r.get("title") or ""))
+    ids = [dict_row(x).get("id") for x in cur.fetchall()]
+    for tid in ids:
+        if tid and not _title_has_pin_image(conn, tid):
+            return True
+    return False
+
+
 def _row_any_needs_images(conn, title_id_a, scope_images):
     """For a row (A,B,C,D), return True if any needs images. Used with empty_only to exclude rows where all 4 have main+ingredient."""
     if scope_images != "empty_only":
@@ -3075,23 +3799,24 @@ def _should_skip_images(conn, title_id, scope_images):
     return _title_has_main_image(conn, title_id) and _title_has_ingredient_image(conn, title_id)
 
 
-def _should_skip_bulk_row(conn, title_id, mode, scope, scope_content=None, scope_images=None):
-    """Return True if this row should be skipped. scope is legacy; scope_content/scope_images override per phase.
+def _should_skip_bulk_row(conn, title_id, mode, scope, scope_content=None, scope_images=None, scope_pins=None):
+    """Return True if this row should be skipped. scope is legacy; scope_content/scope_images/scope_pins override per phase.
     For mode=article with empty_only: skip only when ALL of A,B,C,D have content (not just A)."""
     sc = scope_content if scope_content is not None else scope
     si = scope_images if scope_images is not None else scope
+    sp = scope_pins if scope_pins is not None else si
     if mode == "article":
         return not _row_any_needs_content(conn, title_id, sc)
     if mode == "images":
         return _should_skip_images(conn, title_id, si)
     if mode == "all":
-        return False  # Per-phase skip in article/images blocks
+        return False  # Per-phase skip in article/images/pins blocks
     if mode in ("main_image",):
         return si == "empty_only" and _title_has_main_image(conn, title_id)
     if mode in ("ingredient_image",):
         return si == "empty_only" and _title_has_ingredient_image(conn, title_id)
     if mode in ("pin_image",):
-        return si == "empty_only" and _title_has_pin_image(conn, title_id)
+        return sp == "empty_only" and not _row_any_needs_pins(conn, title_id, sp)
     return False
 
 
@@ -3108,12 +3833,15 @@ def api_bulk_run():
     scope = str(req.get("scope") or "override").lower()
     scope_content = str(req.get("scope_content") or scope).lower()
     scope_images = str(req.get("scope_images") or scope).lower()
-    for s in (scope, scope_content, scope_images):
+    scope_pins = str(req.get("scope_pins") or scope_images).lower()
+    for s in (scope, scope_content, scope_images, scope_pins):
         if s not in ("override", "empty_only"):
-            scope = scope_content = scope_images = "override"
+            scope = scope_content = scope_images = scope_pins = "override"
             break
     ai_provider = (req.get("ai_provider") or "").strip() or None
     openrouter_models = _parse_openrouter_models(req)
+    openai_model = (req.get("openai_model") or "").strip() or None
+    openrouter_model = (req.get("openrouter_model") or "").strip() or None
     if not title_id:
         return jsonify({"success": False, "error": "title_id required"}), 400
     title_id = int(title_id)
@@ -3129,10 +3857,10 @@ def api_bulk_run():
         cur = db_execute(conn, """SELECT t.id FROM titles t JOIN domains d ON t.domain_id = d.id
             WHERE t.group_id = ? AND t.title = ? AND d.domain_index IN (0,1,2,3) ORDER BY d.domain_index""", (t["group_id"], t["title"]))
         title_ids = [dict_row(r).get("id") for r in cur.fetchall()]
-    if len(title_ids) < 4:
-        return jsonify({"success": False, "error": "Need 4 domains (A,B,C,D)"}), 400
+    if len(title_ids) < 1:
+        return jsonify({"success": False, "error": "No titles found for this recipe in the group."}), 400
     with get_connection() as conn:
-        if _should_skip_bulk_row(conn, title_id, mode, scope, scope_content, scope_images):
+        if _should_skip_bulk_row(conn, title_id, mode, scope, scope_content, scope_images, scope_pins):
             if mode == "article":
                 return jsonify({"success": True, "message": "Skipped — row already has HTML+CSS"})
             if mode == "main_image":
@@ -3157,7 +3885,7 @@ def api_bulk_run():
                 gen_a = scope_content != "empty_only" or not _title_has_content(conn, title_ids[0])
             if gen_a:
                 try:
-                    _do_generate_article_external(title_ids[0], ai_provider=ai_provider, openrouter_models=openrouter_models)
+                    _do_generate_article_external(title_ids[0], ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model, user_id=user_id)
                 except Exception as e:
                     return jsonify({"success": False, "error": f"Generate article for A (title_id {title_ids[0]}): {e}"}), 500
             with get_connection() as conn:
@@ -3177,7 +3905,7 @@ def api_bulk_run():
                     if scope_content == "empty_only" and _title_has_content(conn, tid):
                         continue
                 try:
-                    _do_generate_article_external(tid, recipe_from_a=recipe_a, ai_provider=ai_provider, openrouter_models=openrouter_models)
+                    _do_generate_article_external(tid, recipe_from_a=recipe_a, ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model, user_id=user_id)
                 except Exception as e:
                     return jsonify({"success": False, "error": f"Generate article for title_id {tid}: {e}"}), 500
             done.append("article+BCD")
@@ -3224,7 +3952,17 @@ def api_bulk_run():
             for tid in title_ids[:4]:
                 _update_article_html_images(tid)
             done.append("images")
-    elif mode == "main_image":
+    if mode in ("pin_image", "all"):
+        with get_connection() as conn:
+            skip_pins = scope_pins == "empty_only" and not _row_any_needs_pins(conn, title_id, scope_pins)
+        if not skip_pins:
+            for tid in title_ids[:4]:
+                try:
+                    _do_generate_pin_image(tid, user_id=user_id)
+                except Exception as e:
+                    return jsonify({"success": False, "error": f"Generate pin for title_id {tid}: {e}"}), 500
+            done.append("pin_image")
+    if mode == "main_image":
         from imagine import generate_4_images
         with get_connection() as conn:
             cur = db_execute(conn, "SELECT prompt FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
@@ -3276,21 +4014,15 @@ def api_bulk_run():
         for tid in title_ids[:4]:
             _update_article_html_images(tid)
         done.append("ingredient_image")
-    elif mode == "pin_image":
-        for tid in title_ids[:4]:
-            try:
-                _do_generate_pin_image(tid)
-            except Exception as e:
-                return jsonify({"success": False, "error": f"Generate pin for title_id {tid}: {e}"}), 500
-        done.append("pin_image")
     return jsonify({"success": True, "message": f"Done: {', '.join(done)}"})
 
 
-def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scope="override", scope_content=None, scope_images=None, ai_provider=None, openrouter_models=None, user_id=None):
-    """Run bulk-run for all rows in one group. scope_content/scope_images for per-phase skip."""
+def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scope="override", scope_content=None, scope_images=None, scope_pins=None, ai_provider=None, openrouter_models=None, openai_model=None, openrouter_model=None, user_id=None):
+    """Run bulk-run for all rows in one group. scope_content/scope_images/scope_pins for per-phase skip."""
     user_config = get_user_config_for_api(user_id) if user_id else {}
     sc = scope_content if scope_content is not None else scope
     si = scope_images if scope_images is not None else scope
+    sp = scope_pins if scope_pins is not None else si
     with get_connection() as conn:
         def get_all_group_descendants(gid):
             result = [gid]
@@ -3315,7 +4047,7 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
         if job_id and _bulk_cancel.get(job_id):
             break
         with get_connection() as conn:
-            if _should_skip_bulk_row(conn, title_id, mode, scope, sc, si):
+            if _should_skip_bulk_row(conn, title_id, mode, scope, sc, si, sp):
                 continue
         try:
             with get_connection() as conn:
@@ -3338,6 +4070,8 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                 failed += 1
                 continue
             if mode in ("article", "all"):
+                if job_id:
+                    _bulk_progress.get(job_id, {})["current_phase"] = 1
                 if job_id and _bulk_cancel.get(job_id):
                     break
                 with get_connection() as conn:
@@ -3348,14 +4082,16 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                         gen_a = sc != "empty_only" or not _title_has_content(conn, ids[0])
                     if gen_a:
                         try:
-                            _do_generate_article_external(ids[0], ai_provider=ai_provider, openrouter_models=openrouter_models)
+                            _do_generate_article_external(ids[0], ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model, user_id=user_id)
                         except Exception as e:
                             failed += 1
                             article_ok = False
                             log.error("[bulk-group] article A failed tid=%s: %s", ids[0], e)
                             _app_log("article", False, f"Article A failed: {e}", title_id=ids[0], group_id=group_id, job_id=job_id)
                             if progress_updater:
-                                _bulk_progress.get(job_id, {})["_last_error"] = str(e)[:200]
+                                pe = _bulk_progress.get(job_id, {})
+                                pe["_last_error"] = str(e)[:200]
+                                pe["error_detail"] = str(e)[:BULK_ERROR_DETAIL_MAX]
                     if article_ok:
                         recipe_a = None
                         with get_connection() as conn:
@@ -3377,14 +4113,16 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                                 if sc == "empty_only" and _title_has_content(conn, tid):
                                     continue
                             try:
-                                _do_generate_article_external(tid, recipe_from_a=recipe_a, ai_provider=ai_provider, openrouter_models=openrouter_models)
+                                _do_generate_article_external(tid, recipe_from_a=recipe_a, ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model, user_id=user_id)
                             except Exception as e:
                                 failed += 1
                                 article_ok = False
                                 log.error("[bulk-group] article BCD failed tid=%s: %s", tid, e)
                                 _app_log("article", False, f"Article BCD failed: {e}", title_id=tid, group_id=group_id, job_id=job_id)
                                 if progress_updater:
-                                    _bulk_progress.get(job_id, {})["_last_error"] = str(e)[:200]
+                                    pe = _bulk_progress.get(job_id, {})
+                                    pe["_last_error"] = str(e)[:200]
+                                    pe["error_detail"] = str(e)[:BULK_ERROR_DETAIL_MAX]
                                 break
                     if not article_ok:
                         continue
@@ -3401,6 +4139,8 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                         row = dict_row(cur.fetchone())
                     prompt = (row.get("prompt") or "").strip() if row else ""
                     prompt_ing = (row.get("prompt_image_ingredients") or "").strip() if row else ""
+                    if job_id:
+                        _bulk_progress.get(job_id, {})["current_phase"] = 2 if mode == "all" else 1
                     if prompt:
                         urls, err = generate_4_images(prompt, key_prefix="main_image", cancel_check=cancel_check, user_config=user_config)
                         if err and err == "Cancelled":
@@ -3424,6 +4164,8 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                                         cur = db_execute(conn, "UPDATE article_content SET main_image = ?, top_image = ?, bottom_image = ? WHERE title_id = ? AND language_code = 'en'", (main_url, main_url, bottom_url, tid))
                                         if cur.rowcount == 0:
                                             db_execute(conn, "INSERT INTO article_content (title_id, language_code, main_image, top_image, bottom_image) VALUES (?, 'en', ?, ?, ?)", (tid, main_url, main_url, bottom_url))
+                    if job_id and mode == "all":
+                        _bulk_progress.get(job_id, {})["current_phase"] = 3
                     if prompt_ing and not (job_id and _bulk_cancel.get(job_id)):
                         urls2, err2 = generate_4_images(prompt_ing, key_prefix="ingredient_image", cancel_check=cancel_check, user_config=user_config)
                         if err2 == "Cancelled":
@@ -3494,23 +4236,30 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                                         db_execute(conn, "INSERT INTO article_content (title_id, language_code, ingredient_image) VALUES (?, 'en', ?)", (tid, urls2[i]))
                         for tid in ids[:4]:
                             _update_article_html_images(tid)
-            if mode == "pin_image":
+            if mode in ("pin_image", "all"):
                 if job_id and _bulk_cancel.get(job_id):
                     break
-                pin_ok = True
-                for tid in ids[:4]:
-                    if job_id and _bulk_cancel.get(job_id):
-                        break
-                    try:
-                        _do_generate_pin_image(tid)
-                    except Exception as e:
-                        failed += 1
-                        pin_ok = False
-                        log.error("[bulk-group] pin_image failed tid=%s: %s", tid, e)
-                        _app_log("pin", False, f"Pin image failed: {e}", title_id=tid, group_id=group_id, job_id=job_id)
-                        break
-                if not pin_ok:
-                    continue
+                skip_pins = False
+                if mode == "all":
+                    with get_connection() as conn:
+                        skip_pins = sp == "empty_only" and not _row_any_needs_pins(conn, title_id, sp)
+                if not skip_pins:
+                    if job_id and mode == "all":
+                        _bulk_progress.get(job_id, {})["current_phase"] = 4
+                    pin_ok = True
+                    for tid in ids[:4]:
+                        if job_id and _bulk_cancel.get(job_id):
+                            break
+                        try:
+                            _do_generate_pin_image(tid, user_id=user_id)
+                        except Exception as e:
+                            failed += 1
+                            pin_ok = False
+                            log.error("[bulk-group] pin_image failed tid=%s: %s", tid, e)
+                            _app_log("pin", False, f"Pin image failed: {e}", title_id=tid, group_id=group_id, job_id=job_id)
+                            break
+                    if not pin_ok:
+                        continue
             ok += 1
         except Exception as e:
             failed += 1
@@ -3518,17 +4267,111 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
             log.error("[bulk-group] row failed tid=%s: %s", title_id, err_str)
             _app_log("run", False, f"Bulk row failed: {err_str[:200]}", title_id=title_id, group_id=group_id, job_id=job_id)
             if progress_updater:
-                _bulk_progress.get(job_id, {})["_last_error"] = err_str[:200]
+                pe = _bulk_progress.get(job_id, {})
+                pe["_last_error"] = err_str[:200]
+                pe["error_detail"] = err_str[:BULK_ERROR_DETAIL_MAX]
             if "quota exceeded" in err_str.lower():
                 log.error("[bulk-group] FATAL: quota exceeded, stopping bulk run")
                 break
     return ok, failed
 
 
-def _run_bulk_group_async(job_id, group_id, mode, scope="override", scope_content=None, scope_images=None, ai_provider=None, openrouter_models=None, user_id=None):
-    """scope_content/scope_images passed through to _bulk_run_one_group."""
-    """Background thread for bulk-run-group."""
+def _run_bulk_group_async(job_id, group_id, mode, concurrency_n=1, scope="override", scope_content=None, scope_images=None, scope_pins=None, ai_provider=None, openrouter_models=None, openai_model=None, openrouter_model=None, user_id=None):
+    """scope_content/scope_images/scope_pins passed through. When concurrency_n>1, runs rows in parallel via _bulk_run_one_row."""
     try:
+        sc = scope_content if scope_content is not None else scope
+        si = scope_images if scope_images is not None else scope
+        sp = scope_pins if scope_pins is not None else si
+        n = max(1, min(int(concurrency_n), 20))
+        if n > 1:
+            _progress_lock = threading.Lock()
+            row_queue = []
+            with get_connection() as conn:
+                def get_all_group_descendants(gid):
+                    result = [gid]
+                    cur = db_execute(conn, "SELECT id FROM `groups` WHERE parent_group_id = ?", (gid,))
+                    for r in cur.fetchall():
+                        cid = dict_row(r).get("id")
+                        if cid:
+                            result.extend(get_all_group_descendants(cid))
+                    return result
+                all_gids = get_all_group_descendants(group_id)
+                # Only queue Domain A titles (domain_index 0); _bulk_run_one_row expects A and finds B,C,D by same title
+                cur = db_execute(conn, """SELECT t.id, t.title FROM titles t JOIN domains d ON t.domain_id = d.id
+                    WHERE COALESCE(t.group_id, d.group_id) IN (""" + ",".join(["?"]*len(all_gids)) + ") AND COALESCE(d.domain_index, 0) = 0 ORDER BY t.id""", tuple(all_gids))
+                for r in cur.fetchall():
+                    row = dict_row(r)
+                    tid = row.get("id")
+                    if not tid:
+                        continue
+                    if mode == "article" and sc == "empty_only" and not _row_any_needs_content(conn, tid, sc):
+                        continue
+                    if mode == "images" and si == "empty_only" and not _row_any_needs_images(conn, tid, si):
+                        continue
+                    if mode == "pin_image" and sp == "empty_only" and not _row_any_needs_pins(conn, tid, sp):
+                        continue
+                    if mode == "all" and (sc == "empty_only" or si == "empty_only" or sp == "empty_only"):
+                        needs_c = sc != "empty_only" or _row_any_needs_content(conn, tid, sc)
+                        needs_i = si != "empty_only" or _row_any_needs_images(conn, tid, si)
+                        needs_p = sp != "empty_only" or _row_any_needs_pins(conn, tid, sp)
+                        if not needs_c and not needs_i and not needs_p:
+                            continue
+                    row_queue.append((group_id, tid, (row.get("title") or "")[:45]))
+            total_rows = len(row_queue)
+            _bulk_progress[job_id]["total_rows"] = total_rows
+            _bulk_progress[job_id]["processed_count"] = 0
+            _bulk_progress[job_id]["done"] = 0
+            if total_rows == 0:
+                _bulk_progress[job_id].update({"status": "done", "message": "0 rows (none to process)", "ok": 0, "failed": 0})
+                return
+            total_ok, total_failed, processed_count = 0, 0, 0
+            active_items = {}
+            def on_active(tid, tt, is_start, extra=None):
+                with _progress_lock:
+                    if is_start:
+                        active_items[tid] = {"tid": tid, "title": (tt or "")[:60], "domain_url": (extra or {}).get("domain_url", "-"), "group_id": group_id, "domain_letter": "A", "domain_letters": "A,B,C,D"} if extra else f"{tid}:{(tt or '')[:40]}"
+                    else:
+                        active_items.pop(tid, None)
+                    lst = list(active_items.values())[:5]
+                    _bulk_progress[job_id]["current_title"] = ", ".join(x.get("title", str(x)) if isinstance(x, dict) else str(x).split(":", 1)[-1] for x in lst) if lst else "-"
+                    _bulk_progress[job_id]["active_articles"] = [x for x in lst if isinstance(x, dict)]
+            _bulk_progress[job_id]["steps"] = []
+            with ThreadPoolExecutor(max_workers=n) as ex:
+                futures = {ex.submit(_bulk_run_one_row, tid, mode, job_id, on_active, scope, sc, si, sp, ai_provider, openrouter_models, openai_model, openrouter_model, user_id): (group_id, tid, title) for _, tid, title in row_queue}
+                for future in as_completed(futures):
+                    if _bulk_cancel.get(job_id):
+                        for f in futures:
+                            f.cancel()
+                        break
+                    gid, tid, title = futures[future]
+                    try:
+                        res = future.result()
+                        o, f, reason = res[0] if len(res) >= 1 else 0, res[1] if len(res) >= 2 else 0, res[2] if len(res) >= 3 else None
+                        with _progress_lock:
+                            total_ok += o
+                            total_failed += f
+                            processed_count += 1
+                            sym = "✓" if o else "✗"
+                            st = f"G{group_id} R{processed_count}: [{tid}] {title} {sym}"
+                            if not o and reason:
+                                st += " | " + (reason[:80] if len(str(reason)) > 80 else str(reason))
+                            steps = _bulk_progress[job_id].get("steps", [])
+                            steps.append(st)
+                            _bulk_progress[job_id]["steps"] = steps[-80:]
+                            _bulk_progress[job_id].update({"status": "running", "message": f"Row {processed_count}/{total_rows} ({total_ok}✓ {total_failed}✗)", "ok": total_ok, "failed": total_failed, "processed_count": processed_count, "done": processed_count})
+                    except Exception as e:
+                        with _progress_lock:
+                            total_failed += 1
+                            processed_count += 1
+                            steps = _bulk_progress[job_id].get("steps", [])
+                            steps.append(f"G{group_id} R{processed_count}: [{tid}] {title} ✗ | {str(e)[:80]}")
+                            _bulk_progress[job_id]["steps"] = steps[-80:]
+                            _bulk_progress[job_id].update({"status": "running", "message": f"Row {processed_count}/{total_rows}", "ok": total_ok, "failed": total_failed, "processed_count": processed_count, "done": processed_count})
+            if _bulk_cancel.get(job_id):
+                _bulk_progress[job_id].update({"status": "cancelled", "message": f"Cancelled. {total_ok} rows done" + (f", {total_failed} failed" if total_failed else ""), "ok": total_ok, "failed": total_failed, "processed_count": processed_count, "done": processed_count})
+            else:
+                _bulk_progress[job_id].update({"status": "done", "message": f"{total_ok} rows done" + (f", {total_failed} failed" if total_failed else ""), "ok": total_ok, "failed": total_failed, "processed_count": processed_count, "done": processed_count})
+            return
         def upd(tid, title, idx, total, ok, failed, extra=None):
             p = _bulk_progress[job_id]
             prev = p.get("_prev", {"idx": -1, "ok": 0, "failed": 0, "title": "", "tid": None})
@@ -3565,21 +4408,23 @@ def _run_bulk_group_async(job_id, group_id, mode, scope="override", scope_conten
                 "failed": failed,
                 "message": f"Row {idx + 1}/{total}",
             })
-        ok, failed = _bulk_run_one_group(group_id, mode, progress_updater=upd, job_id=job_id, scope=scope, scope_content=scope_content, scope_images=scope_images, ai_provider=ai_provider, openrouter_models=openrouter_models, user_id=user_id)
+        ok, failed = _bulk_run_one_group(group_id, mode, progress_updater=upd, job_id=job_id, scope=scope, scope_content=scope_content, scope_images=scope_images, scope_pins=scope_pins, ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model, user_id=user_id)
         if _bulk_cancel.get(job_id):
             _bulk_progress[job_id].update({"status": "cancelled", "message": f"Cancelled. {ok} rows done" + (f", {failed} failed" if failed else ""), "ok": ok, "failed": failed})
         else:
             _bulk_progress[job_id].update({"status": "done", "message": f"{ok} rows done" + (f", {failed} failed" if failed else ""), "ok": ok, "failed": failed})
     except Exception as e:
-        _bulk_progress[job_id].update({"status": "error", "message": str(e)})
+        err = str(e)[:BULK_ERROR_DETAIL_MAX]
+        _bulk_progress[job_id].update({"status": "error", "message": err, "error_detail": err})
 
 
-def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, scope="override", scope_content=None, scope_images=None, ai_provider=None, openrouter_models=None):
+def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, scope="override", scope_content=None, scope_images=None, scope_pins=None, ai_provider=None, openrouter_models=None, openai_model=None, openrouter_model=None, user_id=None):
     """Run bulk for a single row (Domain A title). Returns (ok, failed, reason) - reason is error message when failed."""
     sc = scope_content if scope_content is not None else scope
     si = scope_images if scope_images is not None else scope
+    sp = scope_pins if scope_pins is not None else si
     with get_connection() as conn:
-        if _should_skip_bulk_row(conn, title_id, mode, scope, sc, si):
+        if _should_skip_bulk_row(conn, title_id, mode, scope, sc, si, sp):
             return 0, 0, None
     cancel_check = (lambda: bool(job_id and _bulk_cancel.get(job_id))) if job_id else None
     try:
@@ -3597,11 +4442,13 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, scope="overri
             cur = db_execute(conn, """SELECT t.id FROM titles t JOIN domains d ON t.domain_id = d.id
                 WHERE COALESCE(t.group_id, d.group_id) = ? AND t.title = ? AND d.domain_index IN (0,1,2,3) ORDER BY d.domain_index""", (gid_val, t["title"]))
             ids = [dict_row(r).get("id") for r in cur.fetchall()]
-        if len(ids) < 4:
-            return 0, 1, "Need 4 domains (A,B,C,D)"
+        if len(ids) < 1:
+            return 0, 1, "No titles found for this recipe in the group"
+        # Run for 1–4 domains (A only, A+B, A+B+C, or A+B+C+D). Build domain_letters for progress display.
+        domain_letters = ",".join("ABCD"[i] for i in range(min(4, len(ids))))
         title_text = (title_row.get("title") or "")[:50] if title_row else ""
         if on_active:
-            extra = {"domain_url": domain_url, "group_id": gid_val, "domain_letter": domain_letter, "domain_letters": "A,B,C,D"}
+            extra = {"domain_url": domain_url, "group_id": gid_val, "domain_letter": domain_letter, "domain_letters": domain_letters}
             on_active(title_id, title_text, True, extra)
         try:
             if mode in ("article", "all"):
@@ -3614,7 +4461,7 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, scope="overri
                         gen_a = sc != "empty_only" or not _title_has_content(conn, ids[0])
                     if gen_a:
                         try:
-                            _do_generate_article_external(ids[0], ai_provider=ai_provider, openrouter_models=openrouter_models)
+                            _do_generate_article_external(ids[0], ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model, user_id=user_id)
                         except Exception as e:
                             return 0, 1, str(e)[:200]
                     recipe_a = None
@@ -3637,7 +4484,7 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, scope="overri
                             if sc == "empty_only" and _title_has_content(conn, tid):
                                 continue
                         try:
-                            _do_generate_article_external(tid, recipe_from_a=recipe_a, ai_provider=ai_provider, openrouter_models=openrouter_models)
+                            _do_generate_article_external(tid, recipe_from_a=recipe_a, ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model, user_id=user_id)
                         except Exception as e:
                             return 0, 1, str(e)[:200]
             if mode in ("images", "all"):
@@ -3647,13 +4494,16 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, scope="overri
                     skip_images = _should_skip_images(conn, title_id, si)
                 if not skip_images:
                     from imagine import generate_4_images
+                    user_config = get_user_config_for_api(user_id) if user_id else {}
                     with get_connection() as conn:
                         cur = db_execute(conn, "SELECT prompt, prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
                         row = dict_row(cur.fetchone())
                     prompt = (row.get("prompt") or "").strip() if row else ""
                     prompt_ing = (row.get("prompt_image_ingredients") or "").strip() if row else ""
+                    if not prompt and title_text:
+                        prompt = f"Professional food photography of {title_text}, overhead shot, natural lighting, editorial style --v 6.1"
                     if prompt:
-                        urls, err = generate_4_images(prompt, key_prefix="main_image", cancel_check=cancel_check)
+                        urls, err = generate_4_images(prompt, key_prefix="main_image", cancel_check=cancel_check, user_config=user_config)
                         if err == "Cancelled":
                             return 0, 0, None
                         if not err:
@@ -3664,7 +4514,7 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, scope="overri
                                 src = BOTTOM_SOURCE_INDEX[i]
                                 if src < len(urls) and urls[src]:
                                     try:
-                                        bottom_urls[i] = flip_image_vertical_and_upload(urls[src], "bottom_image")
+                                        bottom_urls[i] = flip_image_vertical_and_upload(urls[src], "bottom_image", user_config=user_config)
                                     except Exception:
                                         bottom_urls[i] = None
                             with get_connection() as conn:
@@ -3675,8 +4525,10 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, scope="overri
                                         cur = db_execute(conn, "UPDATE article_content SET main_image = ?, top_image = ?, bottom_image = ? WHERE title_id = ? AND language_code = 'en'", (main_url, main_url, bottom_url, tid))
                                         if cur.rowcount == 0:
                                             db_execute(conn, "INSERT INTO article_content (title_id, language_code, main_image, top_image, bottom_image) VALUES (?, 'en', ?, ?, ?)", (tid, main_url, main_url, bottom_url))
+                    if not prompt_ing and title_text:
+                        prompt_ing = f"Flat-lay of ingredients for {title_text}, white surface, natural light, editorial style --v 6.1"
                     if prompt_ing and not (cancel_check and cancel_check()):
-                        urls2, err2 = generate_4_images(prompt_ing, key_prefix="ingredient_image", cancel_check=cancel_check)
+                        urls2, err2 = generate_4_images(prompt_ing, key_prefix="ingredient_image", cancel_check=cancel_check, user_config=user_config)
                         if err2 == "Cancelled":
                             return 0, 0, None
                         if not err2:
@@ -3688,6 +4540,19 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, scope="overri
                                             db_execute(conn, "INSERT INTO article_content (title_id, language_code, ingredient_image) VALUES (?, 'en', ?)", (tid, urls2[i]))
                     for tid in ids[:4]:
                         _update_article_html_images(tid)
+            if mode in ("pin_image", "all"):
+                if cancel_check and cancel_check():
+                    return 0, 0, None
+                with get_connection() as conn:
+                    skip_pins = sp == "empty_only" and not _row_any_needs_pins(conn, title_id, sp)
+                if not skip_pins:
+                    for tid in ids[:4]:
+                        if cancel_check and cancel_check():
+                            return 0, 0, None
+                        try:
+                            _do_generate_pin_image(tid, user_id=user_id)
+                        except Exception as e:
+                            return 0, 1, str(e)[:200]
             return 1, 0, None
         finally:
             if on_active:
@@ -3696,15 +4561,15 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, scope="overri
         return 0, 1, str(e)[:200]
 
 
-def _run_bulk_all_groups_async(job_id, mode, concurrency_type="row", concurrency_n=1, scope="override", scope_content=None, scope_images=None, ai_provider=None, openrouter_models=None, user_id=None):
-    """Background thread for bulk-run-all-groups. scope_content/scope_images for per-phase skip."""
+def _run_bulk_all_groups_async(job_id, mode, concurrency_type="row", concurrency_n=1, scope="override", scope_content=None, scope_images=None, scope_pins=None, ai_provider=None, openrouter_models=None, openai_model=None, openrouter_model=None, user_id=None):
+    """Background thread for bulk-run-all-groups. scope_content/scope_images/scope_pins for per-phase skip."""
     _progress_lock = threading.Lock()
     try:
         with get_connection() as conn:
             cur = db_execute(conn, "SELECT id FROM `groups` WHERE id IS NOT NULL ORDER BY id")
             group_ids = [dict_row(r).get("id") for r in cur.fetchall() if dict_row(r).get("id")]
         if not group_ids:
-            _bulk_progress[job_id].update({"status": "error", "message": "No groups"})
+            _bulk_progress[job_id].update({"status": "error", "message": "No groups", "error_detail": "No groups"})
             return
         total_ok, total_failed = 0, 0
         n = max(1, min(int(concurrency_n), 20 if concurrency_type == "row" else 10))
@@ -3714,7 +4579,7 @@ def _run_bulk_all_groups_async(job_id, mode, concurrency_type="row", concurrency
             _bulk_progress[job_id].update({"message": f"Running {n} groups in parallel...", "total_groups": num_groups})
             grp_done = [0]
             with ThreadPoolExecutor(max_workers=n) as ex:
-                futures = {ex.submit(_bulk_run_one_group, gid, mode, None, job_id, scope, scope_content, scope_images, ai_provider, openrouter_models, user_id): gid for gid in group_ids}
+                futures = {ex.submit(_bulk_run_one_group, gid, mode, None, job_id, scope, scope_content, scope_images, scope_pins, ai_provider, openrouter_models, openai_model, openrouter_model, user_id): gid for gid in group_ids}
                 for future in as_completed(futures):
                     if _bulk_cancel.get(job_id):
                         for f in futures:
@@ -3748,10 +4613,12 @@ def _run_bulk_all_groups_async(job_id, mode, concurrency_type="row", concurrency
             row_queue = []
             sc = scope_content if scope_content is not None else scope
             si = scope_images if scope_images is not None else scope
+            sp = scope_pins if scope_pins is not None else si
+            # Only queue Domain A titles (domain_index 0); _bulk_run_one_row expects A and finds B,C,D by same title
             with get_connection() as conn:
                 for gid in group_ids:
                     cur = db_execute(conn, """SELECT t.id, t.title FROM titles t JOIN domains d ON t.domain_id = d.id
-                        WHERE COALESCE(t.group_id, d.group_id) = ? ORDER BY t.id""", (gid,))
+                        WHERE COALESCE(t.group_id, d.group_id) = ? AND COALESCE(d.domain_index, 0) = 0 ORDER BY t.id""", (gid,))
                     for r in cur.fetchall():
                         row = dict_row(r)
                         tid = row.get("id")
@@ -3761,10 +4628,13 @@ def _run_bulk_all_groups_async(job_id, mode, concurrency_type="row", concurrency
                             continue
                         if mode == "images" and si == "empty_only" and not _row_any_needs_images(conn, tid, si):
                             continue
-                        if mode == "all" and (sc == "empty_only" or si == "empty_only"):
+                        if mode == "pin_image" and sp == "empty_only" and not _row_any_needs_pins(conn, tid, sp):
+                            continue
+                        if mode == "all" and (sc == "empty_only" or si == "empty_only" or sp == "empty_only"):
                             needs_c = sc != "empty_only" or _row_any_needs_content(conn, tid, sc)
                             needs_i = si != "empty_only" or _row_any_needs_images(conn, tid, si)
-                            if not needs_c and not needs_i:
+                            needs_p = sp != "empty_only" or _row_any_needs_pins(conn, tid, sp)
+                            if not needs_c and not needs_i and not needs_p:
                                 continue
                         row_queue.append((gid, tid, (row.get("title") or "")[:45]))
             total_rows = len(row_queue)
@@ -3789,7 +4659,7 @@ def _run_bulk_all_groups_async(job_id, mode, concurrency_type="row", concurrency
             processed_count = 0
             _bulk_progress[job_id]["steps"] = _bulk_progress[job_id].get("steps", [])
             with ThreadPoolExecutor(max_workers=n) as ex:
-                futures = {ex.submit(_bulk_run_one_row, tid, mode, job_id, on_active, scope, scope_content, scope_images, ai_provider, openrouter_models): (gid, tid, title) for gid, tid, title in row_queue}
+                futures = {ex.submit(_bulk_run_one_row, tid, mode, job_id, on_active, scope, scope_content, scope_images, scope_pins, ai_provider, openrouter_models, openai_model, openrouter_model, user_id): (gid, tid, title) for gid, tid, title in row_queue}
                 for future in as_completed(futures):
                     if _bulk_cancel.get(job_id):
                         for f in futures:
@@ -3840,7 +4710,8 @@ def _run_bulk_all_groups_async(job_id, mode, concurrency_type="row", concurrency
         else:
             _bulk_progress[job_id].update({"status": "done", "message": f"{total_ok} rows done" + (f", {total_failed} failed" if total_failed else ""), "ok": total_ok, "failed": total_failed})
     except Exception as e:
-        _bulk_progress[job_id].update({"status": "error", "message": str(e)})
+        err = str(e)[:BULK_ERROR_DETAIL_MAX]
+        _bulk_progress[job_id].update({"status": "error", "message": err, "error_detail": err})
 
 
 @app.route("/api/bulk-run-jobs", methods=["GET"])
@@ -3882,6 +4753,27 @@ def api_bulk_run_jobs():
         if date_filter == "week" and created_at < now_ts - 7 * 24 * 3600:
             continue
         jobs.append(j)
+    # Merge bulk deploy jobs (bulk add / deploy group)
+    with BULK_DEPLOY_JOBS_LOCK:
+        for jid, j in list(BULK_DEPLOY_JOBS.items()):
+            total = j.get("total", 0)
+            done = j.get("done", 0)
+            current = j.get("current")
+            cancelled = j.get("_cancelled", False)
+            errors = j.get("errors", {})
+            status = "cancelled" if cancelled else ("running" if done < total else ("error" if errors else "done"))
+            msg = f"{done}/{total} deployed" + (" (cancelled)" if cancelled else "") + (f" — {len(errors)} error(s)" if errors else "")
+            deploy_job = {
+                "job_id": jid,
+                "status": status,
+                "message": msg,
+                "current_title": current or "",
+                "type": "deploy",
+                "created_at": j.get("created_at", 0),
+                "total": total,
+                "done": done,
+            }
+            jobs.append(deploy_job)
     jobs.sort(key=lambda x: x.get("created_at", 0), reverse=True)
     return jsonify({"jobs": jobs[:50]})
 
@@ -3947,10 +4839,19 @@ def api_bulk_run_job_articles(job_id):
 
 @app.route("/api/bulk-run-cancel", methods=["POST"])
 def api_bulk_run_cancel():
-    """Request cancel for a running bulk job."""
+    """Request cancel for a running bulk job (including bulk deploy jobs)."""
     job_id = request.args.get("job_id") or (request.get_json(silent=True) or {}).get("job_id")
     if not job_id:
         return jsonify({"success": False, "error": "job_id required"}), 400
+    # Bulk deploy job
+    with BULK_DEPLOY_JOBS_LOCK:
+        if job_id in BULK_DEPLOY_JOBS:
+            j = BULK_DEPLOY_JOBS[job_id]
+            if j.get("done", 0) >= j.get("total", 0):
+                return jsonify({"success": False, "error": "Job already finished"}), 400
+            BULK_DEPLOY_CANCEL[job_id] = True
+            j["_cancelled"] = True
+            return jsonify({"success": True, "message": "Cancel requested"})
     if job_id not in _bulk_progress:
         return jsonify({"success": False, "error": "Job not found"}), 404
     p = _bulk_progress[job_id]
@@ -3994,16 +4895,52 @@ def api_bulk_run_clear():
         hist_remove.append(jid)
     for jid in hist_remove:
         _bulk_history.pop(jid, None)
+    # Clear finished deploy jobs from BULK_DEPLOY_JOBS
+    deploy_remove = []
+    with BULK_DEPLOY_JOBS_LOCK:
+        deploy_remove = [jid for jid, j in list(BULK_DEPLOY_JOBS.items()) if j.get("done", 0) >= j.get("total", 1) or j.get("_cancelled")]
+        for jid in deploy_remove:
+            BULK_DEPLOY_JOBS.pop(jid, None)
+            BULK_DEPLOY_CANCEL.pop(jid, None)
     _save_bulk_history(_bulk_history)
-    return jsonify({"success": True, "cleared": len(hist_remove)})
+    return jsonify({"success": True, "cleared": len(hist_remove) + len(deploy_remove)})
 
 
 @app.route("/api/bulk-run-status", methods=["GET"])
 def api_bulk_run_status():
-    """Return progress for async bulk run."""
+    """Return progress for async bulk run (and bulk deploy jobs)."""
     job_id = request.args.get("job_id")
     if not job_id:
         return jsonify({"error": "job_id required"}), 400
+    # Bulk deploy job
+    with BULK_DEPLOY_JOBS_LOCK:
+        if job_id in BULK_DEPLOY_JOBS:
+            j = BULK_DEPLOY_JOBS[job_id]
+            total = j.get("total", 0)
+            done = j.get("done", 0)
+            current = j.get("current")
+            cancelled = j.get("_cancelled", False)
+            errors = j.get("errors", {})
+            status_map = j.get("status", {})
+            items = j.get("items", [])
+            steps = []
+            for did, url in items:
+                st = status_map.get(did, "pending")
+                if st == "done":
+                    steps.append(f"{url} ✓")
+                elif st == "error":
+                    steps.append(f"{url} ✗ {errors.get(did, '')[:50]}")
+                elif st == "cancelled":
+                    steps.append(f"{url} (cancelled)")
+                elif st == "running":
+                    steps.append(f"{url} ...")
+            status = "cancelled" if cancelled else ("running" if done < total else ("error" if errors else "done"))
+            return jsonify({
+                "job_id": job_id, "status": status, "type": "deploy",
+                "message": f"{done}/{total} domains deployed" + (" (cancelled)" if cancelled else ""),
+                "current_title": current or "",
+                "total_rows": total, "done": done, "steps": steps[-50:],
+            })
     p = _bulk_progress.get(job_id)
     if not p:
         return jsonify({"status": "unknown", "message": "Job not found"})
@@ -4011,22 +4948,75 @@ def api_bulk_run_status():
     return jsonify(out)
 
 
+@app.route("/api/bulk-deploy-group", methods=["POST"])
+@login_required
+def api_bulk_deploy_group():
+    """Deploy all domains in a group to Cloudflare (background, with progress tracking)."""
+    group_id = request.args.get("group_id") or (request.get_json(silent=True) or {}).get("group_id")
+    if group_id is None or group_id == "":
+        return jsonify({"success": False, "error": "group_id required"}), 400
+    group_id = int(group_id)
+    user = get_current_user()
+    user_id = user["id"]
+    with get_connection() as conn:
+        def get_group_descendant_ids(gid):
+            result = [gid]
+            cur = db_execute(conn, "SELECT id FROM `groups` WHERE parent_group_id = ?", (gid,))
+            for row in cur.fetchall():
+                result.extend(get_group_descendant_ids(dict_row(row)["id"]))
+            return result
+        group_ids = get_group_descendant_ids(group_id)
+        placeholders = ",".join(["?"] * len(group_ids))
+        cur = db_execute(conn, f"SELECT id, domain_url, domain_name FROM domains WHERE group_id IN ({placeholders})", tuple(group_ids))
+        rows = [dict_row(r) for r in cur.fetchall()]
+    deploy_items = [(r["id"], (r.get("domain_url") or r.get("domain_name") or "").strip()) for r in rows if r.get("id")]
+    if not deploy_items:
+        return jsonify({"success": False, "error": "No domains in this group", "message": "No domains to deploy."}), 400
+    bulk_job_id = str(uuid.uuid4())[:8]
+    job = {
+        "total": len(deploy_items),
+        "items": deploy_items,
+        "status": {did: "pending" for did, _ in deploy_items},
+        "current": None,
+        "errors": {},
+        "done": 0,
+        "created_at": time.time(),
+    }
+    with BULK_DEPLOY_JOBS_LOCK:
+        BULK_DEPLOY_JOBS[bulk_job_id] = job
+    log.info("[bulk_deploy_group] Started job %s: group %d, %d domains", bulk_job_id, group_id, len(deploy_items))
+    for did, url in deploy_items:
+        t = threading.Thread(target=_deploy_domain_background_with_job, args=(did, user_id, bulk_job_id, url), daemon=True)
+        t.start()
+    return jsonify({"success": True, "bulk_job_id": bulk_job_id, "group_id": group_id, "count": len(deploy_items)})
+
+
 @app.route("/api/bulk-run-group", methods=["POST"])
+@login_required
 def api_bulk_run_group():
-    """Run bulk-run for all Domain A rows in a group. scope_content/scope_images for content vs images."""
+    """Run bulk-run for all Domain A rows in a group. scope_content/scope_images/scope_pins for content vs images vs pins. Uses API keys from Profile."""
     req = {**(request.get_json(silent=True) or {}), **dict(request.args)}
     group_id = req.get("group_id")
     mode = str(req.get("mode", "all")).lower()
     ai_provider = (req.get("ai_provider") or "").strip() or None
     openrouter_models = _parse_openrouter_models(req)
+    openai_model = (req.get("openai_model") or "").strip() or None
+    openrouter_model = (req.get("openrouter_model") or "").strip() or None
     scope = str(req.get("scope") or "override").lower()
     scope_content = str(req.get("scope_content") or scope).lower()
     scope_images = str(req.get("scope_images") or scope).lower()
-    for s in (scope, scope_content, scope_images):
+    scope_pins = str(req.get("scope_pins") or scope_images).lower()
+    for s in (scope, scope_content, scope_images, scope_pins):
         if s not in ("override", "empty_only"):
-            scope = scope_content = scope_images = "override"
+            scope = scope_content = scope_images = scope_pins = "override"
             break
     async_mode = str(req.get("async", "") or "").lower() in ("1", "true", "yes")
+    # Concurrency can be in query string (GET-style POST) or body; prefer args for URL params
+    _cn = request.args.get("concurrency_n") or req.get("concurrency_n") or 1
+    try:
+        concurrency_n = max(1, min(int(_cn), 20))
+    except (TypeError, ValueError):
+        concurrency_n = 1
     if group_id is None or group_id == "":
         return jsonify({"success": False, "error": "group_id required"}), 400
     group_id = int(group_id)
@@ -4037,12 +5027,13 @@ def api_bulk_run_group():
             cur = db_execute(conn, """SELECT DISTINCT d.id FROM titles t JOIN domains d ON t.domain_id = d.id
                 WHERE COALESCE(t.group_id, d.group_id) = ?""", (group_id,))
             domain_ids = [dict_row(r).get("id") for r in cur.fetchall() if dict_row(r).get("id")]
-        _bulk_progress[job_id] = {"status": "running", "message": "Starting...", "current_title": "", "type": "group", "group_id": group_id, "mode": mode, "domain_ids": domain_ids, "created_at": time.time(), "steps": []}
+        total_phases = 4 if mode == "all" else (1 if mode == "article" else 2)
+        _bulk_progress[job_id] = {"status": "running", "message": f"Starting... (up to {concurrency_n} rows in parallel)" if concurrency_n > 1 else "Starting...", "current_title": "", "type": "group", "group_id": group_id, "mode": mode, "domain_ids": domain_ids, "created_at": time.time(), "steps": [], "current_phase": 1, "total_phases": total_phases, "concurrency_n": concurrency_n}
         user = get_current_user()
         user_id = user["id"] if user else None
-        threading.Thread(target=_run_bulk_group_async, args=(job_id, group_id, mode, scope, scope_content, scope_images, ai_provider, openrouter_models, user_id), daemon=True).start()
+        threading.Thread(target=_run_bulk_group_async, args=(job_id, group_id, mode, concurrency_n, scope, scope_content, scope_images, scope_pins, ai_provider, openrouter_models, openai_model, openrouter_model, user_id), daemon=True).start()
         return jsonify({"success": True, "job_id": job_id})
-    ok, failed = _bulk_run_one_group(group_id, mode, scope=scope, scope_content=scope_content, scope_images=scope_images, ai_provider=ai_provider, openrouter_models=openrouter_models)
+    ok, failed = _bulk_run_one_group(group_id, mode, scope=scope, scope_content=scope_content, scope_images=scope_images, scope_pins=scope_pins, ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model)
     if ok == 0 and failed == 0:
         return jsonify({"success": False, "error": "No Domain A titles in group"}), 400
     return jsonify({"success": True, "message": f"{ok} rows done" + (f", {failed} failed" if failed else "")})
@@ -4111,7 +5102,7 @@ def api_bulk_group_counts_old():
 
 @app.route("/api/bulk-row-counts", methods=["GET"])
 def api_bulk_row_counts():
-    """Return no_html_css (0/1), no_images (0/1) for one title (Domain A)."""
+    """Return no_html_css (0/1), no_images (0/1), no_pins (0/1) for one title (Domain A) / row."""
     title_id = request.args.get("title_id")
     if not title_id:
         return jsonify({"error": "title_id required"}), 400
@@ -4123,13 +5114,15 @@ def api_bulk_row_counts():
         cur = db_execute(conn, "SELECT article_html, article_css, main_image, ingredient_image FROM article_content WHERE title_id = ? AND language_code = 'en'", (tid,))
         row = cur.fetchone()
     if not row:
-        return jsonify({"total": 1, "no_html_css": 1, "no_images": 1, "with_html": 0})
+        return jsonify({"total": 1, "no_html_css": 1, "no_images": 1, "no_pins": 1, "with_html": 0})
     r = dict_row(row)
     has_html = bool((r.get("article_html") or "").strip())
     has_css = bool((r.get("article_css") or "").strip())
     no_html = not (has_html and has_css)
     no_img = not (bool((r.get("main_image") or "").strip()) and bool((r.get("ingredient_image") or "").strip()))
-    return jsonify({"total": 1, "no_html_css": 1 if no_html else 0, "no_images": 1 if no_img else 0, "with_html": 1 if has_html else 0})
+    with get_connection() as conn:
+        no_pins = 1 if _row_any_needs_pins(conn, tid, "empty_only") else 0
+    return jsonify({"total": 1, "no_html_css": 1 if no_html else 0, "no_images": 1 if no_img else 0, "no_pins": no_pins, "with_html": 1 if has_html else 0})
 
 
 @app.route("/api/bulk-group-counts", methods=["GET"])
@@ -4218,6 +5211,22 @@ def api_bulk_group_counts():
             """, tuple(all_gids + all_gids))
             row = cur.fetchone()
             no_images = (row.get('n', 0) if row else 0) or 0
+            cur = db_execute(conn, f"""
+                SELECT COUNT(DISTINCT title) as n FROM (
+                  SELECT t.title FROM titles t
+                  JOIN domains d ON t.domain_id = d.id
+                  WHERE COALESCE(t.group_id, d.group_id) IN ({placeholders})
+                    AND NOT EXISTS (SELECT 1 FROM article_content ac WHERE ac.title_id = t.id AND ac.language_code = 'en')
+                  UNION
+                  SELECT t.title FROM titles t
+                  JOIN domains d ON t.domain_id = d.id
+                  JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
+                  WHERE COALESCE(t.group_id, d.group_id) IN ({placeholders})
+                    AND TRIM(IFNULL(ac.pin_image,'')) = ''
+                ) x
+            """, tuple(all_gids + all_gids))
+            row = cur.fetchone()
+            no_pins = (row.get('n', 0) if row else 0) or 0
             
             cur = db_execute(conn, f"""
                 SELECT COUNT(DISTINCT t.title) as n FROM titles t
@@ -4271,8 +5280,17 @@ def api_bulk_group_counts():
                             break
                     if needs:
                         rows_needs_images += 1
+            rows_needs_pins = 0
+            cur3 = db_execute(conn, f"""SELECT MIN(t.id) as id FROM titles t JOIN domains d ON t.domain_id = d.id
+                WHERE COALESCE(t.group_id, d.group_id) IN ({placeholders})
+                GROUP BY COALESCE(t.group_id, d.group_id), t.title
+                ORDER BY MIN(t.id)""", tuple(all_gids))
+            for r in cur3.fetchall():
+                tid = dict_row(r).get("id")
+                if tid and _row_any_needs_pins(conn, tid, "empty_only"):
+                    rows_needs_pins += 1
             
-        return jsonify({"total": total, "no_html_css": no_html_css, "no_images": no_images, "with_html": with_html, "rows_needs_content": rows_needs_content, "rows_needs_images": rows_needs_images})
+        return jsonify({"total": total, "no_html_css": no_html_css, "no_images": no_images, "no_pins": no_pins, "with_html": with_html, "rows_needs_content": rows_needs_content, "rows_needs_images": rows_needs_images, "rows_needs_pins": rows_needs_pins})
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -4322,6 +5340,22 @@ def api_bulk_all_groups_counts():
         row = cur.fetchone()
         no_images = (row.get('n', 0) if row else 0) or 0
         cur = db_execute(conn, """
+            SELECT COUNT(*) as n FROM (
+              SELECT t.id FROM titles t
+              JOIN domains d ON t.domain_id = d.id
+              WHERE d.group_id IS NOT NULL
+                AND NOT EXISTS (SELECT 1 FROM article_content ac WHERE ac.title_id = t.id AND ac.language_code = 'en')
+              UNION
+              SELECT t.id FROM titles t
+              JOIN domains d ON t.domain_id = d.id
+              JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
+              WHERE d.group_id IS NOT NULL
+                AND TRIM(IFNULL(ac.pin_image,'')) = ''
+            ) x
+        """)
+        row = cur.fetchone()
+        no_pins = (row.get('n', 0) if row else 0) or 0
+        cur = db_execute(conn, """
             SELECT COUNT(*) as n FROM titles t
             JOIN domains d ON t.domain_id = d.id
             INNER JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
@@ -4363,12 +5397,24 @@ def api_bulk_all_groups_counts():
             tid = dict_row(r).get("id")
             if tid and _row_any_needs_images(conn, tid, "empty_only"):
                 rows_needs_images += 1
-    return jsonify({"total": total, "no_html_css": no_html_css, "no_images": no_images, "with_html": with_html, "no_ac_row": no_ac_row, "rows_needs_content": rows_needs_content, "rows_needs_images": rows_needs_images, "total_rows": total_rows})
+        rows_needs_pins = 0
+        cur3 = db_execute(conn, """SELECT MIN(t.id) as id FROM titles t JOIN domains d ON t.domain_id = d.id
+            WHERE d.group_id IS NOT NULL
+            GROUP BY d.group_id, t.title
+            ORDER BY MIN(t.id)""")
+        for r in cur3.fetchall():
+            tid = dict_row(r).get("id")
+            if tid and _row_any_needs_pins(conn, tid, "empty_only"):
+                rows_needs_pins += 1
+    return jsonify({"total": total, "no_html_css": no_html_css, "no_images": no_images, "no_pins": no_pins, "with_html": with_html, "no_ac_row": no_ac_row, "rows_needs_content": rows_needs_content, "rows_needs_images": rows_needs_images, "rows_needs_pins": rows_needs_pins, "total_rows": total_rows})
 
 
 @app.route("/api/bulk-run-filtered", methods=["POST"])
+@login_required
 def api_bulk_run_filtered():
     """Run generation for a filtered list of title_ids. Body: {domain_id, title_ids[], mode, async}."""
+    user = get_current_user()
+    user_id = user["id"]
     req = request.get_json(silent=True) or {}
     domain_id = req.get("domain_id")
     title_ids = req.get("title_ids") or []
@@ -4376,6 +5422,8 @@ def api_bulk_run_filtered():
     async_mode = str(req.get("async", "")).lower() in ("1", "true", "yes")
     ai_provider = (req.get("ai_provider") or "").strip() or None
     openrouter_models = _parse_openrouter_models(req)
+    openai_model = (req.get("openai_model") or "").strip() or None
+    openrouter_model = (req.get("openrouter_model") or "").strip() or None
     
     if not domain_id or not title_ids:
         return jsonify({"success": False, "error": "domain_id and title_ids required"}), 400
@@ -4415,7 +5463,7 @@ def api_bulk_run_filtered():
                 
                 try:
                     if mode == "article":
-                        _do_generate_article_external(tid, ai_provider=ai_provider, openrouter_models=openrouter_models)
+                        _do_generate_article_external(tid, ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model, user_id=user_id)
                     elif mode == "main_image":
                         from imagine import generate_4_images
                         with get_connection() as conn:
@@ -4471,7 +5519,8 @@ def api_bulk_run_filtered():
             else:
                 _bulk_progress[job_id].update({"status": "done", "message": f"Done. {total_ok}✓ {total_failed}✗", "ok": total_ok, "failed": total_failed})
         except Exception as e:
-            _bulk_progress[job_id].update({"status": "error", "message": str(e)})
+            err = str(e)[:BULK_ERROR_DETAIL_MAX]
+            _bulk_progress[job_id].update({"status": "error", "message": err, "error_detail": err})
     
     threading.Thread(target=task, daemon=True).start()
     return jsonify({"success": True, "job_id": job_id})
@@ -4479,16 +5528,17 @@ def api_bulk_run_filtered():
 
 @app.route("/api/bulk-run-all-groups", methods=["POST"])
 def api_bulk_run_all_groups():
-    """Run bulk-run for all rows in all groups. scope_content/scope_images for content vs images."""
+    """Run bulk-run for all rows in all groups. scope_content/scope_images/scope_pins for content vs images vs pins."""
     data = request.get_json(silent=True) or {}
     req = {**data, **dict(request.args)}
     mode = str(req.get("mode", "all")).lower()
     scope = str(req.get("scope") or "override").lower()
     scope_content = str(req.get("scope_content") or scope).lower()
     scope_images = str(req.get("scope_images") or scope).lower()
-    for s in (scope, scope_content, scope_images):
+    scope_pins = str(req.get("scope_pins") or scope_images).lower()
+    for s in (scope, scope_content, scope_images, scope_pins):
         if s not in ("override", "empty_only"):
-            scope = scope_content = scope_images = "override"
+            scope = scope_content = scope_images = scope_pins = "override"
             break
     async_mode = str(req.get("async", "") or "").lower() in ("1", "true", "yes")
     concurrency_type = str(req.get("concurrency_type", "row")).lower()
@@ -4497,6 +5547,8 @@ def api_bulk_run_all_groups():
     concurrency_n = int(req.get("concurrency_n") or 1)
     ai_provider = (req.get("ai_provider") or "").strip() or None
     openrouter_models = _parse_openrouter_models(req)
+    openai_model = (req.get("openai_model") or "").strip() or None
+    openrouter_model = (req.get("openrouter_model") or "").strip() or None
     with get_connection() as conn:
         cur = db_execute(conn, "SELECT id FROM `groups` WHERE id IS NOT NULL ORDER BY id")
         group_ids = [dict_row(r).get("id") for r in cur.fetchall() if dict_row(r).get("id")]
@@ -4511,11 +5563,11 @@ def api_bulk_run_all_groups():
         _bulk_progress[job_id] = {"status": "running", "message": "Starting...", "current_title": "", "type": "all", "mode": mode, "domain_ids": domain_ids, "created_at": time.time(), "steps": []}
         user = get_current_user()
         user_id = user["id"] if user else None
-        threading.Thread(target=_run_bulk_all_groups_async, args=(job_id, mode, concurrency_type, concurrency_n, scope, scope_content, scope_images, ai_provider, openrouter_models, user_id), daemon=True).start()
+        threading.Thread(target=_run_bulk_all_groups_async, args=(job_id, mode, concurrency_type, concurrency_n, scope, scope_content, scope_images, scope_pins, ai_provider, openrouter_models, openai_model, openrouter_model, user_id), daemon=True).start()
         return jsonify({"success": True, "job_id": job_id})
     total_ok, total_failed = 0, 0
     for gid in group_ids:
-        ok, failed = _bulk_run_one_group(gid, mode, scope=scope, scope_content=scope_content, scope_images=scope_images, ai_provider=ai_provider, openrouter_models=openrouter_models)
+        ok, failed = _bulk_run_one_group(gid, mode, scope=scope, scope_content=scope_content, scope_images=scope_images, scope_pins=scope_pins, ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model)
         total_ok += ok
         total_failed += failed
     return jsonify({"success": True, "message": f"{total_ok} rows done" + (f", {total_failed} failed" if total_failed else "")})
@@ -4698,7 +5750,7 @@ def api_titles_with_article():
 def api_article_content(title_id):
     """GET: Return article_content fields. PUT: Update article_html and/or article_css only (no AI regeneration). Body: { article_html?, article_css? }"""
     with get_connection() as conn:
-        cur = db_execute(conn, """SELECT article_html, article_css, recipe, main_image, ingredient_image, pin_image, model_used, generated_at, generation_time_seconds FROM article_content
+        cur = db_execute(conn, """SELECT article_html, article_css, recipe, main_image, ingredient_image, pin_image, model_used, generated_at, generation_time_seconds, generation_cost_usd, usage_json FROM article_content
             WHERE title_id = ? AND language_code = 'en'""", (title_id,))
         row = dict_row(cur.fetchone())
     if not row:
@@ -4974,8 +6026,8 @@ def _do_generate_main_image(title_id, user_id=None):
         cur = db_execute(conn, """SELECT t.id FROM titles t JOIN domains d ON t.domain_id = d.id
             WHERE t.group_id = ? AND t.title = ? AND d.domain_index IN (0,1,2,3) ORDER BY d.domain_index""", (t["group_id"], t["title"]))
         title_ids = [dict_row(r).get("id") for r in cur.fetchall()]
-    if len(title_ids) < 4:
-        raise ValueError("Need 4 domains (A,B,C,D) in group")
+    if len(title_ids) < 1:
+        raise ValueError("No titles found for this recipe in the group. Generate article (A) first.")
     user_config = get_user_config_for_api(user_id) if user_id else {}
     urls, err = generate_4_images(prompt, key_prefix="main_image", user_config=user_config)
     if err:
@@ -5034,7 +6086,8 @@ def api_generate_main_image():
                 _do_generate_main_image(title_id)
                 _bulk_progress[job_id].update({"status": "done", "message": "Main images generated"})
             except Exception as e:
-                _bulk_progress[job_id].update({"status": "error", "message": str(e)})
+                err = str(e)[:BULK_ERROR_DETAIL_MAX]
+                _bulk_progress[job_id].update({"status": "error", "message": err, "error_detail": err})
         threading.Thread(target=task, daemon=True).start()
         return jsonify({"success": True, "job_id": job_id})
     _do_generate_main_image(title_id)
@@ -5057,8 +6110,8 @@ def _do_generate_ingredient_image(title_id, user_id=None):
         cur = db_execute(conn, """SELECT t.id FROM titles t JOIN domains d ON t.domain_id = d.id
             WHERE t.group_id = ? AND t.title = ? AND d.domain_index IN (0,1,2,3) ORDER BY d.domain_index""", (t["group_id"], t["title"]))
         title_ids = [dict_row(r).get("id") for r in cur.fetchall()]
-    if len(title_ids) < 4:
-        raise ValueError("Need 4 domains (A,B,C,D) in group")
+    if len(title_ids) < 1:
+        raise ValueError("No titles found for this recipe in the group. Generate article (A) first.")
     user_config = get_user_config_for_api(user_id) if user_id else {}
     urls, err = generate_4_images(prompt, key_prefix="ingredient_image", user_config=user_config)
     if err:
@@ -5096,16 +6149,18 @@ def api_generate_ingredient_image():
                 _do_generate_ingredient_image(title_id)
                 _bulk_progress[job_id].update({"status": "done", "message": "Ingredient images generated"})
             except Exception as e:
-                _bulk_progress[job_id].update({"status": "error", "message": str(e)})
+                err = str(e)[:BULK_ERROR_DETAIL_MAX]
+                _bulk_progress[job_id].update({"status": "error", "message": err, "error_detail": err})
         threading.Thread(target=task, daemon=True).start()
         return jsonify({"success": True, "job_id": job_id})
     _do_generate_ingredient_image(title_id)
     return jsonify({"success": True, "message": "Ingredient images generated"})
 
 
-def _do_generate_pin_image(title_id, domain_template_id=None):
+def _do_generate_pin_image(title_id, domain_template_id=None, user_id=None):
     """Generate pin image for this title: use its domain's template and article_content, call Pin API, save to this title's article_content only.
-    If domain_template_id is given, use that specific template; otherwise auto-rotate."""
+    If domain_template_id is given, use that specific template; otherwise auto-rotate.
+    user_id: pass to use Profile API keys (OpenAI/OpenRouter) for pin text generation."""
     import re
     with get_connection() as conn:
         cur = db_execute(conn, "SELECT t.id, t.title, t.group_id, d.id AS domain_id, d.domain_index, d.last_pin_template_index FROM titles t JOIN domains d ON t.domain_id = d.id WHERE t.id = ?", (title_id,))
@@ -5123,9 +6178,10 @@ def _do_generate_pin_image(title_id, domain_template_id=None):
             templates = [dict_row(r) for r in cur.fetchall()]
             if not templates:
                 raise ValueError("No pin templates for this domain. Add templates in Admin → Domains → Templates.")
-            idx = (t.get("last_pin_template_index") or 0) % len(templates)
+            last_idx = int(t.get("last_pin_template_index") or 0)
+            idx = last_idx % len(templates)
             template_row = templates[idx]
-            next_idx = ((t.get("last_pin_template_index") or 0) + 1) % len(templates)
+            next_idx = (last_idx + 1) % len(templates)
             db_execute(conn, "UPDATE domains SET last_pin_template_index = ? WHERE id = ?", (next_idx, domain_id))
         template_json_str = (template_row.get("template_json") or "").strip()
         if not template_json_str:
@@ -5190,6 +6246,17 @@ def _do_generate_pin_image(title_id, domain_template_id=None):
             payload["avatar_image"] = main_img or ing_img
         # Pass article title so 5000 injects it into prompts and calls OpenAI for text elements (except website)
         payload["variables"] = {"title": article_title}
+        # Pass API keys from user Profile so Pin API can use them (avoids 401 when .env has no keys)
+        if user_id:
+            user_config = get_user_config_for_api(user_id)
+            if user_config.get("openai_api_key"):
+                payload["openai_api_key"] = user_config["openai_api_key"]
+                payload["openai_model"] = user_config.get("openai_model") or "gpt-4o-mini"
+            if user_config.get("openrouter_api_key"):
+                payload["openrouter_api_key"] = user_config["openrouter_api_key"]
+                payload["openrouter_model"] = user_config.get("openrouter_model") or "openai/gpt-oss-120b"
+            if user_config.get("ai_provider"):
+                payload["ai_provider"] = user_config["ai_provider"]
         # Pass domain colors/fonts so Pin API can style the pin to match the domain
         raw_colors = (dom_row.get("domain_colors") or "").strip()
         if raw_colors:
@@ -5252,8 +6319,11 @@ def api_title_pin_templates():
 
 
 @app.route("/api/generate-pin-image", methods=["POST"])
+@login_required
 def api_generate_pin_image():
     """Generate pin image: call Pin API (Kimi_Agent_Pin) to generate and upload to Cloudflare; save returned image_url to article_content.pin_image."""
+    user = get_current_user()
+    user_id = user["id"]
     data = request.get_json(silent=True) or request.form or {}
     title_id = data.get("title_id") or request.args.get("title_id")
     domain_template_id = data.get("domain_template_id")
@@ -5273,13 +6343,14 @@ def api_generate_pin_image():
         _bulk_progress[job_id] = {"status": "running", "message": "Generating pin image...", "current_title": "", "type": "single", "action": "Pin image", "title_id": title_id, "domain_id": domain_id, "created_at": time.time()}
         def task():
             try:
-                _do_generate_pin_image(title_id, domain_template_id=dt_id)
+                _do_generate_pin_image(title_id, domain_template_id=dt_id, user_id=user_id)
                 _bulk_progress[job_id].update({"status": "done", "message": "Pin image generated"})
             except Exception as e:
-                _bulk_progress[job_id].update({"status": "error", "message": str(e)})
+                err = str(e)[:BULK_ERROR_DETAIL_MAX]
+                _bulk_progress[job_id].update({"status": "error", "message": err, "error_detail": err})
         threading.Thread(target=task, daemon=True).start()
         return jsonify({"success": True, "job_id": job_id})
-    _do_generate_pin_image(title_id, domain_template_id=dt_id)
+    _do_generate_pin_image(title_id, domain_template_id=dt_id, user_id=user_id)
     return jsonify({"success": True, "message": "Pin image generated"})
 
 
@@ -5397,19 +6468,33 @@ def api_pin_template(name):
 
 
 @app.route("/api/pin-generate", methods=["POST"])
+@login_required
 def api_pin_generate():
     """
     Proxy to Kimi_Agent_Pin /generate.
     - With template_only=1 (editor preview): returns JSON + index_html only, no screenshot, no R2 upload.
     - Without template_only (Generate image): full generate, screenshot, upload to R2, returns image_url.
+    Injects user Profile API keys so Pin API can generate text without .env keys.
     Query: name=, template_only=1 (optional).
     """
+    user = get_current_user()
+    user_id = user["id"]
     name = request.args.get("name") or (request.get_json(silent=True) or {}).get("template_name")
     if not name:
         return jsonify({"success": False, "error": "name required"}), 400
     body = request.get_json(silent=True)
     if not body:
         return jsonify({"success": False, "error": "JSON body required"}), 400
+    # Inject API keys from Profile for pin text generation (OpenAI/OpenRouter)
+    user_config = get_user_config_for_api(user_id)
+    if user_config.get("openai_api_key"):
+        body["openai_api_key"] = user_config["openai_api_key"]
+        body["openai_model"] = user_config.get("openai_model") or "gpt-4o-mini"
+    if user_config.get("openrouter_api_key"):
+        body["openrouter_api_key"] = user_config["openrouter_api_key"]
+        body["openrouter_model"] = user_config.get("openrouter_model") or "openai/gpt-oss-120b"
+    if user_config.get("ai_provider"):
+        body["ai_provider"] = user_config["ai_provider"]
     template_only = request.args.get("template_only", "")
     url = _pin_api_url() + "/generate?name=" + str(name)
     if str(template_only).strip().lower() in ("1", "true", "yes"):
@@ -5981,6 +7066,100 @@ def api_domains_delete_group(group_id):
         db_execute(conn, f"DELETE FROM domains WHERE id IN ({domain_placeholders})", tuple(domain_ids))
 
     return jsonify({"success": True, "count": len(domain_ids)})
+
+
+@app.route("/api/domains/<int:domain_id>/clear-articles", methods=["POST"])
+@login_required
+def api_domain_clear_articles(domain_id):
+    """Clear all article content (article_content) for titles in this domain. Titles remain."""
+    user = get_current_user()
+    user_id = user["id"]
+    is_admin = user.get("is_admin", 0)
+    if not is_admin:
+        user_domain_ids = get_user_domain_ids(user_id, is_admin)
+        if domain_id not in user_domain_ids:
+            return jsonify({"success": False, "error": "Access denied"}), 403
+    with get_connection() as conn:
+        cur = db_execute(conn, "SELECT id FROM titles WHERE domain_id = ?", (domain_id,))
+        title_ids = [dict_row(r)["id"] for r in cur.fetchall()]
+        if not title_ids:
+            return jsonify({"success": True, "count": 0, "message": "No titles in this domain"})
+        placeholders = ",".join(["?"] * len(title_ids))
+        cur = db_execute(conn, f"DELETE FROM article_content WHERE title_id IN ({placeholders})", tuple(title_ids))
+        deleted = cur.rowcount if hasattr(cur, "rowcount") else len(title_ids)
+    return jsonify({"success": True, "count": deleted, "message": f"Cleared article content for {len(title_ids)} title(s)"})
+
+
+@app.route("/api/domains/clear-articles-group/<int:group_id>", methods=["POST"])
+@login_required
+def api_domains_clear_articles_group(group_id):
+    """Clear all article content for titles in all domains in this group (and subgroups). Titles and domains remain."""
+    user = get_current_user()
+    user_id = user["id"]
+    is_admin = user.get("is_admin", 0)
+    if not is_admin:
+        user_group_ids = get_user_group_ids(user_id, is_admin)
+        if group_id not in user_group_ids:
+            return jsonify({"success": False, "error": "Access denied"}), 403
+    with get_connection() as conn:
+        def get_all_descendants(gid):
+            result = [gid]
+            cur = db_execute(conn, "SELECT id FROM `groups` WHERE parent_group_id = ?", (gid,))
+            children = [dict_row(r)["id"] for r in cur.fetchall()]
+            for child_id in children:
+                result.extend(get_all_descendants(child_id))
+            return result
+        all_group_ids = get_all_descendants(group_id)
+        placeholders = ",".join(["?"] * len(all_group_ids))
+        cur = db_execute(conn, f"SELECT id FROM domains WHERE group_id IN ({placeholders})", tuple(all_group_ids))
+        domain_ids = [dict_row(r)["id"] for r in cur.fetchall()]
+        if not domain_ids:
+            return jsonify({"success": True, "count": 0, "message": "No domains in this group"})
+        domain_ph = ",".join(["?"] * len(domain_ids))
+        cur = db_execute(conn, f"SELECT id FROM titles WHERE domain_id IN ({domain_ph})", tuple(domain_ids))
+        title_ids = [dict_row(r)["id"] for r in cur.fetchall()]
+        if not title_ids:
+            return jsonify({"success": True, "count": 0, "message": "No titles in this group"})
+        title_ph = ",".join(["?"] * len(title_ids))
+        cur = db_execute(conn, f"DELETE FROM article_content WHERE title_id IN ({title_ph})", tuple(title_ids))
+        deleted = cur.rowcount if hasattr(cur, "rowcount") else len(title_ids)
+    return jsonify({"success": True, "count": deleted, "message": f"Cleared article content for {len(title_ids)} title(s) in this group"})
+
+
+@app.route("/api/domains/delete-titles-group/<int:group_id>", methods=["POST"])
+@login_required
+def api_domains_delete_titles_group(group_id):
+    """Delete all titles (and their article content) in this group and subgroups. Domains remain."""
+    user = get_current_user()
+    user_id = user["id"]
+    is_admin = user.get("is_admin", 0)
+    if not is_admin:
+        user_group_ids = get_user_group_ids(user_id, is_admin)
+        if group_id not in user_group_ids:
+            return jsonify({"success": False, "error": "Access denied"}), 403
+    with get_connection() as conn:
+        def get_all_descendants(gid):
+            result = [gid]
+            cur = db_execute(conn, "SELECT id FROM `groups` WHERE parent_group_id = ?", (gid,))
+            children = [dict_row(r)["id"] for r in cur.fetchall()]
+            for child_id in children:
+                result.extend(get_all_descendants(child_id))
+            return result
+        all_group_ids = get_all_descendants(group_id)
+        placeholders = ",".join(["?"] * len(all_group_ids))
+        cur = db_execute(conn, f"SELECT id FROM domains WHERE group_id IN ({placeholders})", tuple(all_group_ids))
+        domain_ids = [dict_row(r)["id"] for r in cur.fetchall()]
+        if not domain_ids:
+            return jsonify({"success": True, "count": 0, "message": "No domains in this group"})
+        domain_ph = ",".join(["?"] * len(domain_ids))
+        cur = db_execute(conn, f"SELECT id FROM titles WHERE domain_id IN ({domain_ph})", tuple(domain_ids))
+        title_ids = [dict_row(r)["id"] for r in cur.fetchall()]
+        if not title_ids:
+            return jsonify({"success": True, "count": 0, "message": "No titles in this group"})
+        title_ph = ",".join(["?"] * len(title_ids))
+        db_execute(conn, f"DELETE FROM article_content WHERE title_id IN ({title_ph})", tuple(title_ids))
+        db_execute(conn, f"DELETE FROM titles WHERE id IN ({title_ph})", tuple(title_ids))
+    return jsonify({"success": True, "count": len(title_ids), "message": f"Deleted {len(title_ids)} title(s) from this group (domains remain)"})
 
 
 @app.route("/api/domains/clear-group/<int:group_id>", methods=["POST"])
@@ -6670,6 +7849,8 @@ def api_all_articles_test_content():
     async_mode = str(req.get("async", "1")).lower() in ("1", "true", "yes")
     ai_provider = (req.get("ai_provider") or "").strip() or None
     openrouter_models = _parse_openrouter_models(req)
+    openai_model = (req.get("openai_model") or "").strip() or None
+    openrouter_model = (req.get("openrouter_model") or "").strip() or None
     local_model = (req.get("local_model") or "").strip() or None
     
     # Support retry via title_ids
@@ -6759,7 +7940,7 @@ def api_all_articles_test_content():
                     "done": idx,
                 })
                 try:
-                    _do_generate_article_external(tid, ai_provider=ai_provider, openrouter_models=openrouter_models, local_model=local_model)
+                    _do_generate_article_external(tid, ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model, local_model=local_model)
                     ok += 1
                     _bulk_progress[job_id].get("steps", []).append(f"R{idx+1}: [{tid}] {ttitle} ✓")
                 except Exception as e:
@@ -6782,7 +7963,8 @@ def api_all_articles_test_content():
                     "done": ok + failed,
                 })
         except Exception as e:
-            _bulk_progress[job_id].update({"status": "error", "message": str(e), "ok": ok, "failed": failed})
+            err = str(e)[:BULK_ERROR_DETAIL_MAX]
+            _bulk_progress[job_id].update({"status": "error", "message": err, "error_detail": err, "ok": ok, "failed": failed})
 
     threading.Thread(target=task, daemon=True).start()
     return jsonify({"success": True, "job_id": job_id, "count": len(title_ids), "domain_ids": domain_ids})
@@ -8031,6 +9213,7 @@ def admin_domains():
     # Support filtering by group_id (including all subgroups recursively)
     filter_group_id = request.args.get("group_id")
     filter_group_id = int(filter_group_id) if filter_group_id and str(filter_group_id).isdigit() else None
+    bulk_job_id = (request.args.get("bulk_job_id") or "").strip() or None
     
     # Get user's accessible domain IDs
     user_domain_ids = get_user_domain_ids(user_id, is_admin)
@@ -8661,7 +9844,8 @@ def admin_domains():
             opts.append(f'<option value="{html.escape(t)}"{sel}>{html.escape(label)}</option>')
         sel_html = f'<select class="form-select form-select-sm page-theme-select" data-domain-id="{did}" data-original="{theme_esc}" style="min-width:90px;font-size:0.7rem;padding:0.15rem 0.25rem;">' + ''.join(opts) + '</select>'
         eye_btn = f'<a href="/preview-website/{did}" class="btn btn-sm btn-outline-success py-0 px-1 theme-example-btn" target="_blank" title="Preview site" data-domain-id="{did}">👁</a>' if did else ''
-        return f'<div class="theme-cell">{sel_html}{eye_btn}</div>'
+        edit_btn = f'<a href="/admin/domains/edit/{did}" class="btn btn-sm btn-outline-primary py-0 px-1 theme-example-btn" title="Edit template and colors" data-domain-id="{did}">✎</a>' if did else ''
+        return f'<div class="theme-cell">{sel_html}{eye_btn}{edit_btn}</div>'
     
     def writers_cell(domain_id, writers_json):
         """Show writers count and edit button."""
@@ -8718,7 +9902,8 @@ def admin_domains():
         clear_btn = ''
         if d.get("group_id"):
             clear_btn = f'<button type="button" class="btn btn-sm btn-outline-danger py-0 px-1 clear-group-btn" data-domain-id="{d["id"]}" title="Remove from group">✖️</button>'
-        return f'<div class="d-flex flex-column gap-1"><div class="d-flex align-items-center gap-1 flex-wrap"><a href="{html.escape(_domain_href(d.get("domain_url")))}" target="_blank" rel="noopener" class="domain-url-link">{html.escape(url)}</a>{edit_btn}{change_group_btn}{clear_btn}</div><span class="badge bg-light text-dark align-self-start" style="font-size:0.65rem;padding:0.1em 0.35em;">{html.escape(grp_display)}</span></div>'
+        badge = f'<span class="badge bg-light text-dark align-self-start" style="font-size:0.65rem;padding:0.1em 0.35em;">{html.escape(grp_display)}</span>' if grp_display else ''
+        return f'<div class="d-flex flex-column gap-1"><div class="d-flex align-items-center gap-1 flex-wrap"><a href="{html.escape(_domain_href(d.get("domain_url")))}" target="_blank" rel="noopener" class="domain-url-link">{html.escape(url)}</a>{edit_btn}{change_group_btn}{clear_btn}</div>{badge}</div>'
 
     def article_cell(domain_id, website_template, article_config, gens):
         """Select for generator + button to open Article Editor + button to show template example."""
@@ -8785,9 +9970,6 @@ def admin_domains():
         gid = d.get("group_id")
         idx = d.get("domain_index")
         abcd = chr(65 + idx) if idx is not None and 0 <= idx < 26 else ""
-        # Show complete group hierarchy instead of just group name
-        grp_hierarchy = d.get("group_hierarchy") or "-"
-        grp_display = grp_hierarchy + (f" {abcd}" if abcd else "")
         tr_class = " group-row-start" if prev_gid is not None and gid != prev_gid else ""
         prev_gid = gid
         data_grp = f' data-group-id="{gid}"' if gid is not None else ' data-group-id=""'
@@ -8795,7 +9977,7 @@ def admin_domains():
         row_parts.append(
         f'<tr class="domains-row{tr_class}"{data_grp}{data_domain_id}>'
         f'<td class="text-muted small">{d["id"]}</td>'
-        f'<td class="domain-url-cell">{domain_url_cell(d, grp_display)}</td>'
+        f'<td class="domain-url-cell">{domain_url_cell(d, abcd)}</td>'
         f'<td class="cloudflare-td">{cloudflare_cell(d)}</td>'
         f'<td class="colors-td">{colors_cell(d["id"], d.get("domain_colors"))}</td>'
         f'<td class="fonts-td">{fonts_cell(d["id"], d.get("domain_fonts"))}</td>'
@@ -8809,6 +9991,7 @@ def admin_domains():
         f'<td class="actions-cell"><div class="btn-group btn-group-sm" role="group">'
         f'<a href="/preview-website/{d["id"]}" class="btn btn-success" target="_blank" title="View site">👁</a>'
         f'<button type="button" class="btn btn-outline-primary list-domain-articles-btn" data-domain-id="{d["id"]}" data-domain-url="{html.escape((d.get("domain_url") or "").strip() or "-")}" title="List all articles in this domain">Articles</button>'
+        f'<button type="button" class="btn btn-outline-warning clear-articles-domain-btn" data-domain-id="{d["id"]}" data-domain-url="{html.escape((d.get("domain_url") or "").strip() or "-", quote=True)}" title="Clear all article content in this domain">🧹 Clear</button>'
         f'<button type="button" class="btn btn-outline-danger pinterest-setup-btn" data-domain-id="{d["id"]}" data-domain-name="{html.escape((d.get("domain_url") or d.get("domain_name") or "").strip() or "-", quote=True)}" title="Pinterest setup (RSS, schedule, manual)">📌</button>'
         f'<a href="/database-management?domain_id={d["id"]}" class="btn btn-outline-info" title="View in Database Management">📊</a>'
         f'<a href="/admin/domains/delete/{d["id"]}{"?group_id=" + str(filter_group_id) if filter_group_id else ""}" class="btn btn-outline-danger" title="Delete" onclick="return confirm(\'Delete this domain?\')">🗑</a>'
@@ -8944,6 +10127,27 @@ def admin_domains():
     {"<nav aria-label='breadcrumb'><ol class='breadcrumb'><li class='breadcrumb-item'><a href='/admin/domains'>All Domains</a></li>" + "".join(f"<li class='breadcrumb-item'><a href='/admin/domains?group_id={bc['id']}'>{bc['name']}</a></li>" for bc in (group_hierarchy_path or [])) + "<li class='breadcrumb-item active'>Filtered</li></ol></nav>" if group_hierarchy_path else ""}
     {_build_group_filter_alert(group_hierarchy_path, len(domains)) if group_hierarchy_path else ""}
     <div id="running-tasks-panel" class="mb-3" style="display:none"></div>
+    {(f'''<div id="bulkDeployProgressPanel" class="card mb-3 border-info"><div class="card-header bg-info text-white py-2"><strong>☁️ Bulk Deploy in Progress</strong></div><div class="card-body py-2"><div class="progress mb-2" style="height:24px"><div id="bulkDeployProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-info" role="progressbar" style="width:0%">0%</div></div><p class="mb-1 small"><strong>Current:</strong> <span id="bulkDeployCurrent">Starting...</span></p><p class="mb-1 small text-muted"><strong>Generated:</strong> <span id="bulkDeployGenerated">—</span></p><p id="bulkDeployErrors" class="mb-0 small text-danger" style="display:none"></p></div></div><script>
+(function(){{
+  var jobId = "{bulk_job_id}";
+  var bar = document.getElementById("bulkDeployProgressBar");
+  var curEl = document.getElementById("bulkDeployCurrent");
+  var genEl = document.getElementById("bulkDeployGenerated");
+  var errEl = document.getElementById("bulkDeployErrors");
+  function poll(){{
+    fetch("/api/bulk-deploy-job/"+jobId).then(r=>r.json()).then(function(d){{
+      if(!d.found) return;
+      if(bar){{ bar.style.width = (d.percent||0)+"%"; bar.textContent = (d.percent||0)+"%"; }}
+      if(curEl) curEl.textContent = d.current ? "Generating "+d.current+"..." : (d.complete ? "Done" : "Starting...");
+      if(genEl) genEl.textContent = (d.generated||[]).length ? (d.generated||[]).join(", ") : "—";
+      if(d.errors&&d.errors.length&&errEl){{ errEl.style.display="block"; errEl.innerHTML="Errors: "+d.errors.map(function(x){{return x.url+": "+x.error;}}).join("; "); }}
+      if(d.complete && bar){{ bar.classList.remove("progress-bar-animated"); bar.classList.add("bg-success"); }}
+      if(!d.complete) setTimeout(poll, 2000);
+    }}).catch(function(){{ setTimeout(poll, 3000); }});
+  }}
+  poll();
+}})();
+</script>''') if bulk_job_id else ""}
     {('<div class="alert alert-warning alert-dismissible fade show" role="alert" style="max-width:540px">' + html.escape(request.args.get("add_error","")) + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>') if request.args.get("add_error") else ""}
     {('<div class="alert alert-danger alert-dismissible fade show" role="alert" style="max-width:540px">' + html.escape(request.args.get("error","")) + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>') if request.args.get("error") else ""}
     {('<div class="alert alert-success alert-dismissible fade show" role="alert" style="max-width:540px">' + html.escape(request.args.get("success","")) + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>') if request.args.get("success") else ""}
@@ -8956,7 +10160,8 @@ def admin_domains():
       <div class="ms-auto d-flex gap-2">
         <button type="button" class="btn btn-outline-warning btn-sm" onclick="clearAllGroups()" title="Remove all domains from all groups (domains remain)" {('style="display:none"' if filter_group_id else '')}>🔓 Ungroup All</button>
         <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteAllDomains()" title="Delete all domains permanently" {('style="display:none"' if filter_group_id else '')}>🗑️ Delete All Domains</button>
-        <button type="button" class="btn btn-outline-warning btn-sm" onclick="clearCurrentGroup()" title="Remove all domains from current group" {('style="display:none"' if not filter_group_id else '')}>🔓 Ungroup This Group</button>
+        <button type="button" class="btn btn-outline-warning btn-sm" onclick="clearArticlesCurrentGroup()" title="Clear all article content in this group (titles and domains remain)" {('style="display:none"' if not filter_group_id else '')}>🧹 Clear All Articles in Group</button>
+        <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteTitlesCurrentGroup()" title="Permanently delete all titles in this group (article content and titles removed; domains remain)" {('style="display:none"' if not filter_group_id else '')}>🗑️ Delete Titles in Group</button>
         <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteCurrentGroupDomains()" title="Delete all domains in this group" {('style="display:none"' if not filter_group_id else '')}>🗑️ Delete Group Domains</button>
       </div>
     </div>
@@ -8974,7 +10179,7 @@ def admin_domains():
           <form method="post" action="/admin/domains/bulk-add" id="bulkAddForm" onsubmit="return validateBulkAdd(event)">
             <div class="mb-2">
               <label class="form-label small fw-medium">Domains (one per line)</label>
-              <textarea name="domains" id="bulkDomainsInput" class="form-control font-monospace small" rows="4" placeholder="example1.com&#10;example2.com&#10;(no https:// or www needed)" style="min-width: 320px;"></textarea>
+              <textarea name="domains" id="bulkDomainsInput" class="form-control font-monospace small" rows="4" placeholder="example1.com&#10;example2.com,dns1,dns2,dns3,dns4&#10;example3.com,ns1.cf.com,ns2.cf.com&#10;(domain only OR domain,dns1,dns2,... — with DNS = auto deploy)" style="min-width: 320px;"></textarea>
             </div>
             {'<input type="hidden" name="target_group_id" value="' + str(filter_group_id) + '">' if filter_group_id else '''
             <div class="mb-2">
@@ -10014,7 +11219,7 @@ def admin_domains():
         if (err) {{
           var el = err.toLowerCase();
           if (el.indexOf('not configured') >= 0 || el.indexOf('cloudflare') >= 0 && el.indexOf('config') >= 0)
-            hint = 'Add CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN to .env';
+            hint = 'Add Cloudflare Account ID and API Token in your Profile — go to Profile, fill in the Cloudflare section, and Save.';
           else if (el.indexOf('404') >= 0 || el.indexOf('not found') >= 0 || el.indexOf('does not exist') >= 0 || (!obj.project && status === 'error'))
             hint = 'Deploy the site first — click the cloud (☁️) button to deploy to Cloudflare Pages';
           else if (el.indexOf('401') >= 0 || el.indexOf('unauthorized') >= 0)
@@ -11123,6 +12328,23 @@ def admin_domains():
                 showDomainArticleHtmlPlaceholder();
               }})
               .catch(function() {{ document.getElementById('domainArticlesModalCount').textContent = 'Error loading'; }});
+          }});
+        }});
+        document.querySelectorAll('.clear-articles-domain-btn').forEach(function(btn) {{
+          btn.addEventListener('click', function() {{
+            var domainId = this.getAttribute('data-domain-id');
+            var domainUrl = (this.getAttribute('data-domain-url') || '').trim() || '—';
+            if (!domainId) return;
+            if (!confirm('Clear all article content (HTML, images, recipe) for this domain?\\n\\n' + domainUrl + '\\n\\nTitles will remain. You can regenerate with Run.')) return;
+            if (typeof showGlobalLoading === 'function') showGlobalLoading();
+            fetch('/api/domains/' + domainId + '/clear-articles', {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }} }})
+              .then(function(r) {{ return r.json(); }})
+              .then(function(data) {{
+                if (data.success) {{ alert(data.message || 'Cleared'); location.reload(); }}
+                else {{ alert(data.error || 'Failed'); }}
+              }})
+              .catch(function(err) {{ alert(err.message || 'Network error'); }})
+              .finally(function() {{ if (typeof hideGlobalLoading === 'function') hideGlobalLoading(); }});
           }});
         }});
         if (domainArticlesListWrap) {{
@@ -12332,6 +13554,53 @@ def admin_domains_group_by_4():
     return redirect(redirect_url)
 
 
+def _deploy_domain_background(domain_id, user_id):
+    """Run deploy-cloudflare in background (non-blocking)."""
+    try:
+        with app.app_context():
+            _do_deploy_cloudflare(domain_id, user_id)
+    except Exception as e:
+        log.warning("[bulk_add] Background deploy for domain %s failed: %s", domain_id, e)
+
+
+def _deploy_domain_background_with_job(domain_id, user_id, job_id, url):
+    """Run deploy in background and update bulk job progress."""
+    if BULK_DEPLOY_CANCEL.get(job_id):
+        with BULK_DEPLOY_JOBS_LOCK:
+            job = BULK_DEPLOY_JOBS.get(job_id)
+            if job:
+                job["status"][domain_id] = "cancelled"
+                job["current"] = None
+                job["done"] = job.get("done", 0) + 1
+                job["_cancelled"] = True
+        return
+    with BULK_DEPLOY_JOBS_LOCK:
+        job = BULK_DEPLOY_JOBS.get(job_id)
+        if job:
+            job["status"][domain_id] = "running"
+            job["current"] = url
+    log.info("[bulk_deploy] Deploying domain %s (%s)", domain_id, url)
+    try:
+        with app.app_context():
+            _do_deploy_cloudflare(domain_id, user_id)
+        with BULK_DEPLOY_JOBS_LOCK:
+            job = BULK_DEPLOY_JOBS.get(job_id)
+            if job:
+                job["status"][domain_id] = "done"
+                job["current"] = None
+                job["done"] = job.get("done", 0) + 1
+        log.info("[bulk_deploy] Done domain %s (%s)", domain_id, url)
+    except Exception as e:
+        log.warning("[bulk_deploy] Domain %s (%s) failed: %s", domain_id, url, e)
+        with BULK_DEPLOY_JOBS_LOCK:
+            job = BULK_DEPLOY_JOBS.get(job_id)
+            if job:
+                job["status"][domain_id] = "error"
+                job["errors"][domain_id] = str(e)[:200]
+                job["current"] = None
+                job["done"] = job.get("done", 0) + 1
+
+
 @app.route("/admin/domains/bulk-add", methods=["POST"])
 @login_required
 def admin_domains_bulk_add():
@@ -12347,27 +13616,39 @@ def admin_domains_bulk_add():
     target_group_id = int(target_group_id_raw) if target_group_id_raw and target_group_id_raw.isdigit() else None
     
     added, skipped = [], []
+    deploy_items = []  # [(domain_id, url)] for domains with DNS (auto-deploy)
     
-    # Collect all valid URLs first
-    urls_to_add = []
-    for line in text.splitlines():
+    def _parse_bulk_line(line):
+        """Parse line: domain,dns1,dns2,... or domain|note. Returns (url, has_dns)."""
         line = line.strip()
         if not line:
-            continue
-        raw = line.split("|", 1)[0].strip() if "|" in line else line
-        url = _normalize_domain(raw)
+            return None, False
+        if "," in line:
+            parts = [p.strip() for p in line.split(",")]
+            url = _normalize_domain(parts[0]) if parts else ""
+            has_dns = len(parts) > 1 and any(p for p in parts[1:] if p)
+        else:
+            raw = line.split("|", 1)[0].strip() if "|" in line else line
+            url = _normalize_domain(raw)
+            has_dns = False
+        return url, has_dns
+    
+    # Collect all valid URLs: list of (url, has_dns)
+    items_to_add = []
+    for line in text.splitlines():
+        url, has_dns = _parse_bulk_line(line)
         if url:
-            urls_to_add.append(url)
+            items_to_add.append((url, has_dns))
     
     with get_connection() as conn:
         # Check for duplicates
-        for url in urls_to_add[:]:
+        for url, _ in list(items_to_add):
             cur = db_execute(conn, "SELECT id FROM domains WHERE domain_url = ?", (url,))
             if cur.fetchone():
                 skipped.append(url)
-                urls_to_add.remove(url)
+                items_to_add[:] = [(u, d) for u, d in items_to_add if u != url]
         
-        if not urls_to_add:
+        if not items_to_add:
             if skipped:
                 msg = urllib.parse.quote(f"Skipped {len(skipped)} duplicate(s): {', '.join(skipped[:5])}" + (" ..." if len(skipped) > 5 else ""))
                 redirect_url = url_for("admin_domains")
@@ -12401,8 +13682,8 @@ def admin_domains_bulk_add():
             theme_start_index = dict_row(cur.fetchone()).get("cnt") or 0
             
             # Process domains in chunks of 4 (A, B, C, D per subgroup)
-            for chunk_idx, i in enumerate(range(0, len(urls_to_add), 4)):
-                chunk = urls_to_add[i:i+4]
+            for chunk_idx, i in enumerate(range(0, len(items_to_add), 4)):
+                chunk = items_to_add[i:i+4]
                 
                 # Create a new subgroup for each 4 domains
                 subgroup_name = f"{parent_name} - Batch {chunk_idx + 1}"
@@ -12417,7 +13698,7 @@ def admin_domains_bulk_add():
                     log.warning(f"[bulk_add] Could not assign subgroup {new_group_id}: {e}")
                 
                 # Add domains to this subgroup with indexes 0, 1, 2, 3 (A, B, C, D)
-                for domain_index, url in enumerate(chunk):
+                for domain_index, (url, has_dns) in enumerate(chunk):
                     overall_index = theme_start_index + chunk_idx * 4 + domain_index
                     cur = db_execute(conn, "INSERT INTO domains (domain_url, domain_name, group_id, domain_index) VALUES (?, ?, ?, ?)", 
                                    (url, url, new_group_id, domain_index))
@@ -12431,6 +13712,10 @@ def admin_domains_bulk_add():
                             log.info(f"[bulk_add] Assigned domain {did} to user {user_id}")
                         except Exception as e:
                             log.warning(f"[bulk_add] Could not assign domain {did} to user {user_id}: {e}")
+                        
+                        # Auto-trigger deploy-cloudflare when DNS provided (domain,dns1,dns2,...)
+                        if has_dns:
+                            deploy_items.append((did, url))
                     
                     added.append(url)
         else:
@@ -12438,7 +13723,7 @@ def admin_domains_bulk_add():
             cur = db_execute(conn, "SELECT COUNT(*) as cnt FROM domains")
             theme_start_index = dict_row(cur.fetchone()).get("cnt") or 0
             
-            for idx, url in enumerate(urls_to_add):
+            for idx, (url, has_dns) in enumerate(items_to_add):
                 cur = db_execute(conn, "INSERT INTO domains (domain_url, domain_name) VALUES (?, ?)", (url, url))
                 did = last_insert_id(cur)
                 if did:
@@ -12450,22 +13735,76 @@ def admin_domains_bulk_add():
                         log.info(f"[bulk_add] Assigned domain {did} to user {user_id}")
                     except Exception as e:
                         log.warning(f"[bulk_add] Could not assign domain {did} to user {user_id}: {e}")
+                    
+                    # Auto-trigger deploy-cloudflare when DNS provided (domain,dns1,dns2,...)
+                    if has_dns:
+                        deploy_items.append((did, url))
                 
                 added.append(url)
+    
+    # Start bulk deploy jobs in background (with progress tracking)
+    bulk_job_id = None
+    if deploy_items:
+        bulk_job_id = str(uuid.uuid4())[:8]
+        job = {
+            "total": len(deploy_items),
+            "items": deploy_items,
+            "status": {did: "pending" for did, _ in deploy_items},
+            "current": None,
+            "errors": {},
+            "done": 0,
+            "created_at": time.time(),
+        }
+        with BULK_DEPLOY_JOBS_LOCK:
+            BULK_DEPLOY_JOBS[bulk_job_id] = job
+        log.info("[bulk_add] Started bulk deploy job %s: %d domains", bulk_job_id, len(deploy_items))
+        for did, url in deploy_items:
+            t = threading.Thread(target=_deploy_domain_background_with_job, args=(did, user_id, bulk_job_id, url), daemon=True)
+            t.start()
     
     redirect_url = url_for("admin_domains")
     if target_group_id:
         redirect_url += f"?group_id={target_group_id}"
+    if bulk_job_id:
+        redirect_url += ("&" if "?" in redirect_url else "?") + f"bulk_job_id={bulk_job_id}"
     
     if skipped:
         msg = urllib.parse.quote(f"Skipped {len(skipped)} duplicate(s): {', '.join(skipped[:5])}" + (" ..." if len(skipped) > 5 else ""))
-        if target_group_id:
+        if target_group_id or bulk_job_id:
             redirect_url += "&add_error=" + msg
         else:
             redirect_url += "?add_error=" + msg
         return redirect(redirect_url)
     
     return redirect(redirect_url)
+
+
+@app.route("/api/bulk-deploy-job/<job_id>", methods=["GET"])
+@login_required
+def api_bulk_deploy_job_status(job_id):
+    """Return progress of a bulk deploy job (for polling)."""
+    with BULK_DEPLOY_JOBS_LOCK:
+        job = BULK_DEPLOY_JOBS.get(job_id)
+    if not job:
+        return jsonify({"found": False, "job_id": job_id})
+    total = job.get("total", 0)
+    done = job.get("done", 0)
+    status_map = job.get("status", {})
+    errors = job.get("errors", {})
+    current = job.get("current")
+    items = job.get("items", [])
+    pct = round(100 * done / total) if total else 0
+    done_list = [url for did, url in items if status_map.get(did) == "done"]
+    running = current
+    error_list = [(did, url, errors.get(did, "")) for did, url in items if status_map.get(did) == "error"]
+    return jsonify({
+        "found": True, "job_id": job_id,
+        "total": total, "done": done, "percent": pct,
+        "current": running,
+        "generated": done_list,
+        "errors": [{"domain_id": did, "url": url, "error": err} for did, url, err in error_list],
+        "complete": done >= total,
+    })
 
 
 @app.route("/admin/domains/<int:pk>/templates", methods=["GET"])
@@ -14626,23 +15965,39 @@ def api_generate_static_project(domain_id):
 
 
 @app.route("/api/domains/<int:domain_id>/deploy-cloudflare", methods=["POST"])
+@login_required
 def api_deploy_cloudflare(domain_id):
     """Generate static project and deploy to Cloudflare Pages via Wrangler (direct upload, no GitHub)."""
     try:
-        return _do_deploy_cloudflare(domain_id)
+        user = get_current_user()
+        user_id = user["id"] if user else None
+        return _do_deploy_cloudflare(domain_id, user_id)
     except Exception as e:
         log.exception("[deploy-cloudflare] Unexpected error")
         tb = traceback.format_exc()
         return jsonify({"success": False, "error": str(e), "traceback": tb}), 500
 
 
-def _do_deploy_cloudflare(domain_id):
+def _do_deploy_cloudflare(domain_id, user_id=None):
     """Inner deploy logic; raises on error."""
-    if not CLOUDFLARE_ACCOUNT_ID or not CLOUDFLARE_API_TOKEN:
+    
+    # Try to get user config first
+    cf_account_id = CLOUDFLARE_ACCOUNT_ID
+    cf_api_token = CLOUDFLARE_API_TOKEN
+    
+    if user_id:
+        user_config = get_user_config_for_api(user_id)
+        if user_config.get("cloudflare_account_id"):
+            cf_account_id = user_config.get("cloudflare_account_id")
+        if user_config.get("cloudflare_api_token"):
+            cf_api_token = user_config.get("cloudflare_api_token")
+            
+    if not cf_account_id or not cf_api_token:
         return jsonify({
             "success": False,
-            "error": "Cloudflare not configured. Set CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN in .env"
+            "error": "Cloudflare not configured. Please add Cloudflare API keys to your Profile settings."
         }), 400
+        
     with app.test_request_context(path=f"/api/domains/{domain_id}/generate-static-project", method="POST"):
         resp = api_generate_static_project(domain_id)
         gen_data = resp.get_json() if resp else None
@@ -14661,16 +16016,16 @@ def _do_deploy_cloudflare(domain_id):
         raw_name = re.sub(r"^https?://", "", raw_name).split("/")[0].split("?")[0]
     project_name = re.sub(r"[^a-zA-Z0-9-]", "-", (raw_name or "site")[:50].replace(".", "-")).strip("-") or f"domain-{domain_id}"
     env = os.environ.copy()
-    env["CLOUDFLARE_ACCOUNT_ID"] = CLOUDFLARE_ACCOUNT_ID
-    env["CLOUDFLARE_API_TOKEN"] = CLOUDFLARE_API_TOKEN
+    env["CLOUDFLARE_ACCOUNT_ID"] = cf_account_id
+    env["CLOUDFLARE_API_TOKEN"] = cf_api_token
     npx_cmd = "npx.cmd" if os.name == "nt" else "npx"
     # Create project via Cloudflare API if it doesn't exist
     create_body = json.dumps({"name": project_name, "production_branch": "main"}).encode("utf-8")
     create_req = urllib.request.Request(
-        f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/pages/projects",
+        f"https://api.cloudflare.com/client/v4/accounts/{cf_account_id}/pages/projects",
         data=create_body,
         method="POST",
-        headers={"Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}", "Content-Type": "application/json"},
+        headers={"Authorization": f"Bearer {cf_api_token}", "Content-Type": "application/json"},
     )
     try:
         with urllib.request.urlopen(create_req, timeout=20) as _:
@@ -14733,10 +16088,10 @@ def _do_deploy_cloudflare(domain_id):
         for dom in domains_to_add:
             try:
                 domain_req = urllib.request.Request(
-                    f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/pages/projects/{project_name}/domains",
+                    f"https://api.cloudflare.com/client/v4/accounts/{cf_account_id}/pages/projects/{project_name}/domains",
                     data=json.dumps({"name": dom}).encode("utf-8"),
                     method="POST",
-                    headers={"Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}", "Content-Type": "application/json"},
+                    headers={"Authorization": f"Bearer {cf_api_token}", "Content-Type": "application/json"},
                 )
                 with urllib.request.urlopen(domain_req, timeout=15) as _:
                     custom_domains_added.append(dom)
@@ -14786,8 +16141,14 @@ def _check_url_up(url, timeout=10):
 
 
 @app.route("/api/domains/<int:domain_id>/cloudflare-info", methods=["POST", "GET"])
+@login_required
 def api_domain_cloudflare_info(domain_id):
     """POST: fetch Cloudflare Pages project info, save to cloudflare_info, return JSON. GET: return saved info."""
+    user = get_current_user()
+    user_config = get_user_config_for_api(user["id"])
+    cf_account_id = user_config.get("cloudflare_account_id") or CLOUDFLARE_ACCOUNT_ID
+    cf_api_token = user_config.get("cloudflare_api_token") or CLOUDFLARE_API_TOKEN
+    
     with get_connection() as conn:
         cur = db_execute(conn, "SELECT domain_url, domain_name, cloudflare_info FROM domains WHERE id = ?", (domain_id,))
         row = dict_row(cur.fetchone())
@@ -14802,8 +16163,8 @@ def api_domain_cloudflare_info(domain_id):
             except json.JSONDecodeError:
                 pass
         return jsonify({"success": True, "cloudflare_info": info})
-    if not CLOUDFLARE_ACCOUNT_ID or not CLOUDFLARE_API_TOKEN:
-        return jsonify({"success": False, "error": "Cloudflare not configured"}), 400
+    if not cf_account_id or not cf_api_token:
+        return jsonify({"success": False, "error": "Cloudflare not configured. Please add Cloudflare API keys to your Profile settings."}), 400
     project_name = _domain_to_project_name(row.get("domain_url"), row.get("domain_name"), domain_id)
     domain_url = (row.get("domain_url") or "").strip()
     hostname = None
@@ -14812,9 +16173,9 @@ def api_domain_cloudflare_info(domain_id):
     result = {"domain_url": domain_url or hostname, "project_name": project_name, "fetched_at": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()), "status": "unknown", "up": False, "urls_checked": [], "project": None, "deployments": [], "domains": [], "dns_setup": False}
     try:
         req = urllib.request.Request(
-            f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/pages/projects/{project_name}",
+            f"https://api.cloudflare.com/client/v4/accounts/{cf_account_id}/pages/projects/{project_name}",
             method="GET",
-            headers={"Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}"},
+            headers={"Authorization": f"Bearer {cf_api_token}"},
         )
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read().decode())
@@ -14844,9 +16205,9 @@ def api_domain_cloudflare_info(domain_id):
                         result["status"] = "down"
                         result["down_reason"] = reason
         req2 = urllib.request.Request(
-            f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/pages/projects/{project_name}/deployments",
+            f"https://api.cloudflare.com/client/v4/accounts/{cf_account_id}/pages/projects/{project_name}/deployments",
             method="GET",
-            headers={"Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}"},
+            headers={"Authorization": f"Bearer {cf_api_token}"},
         )
         with urllib.request.urlopen(req2, timeout=15) as resp2:
             data2 = json.loads(resp2.read().decode())
@@ -14881,7 +16242,7 @@ def api_domain_cloudflare_info(domain_id):
                 zone_req = urllib.request.Request(
                     f"https://api.cloudflare.com/client/v4/zones?name={hostname}",
                     method="GET",
-                    headers={"Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}"},
+                    headers={"Authorization": f"Bearer {cf_api_token}"},
                 )
                 with urllib.request.urlopen(zone_req, timeout=10) as zr:
                     zdata = json.loads(zr.read().decode())
@@ -14889,6 +16250,14 @@ def api_domain_cloudflare_info(domain_id):
                     result["dns_setup"] = bool(zones)
             except Exception:
                 pass
+            # Also consider DNS ready: domain in Pages project, or custom domain URL is up
+            if not result["dns_setup"]:
+                proj_domains = result.get("domains") or []
+                apex = hostname
+                www = f"www.{hostname}" if hostname else ""
+                in_pages = apex in proj_domains or www in proj_domains
+                custom_up = bool(result.get("custom_domain_up"))
+                result["dns_setup"] = in_pages or custom_up
     except urllib.error.HTTPError as e:
         body = (e.read().decode("utf-8", errors="replace") if e.fp else "") or ""
         result["error"] = f"HTTP {e.code}: {body[:300]}"
@@ -14903,22 +16272,28 @@ def api_domain_cloudflare_info(domain_id):
 
 
 @app.route("/api/domains/<int:domain_id>/cloudflare-deployments", methods=["GET"])
+@login_required
 def api_domain_cloudflare_deployments(domain_id):
     """Fetch all deployments from Cloudflare Pages for this domain's project."""
-    if not CLOUDFLARE_ACCOUNT_ID or not CLOUDFLARE_API_TOKEN:
-        return jsonify({"success": False, "error": "Cloudflare not configured"}), 400
+    user = get_current_user()
+    user_config = get_user_config_for_api(user["id"])
+    cf_account_id = user_config.get("cloudflare_account_id") or CLOUDFLARE_ACCOUNT_ID
+    cf_api_token = user_config.get("cloudflare_api_token") or CLOUDFLARE_API_TOKEN
+    
+    if not cf_account_id or not cf_api_token:
+        return jsonify({"success": False, "error": "Cloudflare not configured. Please add Cloudflare API keys to your Profile settings."}), 400
     with get_connection() as conn:
         cur = db_execute(conn, "SELECT domain_url, domain_name FROM domains WHERE id = ?", (domain_id,))
         row = dict_row(cur.fetchone())
     if not row:
         return jsonify({"success": False, "error": "Domain not found"}), 404
     project_name = _domain_to_project_name(row.get("domain_url"), row.get("domain_name"), domain_id)
-    headers = {"Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}"}
+    headers = {"Authorization": f"Bearer {cf_api_token}"}
     # Fetch canonical (live) deployment id from project
     canonical_id = None
     try:
         req = urllib.request.Request(
-            f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/pages/projects/{project_name}",
+            f"https://api.cloudflare.com/client/v4/accounts/{cf_account_id}/pages/projects/{project_name}",
             method="GET", headers=headers,
         )
         with urllib.request.urlopen(req, timeout=15) as resp:
@@ -14929,7 +16304,7 @@ def api_domain_cloudflare_deployments(domain_id):
     # Fetch deployments list
     try:
         req2 = urllib.request.Request(
-            f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/pages/projects/{project_name}/deployments?per_page=25",
+            f"https://api.cloudflare.com/client/v4/accounts/{cf_account_id}/pages/projects/{project_name}/deployments?per_page=25",
             method="GET", headers=headers,
         )
         with urllib.request.urlopen(req2, timeout=15) as resp2:
@@ -14954,20 +16329,26 @@ def api_domain_cloudflare_deployments(domain_id):
 
 
 @app.route("/api/domains/<int:domain_id>/cloudflare-rollback/<deployment_id>", methods=["POST"])
+@login_required
 def api_domain_cloudflare_rollback(domain_id, deployment_id):
     """Promote (rollback to) a specific Cloudflare Pages deployment as the new live version."""
-    if not CLOUDFLARE_ACCOUNT_ID or not CLOUDFLARE_API_TOKEN:
-        return jsonify({"success": False, "error": "Cloudflare not configured"}), 400
+    user = get_current_user()
+    user_config = get_user_config_for_api(user["id"])
+    cf_account_id = user_config.get("cloudflare_account_id") or CLOUDFLARE_ACCOUNT_ID
+    cf_api_token = user_config.get("cloudflare_api_token") or CLOUDFLARE_API_TOKEN
+    
+    if not cf_account_id or not cf_api_token:
+        return jsonify({"success": False, "error": "Cloudflare not configured. Please add Cloudflare API keys to your Profile settings."}), 400
     with get_connection() as conn:
         cur = db_execute(conn, "SELECT domain_url, domain_name FROM domains WHERE id = ?", (domain_id,))
         row = dict_row(cur.fetchone())
     if not row:
         return jsonify({"success": False, "error": "Domain not found"}), 404
     project_name = _domain_to_project_name(row.get("domain_url"), row.get("domain_name"), domain_id)
-    headers = {"Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}", "Content-Type": "application/json"}
+    headers = {"Authorization": f"Bearer {cf_api_token}", "Content-Type": "application/json"}
     try:
         req = urllib.request.Request(
-            f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/pages/projects/{project_name}/deployments/{deployment_id}/rollback",
+            f"https://api.cloudflare.com/client/v4/accounts/{cf_account_id}/pages/projects/{project_name}/deployments/{deployment_id}/rollback",
             data=b"{}",
             method="POST",
             headers=headers,
@@ -15007,10 +16388,16 @@ def _domain_to_hostname(domain_url, domain_name):
 
 
 @app.route("/api/domains/<int:domain_id>/cloudflare-setup-dns", methods=["POST"])
+@login_required
 def api_domain_cloudflare_setup_dns(domain_id):
     """Add domain to Cloudflare Zone, get nameservers, add custom domain to Pages project."""
-    if not CLOUDFLARE_ACCOUNT_ID or not CLOUDFLARE_API_TOKEN:
-        return jsonify({"success": False, "error": "Cloudflare not configured. Add CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN to .env"}), 400
+    user = get_current_user()
+    user_config = get_user_config_for_api(user["id"])
+    cf_account_id = user_config.get("cloudflare_account_id") or CLOUDFLARE_ACCOUNT_ID
+    cf_api_token = user_config.get("cloudflare_api_token") or CLOUDFLARE_API_TOKEN
+    
+    if not cf_account_id or not cf_api_token:
+        return jsonify({"success": False, "error": "Cloudflare not configured. Please add Cloudflare API keys to your Profile settings."}), 400
     with get_connection() as conn:
         cur = db_execute(conn, "SELECT domain_url, domain_name FROM domains WHERE id = ?", (domain_id,))
         row = dict_row(cur.fetchone())
@@ -15020,14 +16407,14 @@ def api_domain_cloudflare_setup_dns(domain_id):
     if not hostname:
         return jsonify({"success": False, "error": "Invalid domain URL. Use format https://example.com"}), 400
     project_name = _domain_to_project_name(row.get("domain_url"), row.get("domain_name"), domain_id)
-    headers = {"Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}", "Content-Type": "application/json"}
+    headers = {"Authorization": f"Bearer {cf_api_token}", "Content-Type": "application/json"}
     zone_id = None
     name_servers = []
     # 1. Create zone or get existing
     try:
         create_req = urllib.request.Request(
             "https://api.cloudflare.com/client/v4/zones",
-            data=json.dumps({"name": hostname, "account": {"id": CLOUDFLARE_ACCOUNT_ID}, "jump_start": True}).encode(),
+            data=json.dumps({"name": hostname, "account": {"id": cf_account_id}, "jump_start": True}).encode(),
             method="POST",
             headers=headers,
         )
@@ -15102,7 +16489,7 @@ def api_domain_cloudflare_setup_dns(domain_id):
     for dom in [hostname, f"www.{hostname}"]:
         try:
             add_req = urllib.request.Request(
-                f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/pages/projects/{project_name}/domains",
+                f"https://api.cloudflare.com/client/v4/accounts/{cf_account_id}/pages/projects/{project_name}/domains",
                 data=json.dumps({"name": dom}).encode(),
                 method="POST",
                 headers=headers,
@@ -15131,10 +16518,16 @@ def api_domain_cloudflare_setup_dns(domain_id):
 
 
 @app.route("/api/domains/<int:domain_id>/cloudflare-add-dns-records", methods=["POST"])
+@login_required
 def api_domain_cloudflare_add_dns_records(domain_id):
     """Add CNAME records (@ and www) to existing Cloudflare zone for Pages. Use when zone exists but has no records."""
-    if not CLOUDFLARE_ACCOUNT_ID or not CLOUDFLARE_API_TOKEN:
-        return jsonify({"success": False, "error": "Cloudflare not configured"}), 400
+    user = get_current_user()
+    user_config = get_user_config_for_api(user["id"])
+    cf_account_id = user_config.get("cloudflare_account_id") or CLOUDFLARE_ACCOUNT_ID
+    cf_api_token = user_config.get("cloudflare_api_token") or CLOUDFLARE_API_TOKEN
+    
+    if not cf_account_id or not cf_api_token:
+        return jsonify({"success": False, "error": "Cloudflare not configured. Please add Cloudflare API keys to your Profile settings."}), 400
     with get_connection() as conn:
         cur = db_execute(conn, "SELECT domain_url, domain_name FROM domains WHERE id = ?", (domain_id,))
         row = dict_row(cur.fetchone())
@@ -15144,7 +16537,7 @@ def api_domain_cloudflare_add_dns_records(domain_id):
     if not hostname:
         return jsonify({"success": False, "error": "Invalid domain URL"}), 400
     project_name = _domain_to_project_name(row.get("domain_url"), row.get("domain_name"), domain_id)
-    headers = {"Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}", "Content-Type": "application/json"}
+    headers = {"Authorization": f"Bearer {cf_api_token}", "Content-Type": "application/json"}
     zone_id = None
     try:
         req = urllib.request.Request(
@@ -16008,24 +17401,15 @@ def admin_titles_delete(pk):
         # Delete dependent rows first to satisfy MySQL FK constraints.
         # We discover FK children dynamically (safer across schema versions).
         try:
-            cur = db_execute(conn, """
-                SELECT TABLE_NAME AS table_name, COLUMN_NAME AS column_name
-                FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-                WHERE REFERENCED_TABLE_SCHEMA = DATABASE()
-                  AND REFERENCED_TABLE_NAME = 'titles'
-                  AND REFERENCED_COLUMN_NAME = 'id'
-            """)
-            fk_rows = cur.fetchall() or []
+            fk_rows = [(t, c) for t, c in get_fk_children(conn, "titles", "id")]
         except Exception:
             fk_rows = []
 
         import re
         ident_re = re.compile(r"^[A-Za-z0-9_]+$")
 
-        for r in fk_rows:
-            t = (r.get("table_name") if isinstance(r, dict) else None) or ""
-            c = (r.get("column_name") if isinstance(r, dict) else None) or ""
-            if not ident_re.match(t) or not ident_re.match(c):
+        for t, c in fk_rows:
+            if not ident_re.match(t or "") or not ident_re.match(c or ""):
                 continue
             if t.lower() == "titles":
                 continue
@@ -16844,9 +18228,12 @@ def admin_users():
     with get_connection() as conn:
         cur = db_execute(conn, """
             SELECT u.id, u.username, u.email, u.is_admin, u.is_active, u.created_at,
-                   COUNT(DISTINCT ud.domain_id) as domain_count
+                   COUNT(DISTINCT ud.domain_id) as domain_count,
+                   k.cloned_at, source_u.username as cloned_from_username
             FROM users u
             LEFT JOIN user_domains ud ON ud.user_id = u.id
+            LEFT JOIN user_api_keys k ON k.user_id = u.id
+            LEFT JOIN users source_u ON source_u.id = k.cloned_from_user_id
             GROUP BY u.id
             ORDER BY u.id DESC
         """)
@@ -16859,6 +18246,11 @@ def admin_users():
     for u in users:
         status_badge = '<span class="badge bg-success">Active</span>' if u.get("is_active") else '<span class="badge bg-secondary">Inactive</span>'
         admin_badge = '<span class="badge bg-primary">Admin</span>' if u.get("is_admin") else ""
+        
+        clone_info = "-"
+        if u.get("cloned_from_username") and u.get("cloned_at"):
+            clone_info = f'<small>From: <strong>{html.escape(u["cloned_from_username"])}</strong><br><span class="text-muted">{u["cloned_at"]}</span></small>'
+            
         users_html += f"""
         <tr>
             <td>{u["id"]}</td>
@@ -16866,6 +18258,7 @@ def admin_users():
             <td>{html.escape(u.get("email") or "-")}</td>
             <td>{u.get("domain_count", 0)} domains</td>
             <td>{u.get("created_at", "")}</td>
+            <td>{clone_info}</td>
             <td>
                 <button class="btn btn-sm btn-primary" onclick="editUser({u['id']})">Edit</button>
                 <button class="btn btn-sm btn-info" onclick="manageDomains({u['id']})">Domains</button>
@@ -16883,7 +18276,10 @@ def admin_users():
     users_json = json.dumps([{"id": u["id"], "username": u["username"]} for u in users])
     
     content = f"""
-    <h2>User Management</h2>
+    <div class="d-flex align-items-center gap-3 mb-3">
+        <h2 class="mb-0">User Management</h2>
+        <button class="btn btn-success" onclick="openCreateUserModal()">+ Add User</button>
+    </div>
     <p class="text-muted">Manage users and their domain access</p>
     
     <table class="table table-hover">
@@ -16894,6 +18290,7 @@ def admin_users():
                 <th>Email</th>
                 <th>Domains</th>
                 <th>Created</th>
+                <th>Clone Info</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -16929,6 +18326,43 @@ def admin_users():
         </div>
     </div>
     
+    <!-- Create User Modal -->
+    <div class="modal fade" id="createUserModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create New User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createUserForm">
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Username <span class="text-danger">*</span></label>
+                            <input type="text" name="username" id="newUsername" class="form-control" required autocomplete="off">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Password <span class="text-danger">*</span></label>
+                            <input type="password" name="password" id="newPassword" class="form-control" required autocomplete="new-password">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Email <span class="text-muted fw-normal">(optional)</span></label>
+                            <input type="email" name="email" id="newEmail" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Clone profile from <span class="text-muted fw-normal">(optional)</span></label>
+                            <select name="clone_from_user_id" id="cloneFromSelect" class="form-select">
+                                <option value="">-- None (empty profile) --</option>
+                            </select>
+                            <div class="form-text">Copies all API keys and settings from the selected user to the new account.</div>
+                        </div>
+                        <div id="createUserError" class="alert alert-danger d-none"></div>
+                        <button type="submit" class="btn btn-success w-100">Create User</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Clone Profile Modal -->
     <div class="modal fade" id="cloneProfileModal" tabindex="-1">
         <div class="modal-dialog">
@@ -16961,9 +18395,9 @@ def admin_users():
     <script>
     const allUsers = {users_json};
     
-    function editUser(userId) {
-        alert("To edit a user's API keys or settings, please log in as that user and visit their /profile page. Admins can currently only activate/deactivate users or manage their domains from this screen.");
-    }
+    function editUser(userId) {{
+        window.location.href = '/admin/users/' + userId + '/edit';
+    }}
     
     function cloneProfile(clickedUserId) {{
         const targetUser = allUsers.find(u => u.id === clickedUserId);
@@ -17057,6 +18491,47 @@ def admin_users():
         }});
     }});
     
+    function openCreateUserModal() {{
+        document.getElementById('createUserForm').reset();
+        document.getElementById('createUserError').classList.add('d-none');
+        const sel = document.getElementById('cloneFromSelect');
+        sel.innerHTML = '<option value="">-- None (empty profile) --</option>';
+        allUsers.forEach(u => {{
+            const opt = document.createElement('option');
+            opt.value = u.id;
+            opt.textContent = u.username;
+            sel.appendChild(opt);
+        }});
+        new bootstrap.Modal(document.getElementById('createUserModal')).show();
+    }}
+
+    document.getElementById('createUserForm').addEventListener('submit', function(e) {{
+        e.preventDefault();
+        const errDiv = document.getElementById('createUserError');
+        errDiv.classList.add('d-none');
+        const username = document.getElementById('newUsername').value.trim();
+        const password = document.getElementById('newPassword').value;
+        const email = document.getElementById('newEmail').value.trim();
+        const cloneFrom = document.getElementById('cloneFromSelect').value;
+        if (!username || !password) {{ errDiv.textContent = 'Username and password are required.'; errDiv.classList.remove('d-none'); return; }}
+        fetch('/api/users/create', {{
+            method: 'POST',
+            headers: {{'Content-Type': 'application/json'}},
+            body: JSON.stringify({{username, password, email: email || null, clone_from_user_id: cloneFrom ? parseInt(cloneFrom) : null}})
+        }})
+        .then(r => r.json())
+        .then(data => {{
+            if (data.success) {{
+                bootstrap.Modal.getInstance(document.getElementById('createUserModal')).hide();
+                location.reload();
+            }} else {{
+                errDiv.textContent = data.error || 'Failed to create user.';
+                errDiv.classList.remove('d-none');
+            }}
+        }})
+        .catch(err => {{ errDiv.textContent = 'Error: ' + err.message; errDiv.classList.remove('d-none'); }});
+    }});
+
     document.getElementById('cloneProfileForm').addEventListener('submit', function(e) {{
         e.preventDefault();
         const formData = new FormData(this);
@@ -17103,10 +18578,25 @@ def admin_users():
 
 
 @app.route("/profile", methods=["GET", "POST"])
+@app.route("/admin/users/<int:target_user_id>/edit", methods=["GET", "POST"])
 @login_required
-def profile():
+def profile(target_user_id=None):
     user = get_current_user()
-    user_id = user["id"]
+    
+    if target_user_id is not None:
+        if not user.get("is_admin"):
+            return base_layout("<div class='alert alert-danger'>Admin access required</div>", "Access Denied")
+        user_id = target_user_id
+        with get_connection() as conn:
+            cur = db_execute(conn, "SELECT * FROM users WHERE id = ?", (target_user_id,))
+            target_user_info = cur.fetchone()
+            if not target_user_info:
+                return base_layout("<div class='alert alert-danger'>User not found</div>", "Error")
+            target_user_info = dict_row(target_user_info)
+        display_user = target_user_info
+    else:
+        user_id = user["id"]
+        display_user = user
     
     if request.method == "POST":
         # Update API keys
@@ -17116,6 +18606,7 @@ def profile():
             exists = cur.fetchone()
             
             keys_data = {
+                "ai_provider": request.form.get("ai_provider", "").strip() or None,
                 "openai_api_key": request.form.get("openai_api_key", "").strip() or None,
                 "openai_model": request.form.get("openai_model", "").strip() or None,
                 "openrouter_api_key": request.form.get("openrouter_api_key", "").strip() or None,
@@ -17132,6 +18623,7 @@ def profile():
                 "local_api_url": request.form.get("local_api_url", "").strip() or None,
                 "local_models": request.form.get("local_models", "").strip() or None,
                 "default_categories": request.form.get("default_categories", "").strip() or None,
+                "bulk_max_concurrency": _parse_bulk_max_concurrency(request.form.get("bulk_max_concurrency")),
             }
             
             if exists:
@@ -17143,8 +18635,35 @@ def profile():
                 placeholders = ", ".join(["?"] * len(keys_data))
                 db_execute(conn, f"INSERT INTO user_api_keys (user_id, {cols}) VALUES (?, {placeholders})", 
                           (user_id,) + tuple(keys_data.values()))
+                          
+            # Apply to other users if requested (Admin only)
+            if user.get("is_admin"):
+                apply_to_users = request.form.getlist("apply_to_users")
+                
+                if apply_to_users:
+                    import datetime
+                    keys_data["cloned_from_user_id"] = user_id
+                    keys_data["cloned_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    
+                for target_id in apply_to_users:
+                    try:
+                        target_id = int(target_id)
+                        # Check if target user has keys
+                        cur = db_execute(conn, "SELECT id FROM user_api_keys WHERE user_id = ?", (target_id,))
+                        target_exists = cur.fetchone()
+                        if target_exists:
+                            set_clause = ", ".join(f"{k} = ?" for k in keys_data.keys())
+                            db_execute(conn, f"UPDATE user_api_keys SET {set_clause} WHERE user_id = ?", 
+                                      tuple(keys_data.values()) + (target_id,))
+                        else:
+                            cols = ", ".join(keys_data.keys())
+                            placeholders = ", ".join(["?"] * len(keys_data))
+                            db_execute(conn, f"INSERT INTO user_api_keys (user_id, {cols}) VALUES (?, {placeholders})", 
+                                      (target_id,) + tuple(keys_data.values()))
+                    except ValueError:
+                        pass
         
-        return redirect(url_for("profile") + "?saved=1")
+        return redirect(request.path + "?saved=1")
     
     # GET - show form
     keys = get_user_api_keys(user_id)
@@ -17169,10 +18688,42 @@ def profile():
     default_cats = keys.get('default_categories') or 'Appetizers\nMain Courses\nDesserts\nBeverages\nSalads\nSoups\nSnacks\nBreakfast'
     default_cats_value = html.escape(str(default_cats))
     
+    # Fetch other users if admin
+    admin_apply_html = ""
+    if user.get("is_admin") and target_user_id is None:
+        with get_connection() as conn:
+            cur = db_execute(conn, "SELECT id, username FROM users WHERE id != ? ORDER BY username", (user_id,))
+            other_users = cur.fetchall()
+            
+        if other_users:
+            user_checkboxes = ""
+            for u in other_users:
+                user_checkboxes += f'<div class="form-check"><input class="form-check-input" type="checkbox" name="apply_to_users" value="{u["id"]}" id="user_{u["id"]}"><label class="form-check-label" for="user_{u["id"]}">{html.escape(u["username"])}</label></div>'
+                
+            admin_apply_html = f"""
+            <hr class="my-4">
+            <h5 class="mb-3 text-warning">🛠️ Admin Options</h5>
+            <div class="mb-3">
+              <label class="form-label text-warning">Apply these settings to other users:</label>
+              <div class="border rounded p-3 bg-light" style="max-height: 200px; overflow-y: auto;">
+                <div class="form-check border-bottom mb-2 pb-2">
+                    <input class="form-check-input" type="checkbox" id="selectAllUsers" onclick="document.querySelectorAll('input[name=apply_to_users]').forEach(c => c.checked = this.checked)">
+                    <label class="form-check-label fw-bold" for="selectAllUsers">Select All</label>
+                </div>
+                {user_checkboxes}
+              </div>
+              <div class="form-text text-danger">Warning: This will overwrite their existing API keys.</div>
+            </div>
+            """
+            
+    title_text = f"Edit Profile: {html.escape(display_user['username'])}" if target_user_id else "User Profile"
+    back_button = '<a href="/admin/users" class="btn btn-outline-secondary mb-3">← Back to Users</a>' if target_user_id else ''
+    
     content = f"""
-    <h2>User Profile</h2>
-    <p><strong>Username:</strong> {html.escape(user['username'])}</p>
-    <p><strong>Email:</strong> {html.escape(user.get('email') or '-')}</p>
+    {back_button}
+    <h2>{title_text}</h2>
+    <p><strong>Username:</strong> {html.escape(display_user['username'])}</p>
+    <p><strong>Email:</strong> {html.escape(display_user.get('email') or '-')}</p>
     
     {incomplete_warning}
     
@@ -17212,6 +18763,16 @@ def profile():
           <hr class="my-4">
           <h5 class="mb-3 text-muted">Optional Settings</h5>
           
+          <h5 class="mb-3 mt-4">AI provider (for content) <span class="badge bg-secondary">Optional</span></h5>
+          <div class="mb-3">
+            <label class="form-label">Default provider</label>
+            <select name="ai_provider" class="form-select" style="max-width:220px">
+              <option value="openai" {('selected' if (keys.get('ai_provider') or 'openai') == 'openai' else '')}>OpenAI</option>
+              <option value="openrouter" {('selected' if (keys.get('ai_provider') or '') == 'openrouter' else '')}>OpenRouter</option>
+            </select>
+            <div class="form-text">Used in Run modals. Set the default model in OpenAI / OpenRouter sections below.</div>
+          </div>
+          
           <h5 class="mb-3 mt-4">OpenRouter <span class="badge bg-secondary">Optional</span></h5>
           {field("openrouter_api_key", "API Key", "sk-or-v1-xxxxxxxxxxxx")}
           {field("openrouter_model", "Default Model", "openai/gpt-oss-120b")}
@@ -17220,14 +18781,20 @@ def profile():
           {field("local_api_url", "API URL", "http://192.168.1.20:11434/api/generate")}
           {field("local_models", "Models (comma-separated)", "qwen3:8b,llama3.2:3b")}
           
+          <h5 class="mb-3 mt-4">Bulk run concurrency <span class="badge bg-secondary">Optional</span></h5>
+          {field("bulk_max_concurrency", "Max rows (Run for group / Run for all groups)", "6", "number")}
+          <div class="form-text">Default number of rows when "Max" is selected (1–20). Used when cloning profile.</div>
+          
+          {admin_apply_html}
+          
           <button type="submit" class="btn btn-primary mt-3">💾 Save Settings</button>
         </form>
       </div>
     </div>
     
-    <a href="/logout" class="btn btn-outline-secondary">Logout</a>
+    {'' if target_user_id else '<a href="/logout" class="btn btn-outline-secondary">Logout</a>'}
     """
-    return base_layout(content, "Profile")
+    return base_layout(content, title_text)
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -17384,6 +18951,11 @@ def api_clone_profile():
         source_keys.pop('id', None)
         source_keys.pop('user_id', None)
         
+        # Add cloning metadata
+        import datetime
+        source_keys['cloned_from_user_id'] = source_user_id
+        source_keys['cloned_at'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
         # Check if target user has existing API keys
         cur = db_execute(conn, "SELECT id FROM user_api_keys WHERE user_id = ?", (target_user_id,))
         target_exists = cur.fetchone()
@@ -17401,6 +18973,57 @@ def api_clone_profile():
                       (target_user_id,) + tuple(source_keys.values()))
     
     return jsonify({"success": True, "message": f"Profile settings cloned from '{source_username}' to '{target_username}' successfully!"})
+
+
+@app.route("/api/users/create", methods=["POST"])
+@login_required
+def api_users_create():
+    user = get_current_user()
+    if not user.get("is_admin"):
+        return jsonify({"success": False, "error": "Admin access required"}), 403
+
+    data = request.get_json() or {}
+    username = (data.get("username") or "").strip()
+    password = (data.get("password") or "").strip()
+    email = (data.get("email") or "").strip() or None
+    clone_from_user_id = data.get("clone_from_user_id")
+
+    if not username or not password:
+        return jsonify({"success": False, "error": "Username and password are required"}), 400
+
+    import hashlib
+    password_hash = hashlib.sha256(password.encode()).hexdigest()
+
+    with get_connection() as conn:
+        cur = db_execute(conn, "SELECT id FROM users WHERE username = ?", (username,))
+        if cur.fetchone():
+            return jsonify({"success": False, "error": f"Username '{username}' already exists"}), 400
+
+        cur = db_execute(conn, "INSERT INTO users (username, password_hash, email, is_active) VALUES (?, ?, ?, 1)",
+                         (username, password_hash, email))
+        new_user_id = cur.lastrowid
+
+        if clone_from_user_id:
+            try:
+                clone_from_user_id = int(clone_from_user_id)
+                cur = db_execute(conn, "SELECT * FROM user_api_keys WHERE user_id = ?", (clone_from_user_id,))
+                source_keys = cur.fetchone()
+                if source_keys:
+                    source_keys = dict_row(source_keys)
+                    source_keys.pop("id", None)
+                    source_keys.pop("user_id", None)
+                    import datetime
+                    source_keys["cloned_from_user_id"] = clone_from_user_id
+                    source_keys["cloned_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    cols = ", ".join(source_keys.keys())
+                    placeholders = ", ".join(["?"] * len(source_keys))
+                    db_execute(conn,
+                               f"INSERT INTO user_api_keys (user_id, {cols}) VALUES (?, {placeholders})",
+                               (new_user_id,) + tuple(source_keys.values()))
+            except Exception as e:
+                log.warning("[api_users_create] clone profile failed for new user %s: %s", new_user_id, e)
+
+    return jsonify({"success": True, "user_id": new_user_id, "username": username})
 
 
 if __name__ == "__main__":

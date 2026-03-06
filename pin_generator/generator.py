@@ -86,29 +86,43 @@ def _apply_variables(obj, variables):
                 _apply_variables(v, variables)
 
 
-def _generate_texts_via_openai(title, prompt, field_prompts):
+def _generate_texts_via_openai(title, prompt, field_prompts, config=None):
     """
     Call OpenAI to generate text for each field based on recipe title.
+    config: optional dict with openai_api_key, openrouter_api_key, ai_provider, openai_model, openrouter_model (from multi-domain-clean profile).
     Returns dict like {"subtitle": "...", "title": "..."}.
     Raises OpenAIServiceError if the API is called but fails (quota, rate limit, etc.).
     Returns {} only when OpenAI is skipped (no key, no title, no field_prompts).
     """
-    provider = os.environ.get("AI_PROVIDER", "openai").lower()
+    cfg = config or {}
+    provider = (cfg.get("ai_provider") or os.environ.get("AI_PROVIDER", "openai")).lower()
     from openai import OpenAI
     if provider == "openrouter":
-        api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
-        model = os.environ.get("OPENROUTER_MODEL", "openai/gpt-oss-120b")
-        if not api_key:
-            log.warning("OpenRouter skipped: OPENROUTER_API_KEY not set")
+        api_key = (cfg.get("openrouter_api_key") or os.environ.get("OPENROUTER_API_KEY", "")).strip()
+        model = (cfg.get("openrouter_model") or os.environ.get("OPENROUTER_MODEL", "openai/gpt-oss-120b"))
+        if not api_key and cfg.get("openai_api_key"):
+            api_key = cfg.get("openai_api_key", "").strip()
+            provider = "openai"
+            model = cfg.get("openai_model") or os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+            client = OpenAI(api_key=api_key)
+        elif not api_key:
+            log.warning("OpenRouter skipped: no openrouter_api_key in config or env")
             return {}
-        client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key)
+        else:
+            client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key)
     else:
-        api_key = os.environ.get("OPENAI_API_KEY", "").strip()
-        model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
-        if not api_key:
-            log.warning("OpenAI skipped: OPENAI_API_KEY not set")
+        api_key = (cfg.get("openai_api_key") or os.environ.get("OPENAI_API_KEY", "")).strip()
+        model = (cfg.get("openai_model") or os.environ.get("OPENAI_MODEL", "gpt-4o-mini"))
+        if not api_key and cfg.get("openrouter_api_key"):
+            api_key = cfg.get("openrouter_api_key", "").strip()
+            provider = "openrouter"
+            model = cfg.get("openrouter_model") or os.environ.get("OPENROUTER_MODEL", "openai/gpt-oss-120b")
+            client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key)
+        elif not api_key:
+            log.warning("OpenAI skipped: no openai_api_key in config or env")
             return {}
-        client = OpenAI(api_key=api_key)
+        else:
+            client = OpenAI(api_key=api_key)
 
     if not title or not field_prompts:
         if not title:
@@ -455,6 +469,11 @@ def run_server(available_templates, host="0.0.0.0", port=5000):
         variables = body.pop("variables", None)
         if variables is not None and not isinstance(variables, dict):
             variables = None
+        # API keys from multi-domain-clean profile (passed in body)
+        ai_config = {}
+        for k in ("openai_api_key", "openrouter_api_key", "ai_provider", "openai_model", "openrouter_model"):
+            if k in body:
+                ai_config[k] = body.pop(k)
         body_keys = list(body.keys()) if isinstance(body, dict) else []
         title_from_req = (variables or {}).get("title") or body.get("title") or body.get("name")
         log.info("  body keys=%s | variables.title=%s", body_keys, (title_from_req[:40] + "..." if isinstance(title_from_req, str) and len(title_from_req) > 40 else title_from_req))
@@ -488,7 +507,7 @@ def run_server(available_templates, host="0.0.0.0", port=5000):
                 prompt = template_data.get("prompt") or "Generate text for each field. Replace {{title}} with the recipe title in each prompt; output a JSON object with one key per field and the generated text as value."
                 if prompt and field_prompts and isinstance(field_prompts, dict):
                     try:
-                        generated = _generate_texts_via_openai(title, prompt, field_prompts)
+                        generated = _generate_texts_via_openai(title, prompt, field_prompts, config=ai_config)
                     except OpenAIServiceError as e:
                         log.error("Pin generation aborted: OpenAI failed — %s", e)
                         return jsonify({

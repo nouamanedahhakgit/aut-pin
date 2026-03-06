@@ -26,10 +26,34 @@ GENERATORS_DIR = Path(__file__).resolve().parent / "generators"
 if str(GENERATORS_DIR) not in sys.path:
     sys.path.insert(0, str(GENERATORS_DIR))
 
+# Import for cost calculation fallback when generator returns usage but not cost
+try:
+    from ai_client import calculate_cost_from_usage
+except ImportError:
+    calculate_cost_from_usage = None
+
 # Round-robin OpenRouter models: each GROUP uses a different block of 4 models.
 # Group 0 → models 0,1,2,3; Group 1 → models 4,5,6,7; Group 2 → 8,0,1,2; etc.
+# Ordered by best quality for SEO/article writing → best value → trending
 OPENROUTER_MODELS = [
-        "deepseek/deepseek-v3.2"
+    # Paid — best for SEO/article quality
+    "google/gemini-2.5-pro",
+    "anthropic/claude-3.7-sonnet",
+    "openai/gpt-4o",
+    "deepseek/deepseek-v3.2",
+    "google/gemini-2.0-flash",
+    "anthropic/claude-3.5-haiku",
+    "openai/gpt-4o-mini",
+    "deepseek/deepseek-r1",
+    "meta-llama/llama-3.3-70b-instruct",
+    "mistralai/mistral-large-2411",
+    # Free (rate-limited)
+    "google/gemini-2.0-flash-exp:free",
+    "deepseek/deepseek-r1:free",
+    "deepseek/deepseek-v3:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "qwen/qwen2.5-72b-instruct:free",
+    "mistralai/mistral-7b-instruct:free",
 ]
 MODELS_PER_GROUP = 4
 
@@ -323,7 +347,25 @@ def generate_article(generator_name: str, config: dict = Body(...)):
     # Optional openrouter_models: list of model ids to use (rotation over this list). If absent, use OPENROUTER_MODELS.
     # Optional openrouter_start_index: when multi-domain-clean retries after "3 attempt(s)" failure, it can pass 5 or 10 to try a different set of 3 models
     # For local provider: use local_model from config
+    # Keys must come from the request (multi-domain-clean Profile). Do not use generator .env so we never send a wrong key.
+    openai_key = (merged.get("openai_api_key") or "").strip()
+    openrouter_key = (merged.get("openrouter_api_key") or "").strip()
     ai_provider = (merged.get("ai_provider") or os.getenv("AI_PROVIDER", "openrouter")).lower()
+    if ai_provider == "openai" and not openai_key:
+        raise HTTPException(
+            status_code=400,
+            detail="OpenAI API key not provided. Add it in multi-domain-clean → Profile and run again. The generator does not use its own .env for keys when called from multi-domain-clean.",
+        )
+    if ai_provider == "openrouter" and not openrouter_key:
+        raise HTTPException(
+            status_code=400,
+            detail="OpenRouter API key not provided. Add it in multi-domain-clean → Profile and run again. The generator does not use its own .env for keys when called from multi-domain-clean.",
+        )
+    merged["openai_api_key"] = openai_key or None
+    merged["openrouter_api_key"] = openrouter_key or None
+    has_openai_key = bool(merged.get("openai_api_key"))
+    has_openrouter_key = bool(merged.get("openrouter_api_key"))
+    log.info("[generate-article] generator=%s ai_provider=%s has_openai_key=%s has_openrouter_key=%s", generator_name, ai_provider, has_openai_key, has_openrouter_key)
     domain_index = merged.get("domain_index")
     openrouter_models = merged.get("openrouter_models")
     local_model = merged.get("local_model")
@@ -393,16 +435,36 @@ def generate_article(generator_name: str, config: dict = Body(...)):
                     
                 raise
 
-            # Add model_used for article_content table (openrouter -> model or openai or local -> model)
-            if isinstance(content_data, dict) and "model_used" not in content_data:
-                if ai_provider == "openrouter":
-                    model = merged.get("openrouter_model") or os.getenv("OPENROUTER_MODEL", "openai/gpt-oss-120b")
-                    content_data["model_used"] = f"openrouter -> {model}"
-                elif ai_provider == "local":
-                    model = merged.get("local_model") or os.getenv("LOCAL_MODEL", "qwen3:8b")
-                    content_data["model_used"] = f"local -> {model}"
-                else:
-                    content_data["model_used"] = "openai"
+            # Add model_used for article_content table (provider -> model). Always use full format.
+            if isinstance(content_data, dict):
+                mu = content_data.get("model_used") or ""
+                if " -> " not in str(mu):  # Incomplete (e.g. just "openai") or missing
+                    if ai_provider == "openrouter":
+                        model = merged.get("openrouter_model") or os.getenv("OPENROUTER_MODEL", "openai/gpt-oss-120b")
+                        content_data["model_used"] = f"openrouter -> {model}"
+                    elif ai_provider == "local":
+                        model = merged.get("local_model") or os.getenv("LOCAL_MODEL", "qwen3:8b")
+                        content_data["model_used"] = f"local -> {model}"
+                    else:
+                        model = merged.get("openai_model") or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+                        content_data["model_used"] = f"openai -> {model}"
+
+            # Add generation_cost_usd if usage has tokens but cost missing (fallback for generators that don't set it)
+            if isinstance(content_data, dict) and content_data.get("generation_cost_usd") is None:
+                usage = content_data.get("usage")
+                if isinstance(usage, dict) and calculate_cost_from_usage:
+                    provider = (ai_provider or "openai").lower()
+                    model = merged.get("openrouter_model") if provider == "openrouter" else merged.get("openai_model")
+                    if not model and provider == "openai":
+                        model = merged.get("openai_model") or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+                    if not model and provider == "openrouter":
+                        model = merged.get("openrouter_model") or os.getenv("OPENROUTER_MODEL", "openai/gpt-oss-120b")
+                    if model:
+                        cost = calculate_cost_from_usage(usage, str(model), provider)
+                        if cost is not None:
+                            content_data["generation_cost_usd"] = round(cost, 6)
+                            if "cost" not in usage:
+                                content_data["usage"] = dict(usage, cost=round(cost, 6))
 
             if not _is_content_failure(content_data):
                 break
@@ -440,6 +502,7 @@ def generate_article(generator_name: str, config: dict = Body(...)):
             log.warning("[generate-article] could not save result file: %s", e)
         return content_data
     except ValueError as e:
+        log.warning("[generate-article] 400: %s (generator=%s ai_provider=%s has_openai_key=%s has_openrouter_key=%s)", e, generator_name, ai_provider, has_openai_key, has_openrouter_key)
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         tb = traceback.format_exc()

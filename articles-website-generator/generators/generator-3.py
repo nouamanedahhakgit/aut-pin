@@ -354,7 +354,7 @@ class ArticleGenerator:
 
     # ------------------------------------------------------------------ content (single API call for speed)
     def generate_content(self):
-        from ai_client import ai_chat
+        from ai_client import ai_chat, extract_json_robust
         existing = self.config.get("recipe")
         recipe_from_config = existing and isinstance(existing, dict) and (existing.get("ingredients") or existing.get("instructions"))
         schema = {
@@ -368,10 +368,14 @@ class ArticleGenerator:
             "meta_description": "120-140 chars", "focus_keyphrase": "string", "pinterest_title": "string",
             "prompt_midjourney_main": "string ending --v 6.1", "prompt_midjourney_ingredients": "string ending --v 6.1",
         }
-        system = "You are a professional food blogger. Generate the full article as ONE JSON. Plain text only: no markdown. All content only about the recipe title."
-        user = f"Generate the complete recipe article for '{self.title}' as JSON with keys: {json.dumps(list(schema.keys()))}. Return ONLY valid JSON."
+        system = (
+            "You are a professional food blogger. Generate the full article as ONE JSON. "
+            "Return ONLY valid JSON: no markdown fences (no ```), no extra text before or after. "
+            "Plain text in all string values: no markdown. All content only about the recipe title."
+        )
+        user = f"Generate the complete recipe article for '{self.title}' as JSON with keys: {json.dumps(list(schema.keys()))}. Return ONLY the raw JSON object—no ```json, no explanation."
         raw = ai_chat(self, user, max_tokens=5000, system=system)
-        data = self._extract_json(raw)
+        data = extract_json_robust(raw)
         if data:
             intro = self._strip_markdown(str(data.get("intro", "")))
             why_items = [self._strip_markdown(str(x)) for x in (data.get("why_items") or [])[:4]]

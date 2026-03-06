@@ -300,18 +300,60 @@ def generate_article_content(name: str, config: dict = Body(default={})):
     """Generate article body HTML and CSS via OpenAI. config: title, recipe, colors, fonts, content. Requires OPENAI_API_KEY."""
     provider = os.getenv("AI_PROVIDER", "openai").lower()
     from openai import OpenAI
+    # Check if keys are provided in the config from the backend
+    openai_key_override = config.get("openai_api_key")
+    openrouter_key_override = config.get("openrouter_api_key")
+    
+    # Try to determine provider dynamically if not explicitly specified via environment
+    if not provider or provider not in ["openai", "openrouter", "local"]:
+        if openrouter_key_override or config.get("openrouter_api_key"):
+            provider = "openrouter"
+        elif openai_key_override or config.get("openai_api_key"):
+            provider = "openai"
+        else:
+            provider = "openai" # default
+
+    if config.get("ai_provider") in ["openai", "openrouter", "local"]:
+        provider = config.get("ai_provider")
+            
     if provider == "openrouter":
-        api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+        api_key = openrouter_key_override or config.get("openrouter_api_key") or os.getenv("OPENROUTER_API_KEY", "").strip()
         if not api_key:
-            raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY not set for OpenRouter provider")
-        ai_model = os.getenv("OPENROUTER_MODEL", "openai/gpt-oss-120b")
-        client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key)
-    else:
-        api_key = os.getenv("OPENAI_API_KEY", "").strip()
+            # Fallback to checking if they provided openai key instead
+            if openai_key_override or config.get("openai_api_key") or os.getenv("OPENAI_API_KEY", "").strip():
+                provider = "openai"
+                api_key = openai_key_override or config.get("openai_api_key") or os.getenv("OPENAI_API_KEY", "").strip()
+                ai_model = config.get("openai_model") or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+                client = OpenAI(api_key=api_key)
+            else:
+                raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY not set for OpenRouter provider")
+        else:
+            ai_model = config.get("openrouter_model") or os.getenv("OPENROUTER_MODEL", "openai/gpt-oss-120b")
+            client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key)
+            provider = "openrouter" # Ensure provider matches what we instantiated
+    elif provider == "local":
+        local_base = config.get("local_api_url") or os.getenv("LOCAL_API_URL", "http://localhost:11434")
+        if isinstance(local_base, str) and local_base.endswith("/api/generate"):
+            local_base = local_base.rstrip("/api/generate").rstrip("/")
+        client = OpenAI(
+            base_url=f"{local_base}/v1",
+            api_key="not-needed"
+        )
+        ai_model = config.get("local_model") or config.get("local_models", "").split(",")[0] or "qwen3:8b"
+        provider = "local"
+    if provider != "openrouter" and provider != "local":
+        api_key = openai_key_override or config.get("openai_api_key") or os.getenv("OPENAI_API_KEY", "").strip()
         if not api_key:
-            raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set. Article content generation requires OpenAI.")
-        ai_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-        client = OpenAI(api_key=api_key)
+            # Fallback to checking if they provided openrouter key instead
+            if openrouter_key_override or config.get("openrouter_api_key") or os.getenv("OPENROUTER_API_KEY", "").strip():
+                api_key = openrouter_key_override or config.get("openrouter_api_key") or os.getenv("OPENROUTER_API_KEY", "").strip()
+                ai_model = config.get("openrouter_model") or os.getenv("OPENROUTER_MODEL", "openai/gpt-oss-120b")
+                client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key)
+            else:
+                raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set. Article content generation requires OpenAI.")
+        else:
+            ai_model = config.get("openai_model") or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+            client = OpenAI(api_key=api_key)
 
     clean = name.replace("-", "_").strip().lower()
     if not clean.startswith("article_content_"):

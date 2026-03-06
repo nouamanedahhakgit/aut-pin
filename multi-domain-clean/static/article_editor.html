@@ -888,13 +888,13 @@
         configToForm(cfg);
         const genSelect = document.getElementById('generatorSelect');
         if (genSelect && gen) {
-          genSelect.value = gen;
           if (!genSelect.querySelector('option[value="' + gen + '"]')) {
             const opt = document.createElement('option');
             opt.value = gen;
             opt.textContent = gen;
             genSelect.appendChild(opt);
           }
+          genSelect.value = gen;
         }
         const nameEl = document.getElementById('articleTemplateName');
         if (nameEl) nameEl.value = (d.article_template_name || '').trim() || (d.domain_url || d.domain_name || '').trim();

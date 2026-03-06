@@ -204,26 +204,9 @@ class RecipeArticleGenerator:
         raw = ai_chat(self, user, max_tokens=max_tokens, system=system)
         return self._strip_markdown(raw) if raw else ""
 
-    def _extract_json_from_response(self, raw: str) -> dict:
-        """Extract JSON object from AI response (may be wrapped in markdown code blocks)."""
-        text = (raw or "").strip()
-        m = re.search(r"```(?:json)?\s*([\s\S]*?)```", text)
-        if m:
-            text = m.group(1).strip()
-        m = re.search(r"\{[\s\S]*\}", text)
-        if m:
-            try:
-                return json.loads(m.group())
-            except Exception:
-                pass
-        try:
-            return json.loads(text)
-        except Exception:
-            return {}
-
     def generate_all_content(self) -> Dict[str, Any]:
         """Generate all article content in ONE API call (optimized for speed)."""
-        from ai_client import ai_chat
+        from ai_client import ai_chat, extract_json_robust
 
         title = self.config["title"]
         wc = self.config["structure_template"]["word_counts"]
@@ -248,18 +231,19 @@ class RecipeArticleGenerator:
 
         system = (
             "You are a professional food blogger. Generate the FULL recipe article as ONE JSON object. "
-            "All content must be ONLY about the recipe title given. Output plain text in all string values: no ##, ###, **, or * markdown. "
-            "Return ONLY valid JSON, no other text."
+            "Output ONLY valid JSON: no markdown fences (no ```), no extra text before or after. "
+            "All string values: plain text only, no ##, ###, **, or * markdown. "
+            "All content must be ONLY about the recipe title given."
         )
         user = (
             f"Generate the complete recipe article for '{title}' as a JSON object with these exact keys:\n"
             f"{json.dumps(schema, indent=2)}\n\n"
-            f"All content must be only about {title}. No other recipes. Return ONLY the JSON object."
+            f"All content must be only about {title}. Return ONLY the raw JSON object—no ```json, no explanation."
         )
 
         print("[*] Generating all sections in a single JSON API call...")
-        raw = ai_chat(self, user, max_tokens=4000, system=system)
-        data = self._extract_json_from_response(raw)
+        raw = ai_chat(self, user, max_tokens=5000, system=system)
+        data = extract_json_robust(raw)
         
         if not data:
             print("[WARN] Failed to parse JSON, falling back to sequential generation...")

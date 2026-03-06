@@ -238,7 +238,7 @@ class ArticleGenerator:
         return result or "Content generation failed. Please try again."
     
     def generate_sections(self):
-        from ai_client import ai_chat
+        from ai_client import ai_chat, extract_json_robust
         
         word_counts = CONFIG["structure_template"]["word_counts"]
         title = self.config["title"]
@@ -271,32 +271,16 @@ class ArticleGenerator:
         }
 
         system = (
-            "You are a professional food blogger and recipe writer. Write engaging, SEO-optimized content that sounds natural and human. "
-            "Never mention word counts or writing instructions. "
-            "Output the full article as ONE JSON. Plain text only: no markdown. "
+            "You are a professional food blogger and recipe writer. Output the full article as ONE JSON. "
+            "Return ONLY valid JSON: no markdown fences (no ```), no extra text before or after. "
+            "Plain text in all string values: no markdown (no ##, ###, **, *). "
             f"All content must be only about this recipe: {title}. Do not mention or use ingredients, steps, or dish names from any other recipe."
         )
-        user = f"Generate the complete food blog article for '{title}' as JSON with keys: {json.dumps(list(schema.keys()))}. Return ONLY valid JSON."
+        user = f"Generate the complete food blog article for '{title}' as JSON with keys: {json.dumps(list(schema.keys()))}. Return ONLY the raw JSON object—no ```json, no explanation."
         
         print("[*] Generating all sections in a single JSON API call...")
-        raw = ai_chat(self, user, max_tokens=5000, system=system)
-        
-        # Extract json
-        text = (raw or "").strip()
-        m = re.search(r"```(?:json)?\s*([\s\S]*?)```", text)
-        if m:
-            text = m.group(1).strip()
-        m = re.search(r"\{[\s\S]*\}", text)
-        if m:
-            try:
-                data = json.loads(m.group())
-            except Exception:
-                data = {}
-        else:
-            try:
-                data = json.loads(text)
-            except Exception:
-                data = {}
+        raw = ai_chat(self, user, max_tokens=6000, system=system)
+        data = extract_json_robust(raw)
 
         if not data:
             print("[WARN] Failed to parse JSON, falling back to sequential generation...")
@@ -317,32 +301,33 @@ class ArticleGenerator:
     def _generate_sections_sequential(self):
         sections_content = {}
         word_counts = CONFIG["structure_template"]["word_counts"]
-        
+        title = self.config["title"]
+
         prompts = {
-            "intro": f"Write an engaging intro paragraph (about {word_counts['intro']} words) for a recipe article about White Chocolate Cranberry Blondies. Mention they are the perfect blend of sweet and tart, simple ingredients, and appeal to both baking pros and beginners. End with 'Let's dive into the sweetness that awaits!'",
-            "why_i_love_this_recipe": f"Write 4 short compelling reasons why someone would love this White Chocolate Cranberry Blondies recipe. Each reason should be 1-2 sentences. Format as: 1) Delicious Flavor Combination: [text] 2) Easy to Make: [text] 3) Perfect for Any Occasion: [text] 4) Great for Meal Prep: [text]. Total around {word_counts['why_i_love_this_recipe']} words.",
-            "ingredients_description": "Write one sentence describing how these ingredients create a soft, chewy treat that bursts with flavor.",
+            "intro": f"Write an engaging intro paragraph (about {word_counts['intro']} words) for a recipe article about {title}. End with a compelling transition into the recipe.",
+            "why_i_love_this_recipe": f"Write 4 short compelling reasons why someone would love this {title} recipe. Format as: 1) [title]: [text] 2) [title]: [text] 3) [title]: [text] 4) [title]: [text]. Total around {word_counts['why_i_love_this_recipe']} words.",
+            "ingredients_description": f"Write one sentence describing how the ingredients for {title} work together to create a delicious result.",
             "optional_conclusion": "Write one encouraging sentence: 'Feel free to experiment to find your favorite mix!'",
-            "notes_on_ingredient_quality": f"Write a paragraph (about {word_counts['notes_on_ingredient_quality']} words) about ingredient quality for blondies. Mention using good white chocolate chips, plump dried cranberries, fresh eggs, and unsalted butter.",
-            "prepping_the_baking_pan": f"Write instructions (about {word_counts['prepping_the_baking_pan']} words) for prepping a 9x13 inch baking pan. Include preheating to 350°F, greasing, lining with parchment paper with overhang.",
-            "mixing_the_wet_ingredients": f"Write instructions (about {word_counts['mixing_the_wet_ingredients']} words) for mixing wet ingredients: melted butter, brown sugar, granulated sugar, eggs, and vanilla extract.",
-            "combining_the_dry_ingredients": f"Write instructions (about {word_counts['combining_the_dry_ingredients']} words) for combining dry ingredients. Include sifting flour, baking powder, salt, and gradually adding to wet mix. Warn not to overmix.",
-            "folding_in_the_white_chocolate": f"Write instructions (about {word_counts['folding_in_the_white_chocolate']} words) for folding in white chocolate chips and dried cranberries. Mention even distribution.",
-            "baking_and_cooling_process": f"Write instructions (about {word_counts['baking_and_cooling_process']} words) for baking and cooling. Include pouring batter, baking 25-30 minutes, checking with toothpick, cooling in pan 15 minutes, then transferring to wire rack.",
-            "suggestions_for_serving_intro": "Write one sentence: Serve your blondies warm or at room temperature. They taste great on their own.",
-            "tips_conclusion": "Write a closing sentence for the tips section: 'These tips will help you create the perfect white chocolate cranberry blondies. Enjoy every bite!'",
-            "pro_tips": f"Write 4 professional baking tips (about {word_counts['pro_tips']} words total) for perfect blondies: 1) Use High-Quality White Chocolate, 2) Chill the Batter, 3) Customize Your Mix-ins, 4) Check for Doneness. Each tip: one short title then a colon then one or two sentences. Plain text only: no markdown (no ###, no **).",
-            "nutty_variation": f"Write a paragraph (about {word_counts['nutty_variation']} words) about adding nuts (walnuts or pecans) to the blondies. Mention chopping coarsely and using about 1 cup.",
-            "gluten_free_variation": f"Write a paragraph (about {word_counts['gluten_free_variation']} words) about making gluten-free blondies. Mention swapping flour for gluten-free blend with xanthan gum.",
-            "alternative_flavor": f"Write a paragraph (about {word_counts['alternative_flavor']} words) about flavor variations. Mention orange zest, cinnamon, nutmeg, and being creative.",
-            "storage_best_practices": f"Write a paragraph (about {word_counts['storage_best_practices']} words) about storing blondies. Mention airtight container, parchment paper between layers, cool dry place.",
-            "how_long_last": f"Write a paragraph (about {word_counts['how_long_last']} words) about shelf life. Mention 1 week at room temperature, 2 weeks refrigerated, checking for spoilage.",
-            "freezing_instructions": f"Write instructions (about {word_counts['freezing_instructions']} words) for freezing blondies. Mention cooling completely, cutting, wrapping in plastic, freezer bags, lasting 3 months, thawing at room temperature.",
-            "faq_chocolate": f"Answer this FAQ in about {word_counts['faq_chocolate']} words: Can I use regular chocolate instead of white chocolate? Yes, mention dark or milk chocolate can be used but will alter flavor.",
-            "faq_cranberries": f"Answer this FAQ in about {word_counts['faq_cranberries']} words: What can I substitute for cranberries? Suggest dried cherries, raisins, or chopped nuts.",
-            "faq_chewy": f"Answer this FAQ in about {word_counts['faq_chewy']} words: How do I make blondies more chewy? Mention using more brown sugar, not overmixing, and checking early.",
-            "faq_double": f"Answer this FAQ in about {word_counts['faq_double']} words: Can I double the recipe? Yes, use 12x18 inch pan, bake longer, check edges.",
-            "final_conclusion": f"Write a concluding paragraph (about {word_counts['final_conclusion']} words) summarizing the article. Mention key steps, ingredients, tips, and end with 'Happy baking!'"
+            "notes_on_ingredient_quality": f"Write a paragraph (about {word_counts['notes_on_ingredient_quality']} words) about ingredient quality for {title}. Mention key ingredients and why quality matters.",
+            "prepping_the_baking_pan": f"Write instructions (about {word_counts['prepping_the_baking_pan']} words) for prepping the baking pan for {title}. Include preheating, greasing, and lining as appropriate.",
+            "mixing_the_wet_ingredients": f"Write instructions (about {word_counts['mixing_the_wet_ingredients']} words) for mixing the wet ingredients for {title}.",
+            "combining_the_dry_ingredients": f"Write instructions (about {word_counts['combining_the_dry_ingredients']} words) for combining dry ingredients for {title}. Include gradual mixing and warn not to overmix.",
+            "folding_in_the_white_chocolate": f"Write instructions (about {word_counts['folding_in_the_white_chocolate']} words) for folding in mix-ins or final ingredients for {title}. Mention even distribution.",
+            "baking_and_cooling_process": f"Write instructions (about {word_counts['baking_and_cooling_process']} words) for baking and cooling {title}. Include baking time, doneness check, cooling in pan and on rack.",
+            "suggestions_for_serving_intro": f"Write one sentence: Serve your {title} warm or at room temperature. They taste great on their own.",
+            "tips_conclusion": f"Write a closing sentence for the tips section that ties back to {title}.",
+            "pro_tips": f"Write 4 professional tips (about {word_counts['pro_tips']} words total) for perfect {title}. Each tip: one short title then colon then one or two sentences. Plain text only: no markdown.",
+            "nutty_variation": f"Write a paragraph (about {word_counts['nutty_variation']} words) about adding nuts as a variation for {title}.",
+            "gluten_free_variation": f"Write a paragraph (about {word_counts['gluten_free_variation']} words) about making gluten-free {title}. Mention appropriate flour swap.",
+            "alternative_flavor": f"Write a paragraph (about {word_counts['alternative_flavor']} words) about flavor variations for {title}.",
+            "storage_best_practices": f"Write a paragraph (about {word_counts['storage_best_practices']} words) about storing {title}. Mention airtight container and cool dry place.",
+            "how_long_last": f"Write a paragraph (about {word_counts['how_long_last']} words) about shelf life of {title}.",
+            "freezing_instructions": f"Write instructions (about {word_counts['freezing_instructions']} words) for freezing {title}. Mention cooling, wrapping, and thawing.",
+            "faq_chocolate": f"Answer an FAQ relevant to {title} in about {word_counts['faq_chocolate']} words.",
+            "faq_cranberries": f"Answer another FAQ relevant to {title} in about {word_counts['faq_cranberries']} words.",
+            "faq_chewy": f"Answer another FAQ relevant to {title} in about {word_counts['faq_chewy']} words.",
+            "faq_double": f"Answer another FAQ relevant to {title} in about {word_counts['faq_double']} words.",
+            "final_conclusion": f"Write a concluding paragraph (about {word_counts['final_conclusion']} words) summarizing the article for {title}. End with a positive closing."
         }
         
         for key, prompt in prompts.items():

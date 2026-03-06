@@ -1,43 +1,315 @@
 {
-  "title": "couscous",
-  "slug": "couscous",
-  "categorieId": 1,
+  "title": "Lamb Couscous Recipe",
+  "slug": "lamb-couscous-recipe",
+  "categorieId": "1",
   "categorie": "Appetizers",
-  "article_html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>couscous Recipe</title>\n<link rel=\"stylesheet\" href=\"css.css\">\n<!-- inject:head-end -->\n</head>\n<body>\n<article class=\"article-container\">\n<header class=\"article-header g1-header\">\n<h1 class=\"article-title\">couscous</h1>\n<div class=\"article-byline-row\">\n<div class=\"byline-left\">\n<span class=\"byline-author\">By <span class=\"article-author\"></span></span>\n<span class=\"byline-date\">Published <span class=\"article-date\"></span></span>\n<p class=\"byline-disclaimer\">This post may contain affiliate links.</p>\n</div>\n<div class=\"byline-right\">\n<button class=\"btn btn-pin\" onclick=\"window.open('https://www.pinterest.com/pin/create/button/?url='+encodeURIComponent(window.location.href)+'&media='+encodeURIComponent((document.querySelector('[data-pin-image]')||{}).dataset?.pinImage||document.querySelector('.main-article-image img,.recipe-card-image img,article img')?.src||'')+'&description='+encodeURIComponent(document.title),'pinterest','width=750,height=600')\">Pin Recipe</button>\n<div class=\"recipe-meta-inline\"><span>&#9201; 5 minutes</span><span>&#128293; 5 minutes</span><span>&#128101; 4 servings servings</span></div>\n</div>\n</div>\n</header>\n<img src=\"placeholder.jpg\" alt=\"couscous\" class=\"hero-image\">\n<!-- inject:after-hero -->\n<p class=\"intro\">Couscous is a versatile and quick-cooking staple that hails from North Africa. Made from semolina wheat, it transforms effortlessly with the addition of water or broth. Whether served as a side dish, salad, or main course, couscous is a blank canvas for flavors and ingredients, making it a favorite in many kitchens. Its light and fluffy texture is perfect for absorbing sauces and spices.</p>\n<div class=\"pro-tips-box\"><h2>Why I Love This Recipe</h2><div class=\"pro-tip-item\"><span class=\"pro-tip-number\">1</span><p>It's incredibly quick to prepare.</p></div><div class=\"pro-tip-item\"><span class=\"pro-tip-number\">2</span><p>Couscous pairs well with a variety of ingredients.</p></div><div class=\"pro-tip-item\"><span class=\"pro-tip-number\">3</span><p>It can be served warm or cold.</p></div><div class=\"pro-tip-item\"><span class=\"pro-tip-number\">4</span><p>It's a great source of carbohydrates.</p></div></div>\n<h2>Ingredients</h2>\n<p>Gather these simple ingredients to create delicious couscous.</p>\n<ul class=\"ingredients-list\"><li><input type=\"checkbox\" id=\"ing0\"><label for=\"ing0\">1 cup couscous</label></li><li><input type=\"checkbox\" id=\"ing1\"><label for=\"ing1\">1 cup boiling water or broth</label></li><li><input type=\"checkbox\" id=\"ing2\"><label for=\"ing2\">1 tablespoon olive oil</label></li><li><input type=\"checkbox\" id=\"ing3\"><label for=\"ing3\">1/2 teaspoon salt</label></li><li><input type=\"checkbox\" id=\"ing4\"><label for=\"ing4\">Optional: herbs and spices for flavor</label></li></ul>\n<p>When selecting couscous, look for high-quality brands that use fine semolina. Freshness matters as well; buy from stores with high turnover for the best flavor. Consider whole wheat couscous for added fiber and nutrients, or try flavored varieties for a unique twist on traditional dishes.</p>\n<h2>Instructions</h2>\n<ol class=\"instructions-list\"><li>In a bowl, combine couscous, salt, and olive oil.</li><li>Pour boiling water or broth over the couscous.</li><li>Cover and let it sit for 5 minutes.</li><li>Fluff with a fork and add any desired herbs or spices.</li></ol>\n<h2>Tips & Tricks</h2>\n<p>For a fluffy texture, make sure to fluff the couscous with a fork after it has absorbed the liquid. Avoid stirring too vigorously, as this can make it gummy.</p>\n<p>A common mistake is adding too much liquid, which can result in mushy couscous. Always measure accurately and allow it to sit covered for the recommended time for best results.</p>\n<h2>Serving Suggestions</h2>\n<p>Serve couscous warm as a side or as a base for your favorite dishes.</p>\n<div class=\"pro-tips-box\"><h2>Pro Tips</h2><div class=\"pro-tip-item\"><span class=\"pro-tip-number\">1</span><p>Add sautéed vegetables for a nutritious boost.</p></div><div class=\"pro-tip-item\"><span class=\"pro-tip-number\">2</span><p>Incorporate nuts and dried fruits for added texture and flavor.</p></div><div class=\"pro-tip-item\"><span class=\"pro-tip-number\">3</span><p>Experiment with different broths for unique taste profiles.</p></div><div class=\"pro-tip-item\"><span class=\"pro-tip-number\">4</span><p>Use couscous as a salad base for a refreshing cold dish.</p></div></div>\n<h2>FAQs</h2><div class=\"faq-item\"><h3>Q1</h3><p>Can I use whole grain couscous? Yes, whole grain couscous is a nutritious alternative.</p></div><div class=\"faq-item\"><h3>Q2</h3><p>How do I store leftovers? Store in an airtight container in the fridge for up to 3 days.</p></div><div class=\"faq-item\"><h3>Q3</h3><p>Can I prepare couscous in advance? Yes, you can make it ahead and reheat before serving.</p></div><div class=\"faq-item\"><h3>Q4</h3><p>Is couscous gluten-free? No, couscous is made from wheat and contains gluten.</p></div>\n<p>Couscous is a delightful and versatile dish that can easily elevate your meals. Its simplicity and adaptability make it a staple worth mastering. Whether you're enjoying it as a side or incorporating it into salads, couscous invites creativity in the kitchen. With these tips, you'll be able to prepare fluffy, flavorful couscous every time.</p>\n<!-- inject:before-recipe -->\n<div class=\"recipe-card\">\n<div class=\"recipe-card-header\">\n<img src=\"placeholder.jpg\" alt=\"couscous\" class=\"recipe-card-image\">\n<div><h2>couscous</h2><p>A simple yet delightful dish that serves as a perfect base for various meals.</p></div>\n</div>\n<div class=\"recipe-meta\">\n<div class=\"recipe-meta-item\"><span>&#9201;</span><span class=\"value\">5 minutes</span></div>\n<div class=\"recipe-meta-item\"><span>&#128293;</span><span class=\"value\">5 minutes</span></div>\n<div class=\"recipe-meta-item\"><span>&#128101;</span><span class=\"value\">4 servings</span></div>\n<div class=\"recipe-meta-item\"><span>&#9889;</span><span class=\"value\">176 calories per serving</span></div>\n</div>\n<div class=\"recipe-buttons\">\n<button class=\"btn btn-print\">Print Recipe</button>\n<button class=\"btn btn-pin\" onclick=\"window.open('https://www.pinterest.com/pin/create/button/?url='+encodeURIComponent(window.location.href)+'&media='+encodeURIComponent((document.querySelector('[data-pin-image]')||{}).dataset?.pinImage||document.querySelector('.main-article-image img,.recipe-card-image img,article img')?.src||'')+'&description='+encodeURIComponent(document.title),'pinterest','width=750,height=600')\">Pin Recipe</button>\n</div>\n<div class=\"recipe-columns\">\n<div><h3>Ingredients</h3><ul class=\"ingredients-list\"><li><input type=\"checkbox\" id=\"ing0\"><label for=\"ing0\">1 cup couscous</label></li><li><input type=\"checkbox\" id=\"ing1\"><label for=\"ing1\">1 cup boiling water or broth</label></li><li><input type=\"checkbox\" id=\"ing2\"><label for=\"ing2\">1 tablespoon olive oil</label></li><li><input type=\"checkbox\" id=\"ing3\"><label for=\"ing3\">1/2 teaspoon salt</label></li><li><input type=\"checkbox\" id=\"ing4\"><label for=\"ing4\">Optional: herbs and spices for flavor</label></li></ul></div>\n<div><h3>Instructions</h3><ol class=\"instructions-list\"><li>In a bowl, combine couscous, salt, and olive oil.</li><li>Pour boiling water or broth over the couscous.</li><li>Cover and let it sit for 5 minutes.</li><li>Fluff with a fork and add any desired herbs or spices.</li></ol></div>\n</div>\n<div class=\"chef-notes\"><h4>Chef's Notes</h4><p>Let cool completely before cutting.</p></div>\n<div class=\"recipe-tags\"><div><strong>Course:</strong> Side Dish</div><div><strong>Cuisine:</strong> North African</div></div>\n</div>\n<!-- inject:article-end -->\n</article>\n</body>\n</html>",
-  "article_css": "@import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');\n:root {--primary: #6C8AE4;--secondary: #9C6ADE;--background: #FFFFFF;--text-primary: #000000;--text-secondary: #333333;--button-print: #1A1A2E;--button-pin: #E60023;}\nbody {font-family: 'Inter', sans-serif;font-size: 1rem;line-height: 1.7;color: var(--text-primary);background: var(--background);margin:0;}\n.article-container {max-width: 800px;margin: 0 auto;padding: 2rem;}\n.hero-image {width:100%;max-width:100%;height:auto;display:block;border-radius:12px;margin-bottom:3rem;box-shadow:0 4px 20px rgba(0,0,0,0.08);object-fit:cover;}\nh1,h2,h3 {font-family: 'Lora', serif;font-weight: 600;}\nh2 {color: var(--primary);font-size: 1.875rem;margin-top: 3rem;}\n.pro-tips-box {background: #FFF5F0;border: 1px solid #FFE8E0;border-left: 4px solid #F4A261;border-radius: 12px;padding: 2rem;margin: 3rem 0;}\n.pro-tip-item {display: flex;gap: 1rem;margin-bottom: 1rem;background: white;padding: 1rem;border-radius: 8px;}\n.pro-tip-number {width: 32px;height: 32px;background: var(--primary);color: white;border-radius: 50%;display: flex;align-items: center;justify-content: center;font-weight: 600;flex-shrink: 0;}\n.ingredients-list {list-style: none;padding: 0;}\n.ingredients-list li {display: flex;gap: 0.75rem;padding: 0.5rem 0;border-bottom: 1px solid var(--border);}\n.instructions-list {list-style: none;counter-reset: i;padding: 0;}\n.instructions-list li {display: flex;gap: 1rem;margin-bottom: 1rem;}\n.instructions-list li::before {counter-increment: i;content: counter(i);width: 32px;height: 32px;background: var(--primary);color: white;border-radius: 50%;display: flex;align-items: center;justify-content: center;font-weight: 600;flex-shrink: 0;}\n.recipe-card {background: #FFFCFA;border: 2px solid #FFE8E0;border-radius: 16px;padding: 2rem;margin: 3rem 0;}\n.recipe-card-header {display: flex;gap: 1.5rem;margin-bottom: 1.5rem;}\n.recipe-card-image {width: 100px;height: 100px;border-radius: 50%;object-fit: cover;}\n.article-header { margin-bottom: 3rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }\n.article-header .article-title { font-family: 'Lora', serif; font-size: 2.5rem; font-weight: 700; color: var(--text-primary); margin: 0 0 1rem 0; line-height: 1.2; }\n.article-header .article-byline-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 1rem; }\n.article-header .byline-left { display: flex; flex-direction: column; gap: 0.25rem; }\n.article-header .byline-author { font-weight: 600; color: var(--text-primary); }\n.article-header .byline-date { font-size: 0.9rem; color: var(--text-secondary); }\n.article-header .byline-disclaimer { font-size: 0.8rem; color: var(--text-secondary); font-style: italic; margin: 0.25rem 0 0 0; }\n.article-header .byline-right { display: flex; flex-direction: column; align-items: flex-end; gap: 0.75rem; }\n.article-header .recipe-meta-inline { display: flex; gap: 1.25rem; font-size: 0.9rem; color: var(--text-secondary); }\n.article-header .recipe-meta-inline span { display: flex; align-items: center; gap: 0.35rem; }\n.recipe-meta {display: flex;gap: 2rem;margin-bottom: 1.5rem;flex-wrap: wrap;}\n.recipe-meta-item {display: flex;gap: 0.4rem;align-items: center;}\n.recipe-meta-item .value {font-weight: 600;color: var(--primary);}\n.recipe-buttons {display: flex;gap: 1rem;margin-bottom: 2rem;}\n.btn {flex: 1;padding: 1rem;border: none;border-radius: 8px;font-weight: 600;cursor: pointer;display: flex;align-items: center;justify-content: center;gap: 0.5rem;}\n.btn-print {background: var(--button-print);color: white;}\n.btn-pin {background: var(--button-pin);color: white;}\n.recipe-columns {display: grid;grid-template-columns: 1fr 1fr;gap: 3rem;}\n@media (max-width: 768px) {.recipe-columns {grid-template-columns: 1fr;}}\n.chef-notes {background: #FFF5F0;border: 1px solid #FFE8E0;border-radius: 12px;padding: 1.5rem;margin-top: 2rem;}\n.recipe-tags {display: flex;gap: 2rem;justify-content: center;margin-top: 1.5rem;padding-top: 1.5rem;border-top: 1px solid var(--border);font-size: 0.875rem;}",
+  "sections": [
+    {
+      "type": "image",
+      "key": "main_article_image",
+      "alt": "White Chocolate Cranberry Blondies"
+    },
+    {
+      "type": "intro",
+      "key": "intro"
+    },
+    {
+      "type": "h2",
+      "text": "Why I Love This Recipe"
+    },
+    {
+      "type": "numbered_list",
+      "key": "why_i_love_this_recipe",
+      "count": 4
+    },
+    {
+      "type": "h2",
+      "text": "Ingredients"
+    },
+    {
+      "type": "h3",
+      "text": "List of Required Ingredients"
+    },
+    {
+      "type": "paragraph",
+      "key": "ingredients_intro"
+    },
+    {
+      "type": "bullet_list",
+      "key": "ingredients_list",
+      "count": 10
+    },
+    {
+      "type": "paragraph",
+      "key": "ingredients_outro"
+    },
+    {
+      "type": "h3",
+      "text": "Optional Ingredient Variations"
+    },
+    {
+      "type": "paragraph",
+      "key": "variations_intro"
+    },
+    {
+      "type": "bullet_list",
+      "key": "optional_variations",
+      "count": 3
+    },
+    {
+      "type": "paragraph",
+      "key": "variations_outro"
+    },
+    {
+      "type": "h3",
+      "text": "Notes on Ingredient Quality"
+    },
+    {
+      "type": "paragraph",
+      "key": "ingredient_quality_notes"
+    },
+    {
+      "type": "image",
+      "key": "ingredient_image",
+      "alt": "Ingredients for White Chocolate Cranberry Blondies"
+    },
+    {
+      "type": "h2",
+      "text": "Step-by-Step Instructions"
+    },
+    {
+      "type": "h3",
+      "text": "Prepping the Baking Pan"
+    },
+    {
+      "type": "paragraph",
+      "key": "prep_pan"
+    },
+    {
+      "type": "h3",
+      "text": "Mixing the Wet Ingredients"
+    },
+    {
+      "type": "paragraph",
+      "key": "mix_wet"
+    },
+    {
+      "type": "h3",
+      "text": "Combining the Dry Ingredients"
+    },
+    {
+      "type": "paragraph",
+      "key": "combine_dry"
+    },
+    {
+      "type": "h3",
+      "text": "Folding in the White Chocolate and Cranberries"
+    },
+    {
+      "type": "paragraph",
+      "key": "fold_mixins"
+    },
+    {
+      "type": "h3",
+      "text": "Baking and Cooling Process"
+    },
+    {
+      "type": "paragraph",
+      "key": "bake_cool"
+    },
+    {
+      "type": "h2",
+      "text": "Tips & Tricks"
+    },
+    {
+      "type": "h3",
+      "text": "How to Ensure Perfect Texture"
+    },
+    {
+      "type": "paragraph",
+      "key": "texture_intro"
+    },
+    {
+      "type": "bullet_list",
+      "key": "texture_tips",
+      "count": 3
+    },
+    {
+      "type": "h3",
+      "text": "Common Mistakes to Avoid"
+    },
+    {
+      "type": "paragraph",
+      "key": "mistakes_intro"
+    },
+    {
+      "type": "bullet_list",
+      "key": "mistakes_list",
+      "count": 3
+    },
+    {
+      "type": "h3",
+      "text": "Suggestions for Serving and Pairing"
+    },
+    {
+      "type": "paragraph",
+      "key": "serving_intro"
+    },
+    {
+      "type": "bullet_list",
+      "key": "serving_suggestions",
+      "count": 3
+    },
+    {
+      "type": "paragraph",
+      "key": "serving_outro"
+    },
+    {
+      "type": "pro_tips_box",
+      "key": "pro_tips",
+      "count": 4
+    },
+    {
+      "type": "h2",
+      "text": "Variations"
+    },
+    {
+      "type": "h3",
+      "text": "Nutty White Chocolate Cranberry Blondies"
+    },
+    {
+      "type": "paragraph",
+      "key": "variation_nutty"
+    },
+    {
+      "type": "h3",
+      "text": "Gluten-Free Version"
+    },
+    {
+      "type": "paragraph",
+      "key": "variation_gluten_free"
+    },
+    {
+      "type": "h3",
+      "text": "Alternative Flavor Combinations"
+    },
+    {
+      "type": "paragraph",
+      "key": "variation_flavors"
+    },
+    {
+      "type": "h2",
+      "text": "Storage Info"
+    },
+    {
+      "type": "h3",
+      "text": "Best Practices for Storing Blondies"
+    },
+    {
+      "type": "paragraph",
+      "key": "storage_best_practices"
+    },
+    {
+      "type": "h3",
+      "text": "How Long Do They Last?"
+    },
+    {
+      "type": "paragraph",
+      "key": "storage_duration"
+    },
+    {
+      "type": "h3",
+      "text": "Freezing Instructions"
+    },
+    {
+      "type": "paragraph",
+      "key": "storage_freezing"
+    },
+    {
+      "type": "h2",
+      "text": "FAQs"
+    },
+    {
+      "type": "faq",
+      "key": "faq_chocolate",
+      "question": "Can I use regular chocolate instead of white chocolate?"
+    },
+    {
+      "type": "faq",
+      "key": "faq_cranberries",
+      "question": "What can I substitute for cranberries?"
+    },
+    {
+      "type": "faq",
+      "key": "faq_chewy",
+      "question": "How do I make blondies more chewy?"
+    },
+    {
+      "type": "faq",
+      "key": "faq_double",
+      "question": "Can I double the recipe?"
+    },
+    {
+      "type": "conclusion",
+      "key": "conclusion"
+    },
+    {
+      "type": "recipe_card",
+      "key": "recipe"
+    }
+  ],
+  "article_html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Lamb Couscous Recipe</title>\n    <meta name=\"description\" content=\"Make these irresistible Lamb Couscous Recipe! Perfect blend of sweet white chocolate and tart cranberries. Easy recipe with simple ingredients.\">\n    <link rel=\"stylesheet\" href=\"css.css\">\n</head>\n<body>\n    <article class=\"article-container\">\n        <header class=\"article-header g4-header\">\n            <h1 class=\"article-title\">Lamb Couscous Recipe</h1>\n            <div class=\"article-byline-row\">\n                <div class=\"byline-left\">\n                    <span class=\"byline-author\">By <span class=\"article-author\"></span></span>\n                    <span class=\"byline-date\">Published <span class=\"article-date\"></span></span>\n                    <p class=\"byline-disclaimer\">This post may contain affiliate links.</p>\n                </div>\n                <div class=\"byline-right\">\n                    <button class=\"btn btn-pin\" onclick=\"window.open('https://www.pinterest.com/pin/create/button/?url='+encodeURIComponent(window.location.href)+'&media='+encodeURIComponent((document.querySelector('[data-pin-image]')||{}).dataset?.pinImage||document.querySelector('.main-article-image img,.recipe-card-image img,article img')?.src||'')+'&description='+encodeURIComponent(document.title),'pinterest','width=750,height=600')\">Pin Recipe</button>\n                    <div class=\"recipe-meta-pills\"><span>20 minutes prep</span><span>1 hour cook</span><span>4 servings servings</span></div>\n                </div>\n            </div>\n        </header><img src=\"hero-blondies.jpg\" alt=\"White Chocolate Cranberry Blondies\" class=\"article-image\"><div class=\"intro-text\">Welcome to a culinary journey that marries the rich flavors of lamb with the delicate texture of couscous. This Lamb Couscous recipe is a delightful dish that brings warmth and comfort to any table, making it perfect for family gatherings or a cozy dinner at home.</div><h2>Why I Love This Recipe</h2><ol class=\"numbered-list\"><li><span class=\"number-circle\">1</span><div class=\"item-content\">I love this recipe because it is not only delicious but also incredibly versatile. The combination of tender lamb and fluffy couscous is a match made in heaven, and you can easily adapt it to suit your taste preferences. Plus, it’s a one-pot wonder that simplifies cleanup!</div></li></ol><h2>Ingredients</h2><h3>List of Required Ingredients</h3><p>Before we dive into the cooking process, let’s take a moment to appreciate the ingredients that make this dish shine.</p><ul class=\"bullet-list\"><li>Lamb, couscous, broth, aromatic spices, fresh herbs, and vegetables.</li></ul><p>With these fresh ingredients at your fingertips, you're well on your way to creating a flavorful meal that will impress everyone around your table.</p><h3>Optional Ingredient Variations</h3><p>One of the best parts about this Lamb Couscous recipe is the endless possibilities for variations. Whether you want to add a twist or cater to specific dietary needs, there’s something for everyone.</p><ul class=\"bullet-list\"><li>You can experiment with different vegetables, try various spices, or even add some nuts for a delightful crunch.</li></ul><p>Feel free to get creative and make this dish your own. The variations are what make it special!</p><h3>Notes on Ingredient Quality</h3><p>Always opt for high-quality lamb and fresh herbs. The quality of your ingredients can elevate the dish from good to extraordinary.</p><img src=\"ingredients-flatlay.jpg\" alt=\"Ingredients for White Chocolate Cranberry Blondies\" class=\"article-image\"><h2>Step-by-Step Instructions</h2><h3>Prepping the Baking Pan</h3><p>Start by preparing your pan—this is where all the magic will happen. A good pan will ensure even cooking and prevent sticking.</p><h3>Mixing the Wet Ingredients</h3><p>In a separate bowl, mix together the wet ingredients. This will help to create a rich base of flavors that infuse the couscous.</p><h3>Combining the Dry Ingredients</h3><p>Next, combine the dry ingredients. This step is crucial as it ensures that the spices and couscous are well-distributed throughout your dish.</p><h3>Folding in the White Chocolate and Cranberries</h3><p>Once the wet and dry ingredients are ready, gently fold in any mix-ins like vegetables or herbs. This will add layers of flavor and texture.</p><h3>Baking and Cooling Process</h3><p>After everything is combined, allow your dish to bake. Once it's done, give it a chance to cool slightly before serving.</p><h2>Tips & Tricks</h2><h3>How to Ensure Perfect Texture</h3><p>The texture of your Lamb Couscous is key to its appeal. You want that perfect balance of fluffy couscous and tender lamb.</p><ul class=\"bullet-list\"><li>To achieve the ideal texture, be careful not to overcook the couscous. It should be light and fluffy, not mushy.</li></ul><h3>Common Mistakes to Avoid</h3><p>Even the best cooks can make mistakes. Here are some common pitfalls to avoid when making Lamb Couscous.</p><ul class=\"bullet-list\"><li>1. Overcooking the lamb, which can lead to toughness. 2. Not seasoning adequately, resulting in a bland dish. 3. Ignoring the resting time, which is essential for flavor development.</li></ul><h3>Suggestions for Serving and Pairing</h3><p>Serving your Lamb Couscous is an opportunity to make it visually appealing.</p><ul class=\"bullet-list\"><li>Consider garnishing with fresh herbs or a drizzle of olive oil. Pair it with a simple salad or yogurt sauce to complement the flavors.</li></ul><p>A well-served dish not only tastes great but also looks inviting, making it perfect for sharing with loved ones.</p><div class=\"pro-tips-box\"><h2>Pro Tips</h2><div class=\"tip-item\"><span class=\"tip-number\">1</span><div class=\"tip-content\"><span class=\"tip-title\">For an extra burst of flavor, let the couscous sit covered f...:</span> </div></div></div><h2>Variations</h2><h3>Nutty White Chocolate Cranberry Blondies</h3><p>For a nutty twist, consider adding toasted almonds or pine nuts to your Lamb Couscous. They add a wonderful crunch and depth of flavor.</p><h3>Gluten-Free Version</h3><p>If you're looking for a gluten-free option, substitute couscous with quinoa or rice. They work wonderfully and maintain the essence of the dish.</p><h3>Alternative Flavor Combinations</h3><p>Try experimenting with different spices such as cumin or coriander to give your Lamb Couscous a unique flavor profile.</p><h2>Storage Info</h2><h3>Best Practices for Storing Blondies</h3><p>Store any leftovers in an airtight container in the refrigerator to maintain freshness.</p><h3>How Long Do They Last?</h3><p>When properly stored, your Lamb Couscous will last up to three days in the fridge.</p><h3>Freezing Instructions</h3><p>If you want to store it for a longer period, you can freeze it. Just ensure it’s in a suitable container, and it can last up to three months.</p><h2>FAQs</h2><div class=\"faq-section\"><div class=\"faq-item\"><div class=\"faq-question\">Can I use regular chocolate instead of white chocolate?</div><div class=\"faq-answer\">Chocolate is not typically paired with Lamb Couscous, but feel free to experiment! A dark chocolate sauce could offer an interesting contrast.</div></div><div class=\"faq-item\"><div class=\"faq-question\">What can I substitute for cranberries?</div><div class=\"faq-answer\">Cranberries could provide a lovely tartness. Consider adding dried cranberries as a garnish for a pop of color and flavor.</div></div><div class=\"faq-item\"><div class=\"faq-question\">How do I make blondies more chewy?</div><div class=\"faq-answer\">If your couscous turns out chewy, it may have absorbed too much liquid. Be sure to follow the recommended water-to-couscous ratio.</div></div><div class=\"faq-item\"><div class=\"faq-question\">Can I double the recipe?</div><div class=\"faq-answer\">Doubling the recipe is easy! Just ensure you have a large enough pot and adjust cooking times as needed.</div></div></div><p>This Lamb Couscous recipe is a celebration of flavors and textures. With its warm, inviting essence, it’s bound to become a favorite in your household. So gather your ingredients, unleash your creativity, and enjoy the process of making this delightful dish!</p><div class=\"recipe-card\"><div class=\"recipe-card-header\"><img src=\"hero-blondies.jpg\" alt=\"Lamb Couscous\" class=\"recipe-card-image\"><div class=\"recipe-card-title\"><h2>Lamb Couscous</h2><p>A fragrant and hearty dish featuring tender lamb and fluffy couscous, seasoned with spices.</p></div></div><div class=\"recipe-meta\"><div class=\"recipe-meta-item\"><span class=\"icon\">⏱</span> 20 minutes prep</div><div class=\"recipe-meta-item\"><span class=\"icon\">🍳</span> 1 hour cook</div><div class=\"recipe-meta-item\"><span class=\"icon\">🍽</span> 4 servings servings</div><div class=\"recipe-meta-item\"><span class=\"icon\">⚡</span> 450 calories per serving cal</div></div><div class=\"recipe-buttons\"><button class=\"btn btn-print\">Print Recipe</button><button class=\"btn btn-pin\" onclick=\"window.open('https://www.pinterest.com/pin/create/button/?url='+encodeURIComponent(window.location.href)+'&media='+encodeURIComponent((document.querySelector('[data-pin-image]')||{}).dataset?.pinImage||document.querySelector('.main-article-image img,.recipe-card-image img,article img')?.src||'')+'&description='+encodeURIComponent(document.title),'pinterest','width=750,height=600')\">Pin Recipe</button></div><div class=\"recipe-columns\"><div class=\"recipe-ingredients\"><h3>📝 Ingredients</h3><ul class=\"ingredient-checklist\"><li><input type=\"checkbox\"> 1 lb lamb shoulder, cut into chunks</li><li><input type=\"checkbox\"> 1 cup couscous</li><li><input type=\"checkbox\"> 2 cups chicken or vegetable broth</li><li><input type=\"checkbox\"> 1 onion, finely chopped</li><li><input type=\"checkbox\"> 3 cloves garlic, minced</li><li><input type=\"checkbox\"> 1 carrot, diced</li><li><input type=\"checkbox\"> 1 bell pepper, diced</li><li><input type=\"checkbox\"> 1 tsp cumin</li><li><input type=\"checkbox\"> 1 tsp coriander</li><li><input type=\"checkbox\"> 1 tsp cinnamon</li><li><input type=\"checkbox\"> Salt and pepper to taste</li><li><input type=\"checkbox\"> 2 tbsp olive oil</li><li><input type=\"checkbox\"> Fresh parsley for garnish</li></ul></div><div class=\"recipe-instructions\"><h3>📋 Instructions</h3><ol class=\"instruction-list\"><li>In a large pot, heat olive oil over medium heat.</li><li>Add the lamb and brown on all sides.</li><li>Stir in onion, garlic, carrot, and bell pepper; cook until softened.</li><li>Add cumin, coriander, cinnamon, salt, and pepper; stir to combine.</li><li>Pour in the broth and bring to a boil.</li><li>Reduce heat, cover, and simmer for 1 hour until lamb is tender.</li><li>Remove lamb and set aside; stir in couscous.</li><li>Cover and let sit for 5 minutes, then fluff with a fork.</li><li>Serve couscous topped with lamb and garnish with parsley.</li></ol></div></div><div class=\"chef-notes\"><h4>👨‍🍳 Chef's Notes</h4><p></p></div><div class=\"recipe-footer\"><div><strong>Course:</strong> Main Course</div><div><strong>Cuisine:</strong> North African</div></div></div>\n    </article>\n</body>\n</html>",
+  "article_css": "/* Auto-generated CSS for Lamb Couscous Recipe */\n@import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');\n\n* {\n    margin: 0;\n    padding: 0;\n    box-sizing: border-box;\n}\n\nbody {\n    font-family: 'Inter', sans-serif;\n    font-size: 1rem;\n    font-weight: 400;\n    line-height: 1.7;\n    color: #000000;\n    background-color: #FFFFFF;\n}\n\n.article-container {\n    max-width: 800px;\n    margin: 0 auto;\n    padding: 2rem;\n    background-color: #FFFFFF;\n}\n\n.article-header.g4-header {\n    margin-bottom: 2.5rem;\n}\n.article-header.g4-header .article-title {\n    font-family: 'Lora', serif;\n    font-size: 2.5rem;\n    font-weight: 700;\n    color: #000000;\n    margin: 0 0 0.5rem 0;\n    padding-bottom: 0.75rem;\n    border-bottom: 3px solid #8B5A9B;\n    line-height: 1.2;\n}\n.article-header.g4-header .article-byline-row {\n    display: flex;\n    flex-wrap: wrap;\n    justify-content: space-between;\n    align-items: center;\n    gap: 0.5rem;\n    margin-top: 0.75rem;\n}\n.article-header.g4-header .byline-left { display: flex; flex-direction: column; gap: 0.15rem; }\n.article-header.g4-header .byline-author { font-weight: 600; color: #000000; }\n.article-header.g4-header .byline-date { font-size: 0.875rem; color: #333333; }\n.article-header.g4-header .byline-disclaimer { font-size: 0.8rem; color: #333333; font-style: italic; margin-top: 0.2rem; }\n.article-header.g4-header .byline-right { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }\n.article-header.g4-header .recipe-meta-pills { display: flex; gap: 0.5rem; flex-wrap: wrap; }\n.article-header.g4-header .recipe-meta-pills span {\n    background: #5A3A6B;\n    color: #000000;\n    padding: 0.25rem 0.6rem;\n    border-radius: 999px;\n    font-size: 0.85rem;\n}\n\n/* Typography */\nh1 {\n    font-family: 'Lora', serif;\n    font-size: 2.5rem;\n    font-weight: 700;\n    color: #000000;\n    margin-bottom: 1.5rem;\n    line-height: 1.2;\n}\n\nh2 {\n    font-family: 'Lora', serif;\n    font-size: 1.875rem;\n    font-weight: 700;\n    color: #8B5A9B;\n    margin-top: 2.5rem;\n    margin-bottom: 1rem;\n    line-height: 1.3;\n}\n\nh3 {\n    font-family: 'Inter', sans-serif;\n    font-size: 1.5rem;\n    font-weight: 600;\n    color: #000000;\n    margin-top: 1.5rem;\n    margin-bottom: 0.75rem;\n    line-height: 1.4;\n}\n\np {\n    margin-bottom: 1.2rem;\n    color: #333333;\n}\n\n/* Lists */\n.numbered-list {\n    list-style: none;\n    padding: 0;\n    margin: 1rem 0;\n}\n\n.numbered-list li {\n    display: flex;\n    align-items: flex-start;\n    margin-bottom: 0.8rem;\n    padding-left: 0;\n}\n\n.numbered-list .number-circle {\n    display: inline-flex;\n    align-items: center;\n    justify-content: center;\n    width: 28px;\n    height: 28px;\n    background-color: #FF6B35;\n    color: #FFFFFF;\n    border-radius: 50%;\n    font-weight: 600;\n    font-size: 0.9rem;\n    margin-right: 1rem;\n    flex-shrink: 0;\n}\n\n.numbered-list .item-content {\n    flex: 1;\n    padding-top: 0.2rem;\n}\n\n.numbered-list .item-title {\n    font-weight: 600;\n    color: #000000;\n}\n\n.bullet-list {\n    list-style: none;\n    padding-left: 0;\n    margin: 1rem 0;\n}\n\n.bullet-list li {\n    position: relative;\n    padding-left: 1.5rem;\n    margin-bottom: 0.8rem;\n    color: #333333;\n}\n\n.bullet-list li::before {\n    content: \"\";\n    position: absolute;\n    left: 0;\n    top: 0.6rem;\n    width: 6px;\n    height: 6px;\n    background-color: #FF6B35;\n    border-radius: 50%;\n}\n\n/* Images */\n.article-image {\n    width: 100%;\n    height: auto;\n    border-radius: 12px;\n    margin: 1.5rem 0;\n    box-shadow: 0 4px 20px rgba(0,0,0,0.08);\n    display: block;\n}\n\n/* Pro Tips Box */\n.pro-tips-box {\n    background-color: #FFF5F0;\n    border-left: 4px solid #FF6B35;\n    padding: 1.5rem;\n    margin: 2rem 0;\n    border-radius: 0 12px 12px 0;\n}\n\n.pro-tips-box h2 {\n    margin-top: 0;\n    color: #8B5A9B;\n    font-size: 1.5rem;\n}\n\n.pro-tips-box .tip-item {\n    display: flex;\n    align-items: flex-start;\n    margin-bottom: 1rem;\n}\n\n.pro-tips-box .tip-number {\n    display: inline-flex;\n    align-items: center;\n    justify-content: center;\n    width: 24px;\n    height: 24px;\n    background-color: #8B5A9B;\n    color: white;\n    border-radius: 50%;\n    font-size: 0.8rem;\n    font-weight: 600;\n    margin-right: 0.75rem;\n    flex-shrink: 0;\n}\n\n.pro-tips-box .tip-content {\n    flex: 1;\n}\n\n.pro-tips-box .tip-title {\n    font-weight: 600;\n    color: #000000;\n    display: inline;\n}\n\n/* FAQs */\n.faq-section {\n    margin: 1.5rem 0;\n}\n\n.faq-item {\n    margin-bottom: 1.5rem;\n}\n\n.faq-question {\n    font-weight: 600;\n    color: #000000;\n    font-size: 1.1rem;\n    margin-bottom: 0.5rem;\n}\n\n.faq-answer {\n    color: #333333;\n    padding-left: 0;\n}\n\n/* Recipe Card */\n.recipe-card {\n    background-color: #FFFFFF;\n    border: 2px solid #FFE5D9;\n    border-radius: 16px;\n    padding: 2rem;\n    margin-top: 2rem;\n    box-shadow: 0 4px 20px rgba(0,0,0,0.08);\n}\n\n.recipe-card-header {\n    display: flex;\n    align-items: center;\n    margin-bottom: 1.5rem;\n    flex-wrap: wrap;\n    gap: 1rem;\n}\n\n.recipe-card-image {\n    width: 80px;\n    height: 80px;\n    border-radius: 50%;\n    object-fit: cover;\n    border: 3px solid #E8D8F0;\n}\n\n.recipe-card-title {\n    flex: 1;\n    min-width: 200px;\n}\n\n.recipe-card-title h2 {\n    margin: 0;\n    font-size: 1.5rem;\n    color: #000000;\n    font-family: 'Lora', serif;\n}\n\n.recipe-card-title p {\n    margin: 0.25rem 0 0 0;\n    font-size: 0.9rem;\n    color: #333333;\n}\n\n.recipe-meta {\n    display: flex;\n    gap: 1.5rem;\n    margin: 1rem 0;\n    flex-wrap: wrap;\n}\n\n.recipe-meta-item {\n    display: flex;\n    align-items: center;\n    gap: 0.5rem;\n    font-size: 0.9rem;\n    color: #333333;\n}\n\n.recipe-meta-item .icon {\n    color: #FF6B35;\n    font-size: 1.1rem;\n}\n\n.recipe-buttons {\n    display: grid;\n    grid-template-columns: 1fr 1fr;\n    gap: 1rem;\n    margin: 1.5rem 0;\n}\n\n.btn {\n    padding: 0.875rem 1.5rem;\n    border: none;\n    border-radius: 8px;\n    font-weight: 600;\n    cursor: pointer;\n    text-align: center;\n    text-decoration: none;\n    display: inline-flex;\n    align-items: center;\n    justify-content: center;\n    gap: 0.5rem;\n    transition: all 0.2s;\n    font-family: 'Inter', sans-serif;\n    font-size: 0.95rem;\n}\n\n.btn-print {\n    background-color: #2D2D2D;\n    color: white;\n}\n\n.btn-print:hover {\n    background-color: #000000;\n}\n\n.btn-pin {\n    background-color: #E60023;\n    color: white;\n}\n\n.btn-pin:hover {\n    background-color: #FF1A3C;\n}\n\n.recipe-columns {\n    display: grid;\n    grid-template-columns: 1fr 1fr;\n    gap: 2rem;\n    margin-top: 1.5rem;\n}\n\n@media (max-width: 600px) {\n    .recipe-columns {\n        grid-template-columns: 1fr;\n    }\n}\n\n.recipe-ingredients h3,\n.recipe-instructions h3 {\n    margin-top: 0;\n    margin-bottom: 1rem;\n    font-size: 1.2rem;\n    display: flex;\n    align-items: center;\n    gap: 0.5rem;\n}\n\n.ingredient-checklist {\n    list-style: none;\n    padding: 0;\n}\n\n.ingredient-checklist li {\n    display: flex;\n    align-items: center;\n    gap: 0.75rem;\n    padding: 0.5rem 0;\n    border-bottom: 1px solid #E8D8F0;\n}\n\n.ingredient-checklist li:last-child {\n    border-bottom: none;\n}\n\n.ingredient-checklist input[type=\"checkbox\"] {\n    width: 18px;\n    height: 18px;\n    accent-color: #8B5A9B;\n    cursor: pointer;\n}\n\n.instruction-list {\n    list-style: none;\n    counter-reset: instruction;\n    padding: 0;\n}\n\n.instruction-list li {\n    display: flex;\n    gap: 1rem;\n    margin-bottom: 1rem;\n    align-items: flex-start;\n}\n\n.instruction-list li::before {\n    counter-increment: instruction;\n    content: counter(instruction);\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    width: 28px;\n    height: 28px;\n    background-color: #8B5A9B;\n    color: white;\n    border-radius: 50%;\n    font-weight: 600;\n    font-size: 0.85rem;\n    flex-shrink: 0;\n    margin-top: 0.1rem;\n}\n\n.chef-notes {\n    background-color: #FFFFFF;\n    padding: 1rem;\n    border-radius: 8px;\n    margin-top: 1.5rem;\n    border-left: 4px solid #8B5A9B;\n}\n\n.chef-notes h4 {\n    margin: 0 0 0.5rem 0;\n    color: #000000;\n    display: flex;\n    align-items: center;\n    gap: 0.5rem;\n}\n\n.chef-notes p {\n    margin: 0;\n    font-size: 0.95rem;\n}\n\n.recipe-footer {\n    margin-top: 1.5rem;\n    padding-top: 1rem;\n    border-top: 1px solid #E8D8F0;\n    display: flex;\n    justify-content: center;\n    gap: 2rem;\n    font-size: 0.9rem;\n    color: #333333;\n}\n\n.recipe-footer strong {\n    color: #000000;\n}\n\n/* Utility */\n.intro-text {\n    font-size: 1.05rem;\n    line-height: 1.8;\n    color: #333333;\n    margin-bottom: 2rem;\n}\n",
+  "prompt_used": "Video analysis of White Chocolate Cranberry Blondies article",
+  "prompt_base": "Recipe article structure clone",
   "recipe": {
-    "name": "Classic Couscous",
-    "summary": "A simple yet delightful dish that serves as a perfect base for various meals.",
+    "name": "Lamb Couscous",
+    "summary": "A fragrant and hearty dish featuring tender lamb and fluffy couscous, seasoned with spices.",
     "ingredients": [
+      "1 lb lamb shoulder, cut into chunks",
       "1 cup couscous",
-      "1 cup boiling water or broth",
-      "1 tablespoon olive oil",
-      "1/2 teaspoon salt",
-      "Optional: herbs and spices for flavor"
+      "2 cups chicken or vegetable broth",
+      "1 onion, finely chopped",
+      "3 cloves garlic, minced",
+      "1 carrot, diced",
+      "1 bell pepper, diced",
+      "1 tsp cumin",
+      "1 tsp coriander",
+      "1 tsp cinnamon",
+      "Salt and pepper to taste",
+      "2 tbsp olive oil",
+      "Fresh parsley for garnish"
     ],
     "instructions": [
-      "In a bowl, combine couscous, salt, and olive oil.",
-      "Pour boiling water or broth over the couscous.",
-      "Cover and let it sit for 5 minutes.",
-      "Fluff with a fork and add any desired herbs or spices."
+      "In a large pot, heat olive oil over medium heat.",
+      "Add the lamb and brown on all sides.",
+      "Stir in onion, garlic, carrot, and bell pepper; cook until softened.",
+      "Add cumin, coriander, cinnamon, salt, and pepper; stir to combine.",
+      "Pour in the broth and bring to a boil.",
+      "Reduce heat, cover, and simmer for 1 hour until lamb is tender.",
+      "Remove lamb and set aside; stir in couscous.",
+      "Cover and let sit for 5 minutes, then fluff with a fork.",
+      "Serve couscous topped with lamb and garnish with parsley."
     ],
-    "prep_time": "5 minutes",
-    "cook_time": "5 minutes",
-    "total_time": "10 minutes",
+    "prep_time": "20 minutes",
+    "cook_time": "1 hour",
+    "total_time": "1 hour 20 minutes",
     "servings": "4 servings",
-    "calories": "176 calories per serving",
-    "course": "Side Dish",
-    "cuisine": "North African"
+    "calories": "450 calories per serving",
+    "course": "Main Course",
+    "cuisine": "North African",
+    "chef_notes": ""
   },
-  "recipe_title_pin": "Easy couscous Recipe - Perfect for Any Occasion",
-  "pinterest_title": "Best couscous Recipe | Easy & Delicious",
-  "pinterest_description": "Learn how to make the most delicious couscous with this easy step-by-step recipe.",
-  "pinterest_keywords": "couscous, easy recipe, homemade dessert, baking recipe, family favorite",
-  "focus_keyphrase": "easy couscous recipe",
-  "meta_description": "Discover a delicious and easy couscous recipe, perfect for any meal. Fluffy, versatile, and quick to prepare!",
-  "keyphrase_synonyms": "homemade couscous, easy couscous, best couscous recipe",
-  "prompt_midjourney_main": "a beautifully plated couscous dish garnished with herbs and spices --v 6.1",
-  "prompt_midjourney_ingredients": "flat-lay of couscous, olive oil, salt, and fresh herbs --v 6.1",
-  "main_image": "placeholder.jpg",
-  "model_used": "openai"
+  "recipe_title_pin": "Easy Lamb Couscous Recipe Recipe - Perfect for Holidays!",
+  "pinterest_title": "Best Lamb Couscous Recipe | Soft & Chewy",
+  "pinterest_description": "These irresistible Lamb Couscous Recipe are the perfect blend of sweet and tart. Easy to make and perfect for any occasion!",
+  "pinterest_keywords": "blondies, white chocolate, cranberry, dessert, baking, holiday treats, easy recipes, dessert bars",
+  "focus_keyphrase": "white chocolate cranberry blondies",
+  "meta_description": "Make these irresistible Lamb Couscous Recipe! Perfect blend of sweet white chocolate and tart cranberries. Easy recipe with simple ingredients.",
+  "keyphrase_synonyms": "cranberry white chocolate bars, white chocolate blondies, cranberry dessert bars",
+  "main_image": "hero-blondies.jpg",
+  "ingredient_image": "ingredients-flatlay.jpg",
+  "prompt_midjourney_main": "Food photography of white chocolate cranberry blondies cut into squares on a white plate, golden brown edges, visible white chocolate chunks and red cranberries, soft natural lighting, shallow depth of field, rustic kitchen background --ar 16:9 --v 6.1",
+  "prompt_midjourney_ingredients": "Flat lay food photography of ingredients for white chocolate cranberry blondies on white marble: butter block, brown sugar in bowl, white chocolate chips, dried cranberries, eggs, flour, vanilla extract bottle, baking powder --ar 16:9 --v 6.1",
+  "model_used": "openai -> gpt-4o-mini"
 }

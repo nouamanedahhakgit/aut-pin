@@ -181,6 +181,8 @@ class ArticleGenerator:
         if not self.title:
             raise ValueError("[ERROR] CONFIG['title'] must not be empty.")
         self.slug = re.sub(r"[^a-z0-9]+", "-", self.title.lower()).strip("-")
+        self._usage = None
+        self._generation_cost_usd = None
 
     def gpt(self, prompt, max_tokens=600, system=None):
         messages = []
@@ -278,9 +280,12 @@ class ArticleGenerator:
         )
 
         print("[*] Generating all sections in a single JSON API call...")
-        from ai_client import ai_chat
-        raw = ai_chat(self, user, max_tokens=6000, system=system)
-        
+        from ai_client import ai_chat_with_usage
+        raw, usage = ai_chat_with_usage(self, user, max_tokens=6000, system=system)
+        self._usage = usage
+        self._generation_cost_usd = (usage.get("cost") if isinstance(usage, dict) else None) or None
+        if self._generation_cost_usd is not None:
+            self._generation_cost_usd = float(self._generation_cost_usd)
         # Extract json manually for robustness
         text = (raw or "").strip()
         m = re.search(r"```(?:json)?\s*([\s\S]*?)```", text)
@@ -916,7 +921,7 @@ function toggleFaq(btn) {{
     def build_content_data(self, sections, html_content, css_content):
         from ai_client import get_first_category
         cat = get_first_category(self.config)
-        return {
+        content_data = {
             "title": self.title,
             "slug": self.slug,
             "categorieId": str(cat.get("id", "")),
@@ -939,6 +944,11 @@ function toggleFaq(btn) {{
             "prompt_midjourney_main": sections.get("prompt_midjourney_main", ""),
             "prompt_midjourney_ingredients": sections.get("prompt_midjourney_ingredients", "")
         }
+        if getattr(self, "_usage", None) is not None:
+            content_data["usage"] = self._usage
+        if getattr(self, "_generation_cost_usd", None) is not None:
+            content_data["generation_cost_usd"] = self._generation_cost_usd
+        return content_data
 
     def save_files(self, content_data, html_content, css_content):
         out_dir = Path(self.slug)

@@ -1,12 +1,17 @@
-"""Database connection and schema. MySQL only."""
+"""Database connection and schema. Supports MySQL or Supabase (PostgreSQL) via DB_BACKEND in .env."""
 import os
 from contextlib import contextmanager
 
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    # Load .env from this package directory so it's found when running from repo root
+    _env_dir = os.path.dirname(os.path.abspath(__file__))
+    load_dotenv(os.path.join(_env_dir, ".env"))
 except ImportError:
     pass
+
+# DB_BACKEND: mysql | supabase
+DB_BACKEND = os.getenv("DB_BACKEND", "mysql").lower().strip()
 
 MYSQL_CONFIG = {
     "host": os.getenv("MYSQL_HOST", "localhost"),
@@ -17,21 +22,53 @@ MYSQL_CONFIG = {
     "autocommit": True,
 }
 
-# Pre-import cryptography to ensure pymysql can use it
+# Supabase (PostgreSQL): direct URL. If you get "could not translate host name", use pooler URL instead (see below).
+SUPABASE_DB_URL = os.getenv("SUPABASE_DB_URL", "")
+# Optional: use when direct host fails (Dashboard → Project Settings → Database → Connection pooling → Session mode)
+SUPABASE_POOLER_URL = os.getenv("SUPABASE_POOLER_URL", "")
+
+# Pre-import cryptography for pymysql
 try:
-    import cryptography
-    from cryptography.hazmat.primitives.asymmetric import padding
-    from cryptography.hazmat.primitives import serialization, hashes
+    import cryptography  # noqa: F401
 except ImportError:
     pass
+
+
+def _get_mysql_connection():
+    import pymysql
+    return pymysql.connect(**MYSQL_CONFIG, cursorclass=pymysql.cursors.DictCursor)
+
+
+def _get_supabase_connection():
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    urls_to_try = [u for u in (SUPABASE_DB_URL, SUPABASE_POOLER_URL) if u and u.strip()]
+    if not urls_to_try:
+        raise ValueError(
+            "DB_BACKEND=supabase requires SUPABASE_DB_URL (or SUPABASE_POOLER_URL) in .env. "
+            "If direct host fails, use Connection pooling URL from Dashboard → Database."
+        )
+    last_error = None
+    for url in urls_to_try:
+        url = url.strip()
+        try:
+            return psycopg2.connect(url, cursor_factory=RealDictCursor)
+        except Exception as e:
+            last_error = e
+            if "could not translate host name" in str(e).lower() or "resolve" in str(e).lower():
+                continue  # try next URL (e.g. pooler)
+            raise
+    raise last_error
 
 
 @contextmanager
 def get_connection():
     conn = None
     try:
-        import pymysql
-        conn = pymysql.connect(**MYSQL_CONFIG, cursorclass=pymysql.cursors.DictCursor)
+        if DB_BACKEND == "supabase":
+            conn = _get_supabase_connection()
+        else:
+            conn = _get_mysql_connection()
         yield conn
         if conn:
             conn.commit()
@@ -56,14 +93,16 @@ def get_connection():
 
 def init_db():
     """Create tables if they do not exist."""
-    _init_mysql()
+    if DB_BACKEND == "supabase":
+        _init_supabase()
+    else:
+        _init_mysql()
 
 
 def _init_mysql():
     with get_connection() as conn:
         cursor = conn.cursor()
-        
-        # Users table
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -75,8 +114,6 @@ def _init_mysql():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        
-        # User API keys table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS user_api_keys (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -97,14 +134,13 @@ def _init_mysql():
                 local_api_url TEXT,
                 local_models TEXT,
                 default_categories TEXT,
+                bulk_max_concurrency INT DEFAULT 6,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                 UNIQUE KEY unique_user_keys (user_id)
             )
         """)
-        
-        # User-domain associations
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS user_domains (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -116,8 +152,6 @@ def _init_mysql():
                 UNIQUE KEY unique_user_domain (user_id, domain_id)
             )
         """)
-        
-        # User-group associations (many-to-many: users can access multiple groups)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS user_groups (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -129,7 +163,6 @@ def _init_mysql():
                 UNIQUE KEY unique_user_group (user_id, group_id)
             )
         """)
-        
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS `groups` (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -173,236 +206,492 @@ def _init_mysql():
                 FOREIGN KEY (title_id) REFERENCES titles(id)
             )
         """)
-        # Migration: add columns if missing
+        _run_mysql_migrations(cursor)
+        _run_mysql_migrations_part2(cursor)
+
+
+def _run_mysql_migrations(cursor):
+    """MySQL-specific migrations."""
+    try:
+        cursor.execute("ALTER TABLE domains ADD COLUMN group_id INT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE `groups` ADD COLUMN parent_group_id INT DEFAULT NULL")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE `groups` ADD CONSTRAINT fk_parent_group FOREIGN KEY (parent_group_id) REFERENCES `groups`(id) ON DELETE SET NULL")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE domains ADD COLUMN domain_index INT")
+    except Exception:
+        pass
+    for col in ("article", "prompt_image_ingredients", "recipe_title_pin", "pinterest_title", "pinterest_description",
+                "pinterest_keywords", "focus_keyphrase", "meta_description", "keyphrase_synonyms", "main_image", "ingredient_image", "article_css"):
         try:
-            cursor.execute("ALTER TABLE domains ADD COLUMN group_id INT")
+            cursor.execute(f"ALTER TABLE article_content ADD COLUMN {col} TEXT")
         except Exception:
             pass
+    try:
+        cursor.execute("ALTER TABLE domains ADD COLUMN website_template TEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE domains ADD COLUMN categories_list TEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE domains ADD COLUMN last_pin_template_index INT DEFAULT 0")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE domains ADD COLUMN article_template_config LONGTEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE domains ADD COLUMN article_template_preview_url VARCHAR(512)")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE domains ADD COLUMN article_html_snippets LONGTEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE domains ADD COLUMN article_template_name VARCHAR(255)")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE domains ADD COLUMN domain_colors LONGTEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE domains ADD COLUMN domain_fonts LONGTEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE domains ADD COLUMN writers LONGTEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE domains ADD COLUMN last_writer_index INT DEFAULT 0")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE article_content ADD COLUMN pin_image TEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE article_content ADD COLUMN writer LONGTEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE article_content ADD COLUMN writer_avatar TEXT")
+    except Exception:
+        pass
+    for col in ("top_image", "bottom_image", "avatar_image", "article_html"):
         try:
-            cursor.execute("ALTER TABLE `groups` ADD COLUMN parent_group_id INT DEFAULT NULL")
+            cursor.execute(f"ALTER TABLE article_content ADD COLUMN {col} TEXT")
         except Exception:
             pass
+    for col in ("model_used",):
         try:
-            cursor.execute("ALTER TABLE `groups` ADD CONSTRAINT fk_parent_group FOREIGN KEY (parent_group_id) REFERENCES `groups`(id) ON DELETE SET NULL")
+            cursor.execute(f"ALTER TABLE article_content ADD COLUMN {col} VARCHAR(255)")
         except Exception:
             pass
+    try:
+        cursor.execute("ALTER TABLE article_content ADD COLUMN generated_at DATETIME")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE article_content ADD COLUMN generation_time_seconds INT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE article_content ADD COLUMN validated TINYINT(1) DEFAULT 0")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE article_content ADD COLUMN generation_cost_usd DECIMAL(12,6)")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE article_content ADD COLUMN usage_json TEXT")
+    except Exception:
+        pass
+
+
+def _run_mysql_migrations_part2(cursor):
+    """More MySQL migrations."""
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS domain_templates (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            domain_id INT NOT NULL,
+            name VARCHAR(255) NOT NULL,
+            template_json LONGTEXT NOT NULL,
+            sort_order INT DEFAULT 0,
+            preview_image_url TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (domain_id) REFERENCES domains(id)
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS domain_template_assignments (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            domain_id INT NOT NULL,
+            template_id INT NOT NULL,
+            sort_order INT DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (domain_id) REFERENCES domains(id) ON DELETE CASCADE,
+            FOREIGN KEY (template_id) REFERENCES domain_templates(id) ON DELETE CASCADE,
+            UNIQUE KEY unique_domain_template (domain_id, template_id)
+        )
+    """)
+    try:
+        cursor.execute("ALTER TABLE domain_templates ADD COLUMN preview_image_url TEXT")
+    except Exception:
+        pass
+    for col in ("header_template", "footer_template", "side_article_template", "category_page_template", "writer_template", "index_template", "article_card_template"):
         try:
-            cursor.execute("ALTER TABLE domains ADD COLUMN domain_index INT")
+            cursor.execute(f"ALTER TABLE domains ADD COLUMN {col} VARCHAR(255)")
         except Exception:
             pass
-        for col in ("article", "prompt_image_ingredients", "recipe_title_pin", "pinterest_title", "pinterest_description",
-                    "pinterest_keywords", "focus_keyphrase", "meta_description", "keyphrase_synonyms", "main_image", "ingredient_image", "article_css"):
+    for col in ("domain_page_about_us", "domain_page_terms_of_use", "domain_page_privacy_policy",
+                "domain_page_gdpr_policy", "domain_page_cookie_policy", "domain_page_copyright_policy",
+                "domain_page_disclaimer", "domain_page_contact_us"):
+        try:
+            cursor.execute(f"ALTER TABLE domains ADD COLUMN {col} LONGTEXT")
+        except Exception:
+            pass
+    try:
+        cursor.execute("ALTER TABLE domains ADD COLUMN cloudflare_info LONGTEXT")
+    except Exception:
+        pass
+    for col in ("user_id",):
+        for tbl in ("groups", "domains", "titles"):
             try:
-                cursor.execute(f"ALTER TABLE article_content ADD COLUMN {col} TEXT")
+                cursor.execute(f"ALTER TABLE {tbl} ADD COLUMN {col} INT")
             except Exception:
                 pass
+    try:
+        cursor.execute("ALTER TABLE user_api_keys ADD COLUMN cloned_from_user_id INT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE user_api_keys ADD COLUMN cloned_at TIMESTAMP NULL DEFAULT NULL")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE user_api_keys ADD COLUMN bulk_max_concurrency INT DEFAULT 6")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE user_api_keys ADD COLUMN ai_provider VARCHAR(32) DEFAULT NULL")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE domains ADD COLUMN pinterest_board_id VARCHAR(255)")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE domains ADD COLUMN pinterest_access_token TEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE domains ADD COLUMN pinterest_refresh_token TEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE domains ADD COLUMN pinterest_app_id VARCHAR(255)")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE domains ADD COLUMN pinterest_app_secret TEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE domains ADD COLUMN visual_customizations LONGTEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE domains ADD COLUMN pinterest_mode VARCHAR(32) DEFAULT NULL")
+    except Exception:
+        pass
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS pinterest_schedule (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            title_id INT NOT NULL,
+            scheduled_at DATETIME NOT NULL,
+            status VARCHAR(32) DEFAULT 'pending',
+            posted_at DATETIME,
+            error TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_status (status),
+            INDEX idx_scheduled_at (scheduled_at)
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS app_logs (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            log_type VARCHAR(64) NOT NULL,
+            application VARCHAR(64) DEFAULT 'multi-domain',
+            success TINYINT(1) DEFAULT 0,
+            title_id INT,
+            domain_id INT,
+            group_id INT,
+            job_id VARCHAR(128),
+            message TEXT,
+            reason TEXT,
+            details LONGTEXT,
+            INDEX idx_log_type (log_type),
+            INDEX idx_application (application),
+            INDEX idx_success (success),
+            INDEX idx_title_id (title_id),
+            INDEX idx_domain_id (domain_id),
+            INDEX idx_job_id (job_id),
+            INDEX idx_created_at (created_at)
+        )
+    """)
+
+
+def _init_supabase():
+    """PostgreSQL schema for Supabase."""
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(255) NOT NULL UNIQUE,
+                password_hash VARCHAR(255) NOT NULL,
+                email VARCHAR(255),
+                is_admin SMALLINT DEFAULT 0,
+                is_active SMALLINT DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS "groups" (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                parent_group_id INT DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                user_id INT,
+                FOREIGN KEY (parent_group_id) REFERENCES "groups"(id) ON DELETE SET NULL
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS domains (
+                id SERIAL PRIMARY KEY,
+                domain_url TEXT NOT NULL,
+                domain_name VARCHAR(255) NOT NULL,
+                group_id INT,
+                domain_index INT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                user_id INT,
+                FOREIGN KEY (group_id) REFERENCES "groups"(id)
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS user_api_keys (
+                id SERIAL PRIMARY KEY,
+                user_id INT NOT NULL,
+                openai_api_key TEXT,
+                openai_model VARCHAR(255),
+                openrouter_api_key TEXT,
+                openrouter_model VARCHAR(255),
+                midjourney_api_token TEXT,
+                midjourney_channel_id VARCHAR(255),
+                r2_account_id VARCHAR(255),
+                r2_access_key_id VARCHAR(255),
+                r2_secret_access_key TEXT,
+                r2_bucket_name VARCHAR(255),
+                r2_public_url TEXT,
+                cloudflare_account_id VARCHAR(255),
+                cloudflare_api_token TEXT,
+                local_api_url TEXT,
+                local_models TEXT,
+                default_categories TEXT,
+                bulk_max_concurrency INT DEFAULT 6,
+                cloned_from_user_id INT,
+                cloned_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                UNIQUE (user_id)
+            )
+        """)
         try:
-            cursor.execute("ALTER TABLE domains ADD COLUMN website_template TEXT")
+            cur.execute("ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS bulk_max_concurrency INT DEFAULT 6")
         except Exception:
             pass
         try:
-            cursor.execute("ALTER TABLE domains ADD COLUMN categories_list TEXT")
+            cur.execute("ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS ai_provider VARCHAR(32) DEFAULT NULL")
+        except Exception:
+            pass
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS user_domains (
+                id SERIAL PRIMARY KEY,
+                user_id INT NOT NULL,
+                domain_id INT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (domain_id) REFERENCES domains(id) ON DELETE CASCADE,
+                UNIQUE (user_id, domain_id)
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS user_groups (
+                id SERIAL PRIMARY KEY,
+                user_id INT NOT NULL,
+                group_id INT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (group_id) REFERENCES "groups"(id) ON DELETE CASCADE,
+                UNIQUE (user_id, group_id)
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS titles (
+                id SERIAL PRIMARY KEY,
+                title TEXT NOT NULL,
+                domain_id INT,
+                group_id INT,
+                user_id INT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (domain_id) REFERENCES domains(id),
+                FOREIGN KEY (group_id) REFERENCES "groups"(id)
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS article_content (
+                id SERIAL PRIMARY KEY,
+                title_id INT NOT NULL,
+                language_code VARCHAR(10) DEFAULT 'en',
+                recipe TEXT,
+                prompt TEXT,
+                content TEXT,
+                article TEXT,
+                prompt_image_ingredients TEXT,
+                recipe_title_pin TEXT,
+                pinterest_title TEXT,
+                pinterest_description TEXT,
+                pinterest_keywords TEXT,
+                focus_keyphrase TEXT,
+                meta_description TEXT,
+                keyphrase_synonyms TEXT,
+                main_image TEXT,
+                ingredient_image TEXT,
+                article_css TEXT,
+                pin_image TEXT,
+                writer TEXT,
+                writer_avatar TEXT,
+                top_image TEXT,
+                bottom_image TEXT,
+                avatar_image TEXT,
+                article_html TEXT,
+                model_used VARCHAR(255),
+                generated_at TIMESTAMP,
+                generation_time_seconds INT,
+                validated SMALLINT DEFAULT 0,
+                generation_cost_usd NUMERIC(12,6),
+                usage_json TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (title_id) REFERENCES titles(id)
+            )
+        """)
+        try:
+            cur.execute("ALTER TABLE article_content ADD COLUMN IF NOT EXISTS generation_cost_usd NUMERIC(12,6)")
         except Exception:
             pass
         try:
-            cursor.execute("ALTER TABLE domains ADD COLUMN last_pin_template_index INT DEFAULT 0")
+            cur.execute("ALTER TABLE article_content ADD COLUMN IF NOT EXISTS usage_json TEXT")
         except Exception:
             pass
-        try:
-            cursor.execute("ALTER TABLE domains ADD COLUMN article_template_config LONGTEXT")
-        except Exception:
-            pass
-        try:
-            cursor.execute("ALTER TABLE domains ADD COLUMN article_template_preview_url VARCHAR(512)")
-        except Exception:
-            pass
-        try:
-            cursor.execute("ALTER TABLE domains ADD COLUMN article_html_snippets LONGTEXT")
-        except Exception:
-            pass
-        try:
-            cursor.execute("ALTER TABLE domains ADD COLUMN article_template_name VARCHAR(255)")
-        except Exception:
-            pass
-        try:
-            cursor.execute("ALTER TABLE domains ADD COLUMN domain_colors LONGTEXT")
-        except Exception:
-            pass
-        try:
-            cursor.execute("ALTER TABLE domains ADD COLUMN domain_fonts LONGTEXT")
-        except Exception:
-            pass
-        try:
-            cursor.execute("ALTER TABLE domains ADD COLUMN writers LONGTEXT")
-        except Exception:
-            pass
-        try:
-            cursor.execute("ALTER TABLE domains ADD COLUMN last_writer_index INT DEFAULT 0")
-        except Exception:
-            pass
-        try:
-            cursor.execute("ALTER TABLE article_content ADD COLUMN pin_image TEXT")
-        except Exception:
-            pass
-        try:
-            cursor.execute("ALTER TABLE article_content ADD COLUMN writer LONGTEXT")
-        except Exception:
-            pass
-        try:
-            cursor.execute("ALTER TABLE article_content ADD COLUMN writer_avatar TEXT")
-        except Exception:
-            pass
-        for col in ("top_image", "bottom_image", "avatar_image", "article_html"):
-            try:
-                cursor.execute(f"ALTER TABLE article_content ADD COLUMN {col} TEXT")
-            except Exception:
-                pass
-        for col in ("model_used",):
-            try:
-                cursor.execute(f"ALTER TABLE article_content ADD COLUMN {col} VARCHAR(255)")
-            except Exception:
-                pass
-        try:
-            cursor.execute("ALTER TABLE article_content ADD COLUMN generated_at DATETIME")
-        except Exception:
-            pass
-        try:
-            cursor.execute("ALTER TABLE article_content ADD COLUMN generation_time_seconds INT")
-        except Exception:
-            pass
-        try:
-            cursor.execute("ALTER TABLE article_content ADD COLUMN validated TINYINT(1) DEFAULT 0")
-        except Exception:
-            pass
-        cursor.execute("""
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS domain_templates (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 domain_id INT NOT NULL,
                 name VARCHAR(255) NOT NULL,
-                template_json LONGTEXT NOT NULL,
+                template_json TEXT NOT NULL,
                 sort_order INT DEFAULT 0,
                 preview_image_url TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (domain_id) REFERENCES domains(id)
             )
         """)
-        
-        # Domain template assignments (pin templates assigned to domains)
-        cursor.execute("""
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS domain_template_assignments (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 domain_id INT NOT NULL,
                 template_id INT NOT NULL,
                 sort_order INT DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (domain_id) REFERENCES domains(id) ON DELETE CASCADE,
                 FOREIGN KEY (template_id) REFERENCES domain_templates(id) ON DELETE CASCADE,
-                UNIQUE KEY unique_domain_template (domain_id, template_id)
+                UNIQUE (domain_id, template_id)
             )
         """)
-        try:
-            cursor.execute("ALTER TABLE domain_templates ADD COLUMN preview_image_url TEXT")
-        except Exception:
-            pass
-        for col in ("header_template", "footer_template", "side_article_template", "category_page_template", "writer_template", "index_template", "article_card_template"):
-            try:
-                cursor.execute(f"ALTER TABLE domains ADD COLUMN {col} VARCHAR(255)")
-            except Exception:
-                pass
-        for col in ("domain_page_about_us", "domain_page_terms_of_use", "domain_page_privacy_policy",
+        for col in ("website_template", "categories_list", "last_pin_template_index", "article_template_config",
+                    "article_template_preview_url", "article_html_snippets", "article_template_name",
+                    "domain_colors", "domain_fonts", "writers", "last_writer_index",
+                    "header_template", "footer_template", "side_article_template", "category_page_template",
+                    "writer_template", "index_template", "article_card_template",
+                    "domain_page_about_us", "domain_page_terms_of_use", "domain_page_privacy_policy",
                     "domain_page_gdpr_policy", "domain_page_cookie_policy", "domain_page_copyright_policy",
-                    "domain_page_disclaimer", "domain_page_contact_us"):
+                    "domain_page_disclaimer", "domain_page_contact_us",
+                    "cloudflare_info", "pinterest_board_id", "pinterest_access_token", "pinterest_refresh_token",
+                    "pinterest_app_id", "pinterest_app_secret", "visual_customizations", "pinterest_mode"):
             try:
-                cursor.execute(f"ALTER TABLE domains ADD COLUMN {col} LONGTEXT")
+                cur.execute(f'ALTER TABLE domains ADD COLUMN IF NOT EXISTS {col} TEXT')
             except Exception:
-                pass
-        try:
-            cursor.execute("ALTER TABLE domains ADD COLUMN cloudflare_info LONGTEXT")
-        except Exception:
-            pass
-        
-        # Add user_id columns for multi-user support
-        try:
-            cursor.execute("ALTER TABLE `groups` ADD COLUMN user_id INT")
-        except Exception:
-            pass
-        try:
-            cursor.execute("ALTER TABLE domains ADD COLUMN user_id INT")
-        except Exception:
-            pass
-        try:
-            cursor.execute("ALTER TABLE titles ADD COLUMN user_id INT")
-        except Exception:
-            pass
-        try:
-            cursor.execute("ALTER TABLE domains ADD COLUMN pinterest_board_id VARCHAR(255)")
-        except Exception:
-            pass
-        try:
-            cursor.execute("ALTER TABLE domains ADD COLUMN pinterest_access_token TEXT")
-        except Exception:
-            pass
-        try:
-            cursor.execute("ALTER TABLE domains ADD COLUMN pinterest_refresh_token TEXT")
-        except Exception:
-            pass
-        try:
-            cursor.execute("ALTER TABLE domains ADD COLUMN pinterest_app_id VARCHAR(255)")
-        except Exception:
-            pass
-        try:
-            cursor.execute("ALTER TABLE domains ADD COLUMN pinterest_app_secret TEXT")
-        except Exception:
-            pass
-        try:
-            cursor.execute("ALTER TABLE domains ADD COLUMN visual_customizations LONGTEXT")
-        except Exception:
-            pass
-        try:
-            cursor.execute("ALTER TABLE domains ADD COLUMN pinterest_mode VARCHAR(32) DEFAULT NULL")
-        except Exception:
-            pass
-        cursor.execute("""
+                try:
+                    cur.execute(f'ALTER TABLE domains ADD COLUMN IF NOT EXISTS {col} VARCHAR(255)')
+                except Exception:
+                    pass
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS pinterest_schedule (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 title_id INT NOT NULL,
-                scheduled_at DATETIME NOT NULL,
+                scheduled_at TIMESTAMP NOT NULL,
                 status VARCHAR(32) DEFAULT 'pending',
-                posted_at DATETIME,
+                posted_at TIMESTAMP,
                 error TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                INDEX idx_status (status),
-                INDEX idx_scheduled_at (scheduled_at)
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        cursor.execute("""
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_pinterest_schedule_status ON pinterest_schedule(status)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_pinterest_schedule_scheduled_at ON pinterest_schedule(scheduled_at)")
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS app_logs (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 log_type VARCHAR(64) NOT NULL,
                 application VARCHAR(64) DEFAULT 'multi-domain',
-                success TINYINT(1) DEFAULT 0,
+                success SMALLINT DEFAULT 0,
                 title_id INT,
                 domain_id INT,
                 group_id INT,
                 job_id VARCHAR(128),
                 message TEXT,
                 reason TEXT,
-                details LONGTEXT,
-                INDEX idx_log_type (log_type),
-                INDEX idx_application (application),
-                INDEX idx_success (success),
-                INDEX idx_title_id (title_id),
-                INDEX idx_domain_id (domain_id),
-                INDEX idx_job_id (job_id),
-                INDEX idx_created_at (created_at)
+                details TEXT
             )
         """)
+        for idx in ("idx_log_type", "idx_application", "idx_success", "idx_title_id", "idx_domain_id", "idx_job_id", "idx_created_at"):
+            col = idx.replace("idx_", "")
+            try:
+                cur.execute(f"CREATE INDEX IF NOT EXISTS {idx} ON app_logs({col})")
+            except Exception:
+                pass
 
 
 def execute(conn, query, params=None):
-    """Execute query. Use ? placeholders; they are converted to %s for MySQL."""
+    """Execute query. Use ? placeholders; they are converted to %s. For Supabase, backticks become double-quotes."""
     q = query.replace("?", "%s")
+    if DB_BACKEND == "supabase":
+        q = q.replace("`", '"')
     cur = conn.cursor()
     if params:
         cur.execute(q, params)
@@ -413,7 +702,44 @@ def execute(conn, query, params=None):
 
 def last_insert_id(cursor):
     """Return last insert ID. Pass the cursor that did the INSERT."""
-    return cursor.lastrowid if cursor else None
+    if cursor is None:
+        return None
+    if hasattr(cursor, "lastrowid") and cursor.lastrowid is not None:
+        return cursor.lastrowid
+    if DB_BACKEND == "supabase":
+        try:
+            cursor.execute("SELECT lastval()")
+            row = cursor.fetchone()
+            return list(row.values())[0] if row and hasattr(row, "values") else (row[0] if row else None)
+        except Exception:
+            return None
+    return None
+
+
+def get_fk_children(conn, table_name, pk_column):
+    """Return list of (child_table, child_column) referencing table_name.pk_column. Works for MySQL and PostgreSQL."""
+    if DB_BACKEND == "supabase":
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT tc.table_name AS table_name, kcu.column_name AS column_name
+            FROM information_schema.table_constraints tc
+            JOIN information_schema.key_column_usage kcu
+                ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
+            JOIN information_schema.constraint_column_usage ccu
+                ON ccu.constraint_name = tc.constraint_name AND ccu.table_schema = tc.table_schema
+            WHERE tc.constraint_type = 'FOREIGN KEY'
+              AND ccu.table_name = %s AND ccu.column_name = %s
+        """, (table_name, pk_column))
+    else:
+        cur = execute(conn, """
+            SELECT TABLE_NAME AS table_name, COLUMN_NAME AS column_name
+            FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+            WHERE REFERENCED_TABLE_SCHEMA = DATABASE()
+              AND REFERENCED_TABLE_NAME = %s
+              AND REFERENCED_COLUMN_NAME = %s
+        """, (table_name, pk_column))
+    rows = cur.fetchall() or []
+    return [(r.get("table_name", ""), r.get("column_name", "")) for r in rows if r.get("table_name") and r.get("column_name")]
 
 
 def dict_row(row):
