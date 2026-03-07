@@ -454,6 +454,29 @@ def _run_mysql_migrations_part2(cursor):
             INDEX idx_created_at (created_at)
         )
     """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS writers_pool (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            name VARCHAR(255) NOT NULL DEFAULT '',
+            title VARCHAR(255) NOT NULL DEFAULT '',
+            bio TEXT,
+            avatar TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            INDEX idx_writers_pool_user (user_id)
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS pin_template_pool (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) NOT NULL UNIQUE,
+            template_json LONGTEXT NOT NULL,
+            preview_image_url TEXT,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_pin_template_pool_name (name)
+        )
+    """)
 
 
 def _init_supabase():
@@ -685,6 +708,35 @@ def _init_supabase():
                 cur.execute(f"CREATE INDEX IF NOT EXISTS {idx} ON app_logs({col})")
             except Exception:
                 pass
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS writers_pool (
+                id SERIAL PRIMARY KEY,
+                user_id INT NOT NULL,
+                name VARCHAR(255) NOT NULL DEFAULT '',
+                title VARCHAR(255) NOT NULL DEFAULT '',
+                bio TEXT,
+                avatar TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        """)
+        try:
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_writers_pool_user ON writers_pool(user_id)")
+        except Exception:
+            pass
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS pin_template_pool (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL UNIQUE,
+                template_json TEXT NOT NULL,
+                preview_image_url TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        try:
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_pin_template_pool_name ON pin_template_pool(name)")
+        except Exception:
+            pass
 
 
 def execute(conn, query, params=None):

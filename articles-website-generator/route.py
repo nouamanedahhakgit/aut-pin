@@ -388,15 +388,18 @@ def generate_article(generator_name: str, config: dict = Body(...)):
     if ArticleGenerator is None:
         raise HTTPException(status_code=500, detail="Generator module has no ArticleGenerator class")
 
-    max_attempts = 3  # first try + 2 retries when OpenRouter (on any error or bad content)
+    # When a full ordered list is provided (multi-domain-clean builds it with user's pick first),
+    # try each model sequentially (up to 3 per round). Spread attempts across list for diversity.
+    max_attempts = 3  # per call from multi-domain-clean (it calls us multiple rounds)
     content_data = None
     last_error = None
 
     try:
         for attempt in range(max_attempts):
-            # Set OpenRouter model: rotate to a different model each attempt (spread across list for diversity)
+            # Set OpenRouter model: rotate to a different model each attempt
+            # Use consecutive offset when full list provided (base_idx already advances per round)
             if ai_provider == "openrouter":
-                offset = OPENROUTER_RETRY_OFFSETS[attempt] if attempt < len(OPENROUTER_RETRY_OFFSETS) else attempt
+                offset = attempt if len(models_to_use) <= 6 else OPENROUTER_RETRY_OFFSETS[attempt] if attempt < len(OPENROUTER_RETRY_OFFSETS) else attempt
                 model_idx = (base_idx + offset) % len(models_to_use)
                 chosen_model = models_to_use[model_idx]
                 merged["openrouter_model"] = chosen_model
@@ -485,6 +488,12 @@ def generate_article(generator_name: str, config: dict = Body(...)):
                 )
             raise RuntimeError(last_error or "Generator did not return data")
         if _is_content_failure(content_data):
+            html = (content_data or {}).get("article_html") or (content_data or {}).get("article") or ""
+            log.warning(
+                "[generate-article] content failure: article_html len=%s, placeholder=%s",
+                len(html) if isinstance(html, str) else 0,
+                FAILED_CONTENT_PLACEHOLDER in (html or ""),
+            )
             raise ValueError(
                 "Content generation failed after %s attempt(s). Please try again or use another model."
                 % max_attempts

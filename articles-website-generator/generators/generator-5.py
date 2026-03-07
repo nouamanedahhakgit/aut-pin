@@ -166,6 +166,46 @@ class ArticleGenerator:
         s = re.sub(r'\*([^*]+)\*', r'\1', s)
         return s.strip()
 
+    def _ensure_phrase(self, s):
+        """If string looks like char-split ('T h i s' or 'T\\nh\\ni\\ns'), coalesce to 'This'."""
+        if not s or not isinstance(s, str):
+            return str(s or "").strip()
+        s = str(s).strip()
+        parts = re.split(r"[\s\n]+", s)
+        if len(parts) >= 3 and all(len(p) == 1 for p in parts if p):
+            return "".join(p for p in parts if p)
+        return s
+
+    def _ensure_str_list(self, val, max_items=None):
+        """Ensure value is a list of strings. If AI returns a string, wrap as one item.
+        If AI returns a list of single characters (e.g. ['H','i','g','h','l','i','g','h','t','s']),
+        coalesce into one string. Handle nested lists and newline-split strings."""
+        if val is None:
+            return []
+        if isinstance(val, str):
+            fixed = self._ensure_phrase(val)
+            return [fixed] if fixed else []
+        if isinstance(val, list):
+            flat = []
+            for x in val:
+                if isinstance(x, (list, tuple)):
+                    inner = self._ensure_str_list(x)
+                    flat.extend(inner)
+                else:
+                    s = str(x).strip()
+                    if s:
+                        flat.append(s)
+            out = []
+            for s in flat:
+                fixed = self._ensure_phrase(s)
+                if fixed:
+                    out.append(fixed)
+            # Coalesce character-split: 3+ single-char items in a row → one string
+            if len(out) >= 3 and all(len(s) == 1 for s in out):
+                out = ["".join(out)]
+            return out[:max_items] if max_items else out
+        return []
+
     def _chat(self, prompt, max_tokens=500):
         from ai_client import ai_chat
         system = (
@@ -363,23 +403,40 @@ class ArticleGenerator:
             "meta_description": "120-140 chars", "pinterest_title": "string",
             "prompt_midjourney_main": "string ending --v 6.1", "prompt_midjourney_ingredients": "string ending --v 6.1",
         }
-        system = "You are a refined food writer. Generate the full article as ONE JSON. Plain text only: no markdown. All content only about the recipe title."
-        user = f"Generate the complete recipe article for '{self.title}' as JSON with keys: {json.dumps(list(schema.keys()))}. Return ONLY valid JSON."
+        system = (
+            "You are a refined food writer. Generate the full article as ONE JSON. Plain text only: no markdown. All content only about the recipe title. "
+            "CRITICAL: For array fields (highlights, tips, ingredient_list, steps), return arrays of COMPLETE PHRASES. "
+            "NEVER split words into single-character elements. Each array element must be a full sentence or phrase. "
+            "WRONG: {\"highlights\": [\"H\",\"i\",\"g\",\"h\",\"l\",\"i\",\"g\",\"h\",\"t\",\"s\"]} or steps with heading \"S\" body \"t\". "
+            "RIGHT: {\"highlights\": [\"Quick to make\", \"Family favorite\", \"Uses pantry staples\", \"Freezer-friendly\"]}, steps: [{\"heading\": \"Step 1\", \"body\": \"Preheat oven.\"}]"
+        )
+        user = f"Generate the complete recipe article for '{self.title}' as JSON with keys: {json.dumps(list(schema.keys()))}. Return ONLY valid JSON. Each array element must be a complete phrase—never single characters."
         raw = ai_chat(self, user, max_tokens=4500, system=system)
         data = self._extract_json(raw)
         if data:
             print("[*] Generated content via single JSON.")
-            intro_p1 = self._strip_markdown(str(data.get("intro_p1", "")))
-            intro_p2 = self._strip_markdown(str(data.get("intro_p2", "")))
-            highlights = [self._strip_markdown(str(x)) for x in (data.get("highlights") or [])[:4]]
-            ing_intro = self._strip_markdown(str(data.get("ingredients_intro", "")))
-            ing_list = [str(x).strip() for x in (data.get("ingredient_list") or [])[:10]]
-            steps_raw = data.get("steps") or []
-            steps = [{"heading": str(s.get("heading", f"Step {i}")).strip() if isinstance(s, dict) else f"Step {i}", "body": self._strip_markdown(str(s.get("body", "")) if isinstance(s, dict) else "")} for i, s in enumerate(steps_raw[:4], 1)]
-            tips = [self._strip_markdown(str(x)) for x in (data.get("tips") or [])[:4]]
-            conclusion = self._strip_markdown(str(data.get("conclusion", "")))
+            intro_p1 = self._ensure_phrase(self._strip_markdown(str(data.get("intro_p1", ""))))
+            intro_p2 = self._ensure_phrase(self._strip_markdown(str(data.get("intro_p2", ""))))
+            highlights = [self._strip_markdown(x) for x in self._ensure_str_list(data.get("highlights"), 4)]
+            ing_intro = self._ensure_phrase(self._strip_markdown(str(data.get("ingredients_intro", ""))))
+            ing_list = self._ensure_str_list(data.get("ingredient_list"), 10)
+            steps_raw = data.get("steps")
+            steps = []
+            if isinstance(steps_raw, list):
+                for i, s in enumerate(steps_raw[:4], 1):
+                    if isinstance(s, dict):
+                        h = self._ensure_phrase(str(s.get("heading", f"Step {i}")).strip()) or f"Step {i}"
+                        b = self._ensure_phrase(self._strip_markdown(str(s.get("body", ""))))
+                        steps.append({"heading": h, "body": b})
+                    else:
+                        steps.append({"heading": f"Step {i}", "body": self._strip_markdown(str(s))})
+            if len(steps) < 4:
+                for i in range(len(steps), 4):
+                    steps.append({"heading": f"Step {i+1}", "body": ""})
+            tips = [self._strip_markdown(x) for x in self._ensure_str_list(data.get("tips"), 4)]
+            conclusion = self._ensure_phrase(self._strip_markdown(str(data.get("conclusion", ""))))
             faqs_raw = data.get("faqs") or []
-            faqs = [{"question": str(f.get("question", "")).strip(), "answer": self._strip_markdown(str(f.get("answer", "")))} for f in faqs_raw[:3] if isinstance(f, dict)]
+            faqs = [{"question": self._ensure_phrase(str(f.get("question", "")).strip()), "answer": self._ensure_phrase(self._strip_markdown(str(f.get("answer", ""))))} for f in faqs_raw[:3] if isinstance(f, dict)]
             if recipe_from_config:
                 defaults = {"name": self.title, "summary": "", "ingredients": [], "instructions": [], "prep_time": "15 min", "cook_time": "25 min", "total_time": "40 min", "servings": "4", "calories": "380", "course": "Main Course", "cuisine": "International"}
                 recipe = {**defaults, **{k: v for k, v in existing.items() if v is not None and v != ""}}
@@ -662,26 +719,38 @@ a:hover {{ text-decoration: underline; }}
         for s in sections:
             sec[s["key"]] = s["content"]
 
-        highlights = sec.get("highlights", [])
+        highlights = self._ensure_str_list(sec.get("highlights"), 10)
         hl_html = "".join(f"  <li>{h}</li>\n" for h in highlights)
 
-        ing_list = sec.get("ingredient_list", [])
+        ing_list = self._ensure_str_list(sec.get("ingredient_list"), 20)
         ing_li = "".join(f"  <li>{it}</li>\n" for it in ing_list)
 
-        steps = sec.get("instructions_steps", [])
+        steps = sec.get("instructions_steps", []) or []
+        if isinstance(steps, dict):
+            steps = [steps]
+        if isinstance(steps, list) and steps and not isinstance(steps[0], dict):
+            # AI returned list of strings (e.g. ["Step 1 text", "Step 2 text"]) — wrap as {heading, body}
+            step_strs = self._ensure_str_list(steps, 8)
+            steps = [{"heading": f"Step {i+1}", "body": s} for i, s in enumerate(step_strs)]
+        else:
+            steps = [s for s in steps if isinstance(s, dict)][:8]
         steps_html = ""
         for i, step in enumerate(steps):
-            h = step.get("heading", f"Step {i+1}")
-            b = step.get("body", "")
+            h = self._ensure_phrase(step.get("heading", f"Step {i+1}")) or f"Step {i+1}"
+            b = self._ensure_phrase(step.get("body", ""))
             steps_html += f'<div class="step-item"><span class="step-number">{i+1}.</span><div class="step-body"><h3>{h}</h3><p>{b}</p></div></div>\n'
 
-        tips = sec.get("tips", [])
+        tips = self._ensure_str_list(sec.get("tips"), 6)
         tips_li = "".join(f"  <li>{tip}</li>\n" for tip in tips)
 
-        faqs = sec.get("faqs", [])
+        faqs = sec.get("faqs", []) or []
+        if isinstance(faqs, (str, dict)):
+            faqs = [faqs] if isinstance(faqs, dict) else []
         faq_html = ""
         for fq in faqs:
-            faq_html += f'  <div class="faq-item"><button class="faq-question" onclick="toggleFaq(this)">{fq.get("question","")}</button><div class="faq-answer">{fq.get("answer","")}</div></div>\n'
+            if not isinstance(fq, dict):
+                continue
+            faq_html += f'  <div class="faq-item"><button class="faq-question" onclick="toggleFaq(this)">{self._ensure_phrase(fq.get("question",""))}</button><div class="faq-answer">{self._ensure_phrase(fq.get("answer",""))}</div></div>\n'
 
         recipe = sec.get("recipe") or self._gen_recipe()
         if not isinstance(recipe, dict):
@@ -692,8 +761,10 @@ a:hover {{ text-decoration: underline; }}
         r_total = recipe.get("total_time", "40 min")
         r_srv = str(recipe.get("servings", 4))
         r_cal = str(recipe.get("calories", ""))
-        r_ing_li = "".join(f"    <li>{x}</li>\n" for x in recipe.get("ingredients", []))
-        r_inst_li = "".join(f"    <li>{x}</li>\n" for x in recipe.get("instructions", []))
+        r_ing = self._ensure_str_list(recipe.get("ingredients"))
+        r_inst = self._ensure_str_list(recipe.get("instructions"))
+        r_ing_li = "".join(f"    <li>{x}</li>\n" for x in r_ing)
+        r_inst_li = "".join(f"    <li>{x}</li>\n" for x in r_inst)
 
         return f"""<!DOCTYPE html>
 <html lang="en">
@@ -725,15 +796,15 @@ a:hover {{ text-decoration: underline; }}
 <img src="{main_img}" alt="{t}" class="hero-image">
 <!-- inject:after-hero -->
 
-<p>{sec.get('intro_p1','')}</p>
-<p>{sec.get('intro_p2','')}</p>
+<p>{self._ensure_phrase(sec.get('intro_p1',''))}</p>
+<p>{self._ensure_phrase(sec.get('intro_p2',''))}</p>
 
 <h2>Highlights</h2>
 <ul class="highlights-list">
 {hl_html}</ul>
 
 <h2>Ingredients</h2>
-<p>{sec.get('ingredients_intro','')}</p>
+<p>{self._ensure_phrase(sec.get('ingredients_intro',''))}</p>
 <ul class="ingredient-list">
 {ing_li}</ul>
 
@@ -747,7 +818,7 @@ a:hover {{ text-decoration: underline; }}
 </div>
 
 <h2>Final Thoughts</h2>
-<p>{sec.get('conclusion','')}</p>
+<p>{self._ensure_phrase(sec.get('conclusion',''))}</p>
 
 <div class="faq-section">
   <h2>Common Questions</h2>
@@ -790,6 +861,10 @@ function toggleFaq(btn){{btn.classList.toggle('open');btn.nextElementSibling.cla
         content_data = self.generate_content()
         css_content = self.generate_css()
         html_content = self.generate_html(content_data["sections"])
+        if not (html_content and isinstance(html_content, str) and html_content.strip()):
+            fallback = f"<article><h1>{self.title}</h1><p>Content generation produced empty output. Please try again with another model.</p></article>"
+            html_content = fallback
+            print("[WARN] generator-5: article_html was empty, using fallback")
         content_data["article_html"] = html_content
         content_data["article_css"] = css_content
 

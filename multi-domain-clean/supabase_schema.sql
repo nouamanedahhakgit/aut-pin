@@ -214,3 +214,36 @@ CREATE INDEX IF NOT EXISTS idx_title_id ON app_logs(title_id);
 CREATE INDEX IF NOT EXISTS idx_domain_id ON app_logs(domain_id);
 CREATE INDEX IF NOT EXISTS idx_job_id ON app_logs(job_id);
 CREATE INDEX IF NOT EXISTS idx_created_at ON app_logs(created_at);
+
+CREATE TABLE IF NOT EXISTS writers_pool (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    title VARCHAR(255),
+    bio TEXT,
+    avatar TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_writers_pool_user ON writers_pool(user_id);
+
+CREATE TABLE IF NOT EXISTS writers_pool (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL DEFAULT '',
+    title VARCHAR(255) NOT NULL DEFAULT '',
+    bio TEXT,
+    avatar TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_writers_pool_user ON writers_pool(user_id);
+
+CREATE TABLE IF NOT EXISTS pin_template_pool (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    template_json TEXT NOT NULL,
+    preview_image_url TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_pin_template_pool_name ON pin_template_pool(name);

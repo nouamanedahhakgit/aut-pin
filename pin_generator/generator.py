@@ -454,7 +454,8 @@ def run_server(available_templates, host="0.0.0.0", port=5000):
             return jsonify({"success": False, "error": f"Unknown template: {name}", "available": available_templates}), 404
 
         template_only = str(request.args.get("template_only") or "").strip().lower() in ("1", "true", "yes")
-        log.info("--- /generate | template=%s | template_only=%s", name, template_only)
+        preview_small = str(request.args.get("preview_small") or "").strip().lower() in ("1", "true", "yes")
+        log.info("--- /generate | template=%s | template_only=%s | preview_small=%s", name, template_only, preview_small)
 
         body = {}
         if request.is_json:
@@ -578,7 +579,13 @@ def run_server(available_templates, host="0.0.0.0", port=5000):
                     log.info("Response | template_only=1 | no screenshot")
                     payload["template_data"] = copy.deepcopy(merged)
                     return jsonify(payload)
-                screenshot_bytes = _html_to_screenshot_bytes(index_html)
+                w, h = (300, 534) if preview_small else (600, 1067)
+                if body.get("preview_width") and body.get("preview_height"):
+                    try:
+                        w, h = int(body["preview_width"]), int(body["preview_height"])
+                    except (TypeError, ValueError):
+                        pass
+                screenshot_bytes = _html_to_screenshot_bytes(index_html, width=w, height=h)
                 if screenshot_bytes:
                     image_url = _upload_png_to_r2(screenshot_bytes)
                     if image_url:
