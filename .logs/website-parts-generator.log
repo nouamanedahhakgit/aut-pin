@@ -9210,3 +9210,816 @@ INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
 INFO:     127.0.0.1:63763 - "GET /domain-page-themes HTTP/1.1" 200 OK
 INFO:     127.0.0.1:57890 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [7308]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:62143 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53712 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [6952]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:57553 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65358 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [19740]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:56840 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51632 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [7700]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:57585 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58939 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [22668]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [16548]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [24168]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [1796]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [18212]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [18624]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [9372]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [21640]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [6380]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [23708]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [1240]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [7436]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [9792]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [22088]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [1812]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [21840]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [19088]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [22744]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [4152]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [7364]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:49153 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63295 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51616 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55464 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54662 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61956 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [14808]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [19396]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [18040]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [18596]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [19048]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [18228]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [3964]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [23280]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [15528]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [11784]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [18888]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [21076]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [22556]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [23580]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [22132]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [11268]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [18760]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [5656]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [4424]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [20656]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [24416]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:49744 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57041 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [6424]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [22628]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [19964]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:56672 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59332 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50821 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59907 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55755 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [15436]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:57707 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61363 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54048 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59308 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59361 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54977 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [9704]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:57318 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54932 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62932 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57453 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57268 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62734 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52563 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56600 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64745 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55250 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64174 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62732 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54452 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60560 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49846 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61480 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50448 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [23380]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50416 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57637 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [11024]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:49726 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57449 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56717 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57419 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55245 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49673 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63268 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65297 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65300 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50973 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59068 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55934 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53127 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60235 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56977 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54968 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49676 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [14024]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [21320]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:52483 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52758 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [2744]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:64399 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56329 - "GET /templates HTTP/1.1" 200 OK
+Template error: f-string expression part cannot include a backslash (article_card_2.py, line 39)
+NoneType: None
+
+INFO:     127.0.0.1:63920 - "POST /generate/domain_page/theme_5/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_5\index.py", line 127, in generate
+    cards_html, card_css = render_cards(
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\article_cards\article_card_2.py", line 39
+    meta_html = f'<div class="ac2-meta">{"<span class=\"ac2-sep\">&middot;</span>".join(meta_parts)}</div>' if meta_parts else ""
+                                                                                                            ^
+SyntaxError: f-string expression part cannot include a backslash
+Template error: f-string expression part cannot include a backslash (article_card_2.py, line 39)
+NoneType: None
+
+INFO:     127.0.0.1:51546 - "POST /generate/index/index_4 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 181, in generate_index
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\indexes\index_4.py", line 42, in generate
+    cards_html, card_css = render_cards(articles, config, show_excerpt=True, scope_prefix=".index-page")
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\article_cards\article_card_2.py", line 39
+    meta_html = f'<div class="ac2-meta">{"<span class=\"ac2-sep\">&middot;</span>".join(meta_parts)}</div>' if meta_parts else ""
+                                                                                                            ^
+SyntaxError: f-string expression part cannot include a backslash
+INFO:     127.0.0.1:54722 - "POST /generate/domain_page/theme_5/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54062 - "POST /generate/domain_page/theme_5/footer HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [1292]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:59724 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57020 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64169 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60227 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57699 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53386 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53758 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [4088]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [6936]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:59053 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54091 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [24704]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [5216]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [7836]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:49307 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61827 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [25624]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:49757 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58510 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62846 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64767 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [26480]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50229 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56772 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [14684]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:65349 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65218 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56337 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59216 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [25156]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:64026 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49245 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [23512]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:59483 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55024 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60379 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56335 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60174 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54200 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [26156]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:61385 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64960 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [19660]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [13736]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [7420]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [4776]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [17000]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:62797 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55650 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [7348]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:56475 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64150 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49684 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50226 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61111 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52510 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56986 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51732 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65481 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52367 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64900 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59439 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58088 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58432 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64401 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54874 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53220 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54134 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51061 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50060 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63584 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52926 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51716 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54490 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53500 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53623 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58354 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63551 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58878 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58694 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54102 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56949 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56961 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64080 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50410 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55618 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50978 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57508 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52665 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60874 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56030 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64543 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49231 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53137 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58277 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57726 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49751 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60226 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50609 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60185 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [20396]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [3772]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [25736]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [4456]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [25524]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:63962 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49836 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54994 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56172 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55042 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53874 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64014 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [21788]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [19640]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:57860 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63639 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65365 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59116 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [10960]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:55088 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60224 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [25580]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:56249 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56699 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [19196]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:52752 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65390 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51854 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58590 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53697 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61641 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [3872]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)

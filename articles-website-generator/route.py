@@ -361,6 +361,15 @@ def generate_article(generator_name: str, config: dict = Body(...)):
             status_code=400,
             detail="OpenRouter API key not provided. Add it in multi-domain-clean → Profile and run again. The generator does not use its own .env for keys when called from multi-domain-clean.",
         )
+    if ai_provider == "llamacpp":
+        llamacpp_manager_url = (merged.get("llamacpp_manager_url") or os.getenv("LLAMACPP_MANAGER_URL", "")).strip().rstrip("/")
+        llamacpp_model_id = merged.get("llamacpp_model_id")
+        if not llamacpp_manager_url:
+            raise HTTPException(status_code=400, detail="llamacpp_manager_url not set. Configure LLAMACPP_MANAGER_URL or llama.cpp in Profile.")
+        if llamacpp_model_id is None:
+            raise HTTPException(status_code=400, detail="llamacpp_model_id required when ai_provider=llamacpp.")
+        merged["llamacpp_manager_url"] = llamacpp_manager_url
+        merged["llamacpp_model_id"] = int(llamacpp_model_id)
     merged["openai_api_key"] = openai_key or None
     merged["openrouter_api_key"] = openrouter_key or None
     has_openai_key = bool(merged.get("openai_api_key"))
@@ -383,6 +392,8 @@ def generate_article(generator_name: str, config: dict = Body(...)):
     elif ai_provider == "local" and local_model:
         merged["local_model"] = str(local_model).strip()
         log.info("[generate-article] local provider with model=%s", local_model)
+    elif ai_provider == "llamacpp":
+        log.info("[generate-article] llamacpp provider with model_id=%s", merged.get("llamacpp_model_id"))
 
     ArticleGenerator = getattr(module, "ArticleGenerator", None)
     if ArticleGenerator is None:
@@ -448,6 +459,8 @@ def generate_article(generator_name: str, config: dict = Body(...)):
                     elif ai_provider == "local":
                         model = merged.get("local_model") or os.getenv("LOCAL_MODEL", "qwen3:8b")
                         content_data["model_used"] = f"local -> {model}"
+                    elif ai_provider == "llamacpp":
+                        content_data["model_used"] = f"llamacpp -> model_id {merged.get('llamacpp_model_id')}"
                     else:
                         model = merged.get("openai_model") or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
                         content_data["model_used"] = f"openai -> {model}"
@@ -501,14 +514,6 @@ def generate_article(generator_name: str, config: dict = Body(...)):
 
         keys = list(content_data.keys()) if isinstance(content_data, dict) else []
         log.info("[generate-article] result keys=%s", keys)
-        try:
-            debug_path = Path(__file__).resolve().parent.parent / ".logs" / "generate-article-result.json"
-            debug_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(debug_path, "w", encoding="utf-8") as f:
-                json.dump(content_data, f, indent=2, ensure_ascii=False)
-            log.info("[generate-article] full result saved to .logs/generate-article-result.json")
-        except Exception as e:
-            log.warning("[generate-article] could not save result file: %s", e)
         return content_data
     except ValueError as e:
         log.warning("[generate-article] 400: %s (generator=%s ai_provider=%s has_openai_key=%s has_openrouter_key=%s)", e, generator_name, ai_provider, has_openai_key, has_openrouter_key)

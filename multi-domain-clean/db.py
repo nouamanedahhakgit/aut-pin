@@ -391,6 +391,14 @@ def _run_mysql_migrations_part2(cursor):
     except Exception:
         pass
     try:
+        cursor.execute("ALTER TABLE user_api_keys ADD COLUMN llamacpp_manager_url TEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE user_api_keys ADD COLUMN llamacpp_model_id INT DEFAULT NULL")
+    except Exception:
+        pass
+    try:
         cursor.execute("ALTER TABLE domains ADD COLUMN pinterest_board_id VARCHAR(255)")
     except Exception:
         pass
@@ -477,6 +485,30 @@ def _run_mysql_migrations_part2(cursor):
             INDEX idx_pin_template_pool_name (name)
         )
     """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS ai_provider_models (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            provider VARCHAR(32) NOT NULL,
+            model_id VARCHAR(255) NOT NULL,
+            label VARCHAR(512),
+            is_free TINYINT DEFAULT 0,
+            sort_order INT DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_ai_provider_models_provider (provider)
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS ai_provider_models (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            provider VARCHAR(32) NOT NULL,
+            model_id VARCHAR(255) NOT NULL,
+            label VARCHAR(512),
+            is_free TINYINT(1) DEFAULT 0,
+            sort_order INT DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_ai_provider_models_provider (provider)
+        )
+    """)
 
 
 def _init_supabase():
@@ -551,6 +583,14 @@ def _init_supabase():
             pass
         try:
             cur.execute("ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS ai_provider VARCHAR(32) DEFAULT NULL")
+        except Exception:
+            pass
+        try:
+            cur.execute("ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS llamacpp_manager_url TEXT")
+        except Exception:
+            pass
+        try:
+            cur.execute("ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS llamacpp_model_id INT DEFAULT NULL")
         except Exception:
             pass
         cur.execute("""
@@ -733,6 +773,30 @@ def _init_supabase():
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS ai_provider_models (
+                id SERIAL PRIMARY KEY,
+                provider VARCHAR(32) NOT NULL,
+                model_id VARCHAR(255) NOT NULL,
+                label VARCHAR(512),
+                is_free SMALLINT DEFAULT 0,
+                sort_order INT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_ai_provider_models_provider ON ai_provider_models(provider)")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS ai_provider_models (
+                id SERIAL PRIMARY KEY,
+                provider VARCHAR(32) NOT NULL,
+                model_id VARCHAR(255) NOT NULL,
+                label VARCHAR(512),
+                is_free SMALLINT DEFAULT 0,
+                sort_order INT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_ai_provider_models_provider ON ai_provider_models(provider)")
         try:
             cur.execute("CREATE INDEX IF NOT EXISTS idx_pin_template_pool_name ON pin_template_pool(name)")
         except Exception:

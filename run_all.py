@@ -28,6 +28,12 @@ SERVICES = [
         "port": 5001,
     },
     {
+        "name": "llamacpp_manager",
+        "cwd": ROOT / "_archive",
+        "cmd": [sys.executable, "-m", "llamacpp_manager.app"],
+        "port": 8080,
+    },
+    {
         "name": "pin_generator",
         "cwd": ROOT / "pin_generator",
         "cmd": [sys.executable, "generator.py", "--serve", "--port", "5000"],

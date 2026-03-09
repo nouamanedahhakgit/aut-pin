@@ -17,6 +17,9 @@ OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openai/gpt-oss-120b")
 
 # Local (Ollama or similar)
 LOCAL_API_URL = os.getenv("LOCAL_API_URL", "http://192.168.1.20:11434")
+
+# llama.cpp (via llamacpp_manager)
+LLAMACPP_MANAGER_URL = os.getenv("LLAMACPP_MANAGER_URL", "http://localhost:8080")
 LOCAL_MODELS = os.getenv("LOCAL_MODELS", "qwen3:8b,llama3.2:3b,gemma3:latest,ibm/granite4:latest,functiongemma:latest").split(",")
 
 def get_ai_config(provider=None):

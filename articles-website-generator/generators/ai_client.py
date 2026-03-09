@@ -121,6 +121,11 @@ def create_ai_client(config: dict):
             provider = "openrouter"
         elif config.get("openai_api_key"):
             provider = "openai"
+    elif provider == "llamacpp" and not config.get("llamacpp_manager_url"):
+        if config.get("openrouter_api_key"):
+            provider = "openrouter"
+        elif config.get("openai_api_key"):
+            provider = "openai"
             
     if provider == "openai" and not config.get("openai_api_key") and config.get("openrouter_api_key"):
         provider = "openrouter"
@@ -154,6 +159,9 @@ def create_ai_client(config: dict):
             api_key="not-needed"
         )
         model = config.get("local_model") or config.get("local_models", "").split(",")[0] or (LOCAL_MODELS[0] if LOCAL_MODELS else "qwen3:8b")
+    elif provider == "llamacpp":
+        client = None  # Uses _llamacpp_call, not OpenAI client
+        model = str(config.get("llamacpp_model_id") or "")
     else:
         api_key = config.get("openai_api_key") or os.getenv("OPENAI_API_KEY")
         if not api_key:
@@ -198,6 +206,9 @@ def ai_chat(generator, prompt, max_tokens=600, system=None, temperature=0.7):
     
     if provider == "local":
         text, _ = _local_call(model, prompt, max_tokens, system, temperature)
+        return text
+    if provider == "llamacpp":
+        text, _ = _llamacpp_call(generator, model, prompt, max_tokens, system, temperature)
         return text
     if provider != "openrouter" or not model:
         text, _ = _single_call(client, model or os.getenv("OPENAI_MODEL", "gpt-4o-mini"), prompt, max_tokens, system, temperature, provider)
@@ -315,6 +326,33 @@ def _single_call(client, model, prompt, max_tokens, system, temperature, provide
     return content, usage
 
 
+def _llamacpp_call(generator, model_id, prompt, max_tokens, system, temperature):
+    """Call llamacpp_manager POST /ai/generate. Returns (text, usage_dict)."""
+    config = (getattr(generator, "config", None) or {})
+    manager_url = (config.get("llamacpp_manager_url") or os.getenv("LLAMACPP_MANAGER_URL", "http://localhost:8080")).strip().rstrip("/")
+    model_id = int(model_id) if model_id else 0
+    if not model_id:
+        raise ValueError("llamacpp_model_id required for llama.cpp provider.")
+    try:
+        resp = requests.post(
+            f"{manager_url}/ai/generate",
+            json={
+                "model_id": model_id,
+                "prompt": prompt,
+                "system": system or "",
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+            },
+            timeout=120,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return (data.get("text") or "").strip(), data.get("usage") or None
+    except Exception as e:
+        log.error("[_llamacpp_call] Error: %s", e)
+        raise
+
+
 def _local_call(model, prompt, max_tokens, system, temperature):
     """Make a call to Local API (e.g., Ollama). Raises on error. Returns (content, None) - no usage."""
     import requests
@@ -355,6 +393,8 @@ def ai_chat_with_usage(generator, prompt, max_tokens=600, system=None, temperatu
     provider = (getattr(generator, "config", None) or {}).get("ai_provider", "openrouter")
     if provider == "local":
         return _local_call(model, prompt, max_tokens, system, temperature)
+    if provider == "llamacpp":
+        return _llamacpp_call(generator, model, prompt, max_tokens, system, temperature)
     if provider != "openrouter" or not model:
         return _single_call(client, model or os.getenv("OPENAI_MODEL", "gpt-4o-mini"), prompt, max_tokens, system, temperature, provider)
     for retry in range(MAX_RETRIES_PER_MODEL):

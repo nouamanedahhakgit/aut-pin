@@ -1,0 +1,42 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv
+env
+
+# Env files (mount at runtime)
+.env
+.env.*
+!.env.example
+!.env.example.docker
+
+# Output and logs
+output
+.logs
+*.log
+
+# IDE and OS
+.idea
+.vscode
+.cursor
+.DS_Store
+Thumbs.db
+
+# Node (if any service has node_modules)
+node_modules
+
+# PIDs and local state
+.services.pid
+*.db
+llamacpp_manager/llamacpp_manager.db
+
+# Large model files (mount via volume)
+llamacpp_manager/models/*.gguf

@@ -1,4 +1,5 @@
 _archive/*
+llamacpp_manager/bin/
 .cursor/*
 website-parts-generator/prompts/*
 multi-domain-clean/__pycache__/imagine.cpython-39.pyc

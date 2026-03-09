@@ -1,0 +1,82 @@
+# Run all aut-pin microservices. Service names resolve as hostnames.
+# Usage: docker compose up -d
+# Access: http://localhost:5001 (multi-domain-clean)
+
+services:
+  multi-domain-clean:
+    build:
+      context: ./multi-domain-clean
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5001"
+    environment:
+      - GENERATE_ARTICLE_API_URL=http://articles-website-generator:8000
+      - WEBSITE_PARTS_API_URL=http://website-parts-generator:8010
+      - PIN_API_URL=http://pin_generator:5000
+      - LLAMACPP_MANAGER_URL=http://llamacpp_manager:8080
+      - PIN_EDITOR_URL=http://llamacpp_manager:8080
+      - ARTICLE_GENERATORS_DIR=/app/shared/generators
+      - STATIC_PROJECT_OUTPUT_DIR=/app/output/static-projects
+    volumes:
+      - ./output/static-projects:/app/output/static-projects
+      - ./articles-website-generator/generators:/app/shared/generators
+    env_file:
+      - multi-domain-clean/.env
+    depends_on:
+      - pin_generator
+      - articles-website-generator
+      - website-parts-generator
+      - llamacpp_manager
+
+  pin_generator:
+    build:
+      context: .
+      dockerfile: pin_generator/Dockerfile
+    ports:
+      - "5000:5000"
+    env_file:
+      - pin_generator/.env
+    volumes:
+      - pin_output:/app/output
+
+  articles-website-generator:
+    build:
+      context: .
+      dockerfile: articles-website-generator/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - LLAMACPP_MANAGER_URL=http://llamacpp_manager:8080
+    env_file:
+      - articles-website-generator/.env
+    volumes:
+      - ./articles-website-generator/generators:/app/generators
+    depends_on:
+      - llamacpp_manager
+
+  website-parts-generator:
+    build:
+      context: ./website-parts-generator
+      dockerfile: Dockerfile
+    ports:
+      - "8010:8010"
+    env_file:
+      - website-parts-generator/.env
+
+  llamacpp_manager:
+    build:
+      context: ./_archive
+      dockerfile: llamacpp_manager/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - LLAMACPP_MODELS_DIR=/app/llamacpp_manager/models
+      - LLAMACPP_DB_PATH=/app/llamacpp_manager/data/llamacpp_manager.db
+    volumes:
+      - llamacpp_models:/app/llamacpp_manager/models
+      - llamacpp_data:/app/llamacpp_manager/data
+
+volumes:
+  pin_output:
+  llamacpp_models:
+  llamacpp_data:

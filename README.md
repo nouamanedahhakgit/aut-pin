@@ -91,6 +91,10 @@ cd articles-website-generator && python -m uvicorn route:app --host 0.0.0.0 --po
 cd website-parts-generator && python -m uvicorn route:app --host 0.0.0.0 --port 8010
 ```
 
+## Docker
+
+Run all services with Docker: `docker compose up -d`. Access multi-domain-clean at http://localhost:5001. See [DOCKER.md](DOCKER.md) for Docker Hub.
+
 ## Environment Variables
 
 See each service’s `.env.example` for details. Commonly used:

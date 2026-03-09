@@ -51,6 +51,10 @@ CREATE TABLE IF NOT EXISTS user_api_keys (
     local_api_url TEXT,
     local_models TEXT,
     default_categories TEXT,
+    bulk_max_concurrency INT DEFAULT 6,
+    ai_provider VARCHAR(32),
+    llamacpp_manager_url TEXT,
+    llamacpp_model_id INT,
     cloned_from_user_id INT,
     cloned_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -247,3 +251,14 @@ CREATE TABLE IF NOT EXISTS pin_template_pool (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_pin_template_pool_name ON pin_template_pool(name);
+
+CREATE TABLE IF NOT EXISTS ai_provider_models (
+    id SERIAL PRIMARY KEY,
+    provider VARCHAR(32) NOT NULL,
+    model_id VARCHAR(255) NOT NULL,
+    label VARCHAR(512),
+    is_free SMALLINT DEFAULT 0,
+    sort_order INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_ai_provider_models_provider ON ai_provider_models(provider);
