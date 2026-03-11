@@ -81,77 +81,164 @@ def search_icon(size, color):
     )
 
 
+def _pos_css(pos):
+    """Convert position dict (top, left, bottom, right) to CSS string."""
+    out = []
+    for k in ("top", "left", "bottom", "right"):
+        if k in pos:
+            v = pos[k]
+            if isinstance(v, (int, float)):
+                out.append(f"{k}:{v}px;")
+            else:
+                out.append(f"{k}:{v};")
+    return " ".join(out)
+
+
+def _handle_complex_prop(name, val):
+    """Convert dict-based properties like border or shadow to CSS string."""
+    if name == "rotation":
+        deg = val if isinstance(val, (int, float, str)) else val.get("rotation", 0)
+        return f"rotate({deg}deg)"
+    
+    if name == "backdrop_blur":
+        if isinstance(val, (int, float)): return f"blur({val}px)"
+        return str(val)
+
+    if not isinstance(val, dict):
+        return str(val)
+    
+    if name == "border":
+        w = val.get("width", val.get("border_width", 1))
+        if isinstance(w, int): w = f"{w}px"
+        return f"{w} {val.get('style', 'solid')} {val.get('color', val.get('border_color', '#000'))}"
+    
+    if name == "transform":
+        if "rotation" in val:
+            deg = val.get("rotation", 0)
+            return f"rotate({deg}deg)"
+        return str(val)
+    
+    if name in ("shadow", "box_shadow", "text_shadow"):
+        # Map gpt-4o's shadow keys to standard CSS
+        ox = val.get("offset_x", val.get("x", 2))
+        oy = val.get("offset_y", val.get("y", 2))
+        blur = val.get("blur", val.get("blur_radius", 4))
+        color = val.get("color", "rgba(0,0,0,0.3)")
+        if isinstance(ox, int): ox = f"{ox}px"
+        if isinstance(oy, int): oy = f"{oy}px"
+        if isinstance(blur, int): blur = f"{blur}px"
+        return f"{ox} {oy} {blur} {color}"
+    
+    return str(val)
+
+
 def build_css(tpl):
     """Generate CSS from template dict. Adds overflow:hidden to all text elements."""
     c = tpl["canvas"]
     lines = [
         f"/* {tpl['name']} */",
         "* { margin: 0; padding: 0; box-sizing: border-box; }",
-        ".pin-container { width: %dpx; height: %dpx; position: relative; overflow: hidden; background: #000; font-family: Arial,sans-serif; }" % (c["width"], c["height"]),
+        ".pin-container { width: %dpx; height: %dpx; position: relative; overflow: hidden; background: %s; font-family: Arial,sans-serif; }" % (
+            c["width"], c["height"], c.get("background_color", "transparent")
+        ),
         "",
         "/* Images */"
     ]
     for ik, idata in tpl.get("images", {}).items():
-        pos = idata["position"]
+        pos = idata.get("position", {})
+        pos_str = _pos_css(pos) or "top:0px; left:0px;"
         w, h, z = idata["width"], idata["height"], idata.get("layer_order", 1)
         cls = ik.replace("_", "-")
-        s = f".{cls} {{ position:absolute; top:{pos['top']}px; left:{pos['left']}px; width:{w}px; height:{h}px; object-fit:cover; z-index:{z}; }}"
-        if idata.get("border_radius"):
-            s = s.rstrip("; }") + f"; border-radius:{idata['border_radius']}; }}"
-        if idata.get("border"):
-            s = s.rstrip("; }") + f"; border:{idata['border']}; }}"
+        s = f".{cls} {{ position:absolute; {pos_str} width:{w}px; height:{h}px; object-fit:cover; z-index:{z}; }}"
+        for prop in ("border_radius", "border", "clip_path", "opacity", "box_shadow", "filter"):
+            if idata.get(prop) is not None:
+                css_prop = prop.replace("_", "-")
+                val = _handle_complex_prop(prop, idata[prop])
+                if prop == "border_radius" and isinstance(idata[prop], (int, float)):
+                    val = f"{val}px"
+                s = s.rstrip("; }") + f"; {css_prop}:{val}; }}"
         lines.append(s)
 
     lines.extend(["", "/* Elements */"])
     for ek, ed in tpl.get("elements", {}).items():
-        pos = ed["position"]
+        pos = ed.get("position", {})
+        pos_str = _pos_css(pos) or "top:0px; left:0px;"
         z = ed.get("z_index", 10)
         cls = ek.replace("_", "-")
+        etype = (ed.get("type") or "div").lower()
 
-        if ed["type"] == "div":
-            styles = f"position:absolute; top:{pos['top']}px; left:{pos['left']}px; width:{ed['width']}px; height:{ed['height']}px; z-index:{z};"
-            for prop in ("background_color", "border", "border_radius", "padding"):
-                if ed.get(prop):
+        if etype in ("div", "box", "shape"):
+            styles = f"position:absolute; {pos_str} width:{ed.get('width', 100)}px; height:{ed.get('height', 100)}px; z-index:{z};"
+            # Support both 'background_color' and 'color' (for shapes)
+            bg = ed.get("background_color") or ed.get("background") or ed.get("color")
+            if bg:
+                styles += f" background:{_handle_complex_prop('background', bg)};"
+
+            for prop in ("border", "border_radius", "padding", "clip_path", "box_shadow", "opacity", "filter", "backdrop_filter", "backdrop_blur", "transform", "rotation"):
+                if ed.get(prop) is not None:
                     css_prop = prop.replace("_", "-")
-                    val = ed[prop]
-                    if prop == "border_radius" and isinstance(val, (int, float)):
+                    if prop == "rotation": css_prop = "transform"
+                    if prop == "backdrop_blur": css_prop = "backdrop-filter"
+                    val = _handle_complex_prop(prop, ed[prop])
+                    if prop == "border_radius" and isinstance(ed[prop], (int, float)):
                         val = f"{val}px"
                     styles += f" {css_prop}:{val};"
-            if ed.get("opacity") is not None:
-                styles += f" opacity:{ed['opacity']};"
             lines.append(f".{cls} {{ {styles} }}")
 
-        elif ed["type"] == "text":
+        elif etype in ("text", "shape_text"):
+            align = ed.get("text_align", "center")
+            flex_align = "center"
+            flex_justify = "center"
+            if align == "left":
+                flex_align = "flex-start"
+                flex_justify = "center"
+            elif align == "right":
+                flex_align = "flex-end"
+                flex_justify = "center"
+            
+            # Note: For column layout, align-items is horizontal alignment.
             styles = (
-                f"position:absolute; top:{pos['top']}px; left:{pos['left']}px; "
-                f"width:{ed['width']}px; height:{ed['height']}px; "
-                f"font-family:{ed['font_family']}; font-size:{ed['font_size']}px; "
-                f"font-weight:{ed['font_weight']}; color:{ed['color']}; "
-                f"text-align:{ed.get('text_align', 'center')}; "
-                f"display:flex; align-items:center; justify-content:center; flex-direction:column; "
+                f"position:absolute; {pos_str} "
+                f"width:{ed.get('width', 200)}px; height:{ed.get('height', 100)}px; "
+                f"font-family:{ed.get('font_family', 'Arial')}; font-size:{ed.get('font_size', 24)}px; "
+                f"font-weight:{ed.get('font_weight', 'normal')}; color:{ed.get('color', '#000')}; "
+                f"text-align:{align}; "
+                f"display:flex; align-items:{flex_align}; justify-content:{flex_justify}; flex-direction:column; "
                 f"overflow:hidden; word-break:break-word; "
                 f"z-index:{z};"
             )
+            # Handle shadow specifically for text
+            sh = ed.get("shadow") or ed.get("text_shadow")
+            if sh:
+                styles += f" text-shadow:{_handle_complex_prop('text_shadow', sh)};"
+
             for k in (
                 "font_style", "text_transform", "letter_spacing", "line_height",
-                "text_shadow", "background", "background_color", "border",
-                "border_radius", "padding", "white_space", "opacity",
+                "background", "background_color", "border", "border_radius",
+                "padding", "white_space", "opacity", "transform", "rotation",
+                "backdrop_filter", "backdrop_blur", "box_shadow"
             ):
                 if k in ed and ed[k] is not None:
-                    v = ed[k]
+                    v = _handle_complex_prop(k, ed[k])
                     css_k = k.replace("_", "-")
-                    if k == "line_height" or isinstance(v, str):
+                    if k == "rotation": css_k = "transform"
+                    if k == "backdrop_blur": css_k = "backdrop-filter"
+                    
+                    if k == "line_height" and isinstance(ed[k], (int, float)):
                         styles += f" {css_k}:{v};"
-                    else:
+                    elif k in ("border_radius", "letter_spacing", "padding") and isinstance(ed[k], (int, float)):
                         styles += f" {css_k}:{v}px;"
+                    else:
+                        styles += f" {css_k}:{v};"
             lines.append(f".{cls} {{ {styles} }}")
 
-        elif ed["type"] == "stars":
-            lines.append(f".{cls} {{ position:absolute; top:{pos['top']}px; left:{pos['left']}px; display:flex; gap:4px; z-index:{z}; }}")
-            lines.append(f".{cls} svg {{ width:{ed['star_size']}px; height:{ed['star_size']}px; }}")
+        elif etype == "stars":
+            sz = ed.get("star_size", ed.get("size", 24))
+            lines.append(f".{cls} {{ position:absolute; {pos_str} display:flex; gap:{ed.get('spacing', 4)}px; z-index:{z}; }}")
+            lines.append(f".{cls} svg {{ width:{sz}px; height:{sz}px; }}")
 
-        elif ed["type"] == "icon":
-            lines.append(f".{cls} {{ position:absolute; top:{pos['top']}px; left:{pos['left']}px; z-index:{z}; }}")
+        elif etype == "icon":
+            lines.append(f".{cls} {{ position:absolute; {pos_str} z-index:{z}; }}")
 
     return "\n".join(lines)
 
@@ -171,12 +258,14 @@ def build_html(tpl, image_urls, css):
         body.append(f'<img class="{cls}" src="{image_urls.get(ik) or ""}" alt="{ik.replace("_", " ").title()}">')
     for ek, ed in sorted(elements.items(), key=lambda x: x[1].get("z_index", 0)):
         cls = ek.replace("_", "-")
-        if ed["type"] == "div":
+        etype = (ed.get("type") or "div").lower()
+        if etype in ("div", "box", "shape"):
             body.append(f'<div class="{cls}"></div>')
-        elif ed["type"] == "text":
+        elif etype in ("text", "shape_text"):
             body.append(f'<div class="{cls}">{ed.get("text", "")}</div>')
         elif ed["type"] == "stars":
-            body.append(f'<div class="{cls}">{"".join([star_svg(ed["color"], ed["star_size"])] * ed["count"])}</div>')
+            sz = ed.get("star_size", ed.get("size", 24))
+            body.append(f'<div class="{cls}">{"".join([star_svg(ed.get("color", "yellow"), sz)] * ed["count"])}</div>')
         elif ed["type"] == "icon" and ed.get("icon") == "search":
             body.append(f'<div class="{cls}">{search_icon(ed["size"], ed["color"])}</div>')
     body.append("</div>")
@@ -286,7 +375,7 @@ def apply_domain_style(template_data, style_slots, font_slots, domain_colors=Non
 
     if style_slots and dc:
         for elem_name, prop_map in style_slots.items():
-            if elem_name not in elements:
+            if not elem_name in elements:
                 continue
             for css_prop, color_key in prop_map.items():
                 resolved = color_map.get(color_key)
@@ -297,7 +386,7 @@ def apply_domain_style(template_data, style_slots, font_slots, domain_colors=Non
     body_fam = df.get("body_family", "").strip()
     if font_slots and (heading or body_fam):
         for elem_name, role in font_slots.items():
-            if elem_name not in elements:
+            if not elem_name in elements:
                 continue
             el = elements[elem_name]
             if el.get("type") != "text":
@@ -315,10 +404,17 @@ def render_pin(template_id, template_data, output_dir=None):
     )
     tpl = template_from_data(template_data)
     apply_overrides(tpl, template_data)
-    image_urls = {
-        k: v for k, v in template_data.items()
-        if k in tpl.get("images", {}) and isinstance(v, str)
-    }
+    image_urls = {}
+    for ik, idata in tpl.get("images", {}).items():
+        # Priority 1: Top-level override (like from API body)
+        if ik in template_data and isinstance(template_data[ik], str):
+            image_urls[ik] = template_data[ik]
+        # Priority 2: Hardcoded src/url in images dict
+        elif "src" in idata:
+            image_urls[ik] = idata["src"]
+        elif "url" in idata:
+            image_urls[ik] = idata["url"]
+    
     out_dir = os.path.join(output_dir, template_id)
     os.makedirs(out_dir, exist_ok=True)
     css = build_css(tpl)

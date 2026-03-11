@@ -1,0 +1,30 @@
+Generate image prompts for a recipe. Return ONLY valid JSON. No markdown, no explanation.
+
+INPUT: Recipe TITLE only (e.g. "Creamy Garlic Chicken Skillet")
+
+OUTPUT: JSON with two keys:
+{
+  "prompt": "...",
+  "prompt_image_ingredients": "..."
+}
+
+RULES:
+
+prompt (final plated dish, Midjourney-style):
+- One Midjourney prompt in English. No labels, no markdown. Policy-safe and food-only.
+- Realistic, appetizing ULTRA close-up of the final plated dish.
+- Serve in a clean white ceramic bowl or plate (shape may vary), on a white or light neutral surface.
+- Tight composition filling ~90–100% of frame (partial plate crop OK).
+- Clear food texture, shallow depth of field, soft natural daylight, gentle shadows.
+- Sharp focus at food center, slight 3/4 or eye-level angle.
+- Exclude people, hands, faces, text, logos, and packaging.
+- End with --v 6.1
+
+prompt_image_ingredients (ingredients flat lay):
+- Infer main ingredient NAMES from the recipe title (comma-separated, unique, no quantities).
+- Format: "{ingredient1, ingredient2, ...}, ingredients-only, top-down flat lay, each ingredient in small bowls on light neutral surface"
+- Wide framing, generous margins, clean spacing.
+- Light neutral background (soft gray or light beige) with subtle texture.
+- Soft natural daylight, soft minimal shadows.
+- No text, no labels, no logos, no packaging.
+- End with --v 6.1

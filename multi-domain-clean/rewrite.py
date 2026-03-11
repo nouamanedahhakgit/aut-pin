@@ -9,6 +9,102 @@ from config import get_openai_client
 log = logging.getLogger(__name__)
 
 PROMPT_ARTICLE_A_PATH = os.path.join(os.path.dirname(__file__), "prompts", "generate-article-a.txt")
+PROMPT_IMAGE_PROMPTS_PATH = os.path.join(os.path.dirname(__file__), "prompts", "generate-image-prompts.txt")
+
+
+def _read_prompt_image_prompts() -> str:
+    """Read prompt for generating image prompts (prompt + prompt_image_ingredients) from recipe title."""
+    if not os.path.exists(PROMPT_IMAGE_PROMPTS_PATH):
+        return ""
+    with open(PROMPT_IMAGE_PROMPTS_PATH, "r", encoding="utf-8") as f:
+        return f.read().strip()
+
+
+def generate_image_prompts_for_title(title: str, user_config: dict = None, ai_provider: str = None, openai_model: str = None, openrouter_model: str = None, local_model: str = None, llamacpp_model_id=None) -> dict:
+    """Generate prompt and prompt_image_ingredients for a recipe title via LLM. Returns {prompt, prompt_image_ingredients} or {error}.
+    When user_config and ai_provider are provided, uses user's API keys and model. Otherwise uses config.get_openai_client()."""
+    client = None
+    ai_model = None
+    if user_config and ai_provider:
+        p = (ai_provider or "").strip().lower()
+        if p == "openrouter":
+            key = user_config.get("openrouter_api_key")
+            if not key:
+                return {"error": "OpenRouter API key not configured"}
+            client = openai.OpenAI(base_url="https://openrouter.ai/api/v1", api_key=key)
+            ai_model = openrouter_model or user_config.get("openrouter_model") or "openai/gpt-4o-mini"
+        elif p == "openai":
+            key = user_config.get("openai_api_key")
+            if not key:
+                return {"error": "OpenAI API key not configured"}
+            client = openai.OpenAI(api_key=key)
+            ai_model = openai_model or user_config.get("openai_model") or "gpt-4o-mini"
+        elif p == "local":
+            url = (user_config.get("local_api_url") or "http://localhost:11434").rstrip("/")
+            if "/v1" not in url and "/api" not in url:
+                url = url + "/v1"
+            client = openai.OpenAI(base_url=url, api_key="ollama")
+            ai_model = local_model or (user_config.get("local_models") or "qwen3:8b").split(",")[0].strip()
+        elif p == "llamacpp":
+            try:
+                import requests
+                mgr = user_config.get("llamacpp_manager_url") or "http://localhost:8080"
+                mid = llamacpp_model_id or user_config.get("llamacpp_model_id")
+                if not mid:
+                    r = requests.get(f"{mgr.rstrip('/')}/api/models", timeout=5)
+                    models = (r.json() or {}).get("models") or []
+                    if not models:
+                        return {"error": "No llama.cpp model available"}
+                    mid = models[0].get("id") or models[0]
+                r = requests.post(f"{mgr.rstrip('/')}/api/chat", json={"model_id": mid, "messages": [
+                    {"role": "system", "content": _read_prompt_image_prompts() or "Generate two Midjourney prompts for a recipe. Return JSON: {\"prompt\": \"...\", \"prompt_image_ingredients\": \"...\"}"},
+                    {"role": "user", "content": f"Recipe title: {title or 'Recipe'}"}
+                ]}, timeout=120)
+                data = r.json() or {}
+                raw = (data.get("message") or data.get("content") or "").strip()
+                if not raw:
+                    return {"error": "Empty response from llama.cpp"}
+                result = _extract_json(raw)
+                prompt = str(result.get("prompt", "") or "").strip()
+                prompt_ing = str(result.get("prompt_image_ingredients", "") or "").strip()
+                if not prompt or len(prompt) < 25:
+                    prompt = f"Professional food photography of {title or 'Recipe'}, overhead shot, natural lighting, editorial style --v 6.1"
+                if not prompt_ing or len(prompt_ing) < 25:
+                    prompt_ing = f"Flat-lay of ingredients for {title or 'Recipe'}, white surface, natural light, editorial style --v 6.1"
+                return {"prompt": prompt, "prompt_image_ingredients": prompt_ing}
+            except Exception as e:
+                return {"error": str(e)}
+    if client is None:
+        try:
+            client, ai_model = get_openai_client(ai_provider or None)
+        except ValueError as e:
+            return {"error": str(e)}
+    sys_prompt = _read_prompt_image_prompts() or """Generate two Midjourney prompts for a recipe. Return JSON: {"prompt": "main dish photo... --v 6.1", "prompt_image_ingredients": "ingredients flat lay... --v 6.1"}"""
+    user_msg = f"Recipe title: {title or 'Recipe'}"
+    try:
+        log.info("[generate_image_prompts] Calling %s for: %s", (ai_model or "LLM"), (title or "Recipe")[:50])
+        resp = client.chat.completions.create(
+            model=ai_model,
+            messages=[
+                {"role": "system", "content": sys_prompt},
+                {"role": "user", "content": user_msg},
+            ],
+            temperature=0.5,
+            max_tokens=500,
+            timeout=120.0,
+        )
+        log.info("[generate_image_prompts] Done for: %s", (title or "Recipe")[:50])
+        raw = resp.choices[0].message.content or ""
+        result = _extract_json(raw)
+        prompt = str(result.get("prompt", "") or "").strip()
+        prompt_ing = str(result.get("prompt_image_ingredients", "") or "").strip()
+        if not prompt or len(prompt) < 25:
+            prompt = f"Professional food photography of {title or 'Recipe'}, overhead shot, natural lighting, editorial style --v 6.1"
+        if not prompt_ing or len(prompt_ing) < 25:
+            prompt_ing = f"Flat-lay of ingredients for {title or 'Recipe'}, white surface, natural light, editorial style --v 6.1"
+        return {"prompt": prompt, "prompt_image_ingredients": prompt_ing}
+    except Exception as e:
+        return {"error": str(e)}
 
 
 def _read_prompt_article_a() -> str:
@@ -193,12 +289,13 @@ def generate_article_content_for_a(title: str, prompt_text: str = "") -> dict:
         recipe_val = result.get("recipe", "")
         if isinstance(recipe_val, dict):
             recipe_val = json.dumps(recipe_val, ensure_ascii=False)
+        # prompt and prompt_image_ingredients are generated separately (generate-prompts step), never by article generation
         return {
             "article": article,
             "content": content_str,
             "recipe": str(recipe_val or ""),
-            "prompt": str(result.get("prompt", "") or ""),
-            "prompt_image_ingredients": str(result.get("prompt_image_ingredients", "") or ""),
+            "prompt": "",
+            "prompt_image_ingredients": "",
             "recipe_title_pin": str(result.get("recipe_title_pin", "") or ""),
             "pinterest_title": str(result.get("pinterest_title", "") or ""),
             "pinterest_description": str(result.get("pinterest_description", "") or ""),

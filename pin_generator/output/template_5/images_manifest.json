@@ -1,0 +1,28 @@
+{
+  "template_id": "template_5",
+  "template_name": "Street Corn Chicken Bowl",
+  "images": {
+    "top_image": {
+      "url": "https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/midjourney_splits/main/476/25bfa9d3f71.png",
+      "description_prompt": "Close-up, overhead shot of a Street Corn Chicken Bowl with white rice, grilled chicken, creamy white sauce, fresh cilantro, yellow corn kernels, red onion, and a lime wedge. Food photography style.",
+      "position": {
+        "top": 0,
+        "left": 0
+      },
+      "width": 600,
+      "height": 478,
+      "layer_order": 1
+    },
+    "bottom_image": {
+      "url": "https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/midjourney_splits/main/476/25bfa9d3f71.png",
+      "description_prompt": "Close-up, overhead shot of a Street Corn Chicken Bowl. Identical to the top image.",
+      "position": {
+        "top": 589,
+        "left": 0
+      },
+      "width": 600,
+      "height": 478,
+      "layer_order": 1
+    }
+  }
+}

@@ -1746,3 +1746,1066 @@
  * Running on http://127.0.0.1:8080
  * Running on http://10.114.102.135:8080
 2026-03-09 06:46:17,600 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 06:50:53,474 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 06:50:53,488 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-09 06:50:53,488 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 07:26:19,088 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 07:26:19,106 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-09 07:26:19,106 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 07:43:43,380 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 07:43:43,396 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-09 07:43:43,396 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 07:56:12,780 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 07:56:12,798 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-09 07:56:12,798 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 10:04:06,109 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 10:04:06,128 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.20.30.25:8080
+2026-03-09 10:04:06,128 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-03-09 10:14:43,889 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-09 10:14:43,890 [INFO] werkzeug: 127.0.0.1 - - [09/Mar/2026 10:14:43] "GET /ai/models HTTP/1.1" 200 -
+
+--- Started ---
+2026-03-09 10:22:34,682 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 10:22:34,699 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.215.135:8080
+2026-03-09 10:22:34,699 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 10:30:59,314 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 10:30:59,333 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.215.135:8080
+2026-03-09 10:30:59,333 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 10:34:19,841 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 10:34:19,865 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.215.135:8080
+2026-03-09 10:34:19,865 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 12:19:35,854 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 12:19:35,871 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.215.135:8080
+2026-03-09 12:19:35,871 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 12:25:44,224 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 12:25:44,239 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.215.135:8080
+2026-03-09 12:25:44,240 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 12:26:17,819 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 12:26:17,837 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.215.135:8080
+2026-03-09 12:26:17,837 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 12:27:46,027 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 12:27:46,052 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.215.135:8080
+2026-03-09 12:27:46,052 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 12:41:18,708 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 12:41:18,725 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.215.135:8080
+2026-03-09 12:41:18,725 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 12:42:28,031 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 12:42:28,048 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.215.135:8080
+2026-03-09 12:42:28,048 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 13:22:54,224 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 13:22:54,242 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.215.135:8080
+2026-03-09 13:22:54,242 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 13:28:50,082 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 13:28:50,101 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.215.135:8080
+2026-03-09 13:28:50,101 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 13:33:35,502 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 13:33:35,518 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.215.135:8080
+2026-03-09 13:33:35,518 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 13:37:08,642 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 13:37:08,661 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.215.135:8080
+2026-03-09 13:37:08,661 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 13:51:47,810 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 13:51:47,827 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.215.135:8080
+2026-03-09 13:51:47,827 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 14:21:56,586 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 14:21:56,603 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.215.135:8080
+2026-03-09 14:21:56,603 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 14:24:53,665 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 14:24:53,685 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.215.135:8080
+2026-03-09 14:24:53,687 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 14:30:00,589 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 14:30:00,604 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.215.135:8080
+2026-03-09 14:30:00,604 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 14:35:06,626 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 14:35:06,641 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.215.135:8080
+2026-03-09 14:35:06,641 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 14:37:24,500 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 14:37:24,521 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.215.135:8080
+2026-03-09 14:37:24,521 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 16:51:04,942 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 16:51:04,960 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-09 16:51:04,960 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 16:58:34,348 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 16:58:34,398 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-09 16:58:34,399 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 17:15:23,402 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 17:15:23,430 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-09 17:15:23,430 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 17:23:21,735 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 17:23:21,767 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-09 17:23:21,792 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 17:29:59,450 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 17:29:59,484 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-09 17:29:59,484 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 17:32:35,901 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 17:32:35,946 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-09 17:32:35,946 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 17:45:14,366 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 17:45:14,412 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-09 17:45:14,412 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 17:54:42,487 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 17:54:42,532 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-09 17:54:42,532 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 18:05:47,144 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 18:05:47,164 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-09 18:05:47,164 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 18:13:25,341 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 18:13:25,361 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-09 18:13:25,361 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 18:14:59,140 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 18:14:59,187 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-09 18:14:59,187 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 20:27:32,019 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 20:27:32,051 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-09 20:27:32,052 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 20:32:31,881 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 20:32:31,924 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-09 20:32:31,924 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 20:35:04,537 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 20:35:04,557 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-09 20:35:04,557 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 20:45:57,753 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 20:45:57,770 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-09 20:45:57,770 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 20:46:24,626 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 20:46:24,654 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-09 20:46:24,654 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 20:47:39,917 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 20:47:39,963 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-09 20:47:39,964 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 20:49:13,871 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 20:49:13,890 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-09 20:49:13,890 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 20:52:09,748 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 20:52:09,767 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-09 20:52:09,767 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 20:55:36,506 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 20:55:36,544 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-09 20:55:36,544 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 21:17:37,146 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 21:17:37,200 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-09 21:17:37,200 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 21:18:43,564 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 21:18:43,614 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-09 21:18:43,614 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 21:22:14,948 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 21:22:14,984 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-09 21:22:14,984 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 21:24:08,015 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 21:24:08,135 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-09 21:24:08,136 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 21:31:34,832 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 21:31:34,912 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-09 21:31:34,912 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 21:40:23,393 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 21:40:23,449 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-09 21:40:23,449 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 21:50:22,082 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 21:50:22,132 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-09 21:50:22,133 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 22:33:33,927 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 22:33:33,943 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-09 22:33:33,943 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 22:34:13,999 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 22:34:14,016 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-09 22:34:14,016 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 22:35:03,548 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 22:35:03,585 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-09 22:35:03,585 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-03-09 22:36:07,416 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-09 22:36:07,416 [INFO] werkzeug: 127.0.0.1 - - [09/Mar/2026 22:36:07] "GET /ai/models HTTP/1.1" 200 -
+
+--- Started ---
+2026-03-09 22:55:17,268 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 22:55:17,359 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-09 22:55:17,359 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-09 22:56:03,316 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 22:56:03,332 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-09 22:56:03,332 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-03-09 22:56:25,155 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-09 22:56:25,160 [INFO] werkzeug: 127.0.0.1 - - [09/Mar/2026 22:56:25] "GET /ai/models HTTP/1.1" 200 -
+
+--- Started ---
+2026-03-09 23:01:19,254 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-09 23:01:19,276 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-09 23:01:19,276 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-03-09 23:05:06,585 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-09 23:05:06,586 [INFO] werkzeug: 127.0.0.1 - - [09/Mar/2026 23:05:06] "GET /ai/models HTTP/1.1" 200 -
+
+--- Started ---
+2026-03-10 06:04:19,630 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 06:04:19,653 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-10 06:04:19,653 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-03-10 06:04:37,258 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-10 06:04:37,260 [INFO] werkzeug: 127.0.0.1 - - [10/Mar/2026 06:04:37] "GET /ai/models HTTP/1.1" 200 -
+2026-03-10 06:05:13,214 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-10 06:05:13,214 [INFO] werkzeug: 127.0.0.1 - - [10/Mar/2026 06:05:13] "GET /ai/models HTTP/1.1" 200 -
+
+--- Started ---
+2026-03-10 06:13:55,561 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 06:13:55,584 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.101:8080
+2026-03-10 06:13:55,584 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-03-10 06:14:09,933 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-10 06:14:09,934 [INFO] werkzeug: 127.0.0.1 - - [10/Mar/2026 06:14:09] "GET /ai/models HTTP/1.1" 200 -
+
+--- Started ---
+2026-03-10 06:33:27,498 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 06:33:27,546 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.101:8080
+2026-03-10 06:33:27,546 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-03-10 06:33:42,683 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-10 06:33:42,684 [INFO] werkzeug: 127.0.0.1 - - [10/Mar/2026 06:33:42] "GET /ai/models HTTP/1.1" 200 -
+2026-03-10 06:36:25,397 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-10 06:36:25,398 [INFO] werkzeug: 127.0.0.1 - - [10/Mar/2026 06:36:25] "GET /ai/models HTTP/1.1" 200 -
+
+--- Started ---
+2026-03-10 06:42:16,182 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 06:42:16,235 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.101:8080
+2026-03-10 06:42:16,235 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-03-10 06:42:32,981 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-10 06:42:32,994 [INFO] werkzeug: 127.0.0.1 - - [10/Mar/2026 06:42:32] "GET /ai/models HTTP/1.1" 200 -
+
+--- Started ---
+2026-03-10 06:46:45,778 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 06:46:45,800 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.101:8080
+2026-03-10 06:46:45,800 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-03-10 10:42:53,637 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-10 10:42:53,639 [INFO] werkzeug: 127.0.0.1 - - [10/Mar/2026 10:42:53] "GET /ai/models HTTP/1.1" 200 -
+2026-03-10 10:43:11,622 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-10 10:43:11,622 [INFO] werkzeug: 127.0.0.1 - - [10/Mar/2026 10:43:11] "GET /ai/models HTTP/1.1" 200 -
+2026-03-10 11:56:43,189 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-10 11:56:43,192 [INFO] werkzeug: 127.0.0.1 - - [10/Mar/2026 11:56:43] "GET /ai/models HTTP/1.1" 200 -
+2026-03-10 11:57:18,715 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-10 11:57:18,716 [INFO] werkzeug: 127.0.0.1 - - [10/Mar/2026 11:57:18] "GET /ai/models HTTP/1.1" 200 -
+2026-03-10 12:03:13,986 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-10 12:03:13,987 [INFO] werkzeug: 127.0.0.1 - - [10/Mar/2026 12:03:13] "GET /ai/models HTTP/1.1" 200 -
+
+--- Started ---
+2026-03-10 12:11:59,219 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 12:11:59,245 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.20.30.25:8080
+2026-03-10 12:11:59,246 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-03-10 12:12:44,510 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-10 12:12:44,511 [INFO] werkzeug: 127.0.0.1 - - [10/Mar/2026 12:12:44] "GET /ai/models HTTP/1.1" 200 -
+
+--- Started ---
+2026-03-10 13:04:04,367 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 13:04:04,384 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.194.135:8080
+2026-03-10 13:04:04,384 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-10 13:27:13,688 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 13:27:13,708 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.194.135:8080
+2026-03-10 13:27:13,708 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-10 13:39:33,304 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 13:39:33,321 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.194.135:8080
+2026-03-10 13:39:33,321 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-10 13:45:05,953 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 13:45:05,995 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.194.135:8080
+2026-03-10 13:45:05,995 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-10 13:53:23,056 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 13:53:23,075 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.194.135:8080
+2026-03-10 13:53:23,075 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-10 14:01:23,590 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 14:01:23,612 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.194.135:8080
+2026-03-10 14:01:23,612 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-10 14:10:47,469 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 14:10:47,497 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.194.135:8080
+2026-03-10 14:10:47,497 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-10 14:31:13,457 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 14:31:13,488 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.194.135:8080
+2026-03-10 14:31:13,488 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-10 14:35:31,072 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 14:35:31,088 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.194.135:8080
+2026-03-10 14:35:31,088 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-10 14:43:23,800 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 14:43:23,860 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.194.135:8080
+2026-03-10 14:43:23,860 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-10 14:46:19,616 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 14:46:19,639 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.194.135:8080
+2026-03-10 14:46:19,639 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-10 16:41:30,365 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 16:41:30,414 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-10 16:41:30,414 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-10 16:43:00,992 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 16:43:01,017 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-10 16:43:01,040 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-10 16:59:06,852 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 16:59:06,902 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-10 16:59:06,902 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-03-10 17:13:00,449 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-10 17:13:00,456 [INFO] werkzeug: 127.0.0.1 - - [10/Mar/2026 17:13:00] "GET /ai/models HTTP/1.1" 200 -
+
+--- Started ---
+2026-03-10 17:34:52,768 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 17:34:52,790 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-10 17:34:52,790 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-10 17:38:02,360 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 17:38:02,377 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-10 17:38:02,377 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-10 17:41:11,324 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 17:41:11,385 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-10 17:41:11,385 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-10 21:44:09,717 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 21:44:09,740 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-10 21:44:09,740 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-10 21:45:50,457 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 21:45:50,488 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-10 21:45:50,488 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-03-10 21:47:00,231 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-10 21:47:00,232 [INFO] werkzeug: 127.0.0.1 - - [10/Mar/2026 21:47:00] "GET /ai/models HTTP/1.1" 200 -
+
+--- Started ---
+2026-03-10 21:57:56,063 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 21:57:56,079 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-10 21:57:56,079 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-10 22:09:52,016 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 22:09:52,041 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-10 22:09:52,041 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-03-10 22:16:03,871 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-10 22:16:03,872 [INFO] werkzeug: 127.0.0.1 - - [10/Mar/2026 22:16:03] "GET /ai/models HTTP/1.1" 200 -
+
+--- Started ---
+2026-03-10 22:19:27,795 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 22:19:27,820 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-10 22:19:27,820 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-03-10 22:19:37,449 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-10 22:19:37,450 [INFO] werkzeug: 127.0.0.1 - - [10/Mar/2026 22:19:37] "GET /ai/models HTTP/1.1" 200 -
+2026-03-10 22:19:40,593 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-10 22:19:40,593 [INFO] werkzeug: 127.0.0.1 - - [10/Mar/2026 22:19:40] "GET /ai/models HTTP/1.1" 200 -
+
+--- Started ---
+2026-03-10 22:22:04,920 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 22:22:04,944 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-10 22:22:04,944 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-03-10 22:22:11,681 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-10 22:22:11,682 [INFO] werkzeug: 127.0.0.1 - - [10/Mar/2026 22:22:11] "GET /ai/models HTTP/1.1" 200 -
+2026-03-10 22:22:21,105 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-10 22:22:21,107 [INFO] werkzeug: 127.0.0.1 - - [10/Mar/2026 22:22:21] "GET /ai/models HTTP/1.1" 200 -
+
+--- Started ---
+2026-03-10 22:47:27,967 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 22:47:28,010 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-10 22:47:28,010 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-10 22:54:09,789 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-10 22:54:09,833 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.114.102.135:8080
+2026-03-10 22:54:09,835 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-11 05:17:12,173 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-11 05:17:12,218 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-11 05:17:12,218 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-11 06:04:47,092 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-11 06:04:47,113 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.101:8080
+2026-03-11 06:04:47,113 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-03-11 09:23:17,282 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 09:23:17] "[33mGET /Mouvement_TC/ HTTP/1.1[0m" 404 -
+2026-03-11 09:23:17,476 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 09:23:17] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-03-11 09:43:51,425 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 09:43:51] "[33mGET /Mouvement_TC/ HTTP/1.1[0m" 404 -
+2026-03-11 09:43:51,452 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 09:43:51] "GET / HTTP/1.1" 200 -
+2026-03-11 09:43:52,168 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 09:43:52] "[33mGET /Mouvement_TC/ HTTP/1.1[0m" 404 -
+2026-03-11 09:53:00,881 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 09:53:00] "[33mGET /Mouvement_TC/ HTTP/1.1[0m" 404 -
+2026-03-11 09:53:00,891 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 09:53:00] "GET / HTTP/1.1" 200 -
+2026-03-11 09:53:34,957 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 09:53:34] "[33mGET /Mouvement_TC/rest/StockPImportDAO/recupererstockImport HTTP/1.1[0m" 404 -
+2026-03-11 09:54:08,483 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 09:54:08] "[33mGET /Mouvement_TC/rest/StockPExportDAO/recupererstockExport HTTP/1.1[0m" 404 -
+2026-03-11 09:55:41,716 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 09:55:41] "[33mGET /Mouvement_TC/ HTTP/1.1[0m" 404 -
+2026-03-11 09:55:41,722 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 09:55:41] "GET / HTTP/1.1" 200 -
+2026-03-11 09:55:42,253 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 09:55:42] "[33mGET /Mouvement_TC/ HTTP/1.1[0m" 404 -
+2026-03-11 09:56:13,769 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 09:56:13] "[33mGET /Mouvement_TC/ HTTP/1.1[0m" 404 -
+2026-03-11 09:57:07,437 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 09:57:07] "[33mGET /Mouvement_TC/ HTTP/1.1[0m" 404 -
+2026-03-11 09:57:07,443 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 09:57:07] "GET / HTTP/1.1" 200 -
+2026-03-11 09:57:08,075 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 09:57:08] "[33mGET /Mouvement_TC/ HTTP/1.1[0m" 404 -
+2026-03-11 10:00:09,355 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 10:00:09] "[33mGET /Mouvement_TC/rest/StockPImportDAO/recupererstockImport HTTP/1.1[0m" 404 -
+2026-03-11 10:00:12,797 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 10:00:12] "[33mGET /Mouvement_TC/rest/StockPImportDAO/recupererstockImport HTTP/1.1[0m" 404 -
+2026-03-11 10:00:17,220 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 10:00:17] "[33mGET /Mouvement_TC/rest/StockPImportDAO/recupererstockImport HTTP/1.1[0m" 404 -
+2026-03-11 10:01:20,573 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 10:01:20] "[33mGET /Mouvement_TC/ HTTP/1.1[0m" 404 -
+2026-03-11 10:01:20,602 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 10:01:20] "GET / HTTP/1.1" 200 -
+2026-03-11 10:01:21,825 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 10:01:21] "[33mGET /Mouvement_TC/ HTTP/1.1[0m" 404 -
+2026-03-11 10:01:31,025 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 10:01:31] "[33mGET /Mouvement_TC HTTP/1.1[0m" 404 -
+2026-03-11 10:01:34,414 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 10:01:34] "[33mGET /Mouvement_TC_war HTTP/1.1[0m" 404 -
+2026-03-11 10:02:48,694 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 10:02:48] "[33mGET /Mouvement_TC/ HTTP/1.1[0m" 404 -
+2026-03-11 10:02:48,698 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 10:02:48] "GET / HTTP/1.1" 200 -
+2026-03-11 10:02:49,184 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 10:02:49] "[33mGET /Mouvement_TC/ HTTP/1.1[0m" 404 -
+2026-03-11 10:03:15,774 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 10:03:15] "[33mGET /Mouvement_TC/ HTTP/1.1[0m" 404 -
+2026-03-11 10:03:16,893 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 10:03:16] "[33mGET /Mouvement_TC/ HTTP/1.1[0m" 404 -
+2026-03-11 10:03:17,852 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 10:03:17] "[33mGET /Mouvement_TC/ HTTP/1.1[0m" 404 -
+2026-03-11 10:04:52,476 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 10:04:52] "[33mGET /Mouvement_TC/ HTTP/1.1[0m" 404 -
+2026-03-11 10:04:52,482 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 10:04:52] "GET / HTTP/1.1" 200 -
+2026-03-11 10:04:52,955 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 10:04:52] "[33mGET /Mouvement_TC/ HTTP/1.1[0m" 404 -
+
+--- Started ---
+2026-03-11 16:51:51,713 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-11 16:51:51,732 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-11 16:51:51,732 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-11 16:52:29,020 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-11 16:52:29,061 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-11 16:52:29,061 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-11 17:06:18,845 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-11 17:06:18,872 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-11 17:06:18,872 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-03-11 17:06:29,264 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-11 17:06:29,264 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 17:06:29] "GET /ai/models HTTP/1.1" 200 -
+
+--- Started ---
+2026-03-11 17:13:19,795 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-11 17:13:19,819 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-11 17:13:19,819 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-03-11 17:16:24,360 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-11 17:16:24,362 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 17:16:24] "GET /ai/models HTTP/1.1" 200 -
+2026-03-11 19:50:06,216 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-11 19:50:06,222 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 19:50:06] "GET /ai/models HTTP/1.1" 200 -
+
+--- Started ---
+2026-03-11 19:55:40,744 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-11 19:55:40,767 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-11 19:55:40,767 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-11 19:56:41,116 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-11 19:56:41,158 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-11 19:56:41,158 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-03-11 19:56:51,731 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-11 19:56:51,732 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 19:56:51] "GET /ai/models HTTP/1.1" 200 -
+2026-03-11 19:58:12,039 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-11 19:58:12,040 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 19:58:12] "GET /ai/models HTTP/1.1" 200 -
+2026-03-11 19:58:23,554 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-11 19:58:23,555 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 19:58:23] "GET /ai/models HTTP/1.1" 200 -
+2026-03-11 20:01:35,208 [INFO] llamacpp_manager: [GET /ai/models] returning 1 models
+2026-03-11 20:01:35,209 [INFO] werkzeug: 127.0.0.1 - - [11/Mar/2026 20:01:35] "GET /ai/models HTTP/1.1" 200 -
+
+--- Started ---
+2026-03-11 20:23:43,949 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-11 20:23:43,983 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.1.18:8080
+2026-03-11 20:23:43,983 [INFO] werkzeug: [33mPress CTRL+C to quit[0m

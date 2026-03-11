@@ -514,6 +514,10 @@ def generate_article(generator_name: str, config: dict = Body(...)):
 
         keys = list(content_data.keys()) if isinstance(content_data, dict) else []
         log.info("[generate-article] result keys=%s", keys)
+        # prompt/prompt_image_ingredients come from generate-prompts step, never from article generator
+        for k in ("prompt", "prompt_image_ingredients", "prompt_midjourney_main", "prompt_midjourney_ingredients"):
+            if isinstance(content_data, dict) and k in content_data:
+                content_data[k] = ""
         return content_data
     except ValueError as e:
         log.warning("[generate-article] 400: %s (generator=%s ai_provider=%s has_openai_key=%s has_openrouter_key=%s)", e, generator_name, ai_provider, has_openai_key, has_openrouter_key)

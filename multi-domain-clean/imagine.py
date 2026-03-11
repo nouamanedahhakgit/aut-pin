@@ -2,6 +2,8 @@
 import os
 import time
 import uuid
+import logging
+import threading
 import requests
 from io import BytesIO
 
@@ -27,6 +29,16 @@ JOB_STATUS_ENDPOINT = f"{USEAPI_BASE_URL.rstrip('/')}/jobs"
 HEADERS = {"Authorization": f"Bearer {MIDJOURNEY_API_TOKEN}", "Content-Type": "application/json"}
 MAX_JOB_SECONDS = 900
 POLL_DELAY_S = 5
+
+log = logging.getLogger(__name__)
+
+# ── Multi-channel cooldown tracker ──────────────────────────────────────
+# When a channel errors, it is "cooled down" for CHANNEL_COOLDOWN_ROUNDS
+# successful uses of OTHER channels before it is tried again.
+CHANNEL_COOLDOWN_ROUNDS = 3
+_channel_cooldown_lock = threading.Lock()
+# {channel_id: remaining_cooldown_count}
+_channel_cooldowns: dict[str, int] = {}
 
 
 def _normalize_prompt(p: str) -> str:
@@ -100,7 +112,30 @@ def create_imagine_task(prompt: str, user_config: dict = None) -> tuple:
             jobid = data.get("jobid") or data.get("job_id") or data.get("id")
             if jobid:
                 return jobid, None
-        return None, f"HTTP {resp.status_code}: {resp.text[:200]}"
+        # Extract structured error from UseAPI response
+        err_detail = ""
+        try:
+            err_json = resp.json()
+            err_detail = err_json.get("error", "")
+        except Exception:
+            err_detail = resp.text[:200]
+        # Map HTTP status codes to user-friendly context
+        code = resp.status_code
+        if code == 429:
+            return None, f"HTTP 429 Rate Limit: {err_detail}"
+        elif code == 402:
+            return None, f"HTTP 402 Payment Required: {err_detail}"
+        elif code == 596:
+            return None, f"HTTP 596 Moderation/CAPTCHA: {err_detail}"
+        elif code == 401:
+            return None, f"HTTP 401 Unauthorized: {err_detail}"
+        elif code == 400:
+            return None, f"HTTP 400 Bad Request: {err_detail}"
+        return None, f"HTTP {code}: {err_detail}"
+    except requests.exceptions.Timeout:
+        return None, "Connection timeout: UseAPI did not respond within 60s"
+    except requests.exceptions.ConnectionError as e:
+        return None, f"Connection error: {str(e)[:150]}"
     except Exception as e:
         return None, str(e)
 
@@ -117,12 +152,20 @@ def poll_job(jobid: str, user_config: dict = None) -> tuple:
             timeout=30,
         )
         if resp.status_code != 200:
-            return "error", {"error": resp.text[:200]}
+            return "error", {"error": f"Poll HTTP {resp.status_code}: {resp.text[:200]}"}
         data = resp.json()
         status = (data.get("status") or "").lower()
         if status in ("completed", "done", "success"):
             return "completed", data
         if status in ("failed", "error", "moderated"):
+            # Extract detailed error from response content or job data
+            fail_reason = ""
+            resp_obj = data.get("response") or {}
+            if isinstance(resp_obj, dict):
+                fail_reason = resp_obj.get("content", "") or resp_obj.get("error", "")
+            if not fail_reason:
+                fail_reason = data.get("error", "") or data.get("content", "")
+            data["error"] = f"Job {status}: {fail_reason[:200]}" if fail_reason else f"Job {status}"
             return "failed", data
         return "pending", data
     except Exception as e:
@@ -245,8 +288,123 @@ def generate_4_images(prompt: str, key_prefix: str = "multi-domain", cancel_chec
                 return [], f"Expected grid (1 URL) or 4 images, got {len(urls)}"
             return [], "No grid or image URLs in response"
         if status in ("failed", "error"):
-            return [], data.get("error", "Job failed")
+            err_msg = data.get("error", "Job failed")
+            return [], f"{err_msg}"
         if cancel_check and cancel_check():
             return [], "Cancelled"
         time.sleep(POLL_DELAY_S)
-    return [], "Timeout waiting for job"
+    elapsed_min = int((time.time() - start) / 60)
+    return [], f"Job timed out after {elapsed_min} minutes - no response from Discord"
+
+
+def _parse_channel_ids(user_config: dict) -> list[str]:
+    """Parse channel IDs from user_config. Supports comma/newline separated values."""
+    raw = user_config.get("midjourney_channel_id") or MIDJOURNEY_CHANNEL_ID or ""
+    channels = []
+    for part in str(raw).replace("\n", ",").split(","):
+        ch = part.strip()
+        if ch:
+            channels.append(ch)
+    return channels
+
+
+def _mark_channel_cooldown(channel_id: str):
+    """Mark a channel as cooled down after an error."""
+    with _channel_cooldown_lock:
+        _channel_cooldowns[channel_id] = CHANNEL_COOLDOWN_ROUNDS
+        log.info("[imagine] Channel %s cooled down for %d rounds", channel_id, CHANNEL_COOLDOWN_ROUNDS)
+
+
+def _tick_channel_success(channel_id: str):
+    """After a successful use of a channel, decrement cooldown counters of OTHER channels."""
+    with _channel_cooldown_lock:
+        to_remove = []
+        for ch, remaining in _channel_cooldowns.items():
+            if ch != channel_id:
+                new_val = remaining - 1
+                if new_val <= 0:
+                    to_remove.append(ch)
+                    log.info("[imagine] Channel %s cooldown expired, available again", ch)
+                else:
+                    _channel_cooldowns[ch] = new_val
+        for ch in to_remove:
+            del _channel_cooldowns[ch]
+
+
+def _get_available_channels(channel_ids: list[str]) -> list[str]:
+    """Return channels that are not currently in cooldown."""
+    with _channel_cooldown_lock:
+        return [ch for ch in channel_ids if ch not in _channel_cooldowns]
+
+
+def generate_4_images_multi_channel(
+    prompt: str,
+    key_prefix: str = "multi-domain",
+    cancel_check=None,
+    user_config: dict = None,
+) -> tuple:
+    """
+    Like generate_4_images but rotates through multiple Discord channels.
+    If a channel errors, it is skipped for CHANNEL_COOLDOWN_ROUNDS successful
+    uses of other channels before being retried.
+
+    Returns ([url1, url2, url3, url4], error_or_None, used_channel_id_or_None).
+    """
+    user_config = user_config or {}
+    all_channels = _parse_channel_ids(user_config)
+
+    if not all_channels:
+        return [], "No Midjourney channel IDs configured", None
+
+    # Get available (non-cooled-down) channels
+    available = _get_available_channels(all_channels)
+    if not available:
+        # All channels in cooldown — reset all and try from scratch
+        log.warning("[imagine] All %d channels in cooldown, resetting all cooldowns", len(all_channels))
+        with _channel_cooldown_lock:
+            _channel_cooldowns.clear()
+        available = list(all_channels)
+
+    channel_errors = []  # accumulate errors from ALL channels tried
+    tried_channel = None
+    channels_tried = 0
+
+    for channel_id in available:
+        if cancel_check and cancel_check():
+            return [], "Cancelled", None
+
+        # Build a config copy with this specific channel
+        cfg = dict(user_config)
+        cfg["midjourney_channel_id"] = channel_id
+        tried_channel = channel_id
+        channels_tried += 1
+
+        log.info("[imagine] Trying channel ..%s (%d/%d available, %d total)",
+                 channel_id[-4:], channels_tried, len(available), len(all_channels))
+
+        urls, err = generate_4_images(prompt, key_prefix, cancel_check, cfg)
+
+        if not err:
+            # Success — tick cooldowns for other channels
+            _tick_channel_success(channel_id)
+            log.info("[imagine] Channel ..%s succeeded on try %d/%d",
+                     channel_id[-4:], channels_tried, len(available))
+            return urls, None, channel_id
+
+        if err == "Cancelled":
+            return [], "Cancelled", None
+
+        # Error — cool down this channel and try next
+        short_err = str(err)[:150]
+        log.warning("[imagine] Channel ..%s failed (%d/%d): %s",
+                    channel_id[-4:], channels_tried, len(available), short_err)
+        _mark_channel_cooldown(channel_id)
+        channel_errors.append(f"ch..{channel_id[-4:]}: {short_err}")
+
+    # All channels failed
+    if len(channel_errors) == 1:
+        combined = channel_errors[0]
+    else:
+        combined = " | ".join(channel_errors)
+    total_info = f"[{channels_tried}/{len(all_channels)} ch tried] "
+    return [], total_info + combined, tried_channel

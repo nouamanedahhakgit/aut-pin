@@ -1,0 +1,28 @@
+{
+  "template_id": "template_11",
+  "template_name": "Glassmorphism Luxe Recipe",
+  "images": {
+    "background": {
+      "url": "",
+      "description_prompt": "",
+      "position": {
+        "top": 0,
+        "left": 0
+      },
+      "width": 600,
+      "height": 1067,
+      "layer_order": 1
+    },
+    "top_image": {
+      "url": "",
+      "description_prompt": "",
+      "position": {
+        "top": 60,
+        "left": 60
+      },
+      "width": 480,
+      "height": 480,
+      "layer_order": 2
+    }
+  }
+}

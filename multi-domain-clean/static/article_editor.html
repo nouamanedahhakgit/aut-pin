@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Article Template Editor — Multi-Domain</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Bebas+Neue&family=Bodoni+Moda&family=Cormorant+Garamond&family=Crimson+Text&family=DM+Sans&family=Dancing+Script&family=Fraunces&family=Great+Vibes&family=Inter&family=Lato&family=Libre+Baskerville&family=Libre+Franklin&family=Lora&family=Merriweather&family=Montserrat&family=Nunito&family=Open+Sans&family=Oswald&family=Outfit&family=Pacifico&family=Playfair+Display&family=Poppins&family=PT+Sans&family=PT+Serif&family=Raleway&family=Roboto&family=Roboto+Slab&family=Source+Sans+3&family=Source+Serif+4&family=Space+Grotesk&family=Work+Sans&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Bebas+Neue&family=Bodoni+Moda&family=Cormorant+Garamond&family=Crimson+Text&family=DM+Sans&family=Dancing+Script&family=Fraunces&family=Great+Vibes&family=Inter&family=Lato&family=Libre+Baskerville&family=Libre+Franklin&family=Lora&family=Merriweather&family=Montserrat&family=Nunito&family=Open+Sans&family=Oswald&family=Outfit&family=Pacifico&family=Playfair+Display&family=Poppins&family=PT+Sans&family=PT+Serif&family=Raleway&family=Roboto&family=Roboto+Slab&family=Source+Sans+3&family=Source+Serif+4&family=Space+Grotesk&family=Work+Sans&display=swap"
+    rel="stylesheet">
+  <script src="js/html2canvas.min.js"></script>
   <style>
     :root {
       --bg: #0f0f12;
@@ -18,15 +21,30 @@
       --accent-hover: #5a7ad4;
       --success: #22c55e;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body {
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
       font-family: 'Segoe UI', system-ui, sans-serif;
       background: var(--bg);
       color: var(--text);
       height: 100%;
       margin: 0;
     }
-    body { padding: 0; margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
+
+    body {
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
     .layout {
       flex: 1;
       max-width: 1600px;
@@ -38,70 +56,261 @@
       align-items: stretch;
       min-height: 0;
     }
+
     @media (max-width: 900px) {
-      .layout { grid-template-columns: 1fr; }
-      .preview-panel { order: 1; min-height: 50vh; }
-      .settings-panel { order: 2; }
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .preview-panel {
+        order: 1;
+        min-height: 50vh;
+      }
+
+      .settings-panel {
+        order: 2;
+      }
     }
-    .nav-top { margin-bottom: 1rem; flex-shrink: 0; }
-    .nav-top a { color: var(--accent); margin-right: 1rem; font-size: 0.9rem; }
-    h1 { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; }
+
+    .nav-top {
+      margin-bottom: 1rem;
+      flex-shrink: 0;
+    }
+
+    .nav-top a {
+      color: var(--accent);
+      margin-right: 1rem;
+      font-size: 0.9rem;
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
     .panel {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 1.25rem;
     }
+
     .panel h2 {
-      font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
-      color: var(--muted); margin-bottom: 0.75rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
     }
-    label { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem; }
-    input, select, textarea {
-      width: 100%; padding: 0.5rem 0.6rem; background: var(--bg); border: 1px solid var(--border);
-      border-radius: 6px; color: var(--text); font-size: 0.85rem; margin-bottom: 0.6rem;
+
+    label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
     }
-    input[type="number"] { width: 100%; }
-    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-    .color-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.6rem; }
-    .color-row input[type="color"] { width: 40px; height: 34px; padding: 2px; cursor: pointer; margin-bottom: 0; flex-shrink: 0; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); }
-    .color-row input[type="text"] { margin-bottom: 0; flex: 1; }
-    .palette { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 0.6rem; }
-    .palette-swatch { width: 22px; height: 22px; border-radius: 4px; cursor: pointer; border: 2px solid var(--border); flex-shrink: 0; }
-    .palette-swatch:hover { border-color: var(--accent); }
-    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 0.5rem 0.6rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 0.85rem;
+      margin-bottom: 0.6rem;
+    }
+
+    input[type="number"] {
+      width: 100%;
+    }
+
+    .row2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    .color-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 0.6rem;
+    }
+
+    .color-row input[type="color"] {
+      width: 40px;
+      height: 34px;
+      padding: 2px;
+      cursor: pointer;
+      margin-bottom: 0;
+      flex-shrink: 0;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+    }
+
+    .color-row input[type="text"] {
+      margin-bottom: 0;
+      flex: 1;
+    }
+
+    .palette {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: 0.6rem;
+    }
+
+    .palette-swatch {
+      width: 22px;
+      height: 22px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 2px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .palette-swatch:hover {
+      border-color: var(--accent);
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
     .btn {
-      display: inline-block; padding: 0.6rem 1rem; border: none; border-radius: 8px;
-      font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: background 0.15s;
-      margin-right: 0.5rem; margin-bottom: 0.5rem;
+      display: inline-block;
+      padding: 0.6rem 1rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
     }
-    .btn-primary { background: var(--accent); color: #fff; }
-    .btn-primary:hover { background: var(--accent-hover); }
-    .btn-success { background: var(--success); color: #fff; }
-    .btn-success:hover { filter: brightness(1.1); }
-    .btn-secondary { background: var(--border); color: var(--text); }
-    .btn-secondary:hover { background: var(--muted); }
-    .mb1 { margin-bottom: 1rem; }
-    .mt1 { margin-top: 1rem; }
-    .status { font-size: 0.8rem; color: var(--muted); margin-top: 0.5rem; flex-shrink: 0; }
-    .status.error { color: #ef4444; }
-    .status.ok { color: var(--success); }
-    .settings-panel { overflow-y: auto; min-height: 0; }
-    .element-tabs { display: flex; flex-wrap: wrap; gap: 2px; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: #fff;
+    }
+
+    .btn-success:hover {
+      filter: brightness(1.1);
+    }
+
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover {
+      background: var(--muted);
+    }
+
+    .mb1 {
+      margin-bottom: 1rem;
+    }
+
+    .mt1 {
+      margin-top: 1rem;
+    }
+
+    .status {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .status.error {
+      color: #ef4444;
+    }
+
+    .status.ok {
+      color: var(--success);
+    }
+
+    .settings-panel {
+      overflow-y: auto;
+      min-height: 0;
+    }
+
+    .element-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px;
+      margin-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0;
+    }
+
     .element-tabs .tab-btn {
-      padding: 0.4rem 0.6rem; font-size: 0.75rem; background: transparent; color: var(--muted); border: none;
-      border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; border-radius: 6px 6px 0 0;
+      padding: 0.4rem 0.6rem;
+      font-size: 0.75rem;
+      background: transparent;
+      color: var(--muted);
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      cursor: pointer;
+      border-radius: 6px 6px 0 0;
     }
-    .element-tabs .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.05); }
-    .element-tabs .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
-    .element-tab-panels { margin-top: 0.5rem; }
-    .element-tab-panel { display: none; padding: 0.25rem 0; }
-    .element-tab-panel.active { display: block; }
-    .form-section { margin-bottom: 1rem; }
+
+    .element-tabs .tab-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .element-tabs .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      font-weight: 600;
+    }
+
+    .element-tab-panels {
+      margin-top: 0.5rem;
+    }
+
+    .element-tab-panel {
+      display: none;
+      padding: 0.25rem 0;
+    }
+
+    .element-tab-panel.active {
+      display: block;
+    }
+
+    .form-section {
+      margin-bottom: 1rem;
+    }
+
     .form-section h3 {
-      font-size: 0.8rem; color: var(--accent); margin-bottom: 0.5rem;
-      padding-bottom: 0.25rem; border-bottom: 1px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+      padding-bottom: 0.25rem;
+      border-bottom: 1px solid var(--border);
     }
+
     .preview-panel {
       display: flex;
       flex-direction: column;
@@ -112,7 +321,11 @@
       min-width: 0;
       min-height: 0;
     }
-    .preview-panel h2 { flex-shrink: 0; }
+
+    .preview-panel h2 {
+      flex-shrink: 0;
+    }
+
     .preview-wrap {
       flex: 1;
       min-height: 0;
@@ -122,6 +335,7 @@
       border-radius: 8px;
       overflow: auto;
     }
+
     .preview-panel-zoom-wrap {
       flex: 1;
       min-height: 100%;
@@ -129,6 +343,7 @@
       display: flex;
       flex-direction: column;
     }
+
     .preview-iframe {
       flex: 1;
       width: 100%;
@@ -137,6 +352,7 @@
       border-radius: 8px;
       background: #fff;
     }
+
     .preview-placeholder {
       flex: 1;
       display: flex;
@@ -147,35 +363,165 @@
       padding: 2rem;
       text-align: center;
     }
-    .preview-clickable { cursor: pointer; position: relative; }
-    .preview-clickable:hover::after { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,0.05); border-radius: 8px; pointer-events: none; }
-    .preview-clickable .click-hint { position: absolute; bottom: 8px; right: 8px; font-size: 0.7rem; color: var(--muted); background: var(--surface); padding: 2px 6px; border-radius: 4px; opacity: 0.9; }
-    .preview-cached-img { flex: 1; width: 100%; object-fit: contain; object-position: top; min-height: 0; border-radius: 8px; }
-    .article-modal { position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; padding: 0; }
-    .article-modal-inner { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 90vw; height: 90vh; overflow: hidden; display: flex; flex-direction: column; position: relative; }
-    .article-modal-header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.5rem 1rem; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
-    .article-modal-body { flex: 1; overflow: auto; padding: 1rem; background: #fff; min-height: 0; }
-    .article-preview-zoom-wrap { display: inline-block; }
-    .article-modal-body iframe { width: 100%; height: 100%; min-height: calc(90vh - 2rem); border: none; display: block; }
-    .article-modal-close { background: var(--border); color: var(--text); border: none; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-weight: 600; }
-    .article-modal-close:hover { background: var(--muted); }
-    textarea#jsonEdit { min-height: 200px; font-family: 'Consolas','Monaco',monospace; font-size: 0.78rem; }
+
+    .preview-clickable {
+      cursor: pointer;
+      position: relative;
+    }
+
+    .preview-clickable:hover::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 8px;
+      pointer-events: none;
+    }
+
+    .preview-clickable .click-hint {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      font-size: 0.7rem;
+      color: var(--muted);
+      background: var(--surface);
+      padding: 2px 6px;
+      border-radius: 4px;
+      opacity: 0.9;
+    }
+
+    .preview-cached-img {
+      flex: 1;
+      width: 100%;
+      object-fit: contain;
+      object-position: top;
+      min-height: 0;
+      border-radius: 8px;
+    }
+
+    .article-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .article-modal-inner {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 90vw;
+      height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .article-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .article-modal-body {
+      flex: 1;
+      overflow: auto;
+      padding: 1rem;
+      background: #fff;
+      min-height: 0;
+    }
+
+    .article-preview-zoom-wrap {
+      display: inline-block;
+    }
+
+    .article-modal-body iframe {
+      width: 100%;
+      height: 100%;
+      min-height: calc(90vh - 2rem);
+      border: none;
+      display: block;
+    }
+
+    .article-modal-close {
+      background: var(--border);
+      color: var(--text);
+      border: none;
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .article-modal-close:hover {
+      background: var(--muted);
+    }
+
+    textarea#jsonEdit {
+      min-height: 200px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 0.78rem;
+    }
+
     #previewEditMenu {
-      position: fixed; z-index: 9998; background: var(--surface); border: 1px solid var(--border);
-      border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.4); padding: 0.5rem;
-      display: none; flex-direction: column; gap: 2px; min-width: 160px;
+      position: fixed;
+      z-index: 9998;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      padding: 0.5rem;
+      display: none;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 160px;
       font-size: 0.8rem;
     }
+
     #previewEditMenu button {
-      padding: 0.5rem 0.75rem; text-align: left; border: none; background: transparent;
-      color: var(--text); cursor: pointer; border-radius: 4px; white-space: nowrap;
+      padding: 0.5rem 0.75rem;
+      text-align: left;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      border-radius: 4px;
+      white-space: nowrap;
     }
-    #previewEditMenu button:hover { background: var(--accent); color: #fff; }
-    .font-preview { font-size: 1.1rem; margin-top: 0.35rem; padding: 0.5rem; background: var(--bg); border-radius: 6px; min-height: 2rem; color: var(--text); }
-    body.embed-mode .navbar-article-editor { display: none !important; }
+
+    #previewEditMenu button:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .font-preview {
+      font-size: 1.1rem;
+      margin-top: 0.35rem;
+      padding: 0.5rem;
+      background: var(--bg);
+      border-radius: 6px;
+      min-height: 2rem;
+      color: var(--text);
+    }
+
+    body.embed-mode .navbar-article-editor {
+      display: none !important;
+    }
   </style>
+
 <body>
-  <nav id="navbarArticleEditor" class="navbar navbar-expand navbar-dark bg-dark mb-0 flex-shrink-0 navbar-article-editor">
+  <nav id="navbarArticleEditor"
+    class="navbar navbar-expand navbar-dark bg-dark mb-0 flex-shrink-0 navbar-article-editor">
     <div class="container-fluid px-3">
       <a class="navbar-brand fw-bold" href="/database-management">Multi-Domain</a>
       <div class="navbar-nav">
@@ -190,176 +536,197 @@
     </div>
   </nav>
   <div class="container-fluid px-3 py-4" style="flex:1;min-height:0;display:flex;flex-direction:column;">
-  <div class="layout">
-    <div class="panel settings-panel">
-      <h1>Article Template Editor</h1>
-      <p class="status mb1">Each domain uses a <strong>Python generator</strong> (HTML structure) and your <strong>custom config</strong> (colors, fonts, layout). Edit below and save.</p>
-      <div class="mb1" id="domainSection">
-        <label for="domainSelect">Domain</label>
-        <select id="domainSelect">
-          <option value="">— Select domain —</option>
-        </select>
-      </div>
-      <div class="mb1" id="domainTemplateSection" style="display:none;">
-        <label for="articleTemplateName">Template name</label>
-        <input type="text" id="articleTemplateName" class="form-control" placeholder="e.g. Summer Recipe Style, Minimal Dark">
-        <span class="form-text">Optional: give this domain&#39;s design a friendly name</span>
-      </div>
-      <div class="mb1" id="defaultDesignSection">
-        <label for="generatorSelect"><span id="generatorLabel">Base generator</span></label>
-        <select id="generatorSelect">
-          <option value="generator-1">generator-1</option>
-        </select>
-        <p id="generatorHint" class="form-text mb-0" style="font-size:0.75rem;color:var(--muted);">Python generator defines the HTML structure; you customize colors, fonts, layout below</p>
-      </div>
-      <div id="domainInfo" class="status" style="display:none;"></div>
-      <div class="mb1" id="buttonRow">
-        <button type="button" class="btn btn-secondary" id="btnLoadDefault">Load default config</button>
-        <button type="button" class="btn btn-secondary" id="btnLoadDomainColors" title="Apply domain colors & fonts to article" style="display:none;">Load domain colors</button>
-        <select id="reskinIntensity" title="How much to change" style="width:auto;margin-right:0.5rem;margin-bottom:0;">
-          <option value="subtle">Reskin: Subtle</option>
-          <option value="bold" selected>Reskin: Bold</option>
-          <option value="complete">Reskin: Complete makeover</option>
-        </select>
-        <button type="button" class="btn btn-primary" id="btnReskin" title="AI transforms colors, fonts, layout — pick intensity above">Reskin</button>
-        <button type="button" class="btn btn-success" id="btnSaveToDomain">Save to domain</button>
-        <button type="button" class="btn btn-success" id="btnSaveAsDefault">Save as default</button>
-      </div>
-
-      <div class="element-tabs" id="mainTabs">
-        <button type="button" class="tab-btn active" data-tab="colors">Colors</button>
-        <button type="button" class="tab-btn" data-tab="fonts">Fonts</button>
-        <button type="button" class="tab-btn" data-tab="layout">Layout</button>
-        <button type="button" class="tab-btn" data-tab="components">Components</button>
-        <button type="button" class="tab-btn" data-tab="json">JSON</button>
-      </div>
-      <div class="element-tab-panels">
-        <div id="panel-colors" class="element-tab-panel active">
-          <div class="form-section">
-            <h3>Palette colors</h3>
-            <div id="colorsForm"></div>
-          </div>
+    <div class="layout">
+      <div class="panel settings-panel">
+        <h1>Article Template Editor</h1>
+        <p class="status mb1">Each domain uses a <strong>Python generator</strong> (HTML structure) and your
+          <strong>custom config</strong> (colors, fonts, layout). Edit below and save.
+        </p>
+        <div class="mb1" id="domainSection">
+          <label for="domainSelect">Domain</label>
+          <select id="domainSelect">
+            <option value="">— Select domain —</option>
+          </select>
         </div>
-        <div id="panel-fonts" class="element-tab-panel">
-          <div class="form-section">
-            <h3>Heading font</h3>
-            <label for="font_heading_family">Font family</label>
-            <select id="font_heading_family"></select>
-            <div id="font_heading_custom_wrap" style="display:none;margin-top:0.35rem;"><input type="text" id="font_heading_custom" placeholder="e.g. Georgia, serif"></div>
-            <div id="font_heading_preview" class="font-preview">Sample Heading Text</div>
-            <label>Heading sizes</label>
-            <div class="row2">
-              <div><label for="font_h1">H1</label><input type="text" id="font_h1" placeholder="2.5rem"></div>
-              <div><label for="font_h2">H2</label><input type="text" id="font_h2" placeholder="1.875rem"></div>
-              <div><label for="font_h3">H3</label><input type="text" id="font_h3" placeholder="1.5rem"></div>
+        <div class="mb1" id="domainTemplateSection" style="display:none;">
+          <label for="articleTemplateName">Template name</label>
+          <input type="text" id="articleTemplateName" class="form-control"
+            placeholder="e.g. Summer Recipe Style, Minimal Dark">
+          <span class="form-text">Optional: give this domain&#39;s design a friendly name</span>
+        </div>
+        <div class="mb1" id="defaultDesignSection">
+          <label for="generatorSelect"><span id="generatorLabel">Base generator</span></label>
+          <select id="generatorSelect">
+            <option value="generator-1">generator-1</option>
+          </select>
+          <p id="generatorHint" class="form-text mb-0" style="font-size:0.75rem;color:var(--muted);">Python generator
+            defines the HTML structure; you customize colors, fonts, layout below</p>
+        </div>
+        <div id="domainInfo" class="status" style="display:none;"></div>
+        <div class="mb1" id="buttonRow">
+          <button type="button" class="btn btn-secondary" id="btnLoadDefault">Load default config</button>
+          <button type="button" class="btn btn-secondary" id="btnLoadDomainColors"
+            title="Apply domain colors & fonts to article" style="display:none;">Load domain colors</button>
+          <select id="reskinIntensity" title="How much to change"
+            style="width:auto;margin-right:0.5rem;margin-bottom:0;">
+            <option value="subtle">Reskin: Subtle</option>
+            <option value="bold" selected>Reskin: Bold</option>
+            <option value="complete">Reskin: Complete makeover</option>
+          </select>
+          <button type="button" class="btn btn-primary" id="btnReskin"
+            title="AI transforms colors, fonts, layout — pick intensity above">Reskin</button>
+          <button type="button" class="btn btn-success" id="btnSaveToDomain">Save to domain</button>
+          <button type="button" class="btn btn-success" id="btnSaveAsDefault">Save as default</button>
+        </div>
+
+        <div class="element-tabs" id="mainTabs">
+          <button type="button" class="tab-btn active" data-tab="colors">Colors</button>
+          <button type="button" class="tab-btn" data-tab="fonts">Fonts</button>
+          <button type="button" class="tab-btn" data-tab="layout">Layout</button>
+          <button type="button" class="tab-btn" data-tab="components">Components</button>
+          <button type="button" class="tab-btn" data-tab="json">JSON</button>
+        </div>
+        <div class="element-tab-panels">
+          <div id="panel-colors" class="element-tab-panel active">
+            <div class="form-section">
+              <h3>Palette colors</h3>
+              <div id="colorsForm"></div>
             </div>
           </div>
-          <div class="form-section">
-            <h3>Body font</h3>
-            <label for="font_body_family">Font family</label>
-            <select id="font_body_family"></select>
-            <div id="font_body_custom_wrap" style="display:none;margin-top:0.35rem;"><input type="text" id="font_body_custom" placeholder="e.g. Inter, sans-serif"></div>
-            <div id="font_body_preview" class="font-preview">Sample body text for reading</div>
-            <label for="font_body_size">Size</label>
-            <input type="text" id="font_body_size" placeholder="1rem">
-            <label for="font_body_line_height">Line height</label>
-            <input type="text" id="font_body_line_height" placeholder="1.7">
+          <div id="panel-fonts" class="element-tab-panel">
+            <div class="form-section">
+              <h3>Heading font</h3>
+              <label for="font_heading_family">Font family</label>
+              <select id="font_heading_family"></select>
+              <div id="font_heading_custom_wrap" style="display:none;margin-top:0.35rem;"><input type="text"
+                  id="font_heading_custom" placeholder="e.g. Georgia, serif"></div>
+              <div id="font_heading_preview" class="font-preview">Sample Heading Text</div>
+              <label>Heading sizes</label>
+              <div class="row2">
+                <div><label for="font_h1">H1</label><input type="text" id="font_h1" placeholder="2.5rem"></div>
+                <div><label for="font_h2">H2</label><input type="text" id="font_h2" placeholder="1.875rem"></div>
+                <div><label for="font_h3">H3</label><input type="text" id="font_h3" placeholder="1.5rem"></div>
+              </div>
+            </div>
+            <div class="form-section">
+              <h3>Body font</h3>
+              <label for="font_body_family">Font family</label>
+              <select id="font_body_family"></select>
+              <div id="font_body_custom_wrap" style="display:none;margin-top:0.35rem;"><input type="text"
+                  id="font_body_custom" placeholder="e.g. Inter, sans-serif"></div>
+              <div id="font_body_preview" class="font-preview">Sample body text for reading</div>
+              <label for="font_body_size">Size</label>
+              <input type="text" id="font_body_size" placeholder="1rem">
+              <label for="font_body_line_height">Line height</label>
+              <input type="text" id="font_body_line_height" placeholder="1.7">
+            </div>
           </div>
-        </div>
-        <div id="panel-layout" class="element-tab-panel">
-          <div class="form-section">
-            <label for="layout_max_width">Max width</label>
-            <input type="text" id="layout_max_width" placeholder="800px">
-            <label for="layout_section_spacing">Section spacing</label>
-            <input type="text" id="layout_section_spacing" placeholder="3rem">
-            <label for="layout_paragraph_spacing">Paragraph spacing</label>
-            <input type="text" id="layout_paragraph_spacing" placeholder="1.5rem">
-            <label for="layout_list_spacing">List spacing</label>
-            <input type="text" id="layout_list_spacing" placeholder="1rem">
-            <label for="layout_container_padding">Container padding</label>
-            <input type="text" id="layout_container_padding" placeholder="2rem">
-            <label for="layout_border_radius">Border radius</label>
-            <input type="text" id="layout_border_radius" placeholder="12px">
-            <label for="layout_box_shadow">Box shadow</label>
-            <input type="text" id="layout_box_shadow" placeholder="0 4px 20px rgba(0,0,0,0.08)">
+          <div id="panel-layout" class="element-tab-panel">
+            <div class="form-section">
+              <label for="layout_max_width">Max width</label>
+              <input type="text" id="layout_max_width" placeholder="800px">
+              <label for="layout_section_spacing">Section spacing</label>
+              <input type="text" id="layout_section_spacing" placeholder="3rem">
+              <label for="layout_paragraph_spacing">Paragraph spacing</label>
+              <input type="text" id="layout_paragraph_spacing" placeholder="1.5rem">
+              <label for="layout_list_spacing">List spacing</label>
+              <input type="text" id="layout_list_spacing" placeholder="1rem">
+              <label for="layout_container_padding">Container padding</label>
+              <input type="text" id="layout_container_padding" placeholder="2rem">
+              <label for="layout_border_radius">Border radius</label>
+              <input type="text" id="layout_border_radius" placeholder="12px">
+              <label for="layout_box_shadow">Box shadow</label>
+              <input type="text" id="layout_box_shadow" placeholder="0 4px 20px rgba(0,0,0,0.08)">
+            </div>
           </div>
-        </div>
-        <div id="panel-components" class="element-tab-panel">
-          <div class="form-section">
-            <h3>Pro tips box</h3>
-            <label>Background</label>
-            <div class="color-row"><input type="color" id="comp_pro_bg_swatch" aria-label="BG"><input type="text" id="comp_pro_bg" placeholder="#FFF5F0"></div>
-            <div class="palette" id="comp_pro_bg_palette"></div>
-            <label>Border color</label>
-            <div class="color-row"><input type="color" id="comp_pro_border_swatch" aria-label="Border"><input type="text" id="comp_pro_border" placeholder="#FFE8E0"></div>
-            <label for="comp_pro_left">Border left</label>
-            <input type="text" id="comp_pro_left" placeholder="4px solid #F4A261">
-            <label for="comp_pro_padding">Padding</label>
-            <input type="text" id="comp_pro_padding" placeholder="2rem">
+          <div id="panel-components" class="element-tab-panel">
+            <div class="form-section">
+              <h3>Pro tips box</h3>
+              <label>Background</label>
+              <div class="color-row"><input type="color" id="comp_pro_bg_swatch" aria-label="BG"><input type="text"
+                  id="comp_pro_bg" placeholder="#FFF5F0"></div>
+              <div class="palette" id="comp_pro_bg_palette"></div>
+              <label>Border color</label>
+              <div class="color-row"><input type="color" id="comp_pro_border_swatch" aria-label="Border"><input
+                  type="text" id="comp_pro_border" placeholder="#FFE8E0"></div>
+              <label for="comp_pro_left">Border left</label>
+              <input type="text" id="comp_pro_left" placeholder="4px solid #F4A261">
+              <label for="comp_pro_padding">Padding</label>
+              <input type="text" id="comp_pro_padding" placeholder="2rem">
+            </div>
+            <div class="form-section">
+              <h3>Recipe card</h3>
+              <label>Background</label>
+              <div class="color-row"><input type="color" id="comp_recipe_bg_swatch" aria-label="BG"><input type="text"
+                  id="comp_recipe_bg" placeholder="#FFFCFA"></div>
+              <div class="palette" id="comp_recipe_bg_palette"></div>
+              <label for="comp_recipe_border">Border</label>
+              <input type="text" id="comp_recipe_border" placeholder="2px solid #FFE8E0">
+              <label for="comp_recipe_radius">Border radius</label>
+              <input type="text" id="comp_recipe_radius" placeholder="16px">
+              <label for="comp_recipe_padding">Padding</label>
+              <input type="text" id="comp_recipe_padding" placeholder="2rem">
+              <label>Meta icon color</label>
+              <div class="color-row"><input type="color" id="comp_recipe_meta_swatch" aria-label="Meta icon"><input
+                  type="text" id="comp_recipe_meta" placeholder="#F4A261"></div>
+              <div class="palette" id="comp_recipe_meta_palette"></div>
+            </div>
+            <div class="form-section">
+              <h3>Numbered list</h3>
+              <label>Circle background</label>
+              <div class="color-row"><input type="color" id="comp_num_bg_swatch" aria-label="Circle BG"><input
+                  type="text" id="comp_num_bg" placeholder="#F4A261"></div>
+              <div class="palette" id="comp_num_bg_palette"></div>
+              <label>Circle text color</label>
+              <div class="color-row"><input type="color" id="comp_num_color_swatch" aria-label="Circle text"><input
+                  type="text" id="comp_num_color" placeholder="#FFFFFF"></div>
+              <div class="palette" id="comp_num_color_palette"></div>
+              <label for="comp_num_size">Circle size</label>
+              <input type="text" id="comp_num_size" placeholder="32px">
+            </div>
+            <div class="form-section">
+              <h3>Bullet list</h3>
+              <label>Bullet color</label>
+              <div class="color-row"><input type="color" id="comp_bullet_color_swatch" aria-label="Color"><input
+                  type="text" id="comp_bullet_color" placeholder="#F4A261"></div>
+              <div class="palette" id="comp_bullet_color_palette"></div>
+            </div>
           </div>
-          <div class="form-section">
-            <h3>Recipe card</h3>
-            <label>Background</label>
-            <div class="color-row"><input type="color" id="comp_recipe_bg_swatch" aria-label="BG"><input type="text" id="comp_recipe_bg" placeholder="#FFFCFA"></div>
-            <div class="palette" id="comp_recipe_bg_palette"></div>
-            <label for="comp_recipe_border">Border</label>
-            <input type="text" id="comp_recipe_border" placeholder="2px solid #FFE8E0">
-            <label for="comp_recipe_radius">Border radius</label>
-            <input type="text" id="comp_recipe_radius" placeholder="16px">
-            <label for="comp_recipe_padding">Padding</label>
-            <input type="text" id="comp_recipe_padding" placeholder="2rem">
-            <label>Meta icon color</label>
-            <div class="color-row"><input type="color" id="comp_recipe_meta_swatch" aria-label="Meta icon"><input type="text" id="comp_recipe_meta" placeholder="#F4A261"></div>
-            <div class="palette" id="comp_recipe_meta_palette"></div>
+          <div id="panel-json" class="element-tab-panel">
+            <label for="jsonEdit">Config JSON (advanced)</label>
+            <textarea id="jsonEdit"
+              placeholder='{"colors": {...}, "fonts": {...}, "layout": {...}, "components": {...}}'></textarea>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnApplyJson">Apply JSON to form</button>
           </div>
-          <div class="form-section">
-            <h3>Numbered list</h3>
-            <label>Circle background</label>
-            <div class="color-row"><input type="color" id="comp_num_bg_swatch" aria-label="Circle BG"><input type="text" id="comp_num_bg" placeholder="#F4A261"></div>
-            <div class="palette" id="comp_num_bg_palette"></div>
-            <label>Circle text color</label>
-            <div class="color-row"><input type="color" id="comp_num_color_swatch" aria-label="Circle text"><input type="text" id="comp_num_color" placeholder="#FFFFFF"></div>
-            <div class="palette" id="comp_num_color_palette"></div>
-            <label for="comp_num_size">Circle size</label>
-            <input type="text" id="comp_num_size" placeholder="32px">
-          </div>
-          <div class="form-section">
-            <h3>Bullet list</h3>
-            <label>Bullet color</label>
-            <div class="color-row"><input type="color" id="comp_bullet_color_swatch" aria-label="Color"><input type="text" id="comp_bullet_color" placeholder="#F4A261"></div>
-            <div class="palette" id="comp_bullet_color_palette"></div>
-          </div>
-        </div>
-        <div id="panel-json" class="element-tab-panel">
-          <label for="jsonEdit">Config JSON (advanced)</label>
-          <textarea id="jsonEdit" placeholder='{"colors": {...}, "fonts": {...}, "layout": {...}, "components": {...}}'></textarea>
-          <button type="button" class="btn btn-secondary btn-sm" id="btnApplyJson">Apply JSON to form</button>
         </div>
       </div>
-    </div>
 
-    <div class="preview-panel">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;margin-bottom:0.75rem;">
-        <h2 style="font-size:0.85rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);margin:0;">Preview</h2>
-        <div class="d-flex align-items-center gap-1">
-          <button type="button" class="btn btn-secondary btn-sm" id="previewPanelZoomOut" title="Zoom out">−</button>
-          <span class="badge bg-secondary" id="previewPanelZoomLabel" style="min-width:2.5rem;font-size:0.7rem">100%</span>
-          <button type="button" class="btn btn-secondary btn-sm" id="previewPanelZoomIn" title="Zoom in">+</button>
-        </div>
-      </div>
-      <div id="previewBox" class="preview-wrap">
-        <div id="previewPanelZoomWrap" class="preview-panel-zoom-wrap">
-          <div class="preview-placeholder" id="previewPlaceholder">Select domain or load config — preview updates automatically.</div>
-          <div id="previewCachedWrap" class="preview-clickable" style="display:none;flex:1;min-height:0;position:relative;">
-            <img id="previewCachedImg" class="preview-cached-img" alt="Article preview" src="">
-            <span class="click-hint">Click to view full article</span>
+      <div class="preview-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;margin-bottom:0.75rem;">
+          <h2 style="font-size:0.85rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);margin:0;">
+            Preview</h2>
+          <div class="d-flex align-items-center gap-1">
+            <button type="button" class="btn btn-secondary btn-sm" id="previewPanelZoomOut" title="Zoom out">−</button>
+            <span class="badge bg-secondary" id="previewPanelZoomLabel"
+              style="min-width:2.5rem;font-size:0.7rem">100%</span>
+            <button type="button" class="btn btn-secondary btn-sm" id="previewPanelZoomIn" title="Zoom in">+</button>
           </div>
-          <iframe id="previewIframe" class="preview-iframe" title="Article preview" style="display:none;"></iframe>
         </div>
+        <div id="previewBox" class="preview-wrap">
+          <div id="previewPanelZoomWrap" class="preview-panel-zoom-wrap">
+            <div class="preview-placeholder" id="previewPlaceholder">Select domain or load config — preview updates
+              automatically.</div>
+            <div id="previewCachedWrap" class="preview-clickable"
+              style="display:none;flex:1;min-height:0;position:relative;">
+              <img id="previewCachedImg" class="preview-cached-img" alt="Article preview" src="">
+              <span class="click-hint">Click to view full article</span>
+            </div>
+            <iframe id="previewIframe" class="preview-iframe" title="Article preview" style="display:none;"></iframe>
+          </div>
+        </div>
+        <p class="status" id="previewStatus"></p>
       </div>
-      <p class="status" id="previewStatus"></p>
     </div>
-  </div>
   </div>
 
   <div id="previewEditMenu"></div>
@@ -374,7 +741,8 @@
         <button type="button" class="article-modal-close" id="articleModalClose">Close</button>
       </div>
       <div class="article-modal-body" id="articleModalBody">
-        <div class="article-preview-zoom-wrap" id="articlePreviewZoomWrap" style="width:fit-content;height:fit-content;">
+        <div class="article-preview-zoom-wrap" id="articlePreviewZoomWrap"
+          style="width:fit-content;height:fit-content;">
           <div class="preview-placeholder">Loading…</div>
         </div>
       </div>
@@ -382,11 +750,11 @@
   </div>
 
   <script>
-    (function() {
+    (function () {
       var params = new URLSearchParams(window.location.search);
       if (params.get('embed') === '1') document.body.classList.add('embed-mode');
     })();
-    const PALETTE_COLORS = ['#FFFFFF','#000000','#6C8AE4','#9C6ADE','#E8663F','#22c55e','#FBBF24','#3D2B4F','#1A1A1A','#F4A261','#FFE8E0','#FFF5F0','#FFFCFA','#E2E8FF','#F5F7FF','#E60023','#2D2D2D','#5A5A5A'];
+    const PALETTE_COLORS = ['#FFFFFF', '#000000', '#6C8AE4', '#9C6ADE', '#E8663F', '#22c55e', '#FBBF24', '#3D2B4F', '#1A1A1A', '#F4A261', '#FFE8E0', '#FFF5F0', '#FFFCFA', '#E2E8FF', '#F5F7FF', '#E60023', '#2D2D2D', '#5A5A5A'];
 
     const FONTS = [
       { value: 'Arial, sans-serif', label: 'Arial' },
@@ -435,7 +803,7 @@
 
     function esc(s) {
       if (!s) return '';
-      return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
     function buildFontSelects() {
@@ -561,7 +929,7 @@
         if (doc && doc.contains(outer.target)) return;
         hideMenu();
       });
-      doc.addEventListener('click', function(e) {
+      doc.addEventListener('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
         const target = e.target;
@@ -571,7 +939,7 @@
           const m = PREVIEW_CLICK_MAP[i];
           const el = target.closest ? target.closest(m.sel) : null;
           if (el && m.options) {
-            m.options.forEach(function(opt) {
+            m.options.forEach(function (opt) {
               const key = opt.tab + ':' + opt.field;
               if (!seen.has(key)) { seen.add(key); options.push(opt); }
             });
@@ -583,11 +951,11 @@
           return;
         }
         menu.innerHTML = '';
-        options.forEach(function(opt) {
+        options.forEach(function (opt) {
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.textContent = opt.label;
-          btn.onclick = function() { focusFormField(opt.tab, opt.field); hideMenu(); };
+          btn.onclick = function () { focusFormField(opt.tab, opt.field); hideMenu(); };
           menu.appendChild(btn);
         });
         const rect = iframe.getBoundingClientRect();
@@ -601,26 +969,26 @@
     }
 
     const COLOR_KEYS = [
-      ['primary','Primary'],
-      ['secondary','Secondary'],
-      ['accent','Accent'],
-      ['background','Background'],
-      ['container_bg','Container BG'],
-      ['border','Border'],
-      ['text_primary','Text primary'],
-      ['text_secondary','Text secondary'],
-      ['button_print','Button print'],
-      ['button_pin','Button pin'],
-      ['button_hover_print','Button hover print'],
-      ['button_hover_pin','Button hover pin'],
-      ['link','Link'],
-      ['list_marker','List marker']
+      ['primary', 'Primary'],
+      ['secondary', 'Secondary'],
+      ['accent', 'Accent'],
+      ['background', 'Background'],
+      ['container_bg', 'Container BG'],
+      ['border', 'Border'],
+      ['text_primary', 'Text primary'],
+      ['text_secondary', 'Text secondary'],
+      ['button_print', 'Button print'],
+      ['button_pin', 'Button pin'],
+      ['button_hover_print', 'Button hover print'],
+      ['button_hover_pin', 'Button hover pin'],
+      ['link', 'Link'],
+      ['list_marker', 'List marker']
     ];
 
     let domainId = null;
     let domainData = null;
 
-    (function() {
+    (function () {
       const params = new URLSearchParams(window.location.search);
       const d = params.get('domain_id');
       if (d) domainId = parseInt(d, 10);
@@ -665,11 +1033,11 @@
       if (!str || typeof str !== 'string') return '#000000';
       str = str.trim();
       const m3 = str.match(/^#([0-9a-fA-F]{3})$/);
-      if (m3) { const s = m3[1]; return '#' + s[0]+s[0]+s[1]+s[1]+s[2]+s[2]; }
+      if (m3) { const s = m3[1]; return '#' + s[0] + s[0] + s[1] + s[1] + s[2] + s[2]; }
       const m6 = str.match(/^#([0-9a-fA-F]{6})$/);
       if (m6) return '#' + m6[1].toLowerCase();
       const rgb = str.match(/rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/);
-      if (rgb) return '#' + [1,2,3].map(i => ('0'+Number(rgb[i]).toString(16)).slice(-2)).join('');
+      if (rgb) return '#' + [1, 2, 3].map(i => ('0' + Number(rgb[i]).toString(16)).slice(-2)).join('');
       return '#000000';
     }
 
@@ -699,7 +1067,7 @@
         });
       });
       document.querySelectorAll('.color-row input[type="color"]').forEach(sw => {
-        const tid = sw.id.replace('_swatch','');
+        const tid = sw.id.replace('_swatch', '');
         const text = document.getElementById(tid);
         if (!text) return;
         sw.addEventListener('input', () => { text.value = sw.value; schedulePreview(); });
@@ -731,7 +1099,7 @@
       if (bf || bs || bl) fonts.body = { family: bf || 'Inter', size: bs || '1rem', line_height: parseFloat(bl) || 1.7 };
 
       const layout = {};
-      ['max_width','section_spacing','paragraph_spacing','list_spacing','container_padding','border_radius','box_shadow'].forEach(k => {
+      ['max_width', 'section_spacing', 'paragraph_spacing', 'list_spacing', 'container_padding', 'border_radius', 'box_shadow'].forEach(k => {
         const v = document.getElementById(`layout_${k}`)?.value?.trim();
         if (v) layout[k] = v;
       });
@@ -778,7 +1146,7 @@
       const b = f.body || {};
       setFontValue('font_body_family', 'font_body_custom', 'font_body_custom_wrap', b.family); setVal('font_body_size', b.size); setVal('font_body_line_height', b.line_height);
       const l = cfg.layout || {};
-      ['max_width','section_spacing','paragraph_spacing','list_spacing','container_padding','border_radius','box_shadow'].forEach(k => setVal('layout_'+k, l[k]));
+      ['max_width', 'section_spacing', 'paragraph_spacing', 'list_spacing', 'container_padding', 'border_radius', 'box_shadow'].forEach(k => setVal('layout_' + k, l[k]));
       const comp = cfg.components || {};
       const pro = comp.pro_tips_box || {};
       setVal('comp_pro_bg', pro.bg_color); setVal('comp_pro_border', pro.border_color); setVal('comp_pro_left', pro.border_left); setVal('comp_pro_padding', pro.padding);
@@ -795,7 +1163,7 @@
     }
 
     function syncColorSwatches() {
-      ['comp_pro_bg','comp_pro_border','comp_recipe_bg','comp_recipe_meta','comp_num_bg','comp_num_color','comp_bullet_color'].forEach(tid => {
+      ['comp_pro_bg', 'comp_pro_border', 'comp_recipe_bg', 'comp_recipe_meta', 'comp_num_bg', 'comp_num_color', 'comp_bullet_color'].forEach(tid => {
         const text = document.getElementById(tid);
         const sw = document.getElementById(tid + '_swatch');
         if (text && sw && text.value) { const h = toHex(text.value); if (/^#[0-9a-fA-F]{6}$/.test(h)) sw.value = h; }
@@ -838,7 +1206,7 @@
         const gens = d.generators || [];
         const sel = document.getElementById('generatorSelect');
         sel.innerHTML = gens.map(g => `<option value="${g}">${g}</option>`).join('');
-      } catch (_) {}
+      } catch (_) { }
     }
 
     function deepMergeDefaults(base, override) {
@@ -857,15 +1225,15 @@
     async function loadDomainConfig() {
       const id = parseInt(document.getElementById('domainSelect').value, 10);
       const btnLoadColors = document.getElementById('btnLoadDomainColors');
-      if (!id) { 
-        configToForm({}); 
-        domainData = null; 
-        const n = document.getElementById('articleTemplateName'); 
-        if (n) n.value = ''; 
-        setStatus(''); 
-        showPreviewPlaceholder(); 
+      if (!id) {
+        configToForm({});
+        domainData = null;
+        const n = document.getElementById('articleTemplateName');
+        if (n) n.value = '';
+        setStatus('');
+        showPreviewPlaceholder();
         if (btnLoadColors) btnLoadColors.style.display = 'none';
-        return; 
+        return;
       }
       domainId = id;
       if (btnLoadColors) btnLoadColors.style.display = '';
@@ -884,7 +1252,7 @@
             delete defaultCfg.images;
             cfg = deepMergeDefaults(defaultCfg, cfg);
           }
-        } catch (_) {}
+        } catch (_) { }
         configToForm(cfg);
         const genSelect = document.getElementById('generatorSelect');
         if (genSelect && gen) {
@@ -981,7 +1349,7 @@
           delete defaultCfg.images;
           fullCfg = deepMergeDefaults(defaultCfg, formCfg);
         }
-      } catch (_) {}
+      } catch (_) { }
       setStatus('Saving…');
       try {
         const d = await api('/api/article-generator-defaults', { method: 'PUT', body: JSON.stringify({ generator: gen, config: fullCfg }) });
@@ -1012,7 +1380,7 @@
             delete defaultCfg.images;
             fullCfg = deepMergeDefaults(defaultCfg, formCfg);
           }
-        } catch (_) {}
+        } catch (_) { }
       }
       setStatus('Saving…');
       let articlesUpdated = 0;
@@ -1051,7 +1419,7 @@
         else msg += ' Screenshot uploaded to Cloudflare.';
         setStatus(msg, !!cssWarning);
         if (domainData && genVal) domainData.website_template = genVal;
-        try { if (window.parent && window.parent !== window) window.parent.location.reload(); } catch (_) {}
+        try { if (window.parent && window.parent !== window) window.parent.location.reload(); } catch (_) { }
       } catch (e) { setStatus('Save failed: ' + e.message, true); }
     }
 
@@ -1118,8 +1486,8 @@
       if (wrap) wrap.style.zoom = String(articlePreviewZoom);
       if (label) label.textContent = Math.round(articlePreviewZoom * 100) + '%';
     }
-    document.getElementById('articlePreviewZoomIn')?.addEventListener('click', function() { setArticlePreviewZoom(articlePreviewZoom + 0.25); });
-    document.getElementById('articlePreviewZoomOut')?.addEventListener('click', function() { setArticlePreviewZoom(articlePreviewZoom - 0.25); });
+    document.getElementById('articlePreviewZoomIn')?.addEventListener('click', function () { setArticlePreviewZoom(articlePreviewZoom + 0.25); });
+    document.getElementById('articlePreviewZoomOut')?.addEventListener('click', function () { setArticlePreviewZoom(articlePreviewZoom - 0.25); });
 
     let previewPanelZoom = 1;
     function setPreviewPanelZoom(z) {
@@ -1129,8 +1497,8 @@
       if (wrap) wrap.style.zoom = String(previewPanelZoom);
       if (label) label.textContent = Math.round(previewPanelZoom * 100) + '%';
     }
-    document.getElementById('previewPanelZoomIn')?.addEventListener('click', function() { setPreviewPanelZoom(previewPanelZoom + 0.25); });
-    document.getElementById('previewPanelZoomOut')?.addEventListener('click', function() { setPreviewPanelZoom(previewPanelZoom - 0.25); });
+    document.getElementById('previewPanelZoomIn')?.addEventListener('click', function () { setPreviewPanelZoom(previewPanelZoom + 0.25); });
+    document.getElementById('previewPanelZoomOut')?.addEventListener('click', function () { setPreviewPanelZoom(previewPanelZoom - 0.25); });
 
     async function openArticleModal() {
       const id = parseInt(document.getElementById('domainSelect').value, 10);
@@ -1156,9 +1524,9 @@
     }
     function closeArticleModal() { document.getElementById('articleModal').style.display = 'none'; }
     document.getElementById('articleModalClose').addEventListener('click', closeArticleModal);
-    document.getElementById('articleModal').addEventListener('click', function(e) { if (e.target === this) closeArticleModal(); });
+    document.getElementById('articleModal').addEventListener('click', function (e) { if (e.target === this) closeArticleModal(); });
 
-    document.getElementById('previewBox').addEventListener('click', function(e) {
+    document.getElementById('previewBox').addEventListener('click', function (e) {
       if (document.getElementById('previewPlaceholder').style.display === 'flex') return;
       openArticleModal();
     });
@@ -1230,7 +1598,7 @@
     }
 
     document.getElementById('domainSelect').addEventListener('change', loadDomainConfig);
-    document.getElementById('generatorSelect').addEventListener('change', function() {
+    document.getElementById('generatorSelect').addEventListener('change', function () {
       if (domainData) {
         loadDefaultConfig();
       } else {
@@ -1244,16 +1612,16 @@
     document.getElementById('btnSaveAsDefault').addEventListener('click', saveAsDefault);
     document.getElementById('btnApplyJson').addEventListener('click', syncFromJson);
 
-    ['font_heading_family','font_h1','font_h2','font_h3','font_body_family','font_body_size','font_body_line_height',
-     'layout_max_width','layout_section_spacing','layout_paragraph_spacing','layout_list_spacing','layout_container_padding','layout_border_radius','layout_box_shadow',
-     'comp_pro_bg','comp_pro_border','comp_pro_left','comp_pro_padding','comp_recipe_bg','comp_recipe_border','comp_recipe_radius','comp_recipe_padding','comp_recipe_meta',
-     'comp_num_bg','comp_num_color','comp_num_size','comp_bullet_color'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.addEventListener('input', schedulePreview);
-    });
+    ['font_heading_family', 'font_h1', 'font_h2', 'font_h3', 'font_body_family', 'font_body_size', 'font_body_line_height',
+      'layout_max_width', 'layout_section_spacing', 'layout_paragraph_spacing', 'layout_list_spacing', 'layout_container_padding', 'layout_border_radius', 'layout_box_shadow',
+      'comp_pro_bg', 'comp_pro_border', 'comp_pro_left', 'comp_pro_padding', 'comp_recipe_bg', 'comp_recipe_border', 'comp_recipe_radius', 'comp_recipe_padding', 'comp_recipe_meta',
+      'comp_num_bg', 'comp_num_color', 'comp_num_size', 'comp_bullet_color'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', schedulePreview);
+      });
 
     function buildComponentPalettes() {
-      ['comp_pro_bg','comp_pro_border','comp_recipe_bg','comp_recipe_meta','comp_num_bg','comp_num_color','comp_bullet_color'].forEach(id => {
+      ['comp_pro_bg', 'comp_pro_border', 'comp_recipe_bg', 'comp_recipe_meta', 'comp_num_bg', 'comp_num_color', 'comp_bullet_color'].forEach(id => {
         const pal = document.getElementById(id + '_palette');
         if (!pal || pal.children.length) return;
         PALETTE_COLORS.forEach(hex => {
@@ -1277,7 +1645,7 @@
     buildFontSelects();
     buildComponentPalettes();
     document.querySelectorAll('#panel-components .color-row input[type="color"]').forEach(sw => {
-      const tid = sw.id.replace('_swatch','');
+      const tid = sw.id.replace('_swatch', '');
       const text = document.getElementById(tid);
       if (!text) return;
       sw.addEventListener('input', () => { text.value = sw.value; schedulePreview(); });
@@ -1303,4 +1671,5 @@
     })();
   </script>
 </body>
+
 </html>

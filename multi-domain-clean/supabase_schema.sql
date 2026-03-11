@@ -124,9 +124,12 @@ CREATE TABLE IF NOT EXISTS article_content (
     generated_at TIMESTAMP,
     generation_time_seconds INT,
     validated SMALLINT DEFAULT 0,
+    status_error TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (title_id) REFERENCES titles(id)
 );
+
+ALTER TABLE article_content ADD COLUMN IF NOT EXISTS status_error TEXT;
 
 CREATE TABLE IF NOT EXISTS domain_templates (
     id SERIAL PRIMARY KEY,

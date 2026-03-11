@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Article HTML/CSS Editor — Edit without regeneration</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/bootstrap.min.css" rel="stylesheet">
   <style>
     :root {
       --bg: #0f0f12;
@@ -16,18 +17,93 @@
       --accent-hover: #5a7ad4;
       --success: #22c55e;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); height: 100%; margin: 0; }
-    body { padding: 0; margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
-    h1 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.75rem; }
-    .subtitle { font-size: 0.85rem; color: var(--muted); margin-bottom: 1rem; }
-    .filters { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; margin-bottom: 1rem; }
-    .filters label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.75rem; color: var(--muted); }
-    .filters select, .filters input { padding: 0.5rem 0.75rem; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.9rem; min-width: 160px; }
-    .filters input { min-width: 200px; }
-    .filters select:focus, .filters input:focus { outline: none; border-color: var(--accent); }
-    .layout { display: grid; grid-template-columns: minmax(320px, 400px) 1fr; gap: 1rem; flex: 1; min-height: 0; }
-    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    .filters {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      margin-bottom: 1rem;
+    }
+
+    .filters label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .filters select,
+    .filters input {
+      padding: 0.5rem 0.75rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 0.9rem;
+      min-width: 160px;
+    }
+
+    .filters input {
+      min-width: 200px;
+    }
+
+    .filters select:focus,
+    .filters input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(320px, 400px) 1fr;
+      gap: 1rem;
+      flex: 1;
+      min-height: 0;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
     .panel {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -37,7 +113,16 @@
       flex-direction: column;
       min-height: 0;
     }
-    .panel h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 0.5rem; flex-shrink: 0; }
+
+    .panel h2 {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+      flex-shrink: 0;
+    }
+
     textarea {
       flex: 1;
       min-height: 200px;
@@ -47,12 +132,24 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       color: var(--text);
-      font-family: 'Consolas','Monaco',monospace;
+      font-family: 'Consolas', 'Monaco', monospace;
       font-size: 0.8rem;
       resize: none;
     }
-    textarea:focus { outline: none; border-color: var(--accent); }
-    .toolbar { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; flex-shrink: 0; }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+
     select {
       padding: 0.5rem 0.75rem;
       background: var(--bg);
@@ -62,6 +159,7 @@
       font-size: 0.9rem;
       min-width: 200px;
     }
+
     .btn {
       padding: 0.5rem 1rem;
       border: none;
@@ -71,48 +169,232 @@
       cursor: pointer;
       transition: background 0.15s;
     }
-    .btn-primary { background: var(--accent); color: #fff; }
-    .btn-primary:hover { background: var(--accent-hover); }
-    .btn-success { background: var(--success); color: #fff; }
-    .btn-success:hover { filter: brightness(1.1); }
-    .status { font-size: 0.8rem; color: var(--muted); margin-top: 0.5rem; }
-    .status.error { color: #ef4444; }
-    .status.ok { color: var(--success); }
-    .preview-wrap { flex: 1; min-height: min(600px, calc(100vh - 220px)); overflow: auto; background: #fff; border-radius: 8px; padding: 1rem; }
-    .preview-placeholder { color: var(--muted); font-size: 0.9rem; padding: 2rem; }
-    .tabs { display: flex; gap: 2px; margin-bottom: 0.5rem; }
-    .tab { padding: 0.35rem 0.75rem; font-size: 0.8rem; background: transparent; color: var(--muted); border: none; border-radius: 6px; cursor: pointer; }
-    .tab:hover { color: var(--text); background: rgba(255,255,255,0.05); }
-    .tab.active { color: var(--accent); font-weight: 600; background: rgba(108,138,228,0.15); }
-    /* Group view */
-    .group-view { flex: 1; overflow: auto; }
-    .group-row { display: flex; gap: 0.75rem; align-items: flex-start; padding: 0.75rem; border-bottom: 1px solid var(--border); }
-    .group-row:hover { background: rgba(255,255,255,0.02); }
-    .group-row-title { flex: 0 0 180px; font-size: 0.85rem; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .group-cells { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-    .group-cell { width: 100px; text-align: center; }
-    .group-cell-label { font-size: 0.7rem; color: var(--muted); margin-bottom: 0.25rem; }
-    .group-cell-preview { position: relative; width: 100px; height: 70px; background: var(--bg); border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
-    .group-cell-preview img { width: 100%; height: 100%; object-fit: cover; }
-    .group-cell-preview.no-img { display: flex; align-items: center; justify-content: center; font-size: 0.65rem; color: var(--muted); }
-    .group-cell-preview .eye-btn {
-      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-      background: rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.15s; cursor: pointer;
-      color: #fff; font-size: 1.2rem;
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
     }
-    .group-cell-preview:hover .eye-btn { opacity: 1; }
-    .eye-btn:disabled { cursor: not-allowed; opacity: 0.3; }
-    .group-cell-preview:hover .eye-btn:not(:disabled) { opacity: 1; }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: #fff;
+    }
+
+    .btn-success:hover {
+      filter: brightness(1.1);
+    }
+
+    .status {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.5rem;
+    }
+
+    .status.error {
+      color: #ef4444;
+    }
+
+    .status.ok {
+      color: var(--success);
+    }
+
+    .preview-wrap {
+      flex: 1;
+      min-height: min(600px, calc(100vh - 220px));
+      overflow: auto;
+      background: #fff;
+      border-radius: 8px;
+      padding: 1rem;
+    }
+
+    .preview-placeholder {
+      color: var(--muted);
+      font-size: 0.9rem;
+      padding: 2rem;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 2px;
+      margin-bottom: 0.5rem;
+    }
+
+    .tab {
+      padding: 0.35rem 0.75rem;
+      font-size: 0.8rem;
+      background: transparent;
+      color: var(--muted);
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .tab:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab.active {
+      color: var(--accent);
+      font-weight: 600;
+      background: rgba(108, 138, 228, 0.15);
+    }
+
+    /* Group view */
+    .group-view {
+      flex: 1;
+      overflow: auto;
+    }
+
+    .group-row {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .group-row:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .group-row-title {
+      flex: 0 0 180px;
+      font-size: 0.85rem;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .group-cells {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .group-cell {
+      width: 100px;
+      text-align: center;
+    }
+
+    .group-cell-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .group-cell-preview {
+      position: relative;
+      width: 100px;
+      height: 70px;
+      background: var(--bg);
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .group-cell-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .group-cell-preview.no-img {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      color: var(--muted);
+    }
+
+    .group-cell-preview .eye-btn {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      transition: opacity 0.15s;
+      cursor: pointer;
+      color: #fff;
+      font-size: 1.2rem;
+    }
+
+    .group-cell-preview:hover .eye-btn {
+      opacity: 1;
+    }
+
+    .eye-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.3;
+    }
+
+    .group-cell-preview:hover .eye-btn:not(:disabled) {
+      opacity: 1;
+    }
+
     /* Modal */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem; }
-    .modal-overlay.hidden { display: none; }
-    .modal-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 900px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-    .modal-header h3 { font-size: 1rem; }
-    .modal-body { flex: 1; overflow: auto; background: #fff; padding: 1rem; }
-    .modal-body iframe { width: 100%; min-height: 60vh; border: none; }
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 1rem;
+    }
+
+    .modal-overlay.hidden {
+      display: none;
+    }
+
+    .modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 900px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .modal-header h3 {
+      font-size: 1rem;
+    }
+
+    .modal-body {
+      flex: 1;
+      overflow: auto;
+      background: #fff;
+      padding: 1rem;
+    }
+
+    .modal-body iframe {
+      width: 100%;
+      min-height: 60vh;
+      border: none;
+    }
   </style>
 </head>
+
 <body>
   <nav class="navbar navbar-expand navbar-dark bg-dark mb-0 flex-shrink-0">
     <div class="container-fluid px-3">
@@ -129,59 +411,70 @@
     </div>
   </nav>
   <div class="container-fluid px-3 py-4" style="flex:1;display:flex;flex-direction:column;min-height:0;">
-  <h1>Article HTML/CSS Editor</h1>
-  <p class="subtitle">Edit HTML and CSS directly. Save updates the article without regenerating content (no AI). Filter by domain, group, or title. In group view, click the eye icon to preview an article.</p>
+    <h1>Article HTML/CSS Editor</h1>
+    <p class="subtitle">Edit HTML and CSS directly. Save updates the article without regenerating content (no AI).
+      Filter by domain, group, or title. In group view, click the eye icon to preview an article.</p>
 
-  <div class="filters">
-    <label>Domain <select id="domainFilter"><option value="">— All —</option></select></label>
-    <label>Group <select id="groupFilter"><option value="">— All —</option></select></label>
-    <label>Title search <input type="text" id="titleSearch" placeholder="Filter by title..."></label>
-    <button type="button" class="btn btn-primary" id="btnApply">Apply filters</button>
-    <p class="status" id="loadStatus" style="margin:0;align-self:center;"></p>
-  </div>
-
-  <div id="editMode" style="display:none;flex:1;min-height:0;flex-direction:column;">
-    <div class="toolbar">
-      <label>Article <select id="titleSelect"><option value="">— Select article —</option></select></label>
-      <button type="button" class="btn btn-success" id="btnSave">Save HTML &amp; CSS (no regeneration)</button>
-      <button type="button" class="btn btn-outline-info" id="btnThemeEditor" style="display:none;" title="Visually edit colors and fonts for this domain's theme">🎨 Visual Theme Editor</button>
+    <div class="filters">
+      <label>Domain <select id="domainFilter">
+          <option value="">— All —</option>
+        </select></label>
+      <label>Group <select id="groupFilter">
+          <option value="">— All —</option>
+        </select></label>
+      <label>Title search <input type="text" id="titleSearch" placeholder="Filter by title..."></label>
+      <button type="button" class="btn btn-primary" id="btnApply">Apply filters</button>
+      <p class="status" id="loadStatus" style="margin:0;align-self:center;"></p>
     </div>
-    <p class="status" id="status"></p>
 
-    <div class="layout">
-      <div class="panel">
-        <div class="tabs">
-          <button type="button" class="tab active" data-tab="html">HTML</button>
-          <button type="button" class="tab" data-tab="css">CSS</button>
+    <div id="editMode" style="display:none;flex:1;min-height:0;flex-direction:column;">
+      <div class="toolbar">
+        <label>Article <select id="titleSelect">
+            <option value="">— Select article —</option>
+          </select></label>
+        <button type="button" class="btn btn-success" id="btnSave">Save HTML &amp; CSS (no regeneration)</button>
+        <button type="button" class="btn btn-outline-info" id="btnThemeEditor" style="display:none;"
+          title="Visually edit colors and fonts for this domain's theme">🎨 Visual Theme Editor</button>
+      </div>
+      <p class="status" id="status"></p>
+
+      <div class="layout">
+        <div class="panel">
+          <div class="tabs">
+            <button type="button" class="tab active" data-tab="html">HTML</button>
+            <button type="button" class="tab" data-tab="css">CSS</button>
+          </div>
+          <div id="htmlPanel" style="display:flex;flex-direction:column;flex:1;min-height:0;">
+            <h2>Article HTML</h2>
+            <textarea id="htmlEdit" placeholder="<!DOCTYPE html>..."></textarea>
+          </div>
+          <div id="cssPanel" style="display:none;flex-direction:column;flex:1;min-height:0;">
+            <h2>Article CSS</h2>
+            <textarea id="cssEdit" placeholder="/* CSS */"></textarea>
+          </div>
         </div>
-        <div id="htmlPanel" style="display:flex;flex-direction:column;flex:1;min-height:0;">
-          <h2>Article HTML</h2>
-          <textarea id="htmlEdit" placeholder="<!DOCTYPE html>..."></textarea>
-        </div>
-        <div id="cssPanel" style="display:none;flex-direction:column;flex:1;min-height:0;">
-          <h2>Article CSS</h2>
-          <textarea id="cssEdit" placeholder="/* CSS */"></textarea>
+        <div class="panel">
+          <h2>Preview</h2>
+          <div id="previewBox" class="preview-wrap">
+            <div class="preview-placeholder" id="previewPlaceholder">Select an article to load and preview.</div>
+            <iframe id="previewFrame"
+              style="display:none;width:100%;min-height:calc(100vh - 240px);border:none;"></iframe>
+          </div>
         </div>
       </div>
-      <div class="panel">
-        <h2>Preview</h2>
-        <div id="previewBox" class="preview-wrap">
-          <div class="preview-placeholder" id="previewPlaceholder">Select an article to load and preview.</div>
-          <iframe id="previewFrame" style="display:none;width:100%;min-height:calc(100vh - 240px);border:none;"></iframe>
-        </div>
-      </div>
     </div>
-  </div>
 
-  <div id="groupMode" class="panel" style="display:none;">
-    <h2>Similar articles (Group view)</h2>
-    <p class="subtitle" style="margin-bottom:0.5rem;">Select a group above to see articles by row. Click the eye icon on a preview to view the full article.</p>
-    <div id="groupView" class="group-view"></div>
-  </div>
+    <div id="groupMode" class="panel" style="display:none;">
+      <h2>Similar articles (Group view)</h2>
+      <p class="subtitle" style="margin-bottom:0.5rem;">Select a group above to see articles by row. Click the eye icon
+        on a preview to view the full article.</p>
+      <div id="groupView" class="group-view"></div>
+    </div>
 
-  <div id="placeholderMode" class="panel">
-    <p class="preview-placeholder">Use Domain or Group filter and click Apply. Domain → article dropdown for editing. Group → grid of similar articles with preview + eye to view.</p>
-  </div>
+    <div id="placeholderMode" class="panel">
+      <p class="preview-placeholder">Use Domain or Group filter and click Apply. Domain → article dropdown for editing.
+        Group → grid of similar articles with preview + eye to view.</p>
+    </div>
   </div>
 
   <div id="modalOverlay" class="modal-overlay hidden">
@@ -199,7 +492,7 @@
   <script>
     let titleId = null;
 
-    (function() {
+    (function () {
       const p = new URLSearchParams(window.location.search);
       const tid = p.get('title_id');
       if (tid) titleId = parseInt(tid, 10);
@@ -393,7 +686,7 @@
       const sel = document.getElementById('titleSelect');
       const id = parseInt(sel.value, 10);
       const btnThemeEditor = document.getElementById('btnThemeEditor');
-      
+
       if (!id) {
         document.getElementById('htmlEdit').value = '';
         document.getElementById('cssEdit').value = '';
@@ -407,7 +700,7 @@
       const domainId = opt ? opt.getAttribute('data-domain-id') : null;
       if (btnThemeEditor && domainId && domainId !== 'undefined' && domainId !== 'null') {
         btnThemeEditor.style.display = 'inline-block';
-        btnThemeEditor.onclick = function() {
+        btnThemeEditor.onclick = function () {
           window.open('/article-editor?domain_id=' + domainId, '_blank');
         };
       } else if (btnThemeEditor) {
@@ -514,4 +807,5 @@
     })();
   </script>
 </body>
+
 </html>

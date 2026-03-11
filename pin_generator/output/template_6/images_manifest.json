@@ -1,0 +1,17 @@
+{
+  "template_id": "template_6",
+  "template_name": "Modern Brutalist Recipe Pin",
+  "images": {
+    "recipe_image": {
+      "url": "https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/main_image/ba00aa85/58c84a65007.png",
+      "description_prompt": "Close-up food photography of {{title}}, vibrant colors, dramatic lighting, highly appetizing plating, shallow depth of field, Pinterest food photography style.",
+      "position": {
+        "top": 0,
+        "left": 0
+      },
+      "width": 600,
+      "height": 600,
+      "layer_order": 1
+    }
+  }
+}

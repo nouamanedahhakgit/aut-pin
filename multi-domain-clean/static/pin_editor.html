@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pin Editor — Multi-Domain</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/bootstrap.min.css" rel="stylesheet">
   <style>
     :root {
       --bg: #0f0f12;
@@ -16,7 +17,13 @@
       --accent-hover: #c91f56;
       --success: #22c55e;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
       font-family: 'Segoe UI', system-ui, sans-serif;
       background: var(--bg);
@@ -26,6 +33,7 @@
       margin: 0;
       overflow-x: hidden;
     }
+
     .layout {
       max-width: 1600px;
       margin: 0 auto;
@@ -34,150 +42,644 @@
       gap: 1.5rem;
       align-items: start;
     }
+
     @media (max-width: 900px) {
-      .layout { grid-template-columns: 1fr; }
-      .preview-panel { order: 1; }
-      .settings-panel { order: 2; }
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .preview-panel {
+        order: 1;
+      }
+
+      .settings-panel {
+        order: 2;
+      }
     }
-    h1 { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--text); }
-    .pin-editor-header { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
-    .pin-editor-header h1.pin-editor-title { margin-bottom: 0; flex-shrink: 0; }
-    .pin-editor-save-wrap { display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 200px; }
-    .pin-editor-save-wrap input { width: 140px; min-width: 100px; margin-bottom: 0; }
+
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+
+    .pin-editor-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    .pin-editor-header h1.pin-editor-title {
+      margin-bottom: 0;
+      flex-shrink: 0;
+    }
+
+    .pin-editor-save-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .pin-editor-save-wrap input {
+      width: 140px;
+      min-width: 100px;
+      margin-bottom: 0;
+    }
+
     .panel {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 1.25rem;
     }
+
     .panel h2 {
-      font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
-      color: var(--muted); margin-bottom: 0.75rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
     }
-    label { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem; }
-    input, select, textarea {
-      width: 100%; padding: 0.5rem 0.6rem; background: var(--bg); border: 1px solid var(--border);
-      border-radius: 6px; color: var(--text); font-size: 0.85rem; margin-bottom: 0.6rem;
+
+    label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
     }
-    input[type="number"] { width: 100%; }
-    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-    .color-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.6rem; }
-    .color-row input[type="color"] { width: 40px; height: 34px; padding: 2px; cursor: pointer; margin-bottom: 0; flex-shrink: 0; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); }
-    .color-row input[type="text"] { margin-bottom: 0; flex: 1; }
-    .palette { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 0.6rem; }
-    .palette-swatch { width: 22px; height: 22px; border-radius: 4px; cursor: pointer; border: 2px solid var(--border); flex-shrink: 0; }
-    .palette-swatch:hover { border-color: var(--accent); }
-    .palette-swatch.domain-swatch { border-color: var(--accent); border-style: dashed; }
-    .palette-domain-label { font-size: 0.65rem; color: var(--accent); margin-right: 4px; line-height: 22px; flex-shrink: 0; }
-    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 0.5rem 0.6rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 0.85rem;
+      margin-bottom: 0.6rem;
+    }
+
+    input[type="number"] {
+      width: 100%;
+    }
+
+    .row2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    .color-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 0.6rem;
+    }
+
+    .color-row input[type="color"] {
+      width: 40px;
+      height: 34px;
+      padding: 2px;
+      cursor: pointer;
+      margin-bottom: 0;
+      flex-shrink: 0;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+    }
+
+    .color-row input[type="text"] {
+      margin-bottom: 0;
+      flex: 1;
+    }
+
+    .palette {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: 0.6rem;
+    }
+
+    .palette-swatch {
+      width: 22px;
+      height: 22px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 2px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .palette-swatch:hover {
+      border-color: var(--accent);
+    }
+
+    .palette-swatch.domain-swatch {
+      border-color: var(--accent);
+      border-style: dashed;
+    }
+
+    .palette-domain-label {
+      font-size: 0.65rem;
+      color: var(--accent);
+      margin-right: 4px;
+      line-height: 22px;
+      flex-shrink: 0;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
     .btn {
-      display: inline-block; padding: 0.6rem 1rem; border: none; border-radius: 8px;
-      font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: background 0.15s;
+      display: inline-block;
+      padding: 0.6rem 1rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
     }
-    .btn-primary { background: var(--accent); color: #fff; }
-    .btn-primary:hover { background: var(--accent-hover); }
-    .btn-success { background: var(--success); color: #fff; }
-    .btn-success:hover { filter: brightness(1.1); }
-    .btn-secondary { background: var(--border); color: var(--text); }
-    .btn-secondary:hover { background: var(--muted); }
-    .mb1 { margin-bottom: 1rem; }
-    .mt1 { margin-top: 1rem; }
-    .settings-panel { max-height: 90vh; overflow-y: auto; }
-    .element-tabs { display: flex; flex-wrap: wrap; gap: 2px; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: #fff;
+    }
+
+    .btn-success:hover {
+      filter: brightness(1.1);
+    }
+
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover {
+      background: var(--muted);
+    }
+
+    .mb1 {
+      margin-bottom: 1rem;
+    }
+
+    .mt1 {
+      margin-top: 1rem;
+    }
+
+    .settings-panel {
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .element-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px;
+      margin-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0;
+    }
+
     .element-tabs .tab-btn {
-      padding: 0.4rem 0.6rem; font-size: 0.75rem; background: transparent; color: var(--muted); border: none;
-      border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; border-radius: 6px 6px 0 0;
+      padding: 0.4rem 0.6rem;
+      font-size: 0.75rem;
+      background: transparent;
+      color: var(--muted);
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      cursor: pointer;
+      border-radius: 6px 6px 0 0;
     }
-    .element-tabs .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.05); }
-    .element-tabs .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
-    .element-tab-panels { margin-top: 0.5rem; }
-    .element-tab-panel { display: none; padding: 0.25rem 0; }
-    .element-tab-panel.active { display: block; }
+
+    .element-tabs .tab-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .element-tabs .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      font-weight: 600;
+    }
+
+    .element-tab-panels {
+      margin-top: 0.5rem;
+    }
+
+    .element-tab-panel {
+      display: none;
+      padding: 0.25rem 0;
+    }
+
+    .element-tab-panel.active {
+      display: block;
+    }
+
     .preview-wrap {
-      position: sticky; top: 1rem; background: var(--surface); border: 1px solid var(--border);
-      border-radius: 12px; padding: 1rem; text-align: center; min-width: 0;
-      overflow: hidden; max-width: 100%;
+      position: sticky;
+      top: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+      text-align: center;
+      min-width: 0;
+      overflow: hidden;
+      max-width: 100%;
     }
+
     #previewBox {
-      overflow: hidden; max-width: 100%; max-height: min(500px, calc(100vh - 180px));
-      display: flex; align-items: center; justify-content: center; flex-direction: column;
+      overflow: hidden;
+      max-width: 100%;
+      max-height: min(500px, calc(100vh - 180px));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
     }
+
     /* Pin content is 600x1067 – scale to fit without scroll */
     .preview-iframe-wrap {
-      width: 240px; height: 427px;
-      max-width: 100%; max-height: min(427px, calc(100vh - 220px));
-      overflow: hidden; position: relative; margin: 0 auto;
-      border-radius: 8px; border: 1px solid var(--border); background: #000;
+      width: 240px;
+      height: 427px;
+      max-width: 100%;
+      max-height: min(427px, calc(100vh - 220px));
+      overflow: hidden;
+      position: relative;
+      margin: 0 auto;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #000;
     }
+
     .preview-iframe {
-      position: absolute; left: 0; top: 0;
-      width: 600px; height: 1067px;
-      transform: scale(0.4); transform-origin: 0 0;
-      border: none; background: #000;
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 600px;
+      height: 1067px;
+      transform: scale(0.4);
+      transform-origin: 0 0;
+      border: none;
+      background: #000;
     }
+
     .preview-img {
-      max-width: 100%; max-height: min(427px, calc(100vh - 200px));
-      width: auto; height: auto; object-fit: contain; border-radius: 8px; background: #000;
+      max-width: 100%;
+      max-height: min(427px, calc(100vh - 200px));
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border-radius: 8px;
+      background: #000;
     }
+
     .preview-placeholder {
-      width: 240px; height: 427px;
-      max-width: 100%; max-height: min(427px, calc(100vh - 220px));
-      margin: 0 auto; background: var(--bg); border-radius: 8px;
-      display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 0.85rem;
+      width: 240px;
+      height: 427px;
+      max-width: 100%;
+      max-height: min(427px, calc(100vh - 220px));
+      margin: 0 auto;
+      background: var(--bg);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 0.85rem;
     }
-    #generatedImageUrl { font-size: 0.75rem; word-break: break-all; margin-top: 0.5rem; }
-    #generatedImageUrl a { color: var(--accent); }
-    .status { font-size: 0.8rem; color: var(--muted); margin-top: 0.75rem; }
-    .status.error { color: #ef4444; }
-    .status.ok { color: var(--success); }
-    .form-section { margin-bottom: 1rem; }
+
+    #generatedImageUrl {
+      font-size: 0.75rem;
+      word-break: break-all;
+      margin-top: 0.5rem;
+    }
+
+    #generatedImageUrl a {
+      color: var(--accent);
+    }
+
+    .status {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.75rem;
+    }
+
+    .status.error {
+      color: #ef4444;
+    }
+
+    .status.ok {
+      color: var(--success);
+    }
+
+    .form-section {
+      margin-bottom: 1rem;
+    }
+
     .form-section h3 {
-      font-size: 0.8rem; color: var(--accent); margin-bottom: 0.5rem;
-      padding-bottom: 0.25rem; border-bottom: 1px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+      padding-bottom: 0.25rem;
+      border-bottom: 1px solid var(--border);
     }
-    .font-custom-wrap { margin-top: 0.35rem; }
-    .font-custom-wrap input { margin-bottom: 0; }
-    .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+    .font-custom-wrap {
+      margin-top: 0.35rem;
+    }
+
+    .font-custom-wrap input {
+      margin-bottom: 0;
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
     #previewEditMenu {
-      position: fixed; z-index: 9998; background: var(--surface); border: 1px solid var(--border);
-      border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.4); padding: 0.5rem;
-      display: none; flex-direction: column; gap: 2px; min-width: 160px;
+      position: fixed;
+      z-index: 9998;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      padding: 0.5rem;
+      display: none;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 160px;
       font-size: 0.8rem;
     }
+
     #previewEditMenu button {
-      padding: 0.5rem 0.75rem; text-align: left; border: none; background: transparent;
-      color: var(--text); cursor: pointer; border-radius: 4px; white-space: nowrap;
+      padding: 0.5rem 0.75rem;
+      text-align: left;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      border-radius: 4px;
+      white-space: nowrap;
     }
-    #previewEditMenu button:hover { background: var(--accent); color: #fff; }
-    body.embed-mode .navbar-pin-editor { display: none !important; }
-    body.embed-mode { height: 100vh; overflow: hidden; }
-    body.embed-mode .container-fluid { padding: 0.75rem !important; height: 100%; }
-    body.embed-mode .layout { grid-template-columns: 1fr 340px; gap: 0.75rem; align-items: stretch; max-width: none; height: 100%; min-height: 0; }
-    body.embed-mode .settings-panel { flex: 1; min-width: 0; overflow-y: auto; min-height: 0; }
-    body.embed-mode .preview-wrap { margin: 0; padding: 0.25rem; border-radius: 6px; min-width: 0; height: 100%; min-height: 0; display: flex; flex-direction: column; }
-    body.embed-mode .preview-wrap h2 { margin-bottom: 0.25rem; font-size: 0.7rem; flex-shrink: 0; }
-    body.embed-mode #previewBox { flex: 1; min-height: 0; padding: 0; margin: 0; display: flex; align-items: center; justify-content: center; }
-    body.embed-mode .preview-iframe-wrap { overflow: hidden; position: relative; margin: 0 auto; }
-    body.embed-mode .preview-iframe { width: 600px; height: 1067px; transform-origin: 0 0; border: none; }
-    body.embed-mode .preview-placeholder { margin: 0 auto; font-size: 0.7rem; padding: 0.5rem; display: flex; align-items: center; justify-content: center; }
-    body.embed-mode .preview-img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+    #previewEditMenu button:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    body.embed-mode .navbar-pin-editor {
+      display: none !important;
+    }
+
+    body.embed-mode {
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    body.embed-mode .container-fluid {
+      padding: 0.75rem !important;
+      height: 100%;
+    }
+
+    body.embed-mode .layout {
+      grid-template-columns: 1fr 340px;
+      gap: 0.75rem;
+      align-items: stretch;
+      max-width: none;
+      height: 100%;
+      min-height: 0;
+    }
+
+    body.embed-mode .settings-panel {
+      flex: 1;
+      min-width: 0;
+      overflow-y: auto;
+      min-height: 0;
+    }
+
+    body.embed-mode .preview-wrap {
+      margin: 0;
+      padding: 0.25rem;
+      border-radius: 6px;
+      min-width: 0;
+      height: 100%;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    body.embed-mode .preview-wrap h2 {
+      margin-bottom: 0.25rem;
+      font-size: 0.7rem;
+      flex-shrink: 0;
+    }
+
+    body.embed-mode #previewBox {
+      flex: 1;
+      min-height: 0;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    body.embed-mode .preview-iframe-wrap {
+      overflow: hidden;
+      position: relative;
+      margin: 0 auto;
+    }
+
+    body.embed-mode .preview-iframe {
+      width: 600px;
+      height: 1067px;
+      transform-origin: 0 0;
+      border: none;
+    }
+
+    body.embed-mode .preview-placeholder {
+      margin: 0 auto;
+      font-size: 0.7rem;
+      padding: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    body.embed-mode .preview-img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
     #previewLoadingOverlay {
-      display: none; position: absolute; inset: 0; z-index: 100;
-      background: rgba(15,15,18,0.85); border-radius: 12px;
-      flex-direction: column; align-items: center; justify-content: center; gap: 1rem;
-      color: var(--text); font-size: 0.9rem;
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 100;
+      background: rgba(15, 15, 18, 0.85);
+      border-radius: 12px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      color: var(--text);
+      font-size: 0.9rem;
     }
-    #previewLoadingOverlay.visible { display: flex; }
+
+    #previewLoadingOverlay.visible {
+      display: flex;
+    }
+
     .preview-loading-spinner {
-      width: 40px; height: 40px; border: 3px solid var(--border);
-      border-top-color: var(--accent); border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
       animation: preview-loading-spin 0.8s linear infinite;
     }
-    @keyframes preview-loading-spin { to { transform: rotate(360deg); } }
-    body.preview-loading .settings-panel { pointer-events: none; opacity: 0.6; }
-    body.preview-loading #saveToDomainWrap { pointer-events: none; opacity: 0.6; }
+
+    @keyframes preview-loading-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    body.preview-loading .settings-panel {
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    body.preview-loading #saveToDomainWrap {
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    /* Pin Picker Grid */
+    .pin-picker-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 16px;
+      margin-top: 10px;
+      margin-bottom: 25px;
+      max-height: 500px;
+      overflow-y: auto;
+      padding: 5px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .pin-picker-grid::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .pin-picker-grid::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 10px;
+    }
+
+    .pin-picker-card {
+      width: 140px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px;
+      background: var(--surface);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pin-picker-card:hover {
+      transform: translateY(-4px) scale(1.02);
+      border-color: var(--accent);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    }
+
+    .pin-picker-card.active {
+      border-color: var(--accent);
+      background: rgba(225, 48, 108, 0.08);
+      border-width: 2px;
+      box-shadow: 0 0 15px rgba(225, 48, 108, 0.3);
+    }
+
+    .pin-picker-card img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 8px;
+      background: #111;
+      display: block;
+    }
+
+    .pin-picker-card .template-name {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 8px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .pin-picker-card.active .template-name {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .pin-picker-search {
+      margin-bottom: 15px;
+      position: relative;
+    }
+
+    .pin-picker-search input {
+      width: 100%;
+      padding: 10px 15px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--text);
+      font-size: 0.9rem;
+      transition: border-color 0.2s;
+    }
+
+    .pin-picker-search input:focus {
+      border-color: var(--accent);
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(225, 48, 108, 0.2);
+    }
   </style>
 </head>
+
 <body>
   <nav id="navbarPinEditor" class="navbar navbar-expand navbar-dark bg-dark mb-0 navbar-pin-editor">
     <div class="container-fluid px-3">
@@ -194,50 +696,58 @@
     </div>
   </nav>
   <div class="container-fluid px-3 py-4">
-  <div class="layout">
-    <div class="panel settings-panel">
-      <div class="pin-editor-header">
-        <h1 class="pin-editor-title">Pin Editor</h1>
-        <div id="saveToDomainWrap" class="pin-editor-save-wrap" style="display:none;">
-          <input type="text" id="templateNameForDomain" placeholder="Template name" title="Template name (for this domain)">
-          <button type="button" class="btn btn-secondary" id="btnApplyDomainColors" title="Re-apply domain colors and fonts to current template">Domain Colors</button>
-          <button type="button" class="btn btn-success" id="btnSaveToDomain">Save</button>
+    <div class="layout">
+      <div class="panel settings-panel">
+        <div class="pin-editor-header">
+          <h1 class="pin-editor-title">Pin Editor</h1>
+          <div id="saveToDomainWrap" class="pin-editor-save-wrap" style="display:none;">
+            <input type="text" id="templateNameForDomain" placeholder="Template name"
+              title="Template name (for this domain)">
+            <button type="button" class="btn btn-secondary" id="btnApplyDomainColors"
+              title="Re-apply domain colors and fonts to current template">Domain Colors</button>
+            <button type="button" class="btn btn-success" id="btnSaveToDomain">Save</button>
+          </div>
+        </div>
+        <div class="mb1">
+          <label for="templateSelect">Template</label>
+          <select id="templateSelect">
+            <option value="">— Select template —</option>
+          </select>
+          <div class="pin-picker-search mt1">
+            <input type="text" id="templateSearch" placeholder="Search templates...">
+          </div>
+          <div id="pinPickerGrid" class="pin-picker-grid"></div>
+        </div>
+        <div id="formContainer"></div>
+        <div class="mt1">
+          <h2>Saved JSON</h2>
+          <p class="status mb1">Use &quot;Save to domain&quot; (when opened for a domain). Image is generated and
+            uploaded to Cloudflare when you save.</p>
+          <div class="d-flex gap-2 mb-2">
+            <button type="button" class="btn btn-secondary btn-sm" id="btnCopyJson">Copy</button>
+          </div>
+          <pre id="jsonOut"
+            style="font-size:0.7rem; background:var(--bg); padding:0.75rem; border-radius:8px; overflow:auto; max-height:40vh; white-space:pre-wrap; word-break:break-all;">{}</pre>
         </div>
       </div>
-      <div class="mb1">
-        <label for="templateSelect">Template</label>
-        <select id="templateSelect">
-          <option value="">— Select template —</option>
-        </select>
-      </div>
-      <div id="formContainer"></div>
-      <div class="mt1">
-        <h2>Saved JSON</h2>
-        <p class="status mb1">Use &quot;Save to domain&quot; (when opened for a domain). Image is generated and uploaded to Cloudflare when you save.</p>
-        <div class="d-flex gap-2 mb-2">
-          <button type="button" class="btn btn-secondary btn-sm" id="btnCopyJson">Copy</button>
-        </div>
-        <pre id="jsonOut" style="font-size:0.7rem; background:var(--bg); padding:0.75rem; border-radius:8px; overflow:auto; max-height:40vh; white-space:pre-wrap; word-break:break-all;">{}</pre>
-      </div>
-    </div>
 
-    <div class="preview-panel preview-wrap">
-      <div id="previewLoadingOverlay">
-        <div class="preview-loading-spinner"></div>
-        <span>Updating preview…</span>
-      </div>
-      <h2>Preview</h2>
-      <div id="previewBox">
-        <div class="preview-placeholder" id="previewPlaceholder">Select template — preview updates automatically</div>
-        <div class="preview-iframe-wrap" id="previewIframeWrap" style="display:none;">
-          <iframe id="previewIframe" class="preview-iframe" title="Pin preview"></iframe>
+      <div class="preview-panel preview-wrap">
+        <div id="previewLoadingOverlay">
+          <div class="preview-loading-spinner"></div>
+          <span>Updating preview…</span>
         </div>
-        <img id="previewImg" class="preview-img" alt="Pin preview" style="display:none;">
+        <h2>Preview</h2>
+        <div id="previewBox">
+          <div class="preview-placeholder" id="previewPlaceholder">Select template — preview updates automatically</div>
+          <div class="preview-iframe-wrap" id="previewIframeWrap" style="display:none;">
+            <iframe id="previewIframe" class="preview-iframe" title="Pin preview"></iframe>
+          </div>
+          <img id="previewImg" class="preview-img" alt="Pin preview" style="display:none;">
+        </div>
+        <p class="status" id="previewStatus"></p>
+        <p id="generatedImageUrl" class="status" style="display:none;"></p>
       </div>
-      <p class="status" id="previewStatus"></p>
-      <p id="generatedImageUrl" class="status" style="display:none;"></p>
     </div>
-  </div>
   </div>
 
   <script>
@@ -250,15 +760,19 @@
     let domainForWebsite = null;
     let domainColors = null;
     let domainFonts = null;
+    let articleId = null;
+    let articleData = null;
     let currentStyleSlots = {};
     let currentFontSlots = {};
 
-    (function() {
+    (function () {
       const params = new URLSearchParams(window.location.search);
       const d = params.get('domain_id');
       if (d) { domainId = parseInt(d, 10); }
       const t = params.get('template_id');
       if (t) { domainTemplateId = parseInt(t, 10); }
+      const a = params.get('article_id') || params.get('title_id');
+      if (a) { articleId = parseInt(a, 10); }
       if (params.get('embed') === '1') document.body.classList.add('embed-mode');
     })();
 
@@ -303,6 +817,17 @@
       } catch (e) { domainForWebsite = null; domainColors = null; domainFonts = null; }
     }
 
+    async function loadArticleData() {
+      if (!articleId) return;
+      try {
+        const d = await api('/api/article-content/' + articleId);
+        articleData = d;
+        if (d.website_template && !currentTemplateName) {
+          // Optional: could auto-select a template based on article?
+        }
+      } catch (e) { console.error('Failed to load article data:', e); }
+    }
+
     function getApiBase() {
       return '';
     }
@@ -325,13 +850,46 @@
         document.getElementById('templateSelect').innerHTML = '<option value="">— Select template —</option>';
         return;
       }
-      templates = data.templates || [];
+      const raw = data.templates || [];
+      templates = raw; // Now an array of objects {name, has_preview, preview_url}
       const sel = document.getElementById('templateSelect');
-      sel.innerHTML = '<option value="">— Select template —</option>' + templates.map(t => `<option value="${t}">${t}</option>`).join('');
+      sel.innerHTML = '<option value="">— Select template —</option>' + templates.map(t => '<option value="' + escapeAttr(t.name) + '">' + escapeAttr(t.name) + '</option>').join('');
+
+      renderGrid();
+
+      document.getElementById('templateSearch').oninput = (e) => {
+        renderGrid(e.target.value);
+      };
+
       if (templates.length === 0) {
         const msg = data.error || 'Pin API returned no templates.';
         setStatus(msg + ' Start the Pin API: python generator.py --serve (from the Kimi_Agent_Pin folder, default port 5000).', true);
       }
+    }
+
+    function renderGrid(filter = '') {
+      const grid = document.getElementById('pinPickerGrid');
+      const filtered = templates.filter(t => t.name.toLowerCase().includes(filter.toLowerCase()));
+
+      grid.innerHTML = filtered.map(t => {
+        const preview = t.preview_url || '/static/placeholder-pin.png';
+        const isActive = t.name === (document.getElementById('templateSelect').value);
+        return `
+          <div class="pin-picker-card text-center ${isActive ? 'active' : ''}" data-template-name="${escapeAttr(t.name)}">
+            <img src="${preview}" alt="${escapeAttr(t.name)}" onerror="this.src='/static/placeholder-pin.png'">
+            <div class="template-name" title="${escapeAttr(t.name)}">${escapeAttr(t.name)}</div>
+          </div>
+        `;
+      }).join('');
+
+      grid.querySelectorAll('.pin-picker-card').forEach(card => {
+        card.onclick = () => {
+          const name = card.getAttribute('data-template-name');
+          const sel = document.getElementById('templateSelect');
+          sel.value = name;
+          sel.dispatchEvent(new Event('change'));
+        };
+      });
     }
 
     function deepMerge(base, override) {
@@ -339,7 +897,7 @@
       const out = Object.assign({}, base);
       for (const k of Object.keys(override)) {
         if (override[k] !== null && typeof override[k] === 'object' && !Array.isArray(override[k]) &&
-            base[k] !== null && typeof base[k] === 'object' && !Array.isArray(base[k])) {
+          base[k] !== null && typeof base[k] === 'object' && !Array.isArray(base[k])) {
           out[k] = deepMerge(base[k], override[k]);
         } else {
           out[k] = override[k];
@@ -355,7 +913,8 @@
         const raw = (saved.template_json || '').trim();
         if (!raw) return;
         const parsed = JSON.parse(raw);
-        const templateName = (parsed.template_name || parsed.template_id || 'template_1').toString().trim().toLowerCase().replace(/-/g, '_');
+        const rawName = parsed.template_name || parsed.template_id || 'template_1';
+        const templateName = (typeof rawName === 'string' ? rawName : 'template_1').trim().toLowerCase().replace(/-/g, '_') || 'template_1';
         const savedData = parsed.template_data || parsed;
         if (!templates.length) await loadTemplates();
         if (templates.indexOf(templateName) === -1) {
@@ -382,7 +941,7 @@
       }
     }
 
-    const PALETTE_COLORS = ['#FFFFFF','#000000','#E1306C','#22C55E','#FBBF24','#3D2B4F','#1A1A1A','#6D4C41','#D4AF37','#111827','#6B7280','#F9FAFB','#FEF3C7'];
+    const PALETTE_COLORS = ['#FFFFFF', '#000000', '#E1306C', '#22C55E', '#FBBF24', '#3D2B4F', '#1A1A1A', '#6D4C41', '#D4AF37', '#111827', '#6B7280', '#F9FAFB', '#FEF3C7'];
 
     // Fonts available in Pin Editor (value = CSS font-family; label = display name). Used in JSON and taken into account when generating pins.
     const PIN_FONTS = [
@@ -460,11 +1019,11 @@
       if (!str || typeof str !== 'string') return '#000000';
       str = str.trim();
       const m = str.match(/^#([0-9a-fA-F]{3})$/);
-      if (m) { const s = m[1]; return '#' + s[0]+s[0]+s[1]+s[1]+s[2]+s[2]; }
+      if (m) { const s = m[1]; return '#' + s[0] + s[0] + s[1] + s[1] + s[2] + s[2]; }
       const m6 = str.match(/^#([0-9a-fA-F]{6})$/);
       if (m6) return '#' + m6[1].toLowerCase();
       const rgb = str.match(/rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/);
-      if (rgb) return '#' + [1,2,3].map(i => ('0'+Number(rgb[i]).toString(16)).slice(-2)).join('');
+      if (rgb) return '#' + [1, 2, 3].map(i => ('0' + Number(rgb[i]).toString(16)).slice(-2)).join('');
       return '#000000';
     }
     function getDomainColorValues() {
@@ -546,6 +1105,9 @@
     function triggerAutoPreview() {
       updateJsonOut();
       if (!currentTemplateName) return;
+      if (hasPreviewInIframe) {
+        syncPreviewFromForm();
+      }
       clearTimeout(previewDebounce);
       previewDebounce = setTimeout(updatePreview, 300);
     }
@@ -632,7 +1194,7 @@
         panelsWrap.appendChild(wrap);
       });
 
-      tabBar.addEventListener('click', function(e) {
+      tabBar.addEventListener('click', function (e) {
         const btn = e.target.closest('.tab-btn');
         if (!btn) return;
         const idx = btn.getAttribute('data-tab-index');
@@ -650,7 +1212,20 @@
       Object.keys(images).forEach(key => {
         const idata = images[key] || {};
         const pos = idata.position || {};
-        setVal('img_' + key, templateData[key] || '');
+
+        let val = templateData[key] || '';
+        const ARTICLE_IMAGE_MAP = { background: 'main_image', bg: 'main_image', main_image: 'main_image', top_image: 'top_image', bottom_image: 'bottom_image', avatar: 'avatar_image' };
+        if (articleData) {
+          const artKey = ARTICLE_IMAGE_MAP[key] || key;
+          if (articleData[artKey]) {
+            // Inject global image if field is empty or just a placeholder
+            if (!val || val.includes('placeholder') || val.includes('r2.dev/template_preview') || val.includes('58c84a65007.png')) {
+              val = articleData[artKey];
+            }
+          }
+        }
+
+        setVal('img_' + key, val);
         setVal('img_' + key + '_top', pos.top);
         setVal('img_' + key + '_left', pos.left);
         setVal('img_' + key + '_width', idata.width);
@@ -662,7 +1237,27 @@
         setVal('el_' + key + '_top', pos.top);
         setVal('el_' + key + '_left', pos.left);
         if (el.type === 'text') {
-          setVal('el_' + key, el.text || '');
+          let textVal = el.text || '';
+          if (articleData) {
+            const ARTICLE_TEXT_MAP = { title: 'recipe_title_pin', website: 'website' };
+            const artKey = ARTICLE_TEXT_MAP[key];
+            if (artKey && articleData[artKey]) {
+              // Only auto-fill if it's currently generic
+              if (!textVal || textVal.toLowerCase().includes('recipe name') || textVal.toLowerCase().includes('insane') || textVal.toLowerCase().includes('flavor')) {
+                textVal = articleData[artKey];
+              }
+            } else if (key === 'title' && articleData.title) {
+              // Fallback to main article title
+              if (!textVal || textVal.toLowerCase().includes('recipe name') || textVal.toLowerCase().includes('insane')) {
+                textVal = articleData.title;
+              }
+            }
+          }
+          if (key === 'website' && domainForWebsite) {
+            textVal = domainForWebsite;
+          }
+
+          setVal('el_' + key, textVal);
           setFontFamilyVal(key, el.font_family || '');
           setVal('el_' + key + '_font_size', el.font_size);
           setVal('el_' + key + '_font_weight', el.font_weight || '');
@@ -705,10 +1300,12 @@
       imgKeys.forEach((key, i) => {
         const sel = '.' + key.replace(/_/g, '-');
         const tabIndex = 1 + i;
-        pinPreviewClickMap.push({ sel, options: [
-          { label: 'Edit image URL', tabIndex, fieldId: 'img_' + key },
-          { label: 'Edit position', tabIndex, fieldId: 'img_' + key + '_top' }
-        ]});
+        pinPreviewClickMap.push({
+          sel, options: [
+            { label: 'Edit image URL', tabIndex, fieldId: 'img_' + key },
+            { label: 'Edit position', tabIndex, fieldId: 'img_' + key + '_top' }
+          ]
+        });
       });
       elKeys.forEach((key, i) => {
         const el = elements[key];
@@ -716,20 +1313,26 @@
         const sel = '.' + key.replace(/_/g, '-');
         const tabIndex = 1 + imgKeys.length + i;
         if (el.type === 'text') {
-          pinPreviewClickMap.push({ sel, options: [
-            { label: 'Edit text', tabIndex, fieldId: 'el_' + key },
-            { label: 'Edit color', tabIndex, fieldId: 'el_' + key + '_color' },
-            { label: 'Edit font', tabIndex, fieldId: 'el_' + key + '_font_family' }
-          ]});
+          pinPreviewClickMap.push({
+            sel, options: [
+              { label: 'Edit text', tabIndex, fieldId: 'el_' + key },
+              { label: 'Edit color', tabIndex, fieldId: 'el_' + key + '_color' },
+              { label: 'Edit font', tabIndex, fieldId: 'el_' + key + '_font_family' }
+            ]
+          });
         } else if (el.type === 'div') {
-          pinPreviewClickMap.push({ sel, options: [
-            { label: 'Edit background', tabIndex, fieldId: 'el_' + key + '_background_color' }
-          ]});
+          pinPreviewClickMap.push({
+            sel, options: [
+              { label: 'Edit background', tabIndex, fieldId: 'el_' + key + '_background_color' }
+            ]
+          });
         } else if (el.type === 'stars') {
-          pinPreviewClickMap.push({ sel, options: [
-            { label: 'Edit color', tabIndex, fieldId: 'el_' + key + '_color' },
-            { label: 'Edit count', tabIndex, fieldId: 'el_' + key + '_count' }
-          ]});
+          pinPreviewClickMap.push({
+            sel, options: [
+              { label: 'Edit color', tabIndex, fieldId: 'el_' + key + '_color' },
+              { label: 'Edit count', tabIndex, fieldId: 'el_' + key + '_count' }
+            ]
+          });
         }
       });
     }
@@ -771,7 +1374,7 @@
         if (d && d.contains(outer.target)) return;
         hideMenu();
       });
-      doc.addEventListener('click', function(e) {
+      doc.addEventListener('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
         const target = e.target;
@@ -781,7 +1384,7 @@
           const m = pinPreviewClickMap[i];
           const el = target.closest ? target.closest(m.sel) : null;
           if (el && m.options) {
-            m.options.forEach(function(opt) {
+            m.options.forEach(function (opt) {
               const key = opt.tabIndex + ':' + opt.fieldId;
               if (!seen.has(key)) { seen.add(key); options.push(opt); }
             });
@@ -793,11 +1396,11 @@
           return;
         }
         menu.innerHTML = '';
-        options.forEach(function(opt) {
+        options.forEach(function (opt) {
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.textContent = opt.label;
-          btn.onclick = function() { focusFormFieldPin(opt.tabIndex, opt.fieldId); hideMenu(); };
+          btn.onclick = function () { focusFormFieldPin(opt.tabIndex, opt.fieldId); hideMenu(); };
           menu.appendChild(btn);
         });
         var gap = 12;
@@ -938,7 +1541,7 @@
         }
         if (data.index_html) {
           iframe.srcdoc = data.index_html;
-          iframe.onload = function() { attachPreviewClickToEditPin(iframe); fitPreviewToContainer(); };
+          iframe.onload = function () { attachPreviewClickToEditPin(iframe); fitPreviewToContainer(); };
           const wrap = document.getElementById('previewIframeWrap');
           if (wrap) wrap.style.display = 'block';
           placeholder.style.display = 'none';
@@ -1060,7 +1663,7 @@
       }).catch(() => setStatus('Could not copy.', true));
     }
 
-    document.getElementById('btnApplyDomainColors').addEventListener('click', async function() {
+    document.getElementById('btnApplyDomainColors').addEventListener('click', async function () {
       if (!domainId) return;
       if (!domainColors && !domainFonts) {
         await loadDomainForWebsite();
@@ -1073,7 +1676,7 @@
       setStatus('Domain colors and fonts applied.');
     });
 
-    document.getElementById('btnSaveToDomain').addEventListener('click', function() {
+    document.getElementById('btnSaveToDomain').addEventListener('click', function () {
       if (!domainId) return;
       const btn = this;
       const name = document.getElementById('templateNameForDomain').value.trim() || 'Unnamed';
@@ -1117,7 +1720,7 @@
           setStatus('Error: ' + e.message, true);
           alert('Error: ' + e.message);
         })
-        .finally(function() {
+        .finally(function () {
           btn.disabled = false;
           btn.textContent = 'Save to domain';
         });
@@ -1125,6 +1728,12 @@
 
     document.getElementById('templateSelect').addEventListener('change', async () => {
       const name = document.getElementById('templateSelect').value;
+
+      // Update grid active state
+      document.querySelectorAll('.pin-picker-card').forEach(card => {
+        card.classList.toggle('active', card.getAttribute('data-template-name') === name);
+      });
+
       if (!name) {
         currentTemplateName = '';
         templateId = '';
@@ -1142,7 +1751,9 @@
       }
       try {
         if (domainId) await loadDomainForWebsite();
-        const data = await api('/api/pin-template/' + encodeURIComponent(name));
+        const templateName = typeof name === 'string' ? name : String(name || 'template_1');
+        if (templateName === '[object Object]') return;
+        const data = await api('/api/pin-template/' + encodeURIComponent(templateName));
         if (!data.success) throw new Error(data.error);
         currentTemplateName = data.template_name;
         templateId = data.template_id;
@@ -1162,14 +1773,14 @@
     });
 
     document.getElementById('btnCopyJson').addEventListener('click', copyJson);
-    document.getElementById('formContainer').addEventListener('input', function(e) {
+    document.getElementById('formContainer').addEventListener('input', function (e) {
       if (e.target && e.target.type === 'color') return;
       updateJsonOut();
       if (!currentTemplateName) return;
       clearTimeout(previewDebounce);
       previewDebounce = setTimeout(updatePreview, 500);
     });
-    document.getElementById('formContainer').addEventListener('change', function(e) {
+    document.getElementById('formContainer').addEventListener('change', function (e) {
       if (e.target && e.target.type === 'color') return;
       updateJsonOut();
       if (!currentTemplateName) return;
@@ -1179,11 +1790,12 @@
 
     const box = document.getElementById('previewBox');
     if (box && typeof ResizeObserver !== 'undefined') {
-      new ResizeObserver(function() { fitPreviewToContainer(); }).observe(box);
+      new ResizeObserver(function () { fitPreviewToContainer(); }).observe(box);
     }
 
     loadTemplates().then(async () => {
       if (templates.length > 0) setStatus('Templates loaded.');
+      if (articleId) await loadArticleData();
       if (domainTemplateId && domainId) {
         await loadDomainTemplateForEdit();
       }
@@ -1192,4 +1804,5 @@
   </script>
   <div id="previewEditMenu"></div>
 </body>
+
 </html>

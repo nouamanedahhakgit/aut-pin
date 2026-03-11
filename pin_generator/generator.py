@@ -378,6 +378,23 @@ def run_server(available_templates, host="0.0.0.0", port=5000):
     @app.route("/templates", methods=["GET"])
     def list_templates():
         """List available template names. Add ?debug=1 to test-load each template."""
+        from generators import _TEMPLATES_ROOT
+        templates_with_previews = []
+        for tname in available_templates:
+            preview_url = None
+            try:
+                mod = load_generator(tname)
+                if mod and hasattr(mod, "TEMPLATE_DATA"):
+                    preview_url = mod.TEMPLATE_DATA.get("preview_url")
+            except Exception:
+                pass
+            
+            has_local_preview = os.path.isfile(os.path.join(_TEMPLATES_ROOT, f"{tname}.png"))
+            templates_with_previews.append({
+                "name": tname,
+                "has_preview": has_local_preview or preview_url is not None,
+                "preview_url": (f"/preview/{tname}" if has_local_preview else preview_url)
+            })
         if request.args.get("debug") == "1":
             results = {}
             for tname in available_templates:
@@ -390,8 +407,8 @@ def run_server(available_templates, host="0.0.0.0", port=5000):
                 except Exception as e:
                     import traceback
                     results[tname] = {"ok": False, "error": str(e), "traceback": traceback.format_exc()}
-            return jsonify({"templates": available_templates, "debug": results, "pid": os.getpid()})
-        return jsonify({"templates": available_templates})
+            return jsonify({"templates": templates_with_previews, "debug": results, "pid": os.getpid()})
+        return jsonify({"templates": templates_with_previews})
 
     @app.route("/debug/load-templates", methods=["GET"])
     def debug_load_templates():
@@ -433,9 +450,30 @@ def run_server(available_templates, host="0.0.0.0", port=5000):
             "template_id": template_id,
             "template_name": n,
             "template_data": copy.deepcopy(mod.TEMPLATE_DATA),
-            "style_slots": getattr(mod, "STYLE_SLOTS", None) or {},
-            "font_slots": getattr(mod, "FONT_SLOTS", None) or {},
+            "style_slots": getattr(mod.TEMPLATE_DATA, "style_slots", getattr(mod, "STYLE_SLOTS", None)) or {},
+            "font_slots": getattr(mod.TEMPLATE_DATA, "font_slots", getattr(mod, "FONT_SLOTS", None)) or {},
         })
+
+    @app.route("/preview/<path:name>", methods=["GET"])
+    def get_preview(name):
+        """Serve the preview PNG for a template if it exists."""
+        from generators import _TEMPLATES_ROOT
+        n = (name or "").strip().lower().replace("-", "_")
+        if n.endswith(".png"):
+            n = n[:-4]
+        
+        path = os.path.join(_TEMPLATES_ROOT, f"{n}.png")
+        if os.path.isfile(path):
+            return send_from_directory(_TEMPLATES_ROOT, f"{n}.png")
+        
+        # Check if it was in a subfolder like group_1/template_1
+        # n might be group_1/template_1
+        if os.sep != "/":
+            path = os.path.join(_TEMPLATES_ROOT, n.replace("/", os.sep) + ".png")
+            if os.path.isfile(path):
+                return send_from_directory(os.path.dirname(path), os.path.basename(path))
+
+        return jsonify({"error": f"Preview for '{n}' not found at {path}"}), 404
 
     @app.route("/generate", methods=["POST"])
     def generate():

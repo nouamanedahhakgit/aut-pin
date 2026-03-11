@@ -1,8 +1,10 @@
+# -*- coding: utf-8 -*-
 """Clean Multi-Domain Flask app - database-management, admin pages."""
 import html
 import io
 import json
 from datetime import datetime
+import random
 import re
 import os
 import base64
@@ -23,7 +25,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, request, redirect, url_for, jsonify, send_from_directory, send_file, session, make_response
 import requests as requests_lib
 from db import get_connection, init_db, dict_row, execute as db_execute, last_insert_id, get_fk_children
-from rewrite import rewrite, generate_article_content_for_a
+from rewrite import rewrite, generate_article_content_for_a, generate_image_prompts_for_title
 from config import GENERATE_ARTICLE_API_URL, PIN_EDITOR_URL, PIN_API_URL, ARTICLE_GENERATORS_DIR, OPENAI_API_KEY, OPENAI_MODEL, WEBSITE_PARTS_API_URL, STATIC_PROJECT_OUTPUT_DIR, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, get_ai_config, LLAMACPP_MANAGER_URL
 import imagine
 import r2_upload
@@ -44,6 +46,17 @@ DEFAULT_DOMAIN_COLORS = {"primary": "#2ecc71", "secondary": "#27ae60", "backgrou
 BULK_DEPLOY_JOBS = {}
 BULK_DEPLOY_JOBS_LOCK = threading.Lock()
 BULK_DEPLOY_CANCEL = {}  # job_id -> True if cancel requested
+
+# Per-domain lock for pin template rotation (pin 1, pin 2, pin 1, pin 2...) to avoid race when parallel bulk runs
+_PIN_TEMPLATE_LOCKS = {}
+_PIN_TEMPLATE_LOCKS_MU = threading.Lock()
+
+
+def _get_pin_template_lock(domain_id):
+    with _PIN_TEMPLATE_LOCKS_MU:
+        if domain_id not in _PIN_TEMPLATE_LOCKS:
+            _PIN_TEMPLATE_LOCKS[domain_id] = threading.Lock()
+        return _PIN_TEMPLATE_LOCKS[domain_id]
 
 # Distinct palettes for bulk add: background white, normal text; primary/secondary/border matching accent colors
 GOOD_BULK_COLOR_PALETTES = [
@@ -467,6 +480,7 @@ def get_user_config_for_api(user_id):
     # Midjourney
     config["midjourney_api_token"] = keys.get("midjourney_api_token")
     config["midjourney_channel_id"] = keys.get("midjourney_channel_id")
+    config["image_request_delay_sec"] = max(0, min(120, int(keys.get("image_request_delay_sec") or 15)))
     
     # R2
     config["r2_account_id"] = keys.get("r2_account_id")
@@ -592,7 +606,7 @@ def base_layout(content, title, nav_extra=None):
     
     return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{title}</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="/static/css/bootstrap.min.css" rel="stylesheet">
 <style>
   .page-body {{ width: 100%; max-width: 100%; padding: 0 1rem; }}
   .groups-scroll-wrapper {{ -webkit-overflow-scrolling: touch; }}
@@ -629,7 +643,15 @@ def base_layout(content, title, nav_extra=None):
   .workflow-node.state-done .node-num {{ background: rgba(25,135,84,0.2); }}
   .workflow-connector {{ width: 24px; height: 3px; background: #dee2e6; flex-shrink: 0; border-radius: 2px; }}
   .workflow-connector.active {{ background: #198754; }}
+  .card-workflow {{ display: flex; align-items: center; gap: 0; flex-wrap: wrap; margin-top: 6px; }}
+  .card-workflow .card-node {{ display: inline-flex; align-items: center; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: 600; background: #e9ecef; color: #6c757d; border: 1px solid #dee2e6; }}
+  .card-workflow .card-node.state-done {{ background: #d1e7dd; color: #198754; border-color: #198754; }}
+  .card-workflow .card-node.state-running {{ background: #cfe2ff; color: #0d6efd; border-color: #0d6efd; box-shadow: 0 0 0 2px rgba(13,110,253,0.3); animation: workflow-pulse 1.2s ease-in-out infinite; }}
+  .card-workflow .card-node.state-error {{ background: #f8d7da; color: #dc3545; border-color: #dc3545; }}
+  .card-workflow .card-conn {{ width: 12px; height: 2px; background: #dee2e6; flex-shrink: 0; border-radius: 1px; }}
+  .card-workflow .card-conn.active {{ background: #198754; }}
   @keyframes workflow-pulse {{ 0%,100% {{ opacity: 1; }} 50% {{ opacity: 0.8; }} }}
+  @keyframes statusShimmer {{ 0% {{ background-position: 200% 0; }} 100% {{ background-position: -200% 0; }} }}
   .progress-now-banner {{ background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); color: #fff; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }}
   .progress-now-banner .now-label {{ opacity: 0.9; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }}
   .progress-row-bar {{ height: 10px; background: #e9ecef; border-radius: 5px; overflow: hidden; margin: 0.5rem 0; }}
@@ -687,8 +709,18 @@ function viewContent(tid) {{
     var modelLabel = mu ? (mu.indexOf(' -> ') >= 0 ? mu.split(' -> ').pop() + ' (' + mu.split(' -> ')[0] + ')' : mu) : '-';
     var meta = (d.model_used || d.generated_at || d.generation_time_seconds != null || d.generation_cost_usd != null || (d.website_template || '').trim()) ? '<p class="mb-2 small text-muted">' + ((d.website_template || '').trim() ? 'Generator: ' + (d.website_template || '').replace(/</g,'&lt;') + ' &bull; ' : '') + 'AI Model: ' + modelLabel + (d.generated_at ? ' &bull; Generated: ' + d.generated_at : '') + (d.generation_time_seconds != null ? ' &bull; Time: ' + d.generation_time_seconds + 's' : '') + (d.generation_cost_usd != null && d.generation_cost_usd !== '' ? ' &bull; Cost: $' + Number(d.generation_cost_usd).toFixed(4) : '') + '</p>' : '';
     var editLink = '<p class="mb-2"><a href="/article-html-editor?title_id='+tid+'" target="_blank" class="btn btn-sm btn-outline-primary">Edit HTML/CSS (no regeneration)</a></p>';
-    document.getElementById('viewModalBody').innerHTML = meta + editLink + (html || '<em>Empty</em>');
-    document.getElementById('viewModalTitle').textContent = 'Content';
+    var contentHtml = meta + editLink + '<div class="mb-3"><strong>Content</strong><div class="border rounded p-2">' + (html || '<em>Empty</em>') + '</div></div>';
+    var mainUrl = (d.main_image || '').trim();
+    if(mainUrl && mainUrl.startsWith('http')) contentHtml += '<div class="mb-3"><strong>Main image</strong><div class="border rounded p-2"><img src="'+mainUrl.replace(/"/g,'&quot;')+'" style="max-width:100%;height:auto" alt=""></div></div>';
+    else contentHtml += '<div class="mb-3"><strong>Main image</strong><div class="text-muted">None</div></div>';
+    var ingUrl = (d.ingredient_image || '').trim();
+    if(ingUrl && ingUrl.startsWith('http')) contentHtml += '<div class="mb-3"><strong>Ingredient image</strong><div class="border rounded p-2"><img src="'+ingUrl.replace(/"/g,'&quot;')+'" style="max-width:100%;height:auto" alt=""></div></div>';
+    else contentHtml += '<div class="mb-3"><strong>Ingredient image</strong><div class="text-muted">None</div></div>';
+    var pinUrl = (d.pin_image || '').trim();
+    if(pinUrl && pinUrl.startsWith('http')) contentHtml += '<div class="mb-3"><strong>Pin image</strong><div class="border rounded p-2"><img src="'+pinUrl.replace(/"/g,'&quot;')+'" style="max-width:100%;height:auto" alt=""></div></div>';
+    else contentHtml += '<div class="mb-3"><strong>Pin image</strong><div class="text-muted">None</div></div>';
+    document.getElementById('viewModalBody').innerHTML = contentHtml;
+    document.getElementById('viewModalTitle').textContent = 'Content & Images';
     new bootstrap.Modal(document.getElementById('viewModal')).show();
   }}).finally(function() {{ hideGlobalLoading(); }});
 }}
@@ -1088,20 +1120,24 @@ function runBulk(mode) {{
   }});
 }}
 function _updateBulkGroupModalButtons(d) {{
+  var btnPrompts = document.getElementById('bulkGroupBtnPrompts');
   var btnArticle = document.getElementById('bulkGroupBtnArticle');
   var btnImages = document.getElementById('bulkGroupBtnImages');
   var btnPinterest = document.getElementById('bulkGroupBtnPinterest');
   var btnAll = document.getElementById('bulkGroupBtnAll');
+  var spr = (document.querySelector('input[name="bulkGroupModalScopePrompts"]:checked') || {{}}).value || 'empty_only';
   var sc = (document.querySelector('input[name="bulkGroupModalScopeContent"]:checked') || {{}}).value || 'empty_only';
   var si = (document.querySelector('input[name="bulkGroupModalScopeImages"]:checked') || {{}}).value || 'empty_only';
   var sp = (document.querySelector('input[name="bulkGroupModalScopePins"]:checked') || {{}}).value || 'empty_only';
+  var npr = spr === 'override' ? (d.total || 0) : (d.rows_needs_prompts != null ? d.rows_needs_prompts : 0);
   var nc = sc === 'override' ? (d.total || 0) : (d.rows_needs_content != null ? d.rows_needs_content : d.no_html_css || 0);
   var ni = si === 'override' ? (d.total || 0) : (d.rows_needs_images != null ? d.rows_needs_images : d.no_images || 0);
   var np = sp === 'override' ? (d.total || 0) : (d.rows_needs_pins != null ? d.rows_needs_pins : d.no_pins || 0);
+  if (btnPrompts) btnPrompts.textContent = 'Run prompts (' + npr + ')';
   if (btnArticle) btnArticle.textContent = 'Run content (' + nc + ')';
   if (btnImages) btnImages.textContent = 'Run images (' + ni + ')';
   if (btnPinterest) btnPinterest.textContent = 'Run Pinterest (' + np + ')';
-  if (btnAll) btnAll.textContent = 'Run all (' + nc + ', ' + ni + ', ' + np + ')';
+  if (btnAll) btnAll.textContent = 'Run all (' + npr + ', ' + nc + ', ' + ni + ', ' + np + ')';
 }}
 function _refreshBulkGroupModalCounts() {{
   var gid = document.getElementById('bulkGroupModalGroupId');
@@ -1121,20 +1157,22 @@ function _refreshBulkGroupModalCounts() {{
 function openBulkGroupModal(gid) {{
   document.getElementById('bulkGroupModalGroupId').value = gid;
   _applyProfileAiDefaults('bulkGroupModal');
+  var btnPrompts = document.getElementById('bulkGroupBtnPrompts');
   var btnArticle = document.getElementById('bulkGroupBtnArticle');
   var btnImages = document.getElementById('bulkGroupBtnImages');
   var btnPinterest = document.getElementById('bulkGroupBtnPinterest');
   var btnAll = document.getElementById('bulkGroupBtnAll');
+  if (btnPrompts) btnPrompts.textContent = 'Run prompts';
   if (btnArticle) btnArticle.textContent = 'Run content';
   if (btnImages) btnImages.textContent = 'Run images';
   if (btnPinterest) btnPinterest.textContent = 'Run Pinterest';
-  if (btnAll) btnAll.textContent = 'Run all (content, images, Pinterest)';
+  if (btnAll) btnAll.textContent = 'Run all (prompts, content, images, Pinterest)';
   fetch('/api/bulk-group-counts?group_id=' + encodeURIComponent(gid)).then(function(r){{ return r.json(); }}).then(function(d) {{
     window._bulkGroupModalCounts = d;
     _updateBulkGroupModalButtons(d);
     _updateBulkModalAiHints('bulkGroupModal');
     var handler = function(){{ _updateBulkGroupModalButtons(window._bulkGroupModalCounts || {{}}); }};
-    ['bulkGroupModalScopeContent','bulkGroupModalScopeImages','bulkGroupModalScopePins'].forEach(function(name){{
+    ['bulkGroupModalScopePrompts','bulkGroupModalScopeContent','bulkGroupModalScopeImages','bulkGroupModalScopePins'].forEach(function(name){{
       document.querySelectorAll('input[name="' + name + '"]').forEach(function(el){{
         if (window._bulkGroupModalScopeHandler) el.removeEventListener('change', window._bulkGroupModalScopeHandler);
         el.addEventListener('change', handler);
@@ -1186,9 +1224,11 @@ function runBulkGroupFromModal(mode) {{
   var gid = document.getElementById('bulkGroupModalGroupId').value;
   if(!gid) return;
   bootstrap.Modal.getInstance(document.getElementById('bulkGroupModal')).hide();
+  var sprEl = document.querySelector('input[name="bulkGroupModalScopePrompts"]:checked');
   var scEl = document.querySelector('input[name="bulkGroupModalScopeContent"]:checked');
   var siEl = document.querySelector('input[name="bulkGroupModalScopeImages"]:checked');
   var spEl = document.querySelector('input[name="bulkGroupModalScopePins"]:checked');
+  var scopePrompts = (sprEl && sprEl.value) || 'empty_only';
   var scopeContent = (scEl && scEl.value) || 'override';
   var scopeImages = (siEl && siEl.value) || 'override';
   var scopePins = (spEl && spEl.value) || 'override';
@@ -1203,7 +1243,7 @@ function runBulkGroupFromModal(mode) {{
     if (ids.length === 0) {{ alert('Select at least one subgroup, or choose "All subgroups in this group"'); return; }}
     groupIdsParam = '&group_ids=' + encodeURIComponent(ids.join(','));
   }}
-  var url = '/api/bulk-run-group?group_id=' + gid + '&mode=' + mode + '&scope_content=' + scopeContent + '&scope_images=' + scopeImages + '&scope_pins=' + scopePins + '&concurrency_n=' + n + groupIdsParam + (aiProvider ? '&ai_provider=' + encodeURIComponent(aiProvider) : '') + _getOpenRouterModelsParam('bulkGroupModal') + _getOpenRouterModeParam('bulkGroupModal') + _getAiModelParams('bulkGroupModal');
+  var url = '/api/bulk-run-group?group_id=' + gid + '&mode=' + mode + '&scope_prompts=' + scopePrompts + '&scope_content=' + scopeContent + '&scope_images=' + scopeImages + '&scope_pins=' + scopePins + '&concurrency_n=' + n + groupIdsParam + (aiProvider ? '&ai_provider=' + encodeURIComponent(aiProvider) : '') + _getOpenRouterModelsParam('bulkGroupModal') + _getOpenRouterModeParam('bulkGroupModal') + _getAiModelParams('bulkGroupModal');
   var asyncUrl = url + (url.indexOf('?')>=0 ? '&' : '?') + 'async=1';
   if (typeof requestTaskNotificationPermission==='function') requestTaskNotificationPermission();
   var modal = document.getElementById('progressModal');
@@ -1291,7 +1331,7 @@ function openBulkGroupModal(groupId, groupName) {{
     _updateBulkGroupModalButtons(d);
     _updateBulkModalAiHints('bulkGroupModal');
     var handler = function(){{ _updateBulkGroupModalButtons(window._bulkGroupModalCounts || {{}}); }};
-    ['bulkGroupModalScopeContent','bulkGroupModalScopeImages','bulkGroupModalScopePins'].forEach(function(name){{
+    ['bulkGroupModalScopePrompts','bulkGroupModalScopeContent','bulkGroupModalScopeImages','bulkGroupModalScopePins'].forEach(function(name){{
       document.querySelectorAll('input[name="' + name + '"]').forEach(function(el){{
         if (window._bulkGroupModalScopeHandler) el.removeEventListener('change', window._bulkGroupModalScopeHandler);
         el.addEventListener('change', handler);
@@ -1410,12 +1450,13 @@ function workflowStepsFromStatus(s) {{
   if(s.type==='deploy') return ['Deploy to Cloudflare'];
   if(s.type==='single' && s.action) return [s.action];
   var m = (s.mode||'').toLowerCase();
-  if(m==='all') return ['Article A+BCD','Main image','Ingredient image','Pin image'];
-  if(m==='article') return ['Article A+BCD'];
-  if(m==='images') return ['Main image','Ingredient image'];
-  if(m==='main_image') return ['Main image'];
-  if(m==='ingredient_image') return ['Ingredient image'];
-  if(m==='pin_image') return ['Pin image'];
+  if(m==='all') return ['Prompts','Images','Content','Pinterest'];
+  if(m==='prompts') return ['Prompts'];
+  if(m==='article') return ['Content'];
+  if(m==='images') return ['Images'];
+  if(m==='main_image') return ['Images'];
+  if(m==='ingredient_image') return ['Images'];
+  if(m==='pin_image') return ['Pinterest'];
   return ['Run'];
 }}
 function workflowState(st, i, steps, currentPhase) {{
@@ -1508,6 +1549,7 @@ function renderProgressBody(s, body) {{
       articlesHtml += '<div class="d-flex align-items-center gap-2 mb-1"><span class="workflow-label mb-0">Currently processing</span><span class="badge bg-primary" style="font-size:0.65rem">' + activeCount + ' active</span>' + (phaseName ? '<span class="badge bg-info text-dark" style="font-size:0.65rem">Phase: ' + phaseName.replace(/</g,'&lt;') + '</span>' : '') + '</div>';
       articlesHtml += '<div style="display:grid;gap:4px;margin-bottom:6px">';
       if (activeArticles.length > 0) {{
+        var currentPhase = (typeof s.current_phase === 'number' ? s.current_phase : 1);
         activeArticles.forEach(function(a) {{
           var tid = a.tid || '';
           var title = (a.title || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -1519,10 +1561,32 @@ function renderProgressBody(s, body) {{
           var dp = a.domain_progress || {{}};
           var dt = a.domain_timings || {{}};
           var dti = a.domain_title_ids || {{}};
+          var ip = a.image_progress || {{}};
           var letterList = (letters || 'A,B,C,D').split(/[,\\s]+/).filter(function(x){{ return x; }});
+          var mainDone = ip.main === 'done' || ip.main === 'skipped';
+          var ingDone = ip.ingredient === 'done' || ip.ingredient === 'skipped';
+          var mainRun = ip.main === 'running';
+          var ingRun = ip.ingredient === 'running';
+          var imgError = ip.main === 'error' || ip.ingredient === 'error';
+          var hasImgProgress = ip.main || ip.ingredient;
+          var hasDomainProgress = Object.keys(dp).length > 0;
+          var allDomainsDone = letterList.length > 0 && letterList.every(function(l){{ var st = dp[l]; return st === 'done' || st === 'skipped'; }});
+          var anyDomainRunning = Object.keys(dp).some(function(l){{ return dp[l] === 'running'; }});
+          var anyDomainError = Object.keys(dp).some(function(l){{ return dp[l] === 'error'; }});
+          var s1 = (hasImgProgress || hasDomainProgress) ? 'done' : (currentPhase === 1 ? 'running' : 'pending');
+          var s2 = hasDomainProgress || (mainDone && ingDone) ? 'done' : (imgError ? 'error' : (mainRun || ingRun || (hasImgProgress && currentPhase === 2) ? 'running' : 'pending'));
+          var s3 = currentPhase >= 4 ? 'done' : (anyDomainError ? 'error' : (anyDomainRunning || (hasDomainProgress && currentPhase === 3) ? 'running' : (allDomainsDone && hasDomainProgress ? 'done' : 'pending')));
+          var s4 = currentPhase === 4 ? 'running' : 'pending';
+          var wSteps = [{{n:1,l:'Prompts',st:s1}},{{n:2,l:'Images',st:s2}},{{n:3,l:'Content',st:s3}},{{n:4,l:'Pinterest',st:s4}}];
+          var wHtml = '<div class="card-workflow">';
+          wSteps.forEach(function(x,i){{
+            var conn = i > 0 ? '<span class="card-conn ' + (wSteps[i-1].st === 'done' ? 'active' : '') + '"></span>' : '';
+            wHtml += conn + '<span class="card-node state-' + x.st + '" title="' + x.l + '">' + x.n + '.' + x.l + '</span>';
+          }});
+          wHtml += '</div>';
           var dpHtml = '';
-          if (letterList.length) {{
-            dpHtml = '<div style="font-size:0.6rem;margin-top:2px;display:flex;gap:4px;flex-wrap:wrap">';
+          if (letterList.length && (currentPhase >= 3 || Object.keys(dp).length)) {{
+            dpHtml = '<div style="font-size:0.58rem;margin-top:2px;display:flex;gap:3px;flex-wrap:wrap;color:#666">';
             letterList.forEach(function(letter) {{
               var st = dp[letter] || 'pending';
               var letterTid = dti[letter] || (letter === 'A' ? tid : null);
@@ -1533,47 +1597,57 @@ function renderProgressBody(s, body) {{
               var t0 = (dt[letter] || {{}}).started_at;
               var t1 = (dt[letter] || {{}}).done_at;
               var letterModel = (dt[letter] || {{}}).model || '';
-              var elapsed = '';
-              if (t1 && t0) {{ var s = Math.round(t1 - t0); elapsed = s + 's'; }}
-              else if (t0 && st === 'running') {{ var s = Math.round(nowTs - t0); elapsed = s + 's'; }}
-              var label = letter + sym;
-              if (letterModel && (st === 'done' || st === 'skipped')) {{
-                label = letter + ': ' + letterModel.replace(/</g,'&lt;').replace(/>/g,'&gt;').split('/').pop() + (elapsed ? ' ' + elapsed : '');
-              }} else {{
-                label = letter + sym + (elapsed ? ' ' + elapsed : '');
-              }}
-              var titleAttr = (letterModel ? letter + ': ' + letterModel + ' ' + elapsed : letter + ' ' + elapsed) + (clickable ? ' (click to view)' : '');
+              var elapsed = (t1 && t0) ? Math.round(t1 - t0) + 's' : ((t0 && st === 'running') ? Math.round(nowTs - t0) + 's' : '');
+              var label = letter + sym + (elapsed ? ' ' + elapsed : '');
+              if (letterModel && (st === 'done' || st === 'skipped')) label = letter + ':' + (letterModel.split('/').pop() || '').replace(/</g,'&lt;').slice(0,12) + (elapsed ? ' ' + elapsed : '');
               var onclickAttr = clickable ? ' onclick="event.stopPropagation(); viewContent(' + letterTid + ')"' : '';
-              dpHtml += '<span style="' + cls + '" title="' + titleAttr + '"' + onclickAttr + '>' + label + '</span>';
+              dpHtml += '<span style="' + cls + '" title="' + letter + '"' + onclickAttr + '>' + label + '</span>';
             }});
             dpHtml += '</div>';
           }}
-          var ip = a.image_progress || {{}};
-          var it = a.image_timings || {{}};
-          var imgHtml = '';
-          if (ip.main || ip.ingredient) {{
-            imgHtml = '<div style="font-size:0.6rem;margin-top:2px;display:flex;gap:6px;flex-wrap:wrap">';
-            ['main','ingredient'].forEach(function(k) {{
-              var st = ip[k] || 'pending';
-              var label = k === 'main' ? 'Main' : 'Ing';
-              var sym = st === 'done' ? '✓' : (st === 'running' ? '⟳' : (st === 'error' ? '✗' : '·'));
-              var cls = st === 'done' ? 'color:#198754' : (st === 'running' ? 'color:#0d6efd;font-weight:600' : (st === 'error' ? 'color:#dc3545' : 'color:#999'));
-              var t0 = (it[k] || {{}}).started_at;
-              var t1 = (it[k] || {{}}).done_at;
-              var elapsed = '';
-              if (t1 && t0) {{ var s = Math.round(t1 - t0); elapsed = s + 's'; }}
-              else if (t0 && st === 'running') {{ var s = Math.round(nowTs - t0); elapsed = s + 's'; }}
-              imgHtml += '<span style="' + cls + '">' + label + sym + (elapsed ? ' ' + elapsed : '') + '</span>';
-            }});
-            imgHtml += '</div>';
+          // ── Build creative status description text ──
+          var statusText = '';
+          var statusIcon = '';
+          if (currentPhase === 1) {{
+            statusIcon = '📝';
+            statusText = 'Crafting AI prompts for "' + (title.length > 30 ? title.slice(0,28) + '…' : title) + '"';
+          }} else if (currentPhase === 2) {{
+            statusIcon = '🎨';
+            if (mainRun && !ingDone) statusText = 'Generating main hero image…';
+            else if (mainDone && ingRun) statusText = 'Painting ingredient visuals…';
+            else if (mainDone && ingDone) statusText = 'Images ready — preparing upload…';
+            else if (imgError) statusText = 'Image generation encountered an issue';
+            else statusText = 'Generating visuals for this recipe…';
+          }} else if (currentPhase === 3) {{
+            statusIcon = '🌐';
+            var runningLetters = Object.keys(dp).filter(function(l){{ return dp[l] === 'running'; }});
+            var doneLetters = Object.keys(dp).filter(function(l){{ return dp[l] === 'done' || dp[l] === 'skipped'; }});
+            if (runningLetters.length > 0) {{
+              var rl = runningLetters.join(', ');
+              statusText = 'Building HTML pages for domain ' + rl + (url ? ' → ' + url : '') + '…';
+            }} else if (doneLetters.length > 0 && doneLetters.length < letterList.length) {{
+              statusText = doneLetters.length + '/' + letterList.length + ' domains done — deploying to Cloudflare…';
+            }} else if (allDomainsDone) {{
+              statusText = 'All domain pages generated ✓ — uploading to Cloudflare…';
+            }} else {{
+              statusText = 'Preparing article content for ' + (letterList.length) + ' domain(s)…';
+            }}
+          }} else if (currentPhase === 4) {{
+            statusIcon = '📌';
+            statusText = 'Creating Pinterest pin design for "' + (title.length > 25 ? title.slice(0,23) + '…' : title) + '"';
+          }} else {{
+            statusIcon = '⚙️';
+            statusText = 'Initializing workflow pipeline…';
           }}
+          var statusLine = statusText ? '<div class="status-description-line" style="font-size:0.68rem;color:#374151;margin-top:3px;padding:3px 8px;background:linear-gradient(90deg,#eef6ff 0%,#f0f9ff 50%,#eef6ff 100%);background-size:200% 100%;animation:statusShimmer 2.5s ease-in-out infinite;border-radius:4px;border-left:3px solid #3b82f6;line-height:1.4;font-style:italic">' + statusIcon + ' ' + statusText + '</div>' : '';
           articlesHtml += '<div style="background:#e8f4ff;border:1px solid #b3d4f5;border-radius:5px;padding:5px 8px;display:flex;justify-content:space-between;align-items:flex-start;gap:6px">'
             + '<div style="min-width:0;flex:1">'
             + '<div style="font-size:0.75rem;font-weight:600;color:#0d6efd;line-height:1.3">[' + tid + '] ' + title + '</div>'
             + '<div style="font-size:0.65rem;color:#555;margin-top:1px">' + (url || '-') + (letters ? ' &nbsp;&middot;&nbsp; <b>' + letters + '</b>' : '') + (gid ? ' &nbsp;&middot;&nbsp; ' + gid : '') + '</div>'
             + (artModel ? '<div style="font-size:0.6rem;color:#666;margin-top:1px">🤖 ' + artModel + '</div>' : '')
+            + statusLine
+            + wHtml
             + dpHtml
-            + imgHtml
             + '</div>'
             + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0">'
             + '<span style="font-size:0.6rem;background:#0d6efd;color:#fff;border-radius:3px;padding:1px 5px;white-space:nowrap">⟳ ' + (phaseName || 'running') + '</span>'
@@ -1607,6 +1681,81 @@ function renderProgressBody(s, body) {{
         + (doneOk ? '<span class="badge bg-success" style="font-size:0.65rem">✓ ' + doneOk + ' ok</span>' : '')
         + (doneFail ? '<span class="badge bg-danger" style="font-size:0.65rem">✗ ' + doneFail + ' failed</span>' : '')
         + '</div>';
+      // ── Image Retry Summary Table ──
+      var imgArticles = completedArticles.filter(function(a){{ return a.image_progress && (a.image_progress.main || a.image_progress.ingredient); }});
+      if (imgArticles.length > 0) {{
+        var totalMainOk = 0, totalMainFail = 0, totalIngOk = 0, totalIngFail = 0, totalRetries = 0;
+        imgArticles.forEach(function(a){{
+          var ip = a.image_progress || {{}};
+          var ret = a.image_retries || {{}};
+          if (ip.main === 'done') totalMainOk++; else if (ip.main === 'error') totalMainFail++;
+          if (ip.ingredient === 'done') totalIngOk++; else if (ip.ingredient === 'error') totalIngFail++;
+          totalRetries += (ret.main || 0) + (ret.ingredient || 0);
+        }});
+        articlesHtml += '<div style="margin:6px 0 8px;border:1px solid #d1d5db;border-radius:6px;overflow:hidden;font-size:0.65rem">'
+          + '<div style="background:linear-gradient(135deg,#1e293b,#334155);color:#fff;padding:6px 10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px">'
+          + '<span style="font-weight:700;font-size:0.72rem">📊 Image Retry Summary</span>'
+          + '<div style="display:flex;gap:6px;flex-wrap:wrap">'
+          + '<span style="background:rgba(34,197,94,.2);color:#4ade80;padding:1px 8px;border-radius:99px;font-weight:600">Main ✓' + totalMainOk + '</span>'
+          + (totalMainFail ? '<span style="background:rgba(239,68,68,.2);color:#f87171;padding:1px 8px;border-radius:99px;font-weight:600">Main ✗' + totalMainFail + '</span>' : '')
+          + '<span style="background:rgba(34,197,94,.2);color:#4ade80;padding:1px 8px;border-radius:99px;font-weight:600">Ing ✓' + totalIngOk + '</span>'
+          + (totalIngFail ? '<span style="background:rgba(239,68,68,.2);color:#f87171;padding:1px 8px;border-radius:99px;font-weight:600">Ing ✗' + totalIngFail + '</span>' : '')
+          + '<span style="background:rgba(96,165,250,.2);color:#93c5fd;padding:1px 8px;border-radius:99px;font-weight:600">⟳ ' + totalRetries + ' total attempts</span>'
+          + '</div></div>'
+          + '<table style="width:100%;border-collapse:collapse;font-size:0.63rem">'
+          + '<thead><tr style="background:#f1f5f9;border-bottom:2px solid #cbd5e1">'
+          + '<th style="padding:4px 6px;text-align:left;font-weight:700;color:#475569;width:24px">#</th>'
+          + '<th style="padding:4px 6px;text-align:left;font-weight:700;color:#475569;width:40px">TID</th>'
+          + '<th style="padding:4px 6px;text-align:left;font-weight:700;color:#475569">Title</th>'
+          + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:100px">Main Image</th>'
+          + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:100px">Ingredient</th>'
+          + '<th style="padding:4px 6px;text-align:left;font-weight:700;color:#475569">Error</th>'
+          + '</tr></thead><tbody>';
+         imgArticles.forEach(function(a, idx){{
+          var ip = a.image_progress || {{}};
+          var ir = a.image_results || {{}};
+          var ret = a.image_retries || {{}};
+          var retryErrs = a.image_retry_errors || {{}};
+          var mainSt = ip.main || '-';
+          var ingSt = ip.ingredient || '-';
+          var mainOk = mainSt === 'done';
+          var ingOk = ingSt === 'done';
+          var mainErr = mainSt === 'error';
+          var ingErr = ingSt === 'error';
+          var mainIcon = mainOk ? '✅' : (mainErr ? '❌' : '⏳');
+          var ingIcon = ingOk ? '✅' : (ingErr ? '❌' : '⏳');
+          var mainRetries = ret.main ? '(' + ret.main + (ret.main > 1 ? ' attempts' : ' attempt') + ')' : '';
+          var ingRetries = ret.ingredient ? '(' + ret.ingredient + (ret.ingredient > 1 ? ' attempts' : ' attempt') + ')' : '';
+          // Build per-attempt error details
+          var errParts = [];
+          var mainRetryList = retryErrs.main || [];
+          var ingRetryList = retryErrs.ingredient || [];
+          if (mainRetryList.length > 0) {{
+            mainRetryList.forEach(function(e){{ errParts.push('🖼 ' + String(e).replace(/\\n/g,' ').substring(0,120)); }});
+          }} else if (mainErr && ir.main) {{
+            errParts.push('main: ' + String(ir.main).replace(/\\n/g,' ').substring(0,80));
+          }}
+          if (ingRetryList.length > 0) {{
+            ingRetryList.forEach(function(e){{ errParts.push('🥗 ' + String(e).replace(/\\n/g,' ').substring(0,120)); }});
+          }} else if (ingErr && ir.ingredient) {{
+            errParts.push('ing: ' + String(ir.ingredient).replace(/\\n/g,' ').substring(0,80));
+          }}
+          var errText = errParts.join('\\n').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          var errTooltip = errText.replace(/"/g,'&quot;');
+          var errDisplay = errParts.length > 0 ? errParts.map(function(e){{ return '<div style="margin-bottom:1px">' + e.replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0,80) + '</div>'; }}).join('') : '<span style="color:#9ca3af">—</span>';
+          var rowBg = (mainErr || ingErr) ? '#fef2f2' : (idx % 2 === 0 ? '#fff' : '#f8fafc');
+          var rowBorder = (mainErr || ingErr) ? 'border-left:3px solid #ef4444;' : '';
+          articlesHtml += '<tr style="background:' + rowBg + ';border-bottom:1px solid #e2e8f0;' + rowBorder + '">'
+            + '<td style="padding:3px 6px;color:#94a3b8;font-weight:600">' + (idx+1) + '</td>'
+            + '<td style="padding:3px 6px;font-weight:700;color:#3b82f6">' + (a.tid || '-') + '</td>'
+            + '<td style="padding:3px 6px;color:#334155;font-weight:500;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + ((a.title||'').replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0,40)) + '</td>'
+            + '<td style="padding:3px 6px;text-align:center"><span style="display:inline-flex;align-items:center;gap:2px;background:' + (mainOk ? '#dcfce7' : (mainErr ? '#fee2e2' : '#fefce8')) + ';color:' + (mainOk ? '#166534' : (mainErr ? '#991b1b' : '#854d0e')) + ';padding:1px 6px;border-radius:99px;font-weight:600">' + mainIcon + ' ' + mainSt + '</span>' + (mainRetries ? '<div style="color:#6b7280;margin-top:1px">' + mainRetries + '</div>' : '') + '</td>'
+            + '<td style="padding:3px 6px;text-align:center"><span style="display:inline-flex;align-items:center;gap:2px;background:' + (ingOk ? '#dcfce7' : (ingErr ? '#fee2e2' : '#fefce8')) + ';color:' + (ingOk ? '#166534' : (ingErr ? '#991b1b' : '#854d0e')) + ';padding:1px 6px;border-radius:99px;font-weight:600">' + ingIcon + ' ' + ingSt + '</span>' + (ingRetries ? '<div style="color:#6b7280;margin-top:1px">' + ingRetries + '</div>' : '') + '</td>'
+            + '<td style="padding:3px 6px;color:#991b1b;font-size:0.58rem;max-width:250px;overflow:hidden;white-space:normal;word-break:break-word" title="' + errTooltip + '">' + errDisplay + '</td>'
+            + '</tr>';
+        }});
+        articlesHtml += '</tbody></table></div>';
+      }}
       articlesHtml += '<div style="display:grid;gap:3px;max-height:30vh;overflow-y:auto">';
       if (completedArticles.length > 0) {{
         completedArticles.forEach(function(a) {{
@@ -1621,6 +1770,13 @@ function renderProgressBody(s, body) {{
           var dti = a.domain_title_ids || {{}};
           var letterList = (letters || 'A,B,C,D').split(/[,\\s]+/).filter(function(x){{ return x; }});
           var hasError = Object.keys(dp).some(function(l){{ return dp[l]==='error'; }});
+          var wStepsDone = hasError ? [{{n:1,l:'Prompts',st:'done'}},{{n:2,l:'Images',st:'done'}},{{n:3,l:'Content',st:'error'}},{{n:4,l:'Pinterest',st:'pending'}}] : [{{n:1,l:'Prompts',st:'done'}},{{n:2,l:'Images',st:'done'}},{{n:3,l:'Content',st:'done'}},{{n:4,l:'Pinterest',st:'done'}}];
+          var wHtml = '<div class="card-workflow" style="margin-bottom:4px">';
+          wStepsDone.forEach(function(x,i){{
+            var conn = i > 0 ? '<span class="card-conn active"></span>' : '';
+            wHtml += conn + '<span class="card-node state-' + x.st + '">' + x.n + '.' + x.l + '</span>';
+          }});
+          wHtml += '</div>';
           var dpHtml = '<div style="font-size:0.6rem;margin-top:2px;display:flex;gap:4px;flex-wrap:wrap">';
           letterList.forEach(function(letter) {{
             var st = dp[letter] || 'pending';
@@ -1641,6 +1797,7 @@ function renderProgressBody(s, body) {{
             + '<div style="font-size:0.75rem;font-weight:600;color:' + (hasError ? '#dc3545' : '#198754') + '">✓ [' + tid + '] ' + title + '</div>'
             + '<div style="font-size:0.65rem;color:#555;margin-top:1px">' + (url || '-') + (letters ? ' &nbsp;&middot;&nbsp; <b>' + letters + '</b>' : '') + (gid ? ' &nbsp;&middot;&nbsp; ' + gid : '') + (gen && gen !== '-' ? ' &nbsp;&middot;&nbsp; ' + gen : '') + '</div>'
             + (a.ai_model ? '<div style="font-size:0.6rem;color:#666;margin-top:1px">🤖 ' + (a.ai_model || '').replace(/</g,'&lt;') + '</div>' : '')
+            + wHtml
             + dpHtml + '</div>';
         }});
       }}
@@ -1761,6 +1918,21 @@ function _copyProgressDebugReport() {{
     lines.push('');
     lines.push('--- Steps (' + steps.length + ') ---');
     steps.forEach(function(step, i) {{ lines.push((i+1) + '. ' + step); }});
+  }}
+  var completedArticles = s.completed_articles || [];
+  if (completedArticles.length > 0 && (s.mode === 'images' || s.mode === 'all')) {{
+    lines.push('');
+    lines.push('--- Image Results ---');
+    completedArticles.forEach(function(a, i) {{
+      var tid = a.tid || '-';
+      var title = (a.title || '').substring(0, 50);
+      var ip = a.image_progress || {{}};
+      var ir = a.image_results || {{}};
+      var ret = a.image_retries || {{}};
+      var mainAttempts = ret.main ? ' (' + ret.main + ' attempts)' : '';
+      var ingAttempts = ret.ingredient ? ' (' + ret.ingredient + ' attempts)' : '';
+      lines.push((i+1) + '. [' + tid + '] ' + title + ': main=' + (ip.main||'-') + mainAttempts + (ir.main ? ' ' + ir.main.substring(0, 80) : '') + ' | ingredient=' + (ip.ingredient||'-') + ingAttempts + (ir.ingredient ? ' ' + ir.ingredient.substring(0, 80) : ''));
+    }});
   }}
   lines.push('');
   lines.push('--- Raw JSON ---');
@@ -1936,7 +2108,7 @@ function refreshRunningTasks() {{
       else {{
         if(j.title_id && (j.status==='done'||j.status==='error') && typeof viewContent==='function') btns += '<button type="button" class="btn btn-outline-success btn-sm flex-shrink-0 me-1 run-task-view-article py-0 px-1" data-title-id="' + j.title_id + '" title="View article" style="font-size:0.7rem">View</button>';
         var tid = j.title_id || '';
-        if(tid) btns += '<div class="stats-article-actions d-inline-flex flex-wrap gap-1 me-1"><button type="button" class="btn btn-success btn-sm py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-article-external\\',{{title_id:'+tid+'}},\\'Article\\')" title="Article">Art</button><button type="button" class="btn btn-info btn-sm text-white py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-main-image\\',{{title_id:'+tid+'}},\\'Main image\\')" title="Main">M</button><button type="button" class="btn btn-warning btn-sm text-dark py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-ingredient-image\\',{{title_id:'+tid+'}},\\'Ingredient\\')" title="Ingredient">I</button><button type="button" class="btn btn-outline-primary btn-sm py-0 px-1" onclick="event.stopPropagation(); openPinPickerModal('+tid+')" title="Pin">P</button><button type="button" class="btn btn-danger btn-sm py-0 px-1" onclick="event.stopPropagation(); openPinToPinterest('+tid+')" title="Pin (open Pinterest)">Post</button><button type="button" class="btn btn-secondary btn-sm py-0 px-1" onclick="event.stopPropagation(); var sm=document.getElementById(\\'statsArticlesModal\\'); if(sm&&bootstrap.Modal.getInstance(sm)) bootstrap.Modal.getInstance(sm).hide(); openBulkModal('+tid+');" title="Run A,B,C,D">Run</button></div>';
+        if(tid) btns += '<div class="stats-article-actions d-inline-flex flex-wrap gap-1 me-1"><button type="button" class="btn btn-secondary btn-sm py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-prompts\\',{{title_id:'+tid+'}},\\'Prompts\\')" title="Prompts">Pp</button><button type="button" class="btn btn-success btn-sm py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-article-external\\',{{title_id:'+tid+'}},\\'Article\\')" title="Article">Art</button><button type="button" class="btn btn-info btn-sm text-white py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-main-image\\',{{title_id:'+tid+'}},\\'Main image\\')" title="Main">M</button><button type="button" class="btn btn-warning btn-sm text-dark py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-ingredient-image\\',{{title_id:'+tid+'}},\\'Ingredient\\')" title="Ingredient">I</button><button type="button" class="btn btn-outline-primary btn-sm py-0 px-1" onclick="event.stopPropagation(); openPinPickerModal('+tid+')" title="Pin">P</button><button type="button" class="btn btn-danger btn-sm py-0 px-1" onclick="event.stopPropagation(); openPinToPinterest('+tid+')" title="Pin (open Pinterest)">Post</button><button type="button" class="btn btn-secondary btn-sm py-0 px-1" onclick="event.stopPropagation(); var sm=document.getElementById(\\'statsArticlesModal\\'); if(sm&&bootstrap.Modal.getInstance(sm)) bootstrap.Modal.getInstance(sm).hide(); openBulkModal('+tid+');" title="Run A,B,C,D">Run</button></div>';
         else if((j.type==='group'||j.type==='all') && (j.status==='done'||j.status==='error')) btns += '<button type="button" class="btn btn-outline-secondary btn-sm flex-shrink-0 run-task-view-articles py-0 px-1 me-1" data-job-id="' + jidEsc + '" title="Preview articles in this task" style="font-size:0.7rem">Articles</button>';
       }}
       html += '<li class="d-flex justify-content-between align-items-start gap-2 mb-1 py-1 border-bottom run-task-row" style="' + clickable + '" data-job-id="' + jidEsc + '"><div class="flex-grow-1"><span class="fw-medium">' + typeLabel + modeLabel + (badges ? ' ' + badges : '') + '</span><br><span class="' + statusClass + '">' + (j.status||'') + '</span>: ' + (j.message||'').replace(/</g,'&lt;') + activeLine + stepsLine + '</div>';
@@ -2005,7 +2177,7 @@ function openTaskArticlesModal(jobId) {{
           var tid = it.id || '';
           var title = (it.title || '').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
           var dom = (it.domain_url || it.domain_name || '').replace(/</g,'&lt;');
-          var actions = '<div class="stats-article-actions mt-1"><button type="button" class="btn btn-success btn-sm py-0 px-1" onclick="openSingleActionModal(\\'/api/generate-article-external\\',{{title_id:'+tid+'}},\\'Article\\')" title="Article">Art</button><button type="button" class="btn btn-info btn-sm text-white py-0 px-1" onclick="openSingleActionModal(\\'/api/generate-main-image\\',{{title_id:'+tid+'}},\\'Main\\')" title="Main">M</button><button type="button" class="btn btn-warning btn-sm text-dark py-0 px-1" onclick="openSingleActionModal(\\'/api/generate-ingredient-image\\',{{title_id:'+tid+'}},\\'Ingredient\\')" title="Ingredient">I</button><button type="button" class="btn btn-outline-primary btn-sm py-0 px-1" onclick="openPinPickerModal('+tid+')" title="Pin">P</button><button type="button" class="btn btn-danger btn-sm py-0 px-1" onclick="event.stopPropagation(); openPinToPinterest('+tid+')" title="Pin (open Pinterest)">Post</button><button type="button" class="btn btn-secondary btn-sm py-0 px-1" onclick="openBulkModal('+tid+');" title="Run">Run</button>';
+          var actions = '<div class="stats-article-actions mt-1"><button type="button" class="btn btn-secondary btn-sm py-0 px-1" onclick="openSingleActionModal(\\'/api/generate-prompts\\',{{title_id:'+tid+'}},\\'Prompts\\')" title="Prompts">Pp</button><button type="button" class="btn btn-success btn-sm py-0 px-1" onclick="openSingleActionModal(\\'/api/generate-article-external\\',{{title_id:'+tid+'}},\\'Article\\')" title="Article">Art</button><button type="button" class="btn btn-info btn-sm text-white py-0 px-1" onclick="openSingleActionModal(\\'/api/generate-main-image\\',{{title_id:'+tid+'}},\\'Main\\')" title="Main">M</button><button type="button" class="btn btn-warning btn-sm text-dark py-0 px-1" onclick="openSingleActionModal(\\'/api/generate-ingredient-image\\',{{title_id:'+tid+'}},\\'Ingredient\\')" title="Ingredient">I</button><button type="button" class="btn btn-outline-primary btn-sm py-0 px-1" onclick="openPinPickerModal('+tid+')" title="Pin">P</button><button type="button" class="btn btn-danger btn-sm py-0 px-1" onclick="event.stopPropagation(); openPinToPinterest('+tid+')" title="Pin (open Pinterest)">Post</button><button type="button" class="btn btn-secondary btn-sm py-0 px-1" onclick="openBulkModal('+tid+');" title="Run">Run</button>';
           if(typeof viewContent==='function') actions += '<button type="button" class="btn btn-outline-success btn-sm py-0 px-1 ms-1" onclick="viewContent('+tid+')" title="Preview">Preview</button>';
           var li = document.createElement('li');
           li.className = 'list-group-item py-1 px-2';
@@ -2083,7 +2255,7 @@ function generateForFilteredArticles() {{
     return;
   }}
   
-  var mode = stype.indexOf('html_css') >= 0 ? 'article' : (stype.indexOf('main_img') >= 0 ? 'main_image' : (stype.indexOf('ing_img') >= 0 ? 'ingredient_image' : (stype.indexOf('pin_img') >= 0 ? 'pin_image' : 'images')));
+  var mode = (stype === 'prompt' || stype === 'no_prompt') ? 'prompts' : (stype.indexOf('html_css') >= 0 ? 'article' : (stype.indexOf('main_img') >= 0 ? 'main_image' : (stype.indexOf('ing_img') >= 0 ? 'ingredient_image' : (stype.indexOf('pin_img') >= 0 ? 'pin_image' : 'images'))));
   var titleIds = arts.map(function(a) {{ return a.id; }});
   
   var sm = document.getElementById('statsArticlesModal');
@@ -2265,6 +2437,7 @@ function openSingleActionModal(url, data, label) {{
 var _pinPickerSelectedTemplateId = null;
 function openPinPickerModal(titleId) {{
   _pinPickerSelectedTemplateId = null;
+  window.lastEditedTitleId = titleId;
   document.getElementById('pinPickerTitleId').value = titleId;
   document.getElementById('pinPickerLoading').style.display = 'block';
   document.getElementById('pinPickerEmpty').style.display = 'none';
@@ -2452,16 +2625,16 @@ function runSingleAction(foreground) {{
 }}
 </script>
 <div id="viewModal" class="modal fade" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="viewModalTitle">View</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body" id="viewModalBody"></div></div></div></div>
-<div id="bulkModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Run for this row</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="bulkModalTitleId"><p class="mb-2">What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkModalBtnArticle" class="btn btn-outline-success" onclick="runBulk('article')">Run content</button><button type="button" id="bulkModalBtnImages" class="btn btn-outline-info" onclick="runBulk('images')">Run images</button><button type="button" id="bulkModalBtnPinterest" class="btn btn-outline-danger" onclick="runBulk('pin_image')">Run Pinterest</button><button type="button" id="bulkModalBtnAll" class="btn btn-primary" onclick="runBulk('all')">Run all (content, images, Pinterest)</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter" selected>OpenRouter</option><option value="openai">OpenAI</option><option value="local">Local (Ollama)</option><option value="llamacpp">llama.cpp</option></select><div id="bulkModalLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model (≤15B):</p><select id="bulkModalLocalModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkModalLlamaCppWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">llama.cpp model:</p><select id="bulkModalLlamaCppModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkModalOpenAIWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenAI model:</p><select id="bulkModalOpenAIModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkModalOpenRouterWrap" class="mb-3" style="display:none"><p class="mb-1 fw-medium small">OpenRouter:</p><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalOpenRouterMode" value="rotation"> Rotation (try next on failure)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalOpenRouterMode" value="select"> Select model(s)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalOpenRouterMode" value="rotation_blacklist" checked> Rotation (exclude failed for next)</label></div><div class="d-flex align-items-center gap-2 mb-1"><div class="btn-group btn-group-sm"><button type="button" id="bulkModalOrFilterAll" class="btn btn-primary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkModal','all')">All</button><button type="button" id="bulkModalOrFilterFree" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkModal','free')">Free</button><button type="button" id="bulkModalOrFilterPaid" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkModal','paid')">Paid</button></div></div><select id="bulkModalOpenRouterModels" class="form-select form-select-sm" multiple style="max-height:100px;width:100%"></select></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeContent" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeContent" value="empty_only" checked> Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for images (main+ingredient):</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeImages" value="override"> Override existing</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeImages" value="empty_only" checked> Only rows without main+ingredient images</label></div><p class="mb-2 fw-medium small">Scope for Pinterest:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopePins" value="override"> Override existing</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopePins" value="empty_only" checked> Only rows without pin images</label></div><p class="small text-muted mt-2 mb-0">Note: Articles without article_html will be skipped for image generation.</p></div></div></div></div>
-<div id="bulkGroupModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="bulkGroupModalTitle">Run for group</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="bulkGroupModalGroupId"><p class="mb-2 fw-medium small">Run scope:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalRunScope" id="bulkGroupModalScopeAll" value="all" checked><label class="form-check-label small" for="bulkGroupModalScopeAll">All subgroups in this group</label></div><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalRunScope" id="bulkGroupModalScopeSelected" value="selected"><label class="form-check-label small" for="bulkGroupModalScopeSelected">Selected subgroups only</label></div><div id="bulkGroupSubgroupsWrap" class="border rounded p-2 mb-2" style="max-height:140px;overflow-y:auto;display:none"><div class="d-flex gap-2 mb-1"><button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.querySelectorAll('#bulkGroupSubgroupsWrap .bulk-group-subgroup-cb').forEach(function(cb){{cb.checked=true}})">Select all</button><button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.querySelectorAll('#bulkGroupSubgroupsWrap .bulk-group-subgroup-cb').forEach(function(cb){{cb.checked=false}})">Deselect all</button></div><div id="bulkGroupSubgroupsList"></div></div><p class="mb-2">What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkGroupBtnArticle" class="btn btn-outline-success" onclick="runBulkGroupFromModal('article')">Run content</button><button type="button" id="bulkGroupBtnImages" class="btn btn-outline-info" onclick="runBulkGroupFromModal('images')">Run images</button><button type="button" id="bulkGroupBtnPinterest" class="btn btn-outline-danger" onclick="runBulkGroupFromModal('pin_image')">Run Pinterest</button><button type="button" id="bulkGroupBtnAll" class="btn btn-primary" onclick="runBulkGroupFromModal('all')">Run all (content, images, Pinterest)</button><hr class="my-2"><button type="button" id="bulkGroupBtnDeployCf" class="btn btn-info" onclick="runBulkGroupDeployCloudflare()">☁️ Deploy all to Cloudflare</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkGroupModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter" selected>OpenRouter</option><option value="openai">OpenAI</option><option value="local">Local (Ollama)</option><option value="llamacpp">llama.cpp</option></select><div id="bulkGroupModalLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model (≤15B):</p><select id="bulkGroupModalLocalModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkGroupModalLlamaCppWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">llama.cpp model:</p><select id="bulkGroupModalLlamaCppModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkGroupModalOpenAIWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenAI model:</p><select id="bulkGroupModalOpenAIModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkGroupModalOrOpts" class="mb-3 p-2 bg-light border rounded small" style="display:none;"><div class="fw-medium mb-1">OpenRouter:</div><div class="mb-2"><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeRot" value="rotation"><label class="form-check-label" for="bulkGroupModalOrModeRot">Rotation (try next on failure)</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeFall" value="fallback"><label class="form-check-label" for="bulkGroupModalOrModeFall">Fallback (run all simultaneously, use first success)</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeBlack" value="rotation_blacklist" checked><label class="form-check-label" for="bulkGroupModalOrModeBlack">Rotation (exclude failed for next articles)</label></div></div><div class="d-flex align-items-center gap-2 mb-1"><span class="fw-medium">Select model(s)</span><div class="btn-group btn-group-sm"><button type="button" id="bulkGroupModalOrFilterAll" class="btn btn-primary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkGroupModal','all')">All</button><button type="button" id="bulkGroupModalOrFilterFree" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkGroupModal','free')">Free</button><button type="button" id="bulkGroupModalOrFilterPaid" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkGroupModal','paid')">Paid</button></div></div><select id="bulkGroupModalOpenRouterModels" class="form-select form-select-sm mb-1" multiple style="max-height:120px;width:100%"></select><button type="button" class="btn btn-outline-secondary btn-sm" onclick="_resetOpenRouterModels('bulkGroupModal')">Reset to defaults</button></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopeContent" id="bgmScopeContent1" value="override"><label class="form-check-label small" for="bgmScopeContent1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkGroupModalScopeContent" id="bgmScopeContent2" value="empty_only" checked><label class="form-check-label small" for="bgmScopeContent2">Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for images:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopeImages" id="bgmScopeImages1" value="override"><label class="form-check-label small" for="bgmScopeImages1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkGroupModalScopeImages" id="bgmScopeImages2" value="empty_only" checked><label class="form-check-label small" for="bgmScopeImages2">Only rows without main+ingredient images</label></div><p class="mb-2 fw-medium small">Scope for Pinterest:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopePins" id="bgmScopePins1" value="override"><label class="form-check-label small" for="bgmScopePins1">Override existing</label></div><div class="form-check"><input class="form-check-input" type="radio" name="bulkGroupModalScopePins" id="bgmScopePins2" value="empty_only" checked><label class="form-check-label small" for="bgmScopePins2">Only rows without pin images</label></div><hr class="my-3"><p class="mb-2 fw-medium">Concurrency:</p><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkGroupConcurrencyPreset" value="low"> Low — 1 row</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkGroupConcurrencyPreset" value="medium"> Medium — 2 rows</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkGroupConcurrencyPreset" value="max" checked> Max — <input type="number" id="bulkGroupConcurrencyN" value="6" min="1" max="20" class="form-control form-control-sm d-inline-block" style="width:55px"> rows</label></div></div></div></div></div>
+<div id="bulkModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Run for this row</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="bulkModalTitleId"><p class="mb-2">What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkModalBtnPrompts" class="btn btn-outline-secondary" onclick="runBulk('prompts')">Run prompts</button><button type="button" id="bulkModalBtnImages" class="btn btn-outline-info" onclick="runBulk('images')">Run images</button><button type="button" id="bulkModalBtnArticle" class="btn btn-outline-success" onclick="runBulk('article')">Run content</button><button type="button" id="bulkModalBtnPinterest" class="btn btn-outline-danger" onclick="runBulk('pin_image')">Run Pinterest</button><button type="button" id="bulkModalBtnAll" class="btn btn-primary" onclick="runBulk('all')">Run all (prompts, images, content, Pinterest)</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter" selected>OpenRouter</option><option value="openai">OpenAI</option><option value="local">Local (Ollama)</option><option value="llamacpp">llama.cpp</option></select><div id="bulkModalLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model (≤15B):</p><select id="bulkModalLocalModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkModalLlamaCppWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">llama.cpp model:</p><select id="bulkModalLlamaCppModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkModalOpenAIWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenAI model:</p><select id="bulkModalOpenAIModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkModalOpenRouterWrap" class="mb-3" style="display:none"><p class="mb-1 fw-medium small">OpenRouter:</p><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalOpenRouterMode" value="rotation"> Rotation (try next on failure)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalOpenRouterMode" value="select"> Select model(s)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalOpenRouterMode" value="rotation_blacklist" checked> Rotation (exclude failed for next)</label></div><div class="d-flex align-items-center gap-2 mb-1"><div class="btn-group btn-group-sm"><button type="button" id="bulkModalOrFilterAll" class="btn btn-primary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkModal','all')">All</button><button type="button" id="bulkModalOrFilterFree" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkModal','free')">Free</button><button type="button" id="bulkModalOrFilterPaid" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkModal','paid')">Paid</button></div></div><select id="bulkModalOpenRouterModels" class="form-select form-select-sm" multiple style="max-height:100px;width:100%"></select></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeContent" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeContent" value="empty_only" checked> Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for images (main+ingredient):</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeImages" value="override"> Override existing</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeImages" value="empty_only" checked> Only rows without main+ingredient images</label></div><p class="mb-2 fw-medium small">Scope for Pinterest:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopePins" value="override"> Override existing</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopePins" value="empty_only" checked> Only rows without pin images</label></div><p class="small text-muted mt-2 mb-0">Note: Articles without article_html will be skipped for image generation.</p></div></div></div></div>
+<div id="bulkGroupModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="bulkGroupModalTitle">Run for group</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="bulkGroupModalGroupId"><p class="mb-2 fw-medium small">Run scope:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalRunScope" id="bulkGroupModalScopeAll" value="all" checked><label class="form-check-label small" for="bulkGroupModalScopeAll">All subgroups in this group</label></div><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalRunScope" id="bulkGroupModalScopeSelected" value="selected"><label class="form-check-label small" for="bulkGroupModalScopeSelected">Selected subgroups only</label></div><div id="bulkGroupSubgroupsWrap" class="border rounded p-2 mb-2" style="max-height:140px;overflow-y:auto;display:none"><div class="d-flex gap-2 mb-1"><button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.querySelectorAll('#bulkGroupSubgroupsWrap .bulk-group-subgroup-cb').forEach(function(cb){{cb.checked=true}})">Select all</button><button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.querySelectorAll('#bulkGroupSubgroupsWrap .bulk-group-subgroup-cb').forEach(function(cb){{cb.checked=false}})">Deselect all</button></div><div id="bulkGroupSubgroupsList"></div></div><p class="mb-2">What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkGroupBtnPrompts" class="btn btn-outline-secondary" onclick="runBulkGroupFromModal('prompts')">Run prompts</button><button type="button" id="bulkGroupBtnImages" class="btn btn-outline-info" onclick="runBulkGroupFromModal('images')">Run images</button><button type="button" id="bulkGroupBtnArticle" class="btn btn-outline-success" onclick="runBulkGroupFromModal('article')">Run content</button><button type="button" id="bulkGroupBtnPinterest" class="btn btn-outline-danger" onclick="runBulkGroupFromModal('pin_image')">Run Pinterest</button><button type="button" id="bulkGroupBtnAll" class="btn btn-primary" onclick="runBulkGroupFromModal('all')">Run all (prompts, images, content, Pinterest)</button><hr class="my-2"><button type="button" id="bulkGroupBtnDeployCf" class="btn btn-info" onclick="runBulkGroupDeployCloudflare()">☁️ Deploy all to Cloudflare</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkGroupModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter" selected>OpenRouter</option><option value="openai">OpenAI</option><option value="local">Local (Ollama)</option><option value="llamacpp">llama.cpp</option></select><div id="bulkGroupModalLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model (≤15B):</p><select id="bulkGroupModalLocalModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkGroupModalLlamaCppWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">llama.cpp model:</p><select id="bulkGroupModalLlamaCppModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkGroupModalOpenAIWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenAI model:</p><select id="bulkGroupModalOpenAIModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkGroupModalOrOpts" class="mb-3 p-2 bg-light border rounded small" style="display:none;"><div class="fw-medium mb-1">OpenRouter:</div><div class="mb-2"><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeRot" value="rotation"><label class="form-check-label" for="bulkGroupModalOrModeRot">Rotation (try next on failure)</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeFall" value="fallback"><label class="form-check-label" for="bulkGroupModalOrModeFall">Fallback (run all simultaneously, use first success)</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeBlack" value="rotation_blacklist" checked><label class="form-check-label" for="bulkGroupModalOrModeBlack">Rotation (exclude failed for next articles)</label></div></div><div class="d-flex align-items-center gap-2 mb-1"><span class="fw-medium">Select model(s)</span><div class="btn-group btn-group-sm"><button type="button" id="bulkGroupModalOrFilterAll" class="btn btn-primary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkGroupModal','all')">All</button><button type="button" id="bulkGroupModalOrFilterFree" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkGroupModal','free')">Free</button><button type="button" id="bulkGroupModalOrFilterPaid" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkGroupModal','paid')">Paid</button></div></div><select id="bulkGroupModalOpenRouterModels" class="form-select form-select-sm mb-1" multiple style="max-height:120px;width:100%"></select><button type="button" class="btn btn-outline-secondary btn-sm" onclick="_resetOpenRouterModels('bulkGroupModal')">Reset to defaults</button></div><p class="mb-2 fw-medium small">Scope for prompts (main+ingredient):</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopePrompts" id="bgmScopePrompts1" value="override"><label class="form-check-label small" for="bgmScopePrompts1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkGroupModalScopePrompts" id="bgmScopePrompts2" value="empty_only" checked><label class="form-check-label small" for="bgmScopePrompts2">Only rows without main+ingredient prompts</label></div><p class="mb-2 fw-medium small">Scope for images:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopeImages" id="bgmScopeImages1" value="override"><label class="form-check-label small" for="bgmScopeImages1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkGroupModalScopeImages" id="bgmScopeImages2" value="empty_only" checked><label class="form-check-label small" for="bgmScopeImages2">Only rows without main+ingredient images</label></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopeContent" id="bgmScopeContent1" value="override"><label class="form-check-label small" for="bgmScopeContent1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkGroupModalScopeContent" id="bgmScopeContent2" value="empty_only" checked><label class="form-check-label small" for="bgmScopeContent2">Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for Pinterest:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopePins" id="bgmScopePins1" value="override"><label class="form-check-label small" for="bgmScopePins1">Override existing</label></div><div class="form-check mb-2"><input class="form-check-input" type="radio" name="bulkGroupModalScopePins" id="bgmScopePins2" value="empty_only" checked><label class="form-check-label small" for="bgmScopePins2">Only rows without pin images</label></div><p class="small text-muted mb-2">Workflow order (Run all): prompts → images (main, ingredient) → content → Pinterest.</p><hr class="my-3"><p class="mb-2 fw-medium">Concurrency:</p><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkGroupConcurrencyPreset" value="low"> Low — 1 row</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkGroupConcurrencyPreset" value="medium"> Medium — 2 rows</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkGroupConcurrencyPreset" value="max" checked> Max — <input type="number" id="bulkGroupConcurrencyN" value="6" min="1" max="20" class="form-control form-control-sm d-inline-block" style="width:55px"> rows</label></div></div></div></div></div>
 
-<div id="bulkAllGroupsModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Run for all groups</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><p class="mb-2">Run for all rows in all groups. What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkAllGroupsBtnArticle" class="btn btn-outline-success" onclick="runBulkAllGroups('article')">Run content</button><button type="button" id="bulkAllGroupsBtnImages" class="btn btn-outline-info" onclick="runBulkAllGroups('images')">Run images</button><button type="button" id="bulkAllGroupsBtnPinterest" class="btn btn-outline-danger" onclick="runBulkAllGroups('pin_image')">Run Pinterest</button><button type="button" id="bulkAllGroupsBtnAll" class="btn btn-primary" onclick="runBulkAllGroups('all')">Run all (content, images, Pinterest)</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkAllGroupsModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter" selected>OpenRouter</option><option value="openai">OpenAI</option><option value="local">Local (Ollama)</option><option value="llamacpp">llama.cpp</option></select><div id="bulkAllGroupsModalLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model (≤15B):</p><select id="bulkAllGroupsModalLocalModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkAllGroupsModalLlamaCppWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">llama.cpp model:</p><select id="bulkAllGroupsModalLlamaCppModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkAllGroupsModalOpenAIWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenAI model:</p><select id="bulkAllGroupsModalOpenAIModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkAllGroupsModalOpenRouterWrap" class="mb-3" style="display:none"><p class="mb-1 fw-medium small">OpenRouter:</p><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalOpenRouterMode" value="rotation"> Rotation (try next on failure)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalOpenRouterMode" value="select"> Select model(s)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalOpenRouterMode" value="rotation_blacklist" checked> Rotation (exclude failed for next articles)</label></div><div class="d-flex align-items-center gap-2 mb-1"><div class="btn-group btn-group-sm"><button type="button" id="bulkAllGroupsModalOrFilterAll" class="btn btn-primary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkAllGroupsModal','all')">All</button><button type="button" id="bulkAllGroupsModalOrFilterFree" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkAllGroupsModal','free')">Free</button><button type="button" id="bulkAllGroupsModalOrFilterPaid" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkAllGroupsModal','paid')">Paid</button></div></div><select id="bulkAllGroupsModalOpenRouterModels" class="form-select form-select-sm" multiple style="max-height:100px;width:100%"></select></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeContent" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeContent" value="empty_only" checked> Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for images:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeImages" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeImages" value="empty_only" checked> Only rows without main+ingredient images</label></div><p class="mb-2 fw-medium small">Scope for Pinterest:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopePins" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopePins" value="empty_only" checked> Only rows without pin images</label></div><hr class="my-3"><p class="mb-2 fw-medium">Concurrency (rows A B C D at a time):</p><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrencyPreset" value="low"> Low — 1 row at a time</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrencyPreset" value="medium"> Medium — 2 rows at a time</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrencyPreset" value="max" checked> Max — <input type="number" id="allGroupsConcurrencyN" value="6" min="1" max="20" class="form-control form-control-sm d-inline-block" style="width:55px"> rows at a time</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrencyPreset" value="group"> Group — max <input type="number" id="allGroupsGroupN" value="2" min="1" max="10" class="form-control form-control-sm d-inline-block" style="width:55px"> groups in parallel</label></div><p class="small text-muted mt-2 mb-0">Note: Articles without article_html will be skipped for image generation.</p></div></div></div></div>
+<div id="bulkAllGroupsModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Run for all groups</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><p class="mb-2">Run for all rows in all groups. What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkAllGroupsBtnPrompts" class="btn btn-outline-secondary" onclick="runBulkAllGroups('prompts')">Run prompts</button><button type="button" id="bulkAllGroupsBtnImages" class="btn btn-outline-info" onclick="runBulkAllGroups('images')">Run images</button><button type="button" id="bulkAllGroupsBtnArticle" class="btn btn-outline-success" onclick="runBulkAllGroups('article')">Run content</button><button type="button" id="bulkAllGroupsBtnPinterest" class="btn btn-outline-danger" onclick="runBulkAllGroups('pin_image')">Run Pinterest</button><button type="button" id="bulkAllGroupsBtnAll" class="btn btn-primary" onclick="runBulkAllGroups('all')">Run all (prompts, images, content, Pinterest)</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkAllGroupsModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter" selected>OpenRouter</option><option value="openai">OpenAI</option><option value="local">Local (Ollama)</option><option value="llamacpp">llama.cpp</option></select><div id="bulkAllGroupsModalLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model (≤15B):</p><select id="bulkAllGroupsModalLocalModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkAllGroupsModalLlamaCppWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">llama.cpp model:</p><select id="bulkAllGroupsModalLlamaCppModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkAllGroupsModalOpenAIWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenAI model:</p><select id="bulkAllGroupsModalOpenAIModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkAllGroupsModalOpenRouterWrap" class="mb-3" style="display:none"><p class="mb-1 fw-medium small">OpenRouter:</p><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalOpenRouterMode" value="rotation"> Rotation (try next on failure)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalOpenRouterMode" value="select"> Select model(s)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalOpenRouterMode" value="rotation_blacklist" checked> Rotation (exclude failed for next articles)</label></div><div class="d-flex align-items-center gap-2 mb-1"><div class="btn-group btn-group-sm"><button type="button" id="bulkAllGroupsModalOrFilterAll" class="btn btn-primary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkAllGroupsModal','all')">All</button><button type="button" id="bulkAllGroupsModalOrFilterFree" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkAllGroupsModal','free')">Free</button><button type="button" id="bulkAllGroupsModalOrFilterPaid" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkAllGroupsModal','paid')">Paid</button></div></div><select id="bulkAllGroupsModalOpenRouterModels" class="form-select form-select-sm" multiple style="max-height:100px;width:100%"></select></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeContent" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeContent" value="empty_only" checked> Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for images:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeImages" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeImages" value="empty_only" checked> Only rows without main+ingredient images</label></div><p class="mb-2 fw-medium small">Scope for Pinterest:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopePins" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopePins" value="empty_only" checked> Only rows without pin images</label></div><hr class="my-3"><p class="mb-2 fw-medium">Concurrency (rows A B C D at a time):</p><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrencyPreset" value="low"> Low — 1 row at a time</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrencyPreset" value="medium"> Medium — 2 rows at a time</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrencyPreset" value="max" checked> Max — <input type="number" id="allGroupsConcurrencyN" value="6" min="1" max="20" class="form-control form-control-sm d-inline-block" style="width:55px"> rows at a time</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrencyPreset" value="group"> Group — max <input type="number" id="allGroupsGroupN" value="2" min="1" max="10" class="form-control form-control-sm d-inline-block" style="width:55px"> groups in parallel</label></div><p class="small text-muted mt-2 mb-0">Note: Articles without article_html will be skipped for image generation.</p></div></div></div></div>
 <div id="singleActionModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="singleActionModalTitle">Run</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="singleActionUrl"><input type="hidden" id="singleActionData"><input type="hidden" id="singleActionLabel"><div id="singleActionAiProviderWrap" class="mb-3" style="display:none"><p class="mb-2 fw-medium small">AI provider:</p><select id="singleActionAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter">OpenRouter</option><option value="openai" selected>OpenAI</option><option value="local">Local</option><option value="llamacpp">llama.cpp</option></select><div id="singleActionOpenRouterWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenRouter:</p><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="singleActionOpenRouterMode" value="rotation" checked> Rotation (try next on failure)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="singleActionOpenRouterMode" value="select"> Select model(s)</label></div><select id="singleActionOpenRouterModels" class="form-select form-select-sm" multiple style="max-height:100px;width:100%"></select></div><div id="singleActionLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model:</p><select id="singleActionLocalModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="singleActionLlamaCppWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">llama.cpp model:</p><select id="singleActionLlamaCppModel" class="form-select form-select-sm" style="width:100%"></select></div></div><p class="mb-3" id="singleActionPrompt">Run in background?</p><div class="d-flex gap-2"><button type="button" class="btn btn-primary" onclick="runSingleAction(false)">Background</button></div></div></div></div></div>
 <div id="pinPickerModal" class="modal fade" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Select Pin Template</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="pinPickerTitleId"><div id="pinPickerLoading" class="text-center py-4"><div class="spinner-border spinner-border-sm"></div> Loading templates...</div><div id="pinPickerEmpty" class="text-center py-4 text-muted" style="display:none">No templates found for this domain.<br>Add templates in Admin &rarr; Domains &rarr; Templates.</div><div id="pinPickerGrid" class="d-flex flex-wrap gap-3 justify-content-center" style="display:none"></div><div id="pinPickerActions" class="d-flex flex-wrap gap-2 mt-3 pt-3 border-top align-items-center" style="display:none"><span class="me-auto small text-muted" id="pinPickerSelected"></span><label class="d-flex align-items-center gap-1 small mb-0"><input type="checkbox" id="pinPickerPostToPinterest"> Pin (open Pinterest) after</label><button type="button" class="btn btn-primary btn-sm" onclick="runPinPicker(true)">Foreground</button><button type="button" class="btn btn-outline-secondary btn-sm" onclick="runPinPicker(false)">Background</button></div></div></div></div></div>
 <div id="bulkChoiceModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Run</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="bulkChoiceUrl"><input type="hidden" id="bulkChoiceMode"><p class="mb-3">Run in foreground or background?</p><div class="d-flex gap-2"><button type="button" class="btn btn-primary" onclick="runBulkChoice(true)">Foreground</button><button type="button" class="btn btn-outline-secondary" onclick="runBulkChoice(false)">Background</button></div></div></div></div></div>
 <div id="progressModal" class="modal fade" tabindex="-1" data-bs-backdrop="static"><div class="modal-dialog modal-dialog-scrollable" style="max-width:680px"><div class="modal-content"><div class="modal-header py-1"><h6 class="modal-title mb-0" id="progressModalTitle">Workflow progress</h6><button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body py-2" id="progressModalBody" style="max-height:65vh"><p class="mb-0 small">Please wait.</p></div><div class="modal-footer py-1"><button type="button" class="btn btn-outline-secondary btn-sm" id="progressBgBtn" onclick="runInBackground()" style="display:none">Run in background</button></div></div></div></div>
 <div id="taskArticlesModal" class="modal fade" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content"><div class="modal-header py-2 d-flex align-items-center gap-2"><h6 class="modal-title mb-0" id="taskArticlesModalTitle">Articles in task</h6><select id="taskArticlesDomainFilter" class="form-select form-select-sm" style="width:auto;max-width:180px" title="Filter by domain"><option value="">All domains</option></select><button type="button" class="btn-close btn-close-sm ms-auto" data-bs-dismiss="modal"></button></div><div class="modal-body py-2"><ul class="list-group list-group-flush" id="taskArticlesModalList"></ul></div></div></div></div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/bootstrap.bundle.min.js"></script>
 <script>
 if(typeof refreshRunningTasks==='function') refreshRunningTasks();
 // Only poll running tasks every 5s on database-management; avoids constant API calls on admin/domains
@@ -2590,6 +2763,98 @@ function clearDomainSearch() {{
   rows.forEach(function(row) {{
     row.style.backgroundColor = '';
   }});
+}}
+
+// ── Live stats refresh for domain table while tasks are running ──
+var _statsPollInterval = null;
+function refreshDomainStats() {{
+  if (window.location.pathname.indexOf('/admin/domains') < 0) return;
+  var tbody = document.getElementById('adminDomainsTableBody');
+  if (!tbody) return;
+  var urlParams = new URLSearchParams(window.location.search);
+  var groupId = urlParams.get('group_id') || '';
+  var qs = groupId ? '?group_id=' + groupId : '';
+  fetch('/api/domains/bulk-stats' + qs)
+    .then(function(r) {{ return r.json(); }})
+    .then(function(data) {{
+      var stats = data.stats || {{}};
+      var rows = tbody.querySelectorAll('tr.domains-row[data-domain-id]');
+      rows.forEach(function(row) {{
+        var did = row.getAttribute('data-domain-id');
+        if (!did || !stats[did]) return;
+        var s = stats[did];
+        var td = row.querySelector('.stats-td');
+        if (!td) return;
+        // Check if needs-attention class should change
+        var needsAttention = (s.no_prompt > 0 || s.no_html_css > 0 || s.no_main_img > 0 || s.no_ing_img > 0 || s.no_pin_img > 0);
+        if (needsAttention) {{
+          td.classList.add('stats-td-needs-attention');
+        }} else {{
+          td.classList.remove('stats-td-needs-attention');
+        }}
+        if (s.total === 0) {{
+          td.innerHTML = '<div class="stats-cell text-muted small">—</div>';
+          return;
+        }}
+        // Update badge counts in-place: find all stats-filter-btn buttons
+        var btns = td.querySelectorAll('.stats-filter-btn');
+        btns.forEach(function(btn) {{
+          var stype = btn.getAttribute('data-stats-type');
+          if (!stype) return;
+          var val = 0;
+          if (stype === 'prompt') val = s.prompt || 0;
+          else if (stype === 'no_prompt') val = s.no_prompt || 0;
+          else if (stype === 'html_css') val = s.html_css || 0;
+          else if (stype === 'no_html_css') val = s.no_html_css || 0;
+          else if (stype === 'main_img') val = s.main_img || 0;
+          else if (stype === 'no_main_img') val = s.no_main_img || 0;
+          else if (stype === 'ing_img') val = s.ing_img || 0;
+          else if (stype === 'no_ing_img') val = s.no_ing_img || 0;
+          else if (stype === 'pin_img') val = s.pin_img || 0;
+          else if (stype === 'no_pin_img') val = s.no_pin_img || 0;
+          var oldCount = parseInt(btn.getAttribute('data-count')) || 0;
+          if (val !== oldCount) {{
+            var sym = stype.indexOf('no_') === 0 ? '✗' : '✓';
+            btn.textContent = val + sym;
+            btn.setAttribute('data-count', val);
+            // Flash animation on change
+            btn.style.transition = 'transform 0.2s ease, box-shadow 0.2s ease';
+            btn.style.transform = 'scale(1.2)';
+            btn.style.boxShadow = '0 0 6px rgba(13,110,253,0.5)';
+            setTimeout(function() {{ btn.style.transform = ''; btn.style.boxShadow = ''; }}, 400);
+          }}
+        }});
+      }});
+    }})
+    .catch(function() {{}});
+}}
+
+// Start stats polling when tasks are active, stop when idle
+function _startStatsPoll() {{
+  if (_statsPollInterval) return;
+  _statsPollInterval = setInterval(refreshDomainStats, 5000);
+  refreshDomainStats(); // immediate first poll
+}}
+function _stopStatsPoll() {{
+  if (_statsPollInterval) {{ clearInterval(_statsPollInterval); _statsPollInterval = null; }}
+}}
+// Hook: start polling whenever a progress poll starts (task is running)
+var _origRefreshAfterRun = typeof refreshAfterRun === 'function' ? refreshAfterRun : null;
+if (window.location.pathname.indexOf('/admin/domains') >= 0) {{
+  // Also refresh stats on completion
+  refreshAfterRun = function() {{
+    if (_origRefreshAfterRun) _origRefreshAfterRun();
+    refreshDomainStats();
+    _stopStatsPoll();
+  }};
+  // Watch for _progressPollInterval being set (task started)
+  setInterval(function() {{
+    if (_progressPollInterval && !_statsPollInterval) {{
+      _startStatsPoll();
+    }} else if (!_progressPollInterval && _statsPollInterval) {{
+      _stopStatsPoll();
+    }}
+  }}, 1000);
 }}
 
 function refreshDomainsTable() {{
@@ -3035,7 +3300,7 @@ def _render_groups_html(groups_data, ac_map):
                 vbs = f'<span class="d-flex gap-1">{vb}</span>' if vb else ""
                 tdisp_run = ttxt[:50] + ("…" if len(ttxt) > 50 else "")
                 ttxt_esc = (ttxt or "").replace('"', "&quot;")
-                run_col_html += f'<li class="title-row d-flex flex-column gap-0 mb-1 py-1"><div class="run-domain-actions">{action_pills}</div><div class="d-flex align-items-center gap-1 flex-wrap"><span class="small text-muted flex-shrink-0">{tid}</span><span class="small text-truncate flex-grow-1" title="{ttxt_esc}">{tdisp_run}</span><span class="d-flex gap-1 flex-shrink-0"><button type="button" class="btn btn-secondary btn-sm" onclick="openBulkModal({tid})" title="Run for this row">Run</button>{vbs}</span></div></li>'
+                run_col_html += f'<li class="title-row d-flex flex-column gap-0 mb-1 py-1" data-title-id="{tid}"><div class="run-domain-actions">{action_pills}</div><div class="d-flex align-items-center gap-1 flex-wrap"><span class="small text-muted flex-shrink-0">{tid}</span><span class="small text-truncate flex-grow-1" title="{ttxt_esc}">{tdisp_run}</span><span class="d-flex gap-1 flex-shrink-0"><button type="button" class="btn btn-secondary btn-sm" onclick="openBulkModal({tid})" title="Run for this row">Run</button>{vbs}</span></div></li>'
             grp_key = f"g{grp.get('id') or 'u'}"
             total_titles = len(sorted_titles)
             pagination_html = ""
@@ -3267,6 +3532,241 @@ def api_database_management_groups():
     return _render_groups_html(groups_data, ac_map) or "<p class='text-muted'>No groups.</p>"
 
 
+@app.route("/api/render-title-row/<int:title_id>")
+@login_required
+def api_render_title_row(title_id):
+    """Render a single title-row <li> for database management."""
+    with get_connection() as conn:
+        # Find group and title text for this title
+        cur = db_execute(conn, "SELECT group_id, title FROM titles WHERE id = ?", (title_id,))
+        row = cur.fetchone()
+        if not row:
+            return "Title not found", 404
+        t_row = dict_row(row)
+        gid = t_row["group_id"]
+        ttxt = t_row["title"]
+        
+        # Get all domains and titles in this group to identify A,B,C,D
+        groups_data, ac_map = _get_groups_with_domains_and_titles(filter_group_id=gid)
+        
+        # We only care about the single group we matched
+        match_grp = next((g for g in groups_data if g["id"] == gid), None)
+        if not match_grp:
+            # Fallback if it was ungrouped
+            match_grp = next((g for g in groups_data if g["id"] is None), None)
+            
+        if not match_grp:
+            return "Group not found", 404
+            
+        # Re-run the rendering logic for JUST this title row in this group
+        # This is a bit inefficient but ensures consistency with _render_groups_html
+        labels = ["A", "B", "C", "D"]
+        doms = match_grp.get("domains", [])
+        row_ids = {}
+        for d in doms:
+            for t in d.get("titles", []):
+                key = (match_grp.get("id"), t.get("title", ""))
+                if key not in row_ids:
+                    row_ids[key] = [None, None, None, None]
+                idx = d.get("domain_index") if d.get("domain_index") is not None and 0 <= d.get("domain_index") < 4 else 0
+                row_ids[key][idx] = t.get("id")
+        
+        # We need the TA row specifically (Domain A)
+        dom_a = next((d for d in doms if d.get("domain_index") == 0), None)
+        if not dom_a:
+            return "Domain A not found for group", 404
+            
+        ta_match = next((t for t in dom_a.get("titles", []) if t.get("title") == ttxt), None)
+        if not ta_match:
+            # If the requested title_id is NOT from Domain A, we still need to find Domain A's title
+            # because _render_groups_html iterates over sorted_titles from dom_a.
+            # However, for simplicity, if we are refreshing ANY title in the group, we just want its row.
+            # Let's find the Domain A title for this text.
+            cur = db_execute(conn, "SELECT id FROM titles WHERE group_id = ? AND title = ? AND domain_id IN (SELECT id FROM domains WHERE domain_index = 0 AND group_id = ?)", (gid, ttxt, gid))
+            row_a = cur.fetchone()
+            if row_a:
+                ta_id = row_a[0]
+                ta_match = {"id": ta_id, "title": ttxt}
+            else:
+                # Fallback: maybe it's only in one domain
+                ta_match = {"id": title_id, "title": ttxt}
+        
+        tid = ta_match.get("id")
+        ids = row_ids.get((match_grp.get("id"), ttxt), [tid, None, None, None])
+        if ids[0] is None: ids[0] = tid
+        
+        main_urls = [ac_map.get(ids[i] or 0, {}).get("main_image", "") or "" for i in range(4)]
+        ing_urls = [ac_map.get(ids[i] or 0, {}).get("ingredient_image", "") or "" for i in range(4)]
+        has_main_list = [bool(u and u.startswith("http")) for u in main_urls]
+        has_ing_list = [bool(u and u.startswith("http")) for u in ing_urls]
+        has_all_list = [ac_map.get(ids[i] or 0, {}).get("has_all", False) for i in range(4)]
+        a_has_all = ac_map.get(ids[0] or 0, {}).get("has_all", False)
+        
+        def action_pill(i):
+            lb = labels[i] if i < 4 else "?"
+            tid_i = ids[i] if i < len(ids) else None
+            dm_i = next((d for d in doms if d.get("domain_index") == i), {})
+            nm_i = (dm_i.get("domain_url") or dm_i.get("domain_name") or "").strip() or "-"
+            pill_label_raw = f"{tid_i}({nm_i})({lb})" if tid_i else f"-(-)({lb})"
+            pill_label = (pill_label_raw or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+            ac_i = ac_map.get(tid_i or 0, {}) if tid_i else {}
+            c_ok = ac_i.get("has_all", False)
+            m_ok = bool((ac_i.get("main_image") or "").startswith("http"))
+            ing_ok = bool((ac_i.get("ingredient_image") or "").startswith("http"))
+            if c_ok and m_ok and ing_ok: pill_class = "pill-success"
+            elif c_ok and m_ok: pill_class = "pill-warning"
+            elif c_ok: pill_class = "pill-info"
+            else: pill_class = "pill-empty"
+            if not tid_i: return f'<span class="run-domain-action-pill {pill_class}"><span class="pill-label">{pill_label}</span><span class="pill-btns">-</span></span>'
+            pill_hint = ""
+            if c_ok:
+                mu = (ac_i.get("model_used") or "").strip()
+                ga = ac_i.get("generated_at")
+                short_model = ""
+                if mu:
+                    if "/" in mu: short_model = mu.split("/")[-1].strip()
+                    elif " -> " in mu: short_model = mu.split(" -> ")[-1].strip()
+                    else: short_model = mu
+                    short_model = (short_model[:20] + "…") if len(short_model) > 20 else short_model
+                date_dd_mm_yy = ""
+                if ga:
+                    s = str(ga)[:10]
+                    if len(s) == 10 and s[4] == "-" and s[7] == "-": date_dd_mm_yy = f"{s[8:10]}-{s[5:7]}-{s[2:4]}"
+                    else: date_dd_mm_yy = s
+                if short_model or date_dd_mm_yy:
+                    display = (short_model or "") + (" ·<br>" if short_model and date_dd_mm_yy else "") + (date_dd_mm_yy or "")
+                    pill_hint = f'<span class="pill-hint small text-muted" title="{html.escape(mu or "-")}">{display}</span>'
+            if i == 0:
+                btns = f'<button type="button" class="btn btn-success btn-sm" onclick="openSingleActionModal(\'/api/generate-article-external\',{{title_id:{tid_i}}},\'Article A\')" title="Article">Art</button>'
+                btns += f'<button type="button" class="btn btn-info btn-sm text-white" onclick="openSingleActionModal(\'/api/generate-main-image\',{{title_id:{tid_i}}},\'Main image\')" title="Main image">M</button>'
+                btns += f'<button type="button" class="btn btn-warning btn-sm text-dark" onclick="openSingleActionModal(\'/api/generate-ingredient-image\',{{title_id:{tid_i}}},\'Ingredient image\')" title="Ingredient">I</button>'
+                btns += f'<button type="button" class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation(); openPinPickerModal({tid_i})" title="Pin">P</button>'
+                btns += f'<button type="button" class="btn btn-outline-secondary btn-sm" onclick="viewDomainSingle({tid_i},\'{lb}\')" title="View all">V</button>'
+            else:
+                dis = ' disabled' if not a_has_all else ''
+                ta_id = ids[0]
+                btns = f'<button type="button" class="btn btn-primary btn-sm"{dis} onclick="openSingleActionModal(\'/api/generate-article-bcd\',{{title_id:{tid_i}}},\'BCD\')" title="Content from A">C</button>'
+                btns += f'<button type="button" class="btn btn-info btn-sm text-white" onclick="openSingleActionModal(\'/api/generate-main-image\',{{title_id:{ta_id}}},\'Main image\')" title="Main (all)">M</button>'
+                btns += f'<button type="button" class="btn btn-warning btn-sm text-dark" onclick="openSingleActionModal(\'/api/generate-ingredient-image\',{{title_id:{ta_id}}},\'Ingredient image\')" title="Ingr (all)">I</button>'
+                btns += f'<button type="button" class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation(); openPinPickerModal({tid_i})" title="Pin">P</button>'
+                btns += f'<button type="button" class="btn btn-outline-secondary btn-sm" onclick="viewDomainSingle({tid_i},\'{lb}\')" title="View all">V</button>'
+            return f'<span class="run-domain-action-pill {pill_class}"><span class="pill-label">{pill_label}</span><span class="pill-btns">{btns}</span>{pill_hint}</span>'
+
+        action_pills = "".join(action_pill(i) for i in range(4))
+        has_main = any(has_main_list)
+        has_ing = any(has_ing_list)
+        has_all = any((ac_map.get(ids[i] or 0, {}).get("has_all", False) for i in range(4) if ids[i]))
+        esc_js = lambda u: (u or "").replace("\\", "\\\\").replace("'", "\\'")
+        main_join = "|||".join(esc_js(u) for u in main_urls)
+        ing_join = "|||".join(esc_js(u) for u in ing_urls)
+        pin_urls = [ac_map.get(ids[i] or 0, {}).get("pin_image", "") or "" for i in range(4)]
+        pin_join = "|||".join(esc_js(u) for u in pin_urls)
+        has_pin = any((u and u.startswith("http") for u in pin_urls))
+        ids_str = ",".join(str(x) for x in ids if x)
+        lbl_parts = []
+        for i in range(4):
+            dm = next((d for d in doms if d.get("domain_index") == i), {})
+            lb = labels[i] if i < len(labels) else str(i)
+            nm = (dm.get("domain_url") or dm.get("domain_name") or "").strip()
+            ti = ids[i] if i < len(ids) else None
+            part = f"Group {match_grp.get('name')} | Domain {lb}"
+            if nm: part += f" ({nm})"
+            if ti: part += f" | id:{ti}"
+            lbl_parts.append(part)
+        lbl_join = "|||".join(esc_js(p) for p in lbl_parts)
+        vb = ""
+        if has_main: vb += f'<button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1" onclick="viewImagesAll(\'{main_join}\',\'Main images\',\'{lbl_join}\')" title="Main images">M</button>'
+        if has_ing: vb += f'<button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1" onclick="viewImagesAll(\'{ing_join}\',\'Ingredient images\',\'{lbl_join}\')" title="Ingredient images">I</button>'
+        if has_pin: vb += f'<button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1" onclick="viewImagesAll(\'{pin_join}\',\'Pin images\',\'{lbl_join}\')" title="Pin images">P</button>'
+        if has_all: vb += f'<button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1" onclick="viewContentAll(\'{ids_str}\',\'{lbl_join}\')" title="Content A,B,C,D">C</button>'
+        if has_all: vb += f'<button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1" onclick="viewRecipeAll(\'{ids_str}\',\'{lbl_join}\')" title="Recipe A,B,C,D">R</button>'
+        vbs = f'<span class="d-flex gap-1">{vb}</span>' if vb else ""
+        tdisp_run = ttxt[:50] + ("…" if len(ttxt) > 50 else "")
+        ttxt_esc = (ttxt or "").replace('"', "&quot;")
+        
+        # Use our new data-title-id attribute here so the frontend can find it
+        li_html = f'<li class="title-row d-flex flex-column gap-0 mb-1 py-1" data-title-id="{tid}"><div class="run-domain-actions">{action_pills}</div><div class="d-flex align-items-center gap-1 flex-wrap"><span class="small text-muted flex-shrink-0">{tid}</span><span class="small text-truncate flex-grow-1" title="{ttxt_esc}">{tdisp_run}</span><span class="d-flex gap-1 flex-shrink-0"><button type="button" class="btn btn-secondary btn-sm" onclick="openBulkModal({tid})" title="Run for this row">Run</button>{vbs}</span></div></li>'
+        return li_html
+
+
+@app.route("/api/render-domain-row/<int:domain_id>")
+@login_required
+def api_render_domain_row(domain_id):
+    """Render a single <tr> for admin/domains table."""
+    with get_connection() as conn:
+        # We need a domain object with its templates and stats
+        cur = db_execute(conn, """
+            SELECT id, domain_url, domain_name, group_id, domain_index, cloudflare_info,
+            website_template, article_template_config, domain_colors, domain_fonts, categories_list,
+            header_template, footer_template,
+            side_article_template, category_page_template, writer_template, writers,
+            domain_page_about_us, domain_page_terms_of_use, domain_page_privacy_policy, domain_page_gdpr_policy,
+            domain_page_cookie_policy, domain_page_copyright_policy, domain_page_disclaimer, domain_page_contact_us
+            FROM domains WHERE id = ?""", (domain_id,))
+        row = cur.fetchone()
+        if not row:
+            return "Domain not found", 404
+        d = dict_row(row)
+        
+        # Get templates
+        cur = db_execute(conn, "SELECT id, name, preview_image_url FROM domain_templates WHERE domain_id = ? ORDER BY sort_order, id", (domain_id,))
+        d["templates"] = [dict_row(r) for r in cur.fetchall()]
+        
+        # Get stats
+        cur = db_execute(conn, """
+            SELECT
+                COUNT(DISTINCT t.id) AS total,
+                SUM(CASE WHEN ac.id IS NOT NULL AND TRIM(COALESCE(ac.prompt,'')) != '' AND TRIM(COALESCE(ac.prompt_image_ingredients,'')) != '' THEN 1 ELSE 0 END) AS prompt,
+                SUM(CASE WHEN ac.id IS NOT NULL AND TRIM(COALESCE(ac.article_html,'')) != '' AND TRIM(COALESCE(ac.article_css,'')) != '' THEN 1 ELSE 0 END) AS html_css,
+                SUM(CASE WHEN ac.main_image IS NOT NULL AND TRIM(ac.main_image) LIKE 'http%%' THEN 1 ELSE 0 END) AS main_img,
+                SUM(CASE WHEN ac.ingredient_image IS NOT NULL AND TRIM(ac.ingredient_image) LIKE 'http%%' THEN 1 ELSE 0 END) AS ing_img,
+                SUM(CASE WHEN ac.pin_image IS NOT NULL AND TRIM(ac.pin_image) LIKE 'http%%' THEN 1 ELSE 0 END) AS pin_img
+            FROM titles t
+            LEFT JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
+            WHERE t.domain_id = ?
+        """, (domain_id,))
+        s = dict_row(cur.fetchone())
+        d["stats_total"] = s.get("total") or 0
+        d["stats_prompt"] = s.get("prompt") or 0
+        d["stats_html_css"] = s.get("html_css") or 0
+        d["stats_main_img"] = s.get("main_img") or 0
+        d["stats_ing_img"] = s.get("ing_img") or 0
+        d["stats_pin_img"] = s.get("pin_img") or 0
+        total = d.get("stats_total") or 0
+        d["stats_no_prompt"] = total - (d["stats_prompt"] or 0)
+        d["stats_no_html_css"] = total - (d["stats_html_css"] or 0)
+        d["stats_no_main_img"] = total - (d["stats_main_img"] or 0)
+        d["stats_no_ing_img"] = total - (d["stats_ing_img"] or 0)
+        d["stats_no_pin_img"] = total - (d["stats_pin_img"] or 0)
+        d["stats_pin_count"] = len(d.get("templates") or [])
+        d["saved_page_theme"] = _get_domain_page_theme(d)
+        
+        # Re-use the helper functions from the admin_domains view
+        # (Since they are defined inside admin_domains, we may need to duplicate or move them)
+        # For now, I'll duplicate the shell of what's needed or just return the data-domain-id <tr>
+        
+        # To avoid duplicating too much, let's see if we can move them.
+        # Actually, I'll just use a simplified version for this API or carefully duplicate.
+        
+        # I'll use the same labels and logic as in admin_domains:
+        gid = d.get("group_id")
+        idx = d.get("domain_index")
+        abcd = chr(65 + idx) if idx is not None and 0 <= idx < 26 else ""
+        
+        # Since these helpers are local to admin_domains, I'll have to redefine them or make them global.
+        # Better to make them global in app.py if possible, but the file is already huge.
+        
+        # I'll just implement the <tr> building here, it's just a few lines of string formatting.
+        # Wait, I'll need to call generators and other stuff.
+        # Let's see if I can call the original admin_domains with partial=1 and filter by domain_id.
+        # Yes! admin_domains already supports filtering by group_id, but not by domain_id specifically.
+        
+        # Actually, let's look at admin_domains again.
+        # If I add filter_domain_id to admin_domains, I can reuse EVERYTHING.
+        
+    return "Not implemented via this specific API yet", 501
+
+
 # --------------------------------------------------------------------------- Logs dashboard (all microservices)
 @app.route("/api/logs/apps", methods=["GET"])
 @login_required
@@ -3459,7 +3959,7 @@ def _render_logs_dashboard():
   if (document.getElementById('logsAutoRefresh').checked) refreshInterval = setInterval(loadLogs, 10000);
 }})();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="/static/js/chart.min.js"></script>
 """
 
 
@@ -3502,6 +4002,7 @@ def _parse_openrouter_models(req):
 
 def _do_generate_article_external(title_id, recipe_from_a=None, ai_provider=None, openrouter_models=None, openai_model=None, openrouter_model=None, local_model=None, llamacpp_model_id=None, user_id=None):
     """Call external API http://localhost:8000/generate-article/{website_template} and save to article_content.
+    Requires main_image and ingredient_image to exist (generate images first).
     When recipe_from_a is provided (from Domain A), B/C/D use it to generate from recipe instead of from title.
     ai_provider: optional override (openrouter, openai, local).
     openrouter_models: optional list of OpenRouter model ids to use (rotation over this list). If None, generator uses its full list.
@@ -3540,6 +4041,12 @@ def _do_generate_article_external(title_id, recipe_from_a=None, ai_provider=None
         cur = db_execute(conn, """SELECT main_image, ingredient_image, top_image, bottom_image, avatar_image, pin_image
             FROM article_content WHERE title_id = ? AND language_code = 'en'""", (title_id,))
         ac_row = dict_row(cur.fetchone())
+        main_ok = bool(ac_row and (ac_row.get("main_image") or "").strip().startswith("http"))
+        ing_ok = bool(ac_row and (ac_row.get("ingredient_image") or "").strip().startswith("http"))
+        if not main_ok:
+            raise ValueError("Generate main image first")
+        if not ing_ok:
+            raise ValueError("Generate ingredient image first")
     IMAGE_FIELDS = ("main_image", "ingredient_image", "top_image", "bottom_image", "avatar_image", "pin_image")
     IMAGE_TO_CONFIG = {"main_image": "main_article_image", "ingredient_image": "ingredient_image", "top_image": "top_image", "bottom_image": "bottom_image", "avatar_image": "avatar_image"}
     base = (GENERATE_ARTICLE_API_URL or "").rstrip("/")
@@ -3831,12 +4338,15 @@ def _do_generate_article_external(title_id, recipe_from_a=None, ai_provider=None
         log.warning("[generate-article-external] article_html EMPTY - response keys: %s", list(out.keys()))
     recipe = out.get("recipe")
     recipe_str = json.dumps(recipe, ensure_ascii=False) if isinstance(recipe, dict) else (recipe or "")
-    prompt = (out.get("prompt_midjourney_main") or out.get("prompt_used") or out.get("prompt", "") or "").strip()
-    prompt_ing = (out.get("prompt_midjourney_ingredients") or out.get("prompt_image_ingredients") or "").strip()
-    if not prompt or len(prompt) < 25 or prompt == "--v 6.1":
-        prompt = f"Professional food photography of {title_text}, overhead shot, natural lighting, editorial style --v 6.1"
-    if not prompt_ing or len(prompt_ing) < 25 or prompt_ing == "--v 6.1":
-        prompt_ing = f"Flat-lay of ingredients for {title_text}, white surface, natural light, editorial style --v 6.1"
+    # prompt and prompt_image_ingredients come from generate-prompts step only; never overwrite from article generator
+    prompt = ""
+    prompt_ing = ""
+    with get_connection() as conn:
+        cur = db_execute(conn, "SELECT prompt, prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
+        row = dict_row(cur.fetchone())
+        if row:
+            prompt = (row.get("prompt") or "").strip()
+            prompt_ing = (row.get("prompt_image_ingredients") or "").strip()
     article_css = (out.get("article_css") or out.get("content_css") or
                   (out.get("data") or {}).get("article_css") or (out.get("data") or {}).get("content_css") or "")
     if not isinstance(article_css, str):
@@ -4186,13 +4696,21 @@ def api_generate_article_external():
 
 
 def _do_generate_article_a(title_id, prompt=""):
-    """Legacy: generate Article A via rewrite module. Use generate-article-external for Domain A (Art button)."""
+    """Legacy: generate Article A via rewrite module. Requires main_image and ingredient_image first."""
     with get_connection() as conn:
         cur = db_execute(conn, "SELECT title FROM titles WHERE id = ?", (title_id,))
         row = dict_row(cur.fetchone())
         if not row:
             raise ValueError("Title not found")
         title_text = row.get("title", "")
+        cur = db_execute(conn, "SELECT main_image, ingredient_image FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
+        ac = dict_row(cur.fetchone())
+        main_ok = bool(ac and (ac.get("main_image") or "").strip().startswith("http"))
+        ing_ok = bool(ac and (ac.get("ingredient_image") or "").strip().startswith("http"))
+        if not main_ok:
+            raise ValueError("Generate main image first")
+        if not ing_ok:
+            raise ValueError("Generate ingredient image first")
     t0 = time.time()
     out = generate_article_content_for_a(title_text, prompt)
     generation_time_seconds = int(round(time.time() - t0))
@@ -4206,7 +4724,13 @@ def _do_generate_article_a(title_id, prompt=""):
     provider, model_name = get_ai_config()
     model_used = f"{provider} -> {model_name}" if provider and model_name else (f"{provider}" if provider else "openai")
     generated_at = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-    vals = (article_html_val, out.get("recipe", ""), out.get("prompt", ""), out.get("prompt_image_ingredients", ""),
+    # prompt and prompt_image_ingredients come from generate-prompts step only; preserve existing
+    with get_connection() as conn:
+        cur = db_execute(conn, "SELECT prompt, prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
+        row = dict_row(cur.fetchone())
+        existing_prompt = (row.get("prompt") or "").strip() if row else ""
+        existing_prompt_ing = (row.get("prompt_image_ingredients") or "").strip() if row else ""
+    vals = (article_html_val, out.get("recipe", ""), existing_prompt, existing_prompt_ing,
             out.get("recipe_title_pin", ""), out.get("pinterest_title", ""), out.get("pinterest_description", ""),
             out.get("pinterest_keywords", ""), out.get("focus_keyphrase", ""), out.get("meta_description", ""),
             out.get("keyphrase_synonyms", ""), "", model_used, generated_at, generation_time_seconds, title_id)  # article_css empty for legacy
@@ -4337,6 +4861,31 @@ def _title_has_pin_image(conn, title_id):
     return bool(row and (row.get("pin_image") or "").strip())
 
 
+def _title_has_prompts(conn, title_id):
+    """Return True if article_content has both prompt and prompt_image_ingredients non-empty."""
+    cur = db_execute(conn, "SELECT prompt, prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
+    row = dict_row(cur.fetchone())
+    return bool(row and (row.get("prompt") or "").strip() and (row.get("prompt_image_ingredients") or "").strip())
+
+
+def _row_any_needs_prompts(conn, title_id_a, scope_prompts):
+    """For a row (A,B,C,D), return True if any needs prompts (main or ingredient). Used with empty_only to skip only when all have both."""
+    if scope_prompts != "empty_only":
+        return True  # override mode: always need
+    cur = db_execute(conn, "SELECT t.group_id, t.title, d.group_id as d_group_id FROM titles t JOIN domains d ON t.domain_id = d.id WHERE t.id = ?", (title_id_a,))
+    r = dict_row(cur.fetchone())
+    if not r:
+        return True
+    gid = r.get("group_id") if r.get("group_id") is not None else r.get("d_group_id")
+    cur = db_execute(conn, """SELECT t.id FROM titles t JOIN domains d ON t.domain_id = d.id
+        WHERE COALESCE(t.group_id, d.group_id) = ? AND t.title = ? ORDER BY d.domain_index""", (gid, r.get("title") or ""))
+    ids = [dict_row(x).get("id") for x in cur.fetchall()]
+    for tid in ids:
+        if tid and not _title_has_prompts(conn, tid):
+            return True
+    return False
+
+
 def _should_skip_content(conn, title_id, scope_content):
     """Return True if content generation should be skipped (scope_content=empty_only and has content)."""
     if scope_content != "empty_only":
@@ -4405,12 +4954,15 @@ def _should_skip_images(conn, title_id, scope_images):
     return _title_has_main_image(conn, title_id) and _title_has_ingredient_image(conn, title_id)
 
 
-def _should_skip_bulk_row(conn, title_id, mode, scope, scope_content=None, scope_images=None, scope_pins=None):
-    """Return True if this row should be skipped. scope is legacy; scope_content/scope_images/scope_pins override per phase.
+def _should_skip_bulk_row(conn, title_id, mode, scope, scope_content=None, scope_images=None, scope_pins=None, scope_prompts=None):
+    """Return True if this row should be skipped. scope is legacy; scope_content/scope_images/scope_pins/scope_prompts override per phase.
     For mode=article with empty_only: skip only when ALL of A,B,C,D have content (not just A)."""
     sc = scope_content if scope_content is not None else scope
     si = scope_images if scope_images is not None else scope
     sp = scope_pins if scope_pins is not None else si
+    spr = scope_prompts if scope_prompts is not None else scope
+    if mode == "prompts":
+        return not _row_any_needs_prompts(conn, title_id, spr)
     if mode == "article":
         return not _row_any_needs_content(conn, title_id, sc)
     if mode == "images":
@@ -4476,6 +5028,8 @@ def api_bulk_run():
         return jsonify({"success": False, "error": "No titles found for this recipe in the group."}), 400
     with get_connection() as conn:
         if _should_skip_bulk_row(conn, title_id, mode, scope, scope_content, scope_images, scope_pins):
+            if mode == "prompts":
+                return jsonify({"success": True, "message": "Skipped — row already has prompts"})
             if mode == "article":
                 return jsonify({"success": True, "message": "Skipped — row already has HTML+CSS"})
             if mode == "main_image":
@@ -4487,6 +5041,92 @@ def api_bulk_run():
             if mode == "images":
                 return jsonify({"success": True, "message": "Skipped — row already has main+ingredient images"})
     done = []
+    if mode in ("prompts", "all"):
+        with get_connection() as conn:
+            cur = db_execute(conn, "SELECT prompt, prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
+            row = dict_row(cur.fetchone())
+        need_prompts = not (row and (row.get("prompt") or "").strip() and (row.get("prompt_image_ingredients") or "").strip())
+        if need_prompts:
+            try:
+                _do_generate_prompts(
+                    title_id,
+                    user_id=user_id,
+                    ai_provider=ai_provider,
+                    openai_model=openai_model,
+                    openrouter_model=openrouter_model,
+                    local_model=local_model,
+                    llamacpp_model_id=llamacpp_model_id,
+                )
+                done.append("prompts")
+            except Exception as e:
+                if mode == "prompts":
+                    return jsonify({"success": False, "error": str(e)}), 500
+                log.warning("[run-one-row] prompts failed: %s", e)
+    if mode in ("images", "all"):
+        with get_connection() as conn:
+            skip_images = _should_skip_images(conn, title_id, scope_images)
+        if not skip_images:
+            from imagine import generate_4_images
+            with get_connection() as conn:
+                cur = db_execute(conn, "SELECT prompt, prompt_image_ingredients, main_image FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
+                row = dict_row(cur.fetchone())
+            prompt = (row.get("prompt") or "").strip() if row else ""
+            prompt_ing = (row.get("prompt_image_ingredients") or "").strip() if row else ""
+            main_ok = False
+            if prompt:
+                urls, err = generate_4_images(prompt, key_prefix="main_image", user_config=get_user_config_for_api(user_id) or {})
+                if err:
+                    urls, err = generate_4_images(prompt, key_prefix="main_image", user_config=get_user_config_for_api(user_id) or {})
+                if not err:
+                    from imagine import flip_image_vertical_and_upload
+                    BOTTOM_SOURCE_INDEX = (1, 0, 3, 2)
+                    bottom_urls = [None] * 4
+                    for i in range(min(4, len(urls))):
+                        src = BOTTOM_SOURCE_INDEX[i]
+                        if src < len(urls) and urls[src]:
+                            try:
+                                bottom_urls[i] = flip_image_vertical_and_upload(urls[src], "bottom_image", user_config=get_user_config_for_api(user_id) or {})
+                            except Exception:
+                                bottom_urls[i] = None
+                    with get_connection() as conn:
+                        for i, tid in enumerate(title_ids[:4]):
+                            if i < len(urls):
+                                main_url = urls[i]
+                                bottom_url = bottom_urls[i] if i < len(bottom_urls) else None
+                                cur = db_execute(conn, "UPDATE article_content SET main_image = ?, top_image = ?, bottom_image = ?, status_error = NULL WHERE title_id = ? AND language_code = 'en'", (main_url, main_url, bottom_url, tid))
+                                if cur.rowcount == 0:
+                                    db_execute(conn, "INSERT INTO article_content (title_id, language_code, main_image, top_image, bottom_image) VALUES (?, 'en', ?, ?, ?)", (tid, main_url, main_url, bottom_url))
+                    main_ok = True
+                else:
+                    err_msg = f"main_image failed: {err}"
+                    with get_connection() as conn:
+                        for tid in title_ids[:4]:
+                            if tid:
+                                db_execute(conn, "UPDATE article_content SET status_error = ? WHERE title_id = ? AND language_code = 'en'", (err_msg[:500], tid))
+            if main_ok and prompt_ing:
+                cfg = get_user_config_for_api(user_id) or {}
+                delay_sec = cfg.get("image_request_delay_sec", 15)
+                if delay_sec > 0:
+                    time.sleep(delay_sec)
+                urls2, err2 = generate_4_images(prompt_ing, key_prefix="ingredient_image", user_config=cfg)
+                if err2:
+                    urls2, err2 = generate_4_images(prompt_ing, key_prefix="ingredient_image", user_config=get_user_config_for_api(user_id) or {})
+                if not err2:
+                    with get_connection() as conn:
+                        for i, tid in enumerate(title_ids[:4]):
+                            if i < len(urls2):
+                                cur = db_execute(conn, "UPDATE article_content SET ingredient_image = ?, status_error = NULL WHERE title_id = ? AND language_code = 'en'", (urls2[i], tid))
+                                if cur.rowcount == 0:
+                                    db_execute(conn, "INSERT INTO article_content (title_id, language_code, ingredient_image) VALUES (?, 'en', ?)", (tid, urls2[i]))
+                else:
+                    err_msg = f"ingredient_image failed: {err2}"
+                    with get_connection() as conn:
+                        for tid in title_ids[:4]:
+                            if tid:
+                                db_execute(conn, "UPDATE article_content SET status_error = ? WHERE title_id = ? AND language_code = 'en'", (err_msg[:500], tid))
+            for tid in title_ids[:4]:
+                _update_article_html_images(tid)
+            done.append("images")
     if mode in ("article", "all"):
         with get_connection() as conn:
             skip_content = not _row_any_needs_content(conn, title_id, scope_content)
@@ -4524,49 +5164,6 @@ def api_bulk_run():
                 except Exception as e:
                     return jsonify({"success": False, "error": f"Generate article for title_id {tid}: {e}"}), 500
             done.append("article+BCD")
-    if mode in ("images", "all"):
-        with get_connection() as conn:
-            skip_images = _should_skip_images(conn, title_id, scope_images)
-        if not skip_images:
-            from imagine import generate_4_images
-            with get_connection() as conn:
-                cur = db_execute(conn, "SELECT prompt, prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
-                row = dict_row(cur.fetchone())
-            prompt = (row.get("prompt") or "").strip() if row else ""
-            prompt_ing = (row.get("prompt_image_ingredients") or "").strip() if row else ""
-            if prompt:
-                urls, err = generate_4_images(prompt, key_prefix="main_image")
-                if not err:
-                    from imagine import flip_image_vertical_and_upload
-                    BOTTOM_SOURCE_INDEX = (1, 0, 3, 2)
-                    bottom_urls = [None] * 4
-                    for i in range(min(4, len(urls))):
-                        src = BOTTOM_SOURCE_INDEX[i]
-                        if src < len(urls) and urls[src]:
-                            try:
-                                bottom_urls[i] = flip_image_vertical_and_upload(urls[src], "bottom_image")
-                            except Exception:
-                                bottom_urls[i] = None
-                    with get_connection() as conn:
-                        for i, tid in enumerate(title_ids[:4]):
-                            if i < len(urls):
-                                main_url = urls[i]
-                                bottom_url = bottom_urls[i] if i < len(bottom_urls) else None
-                                cur = db_execute(conn, "UPDATE article_content SET main_image = ?, top_image = ?, bottom_image = ? WHERE title_id = ? AND language_code = 'en'", (main_url, main_url, bottom_url, tid))
-                                if cur.rowcount == 0:
-                                    db_execute(conn, "INSERT INTO article_content (title_id, language_code, main_image, top_image, bottom_image) VALUES (?, 'en', ?, ?, ?)", (tid, main_url, main_url, bottom_url))
-            if prompt_ing:
-                urls2, err2 = generate_4_images(prompt_ing, key_prefix="ingredient_image")
-                if not err2:
-                    with get_connection() as conn:
-                        for i, tid in enumerate(title_ids[:4]):
-                            if i < len(urls2):
-                                cur = db_execute(conn, "UPDATE article_content SET ingredient_image = ? WHERE title_id = ? AND language_code = 'en'", (urls2[i], tid))
-                                if cur.rowcount == 0:
-                                    db_execute(conn, "INSERT INTO article_content (title_id, language_code, ingredient_image) VALUES (?, 'en', ?)", (tid, urls2[i]))
-            for tid in title_ids[:4]:
-                _update_article_html_images(tid)
-            done.append("images")
     if mode in ("pin_image", "all"):
         with get_connection() as conn:
             skip_pins = scope_pins == "empty_only" and not _row_any_needs_pins(conn, title_id, scope_pins)
@@ -4584,7 +5181,7 @@ def api_bulk_run():
             row = dict_row(cur.fetchone())
         prompt = (row.get("prompt") or "").strip() if row else ""
         if not prompt:
-            return jsonify({"success": False, "error": "Generate article first to get prompt"}), 400
+            return jsonify({"success": False, "error": "Generate prompts first"}), 400
         urls, err = generate_4_images(prompt, key_prefix="main_image")
         if err:
             return jsonify({"success": False, "error": err}), 500
@@ -4616,7 +5213,7 @@ def api_bulk_run():
             row = dict_row(cur.fetchone())
         prompt_ing = (row.get("prompt_image_ingredients") or "").strip() if row else ""
         if not prompt_ing:
-            return jsonify({"success": False, "error": "Generate article first to get prompt_image_ingredients"}), 400
+            return jsonify({"success": False, "error": "Generate prompts first"}), 400
         urls2, err2 = generate_4_images(prompt_ing, key_prefix="ingredient_image")
         if err2:
             return jsonify({"success": False, "error": err2}), 500
@@ -4632,12 +5229,13 @@ def api_bulk_run():
     return jsonify({"success": True, "message": f"Done: {', '.join(done)}"})
 
 
-def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scope="override", scope_content=None, scope_images=None, scope_pins=None, ai_provider=None, openrouter_models=None, openai_model=None, openrouter_model=None, user_id=None, openrouter_mode=None, local_model=None, llamacpp_model_id=None, group_ids_override=None):
+def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scope="override", scope_content=None, scope_images=None, scope_pins=None, scope_prompts=None, ai_provider=None, openrouter_models=None, openai_model=None, openrouter_model=None, user_id=None, openrouter_mode=None, local_model=None, llamacpp_model_id=None, group_ids_override=None):
     """Run bulk-run for all rows in one group. When group_ids_override is set, use those groups; else group_id+descendants."""
     user_config = get_user_config_for_api(user_id) if user_id else {}
     sc = scope_content if scope_content is not None else scope
     si = scope_images if scope_images is not None else scope
     sp = scope_pins if scope_pins is not None else si
+    spr = scope_prompts if scope_prompts is not None else scope
     with get_connection() as conn:
         def get_all_group_descendants(gid):
             result = [gid]
@@ -4660,11 +5258,12 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
     ok, failed = 0, 0
     failed_models = set() if openrouter_mode == "rotation_blacklist" else None
     rotation_index = [0] if openrouter_mode == "rotation_blacklist" else None
+    need_delay_before_image = False  # delay between each image request to avoid Midjourney rate limits
     for idx, title_id in enumerate(title_a_ids):
         if job_id and _bulk_cancel.get(job_id):
             break
         with get_connection() as conn:
-            if _should_skip_bulk_row(conn, title_id, mode, scope, sc, si, sp):
+            if _should_skip_bulk_row(conn, title_id, mode, scope, sc, si, sp, spr):
                 continue
         try:
             with get_connection() as conn:
@@ -4688,104 +5287,29 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
             if not ids:
                 failed += 1
                 continue
-            if mode in ("article", "all"):
-                if job_id:
-                    _bulk_progress.get(job_id, {})["current_phase"] = 1
+            if mode in ("prompts", "all"):
                 if job_id and _bulk_cancel.get(job_id):
                     break
                 with get_connection() as conn:
-                    skip_content = not _row_any_needs_content(conn, title_id, sc)
-                if not skip_content:
-                    article_ok = True
-                    with get_connection() as conn:
-                        gen_a = sc != "empty_only" or not _title_has_content(conn, ids[0])
-                    model_used = None
-                    if gen_a:
-                        try:
-                            if openrouter_mode == "rotation_blacklist" and openrouter_models:
-                                available = [m for m in openrouter_models if m not in failed_models]
-                                if not available:
-                                    raise Exception("No models available (all blacklisted)")
-                                start_idx = rotation_index[0] % len(available)
-                                rotation_index[0] += 1
-                                rotated = available[start_idx:] + available[:start_idx]
-                                last_err = None
-                                for m in rotated:
-                                    try:
-                                        _do_generate_article_external(ids[0], ai_provider=ai_provider, openrouter_models=[m], openai_model=openai_model, openrouter_model=m, local_model=local_model, llamacpp_model_id=llamacpp_model_id, user_id=user_id)
-                                        model_used = m
-                                        break
-                                    except Exception as e:
-                                        last_err = e
-                                        failed_models.add(m)
-                                else:
-                                    raise Exception(str(last_err) if last_err else "No models available (all blacklisted)")
-                            else:
-                                _do_generate_article_external(ids[0], ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model, local_model=local_model, llamacpp_model_id=llamacpp_model_id, user_id=user_id)
-                        except Exception as e:
+                    cur = db_execute(conn, "SELECT prompt, prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
+                    row = dict_row(cur.fetchone())
+                need_prompts = not (row and (row.get("prompt") or "").strip() and (row.get("prompt_image_ingredients") or "").strip())
+                if need_prompts:
+                    try:
+                        _do_generate_prompts(
+                            title_id,
+                            user_id=user_id,
+                            ai_provider=ai_provider,
+                            openai_model=openai_model,
+                            openrouter_model=openrouter_model,
+                            local_model=local_model,
+                            llamacpp_model_id=llamacpp_model_id,
+                        )
+                    except Exception as e:
+                        log.warning("[bulk-group] prompts failed tid=%s: %s", title_id, e)
+                        if mode == "prompts":
                             failed += 1
-                            article_ok = False
-                            log.error("[bulk-group] article A failed tid=%s: %s", ids[0], e)
-                            _app_log("article", False, f"Article A failed: {e}", title_id=ids[0], group_id=group_id, job_id=job_id)
-                            if progress_updater:
-                                pe = _bulk_progress.get(job_id, {})
-                                pe["_last_error"] = str(e)[:200]
-                                pe["error_detail"] = str(e)[:BULK_ERROR_DETAIL_MAX]
-                    if article_ok:
-                        recipe_a = None
-                        with get_connection() as conn:
-                            cur = db_execute(conn, "SELECT recipe FROM article_content WHERE title_id = ? AND language_code = 'en'", (ids[0],))
-                            row = dict_row(cur.fetchone())
-                            if row:
-                                rv = row.get("recipe")
-                                if isinstance(rv, dict):
-                                    recipe_a = rv
-                                elif isinstance(rv, str) and rv.strip():
-                                    try:
-                                        recipe_a = json.loads(rv)
-                                    except json.JSONDecodeError:
-                                        pass
-                        for tid in ids[1:4]:
-                            if job_id and _bulk_cancel.get(job_id):
-                                break
-                            with get_connection() as conn:
-                                if sc == "empty_only" and _title_has_content(conn, tid):
-                                    continue
-                            try:
-                                if openrouter_mode == "rotation_blacklist" and openrouter_models and model_used:
-                                    _do_generate_article_external(tid, recipe_from_a=recipe_a, ai_provider=ai_provider, openrouter_models=[model_used], openai_model=openai_model, openrouter_model=model_used, local_model=local_model, llamacpp_model_id=llamacpp_model_id, user_id=user_id)
-                                elif openrouter_mode == "rotation_blacklist" and openrouter_models:
-                                    available = [m for m in openrouter_models if m not in failed_models]
-                                    if not available:
-                                        raise Exception("No models available (all blacklisted)")
-                                    start_idx = rotation_index[0] % len(available)
-                                    rotation_index[0] += 1
-                                    rotated = available[start_idx:] + available[:start_idx]
-                                    last_err = None
-                                    for m in rotated:
-                                        try:
-                                            _do_generate_article_external(tid, recipe_from_a=recipe_a, ai_provider=ai_provider, openrouter_models=[m], openai_model=openai_model, openrouter_model=m, local_model=local_model, llamacpp_model_id=llamacpp_model_id, user_id=user_id)
-                                            model_used = m
-                                            break
-                                        except Exception as e:
-                                            last_err = e
-                                            failed_models.add(m)
-                                    else:
-                                        raise Exception(str(last_err) if last_err else "No models available (all blacklisted)")
-                                else:
-                                    _do_generate_article_external(tid, recipe_from_a=recipe_a, ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model, local_model=local_model, llamacpp_model_id=llamacpp_model_id, user_id=user_id)
-                            except Exception as e:
-                                failed += 1
-                                article_ok = False
-                                log.error("[bulk-group] article BCD failed tid=%s: %s", tid, e)
-                                _app_log("article", False, f"Article BCD failed: {e}", title_id=tid, group_id=group_id, job_id=job_id)
-                                if progress_updater:
-                                    pe = _bulk_progress.get(job_id, {})
-                                    pe["_last_error"] = str(e)[:200]
-                                    pe["error_detail"] = str(e)[:BULK_ERROR_DETAIL_MAX]
-                                break
-                    if not article_ok:
-                        continue
+                            continue
             if mode in ("images", "all"):
                 if job_id and _bulk_cancel.get(job_id):
                     break
@@ -4802,10 +5326,20 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                     if job_id:
                         _bulk_progress.get(job_id, {})["current_phase"] = 2 if mode == "all" else 1
                     if prompt:
-                        urls, err = generate_4_images(prompt, key_prefix="main_image", cancel_check=cancel_check, user_config=user_config)
+                        delay_sec = user_config.get("image_request_delay_sec", 15)
+                        if need_delay_before_image and delay_sec > 0:
+                            time.sleep(delay_sec)
+                        urls, err = None, None
+                        for attempt in range(1, 4):
+                            urls, err = generate_4_images(prompt, key_prefix="main_image", cancel_check=cancel_check, user_config=user_config)
+                            if not err or err == "Cancelled":
+                                break
+                            if attempt < 3 and ("429" in str(err) or "busy" in str(err).lower()):
+                                time.sleep(18)
                         if err and err == "Cancelled":
                             break
                         if not err:
+                            need_delay_before_image = True
                             from imagine import flip_image_vertical_and_upload
                             BOTTOM_SOURCE_INDEX = (1, 0, 3, 2)
                             bottom_urls = [None] * 4
@@ -4821,24 +5355,157 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                                     if i < len(urls):
                                         main_url = urls[i]
                                         bottom_url = bottom_urls[i] if i < len(bottom_urls) else None
-                                        cur = db_execute(conn, "UPDATE article_content SET main_image = ?, top_image = ?, bottom_image = ? WHERE title_id = ? AND language_code = 'en'", (main_url, main_url, bottom_url, tid))
+                                        cur = db_execute(conn, "UPDATE article_content SET main_image = ?, top_image = ?, bottom_image = ?, status_error = NULL WHERE title_id = ? AND language_code = 'en'", (main_url, main_url, bottom_url, tid))
                                         if cur.rowcount == 0:
                                             db_execute(conn, "INSERT INTO article_content (title_id, language_code, main_image, top_image, bottom_image) VALUES (?, 'en', ?, ?, ?)", (tid, main_url, main_url, bottom_url))
-                    if job_id and mode == "all":
-                        _bulk_progress.get(job_id, {})["current_phase"] = 3
-                    if prompt_ing and not (job_id and _bulk_cancel.get(job_id)):
-                        urls2, err2 = generate_4_images(prompt_ing, key_prefix="ingredient_image", cancel_check=cancel_check, user_config=user_config)
+                        else:
+                            err_msg = f"main_image failed: {err}"
+                            with get_connection() as conn:
+                                for tid in ids[:4]:
+                                    if tid:
+                                        db_execute(conn, "UPDATE article_content SET status_error = ? WHERE title_id = ? AND language_code = 'en'", (err_msg[:500], tid))
+                            if not prompt_ing:
+                                continue
+                    main_ok = False
+                    with get_connection() as conn:
+                        cur = db_execute(conn, "SELECT main_image FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
+                        row = dict_row(cur.fetchone())
+                        main_ok = bool(row and (row.get("main_image") or "").strip().startswith("http"))
+                    if prompt_ing and main_ok and not (job_id and _bulk_cancel.get(job_id)):
+                        delay_sec = user_config.get("image_request_delay_sec", 15)
+                        if need_delay_before_image and delay_sec > 0:
+                            time.sleep(delay_sec)
+                        urls2, err2 = None, None
+                        for attempt in range(1, 4):
+                            urls2, err2 = generate_4_images(prompt_ing, key_prefix="ingredient_image", cancel_check=cancel_check, user_config=user_config)
+                            if not err2 or err2 == "Cancelled":
+                                break
+                            if attempt < 3 and ("429" in str(err2) or "busy" in str(err2).lower()):
+                                time.sleep(18)
                         if err2 == "Cancelled":
                             break
                         if not err2:
+                            need_delay_before_image = True
                             with get_connection() as conn:
                                 for i, tid in enumerate(ids[:4]):
                                     if i < len(urls2):
-                                        cur = db_execute(conn, "UPDATE article_content SET ingredient_image = ? WHERE title_id = ? AND language_code = 'en'", (urls2[i], tid))
+                                        cur = db_execute(conn, "UPDATE article_content SET ingredient_image = ?, status_error = NULL WHERE title_id = ? AND language_code = 'en'", (urls2[i], tid))
                                         if cur.rowcount == 0:
                                             db_execute(conn, "INSERT INTO article_content (title_id, language_code, ingredient_image) VALUES (?, 'en', ?)", (tid, urls2[i]))
                             for tid in ids[:4]:
                                 _update_article_html_images(tid)
+                        else:
+                            err_msg = f"ingredient_image failed: {err2}"
+                            with get_connection() as conn:
+                                for tid in ids[:4]:
+                                    if tid:
+                                        db_execute(conn, "UPDATE article_content SET status_error = ? WHERE title_id = ? AND language_code = 'en'", (err_msg[:500], tid))
+            if mode in ("article", "all"):
+                if job_id and _bulk_cancel.get(job_id):
+                    break
+                with get_connection() as conn:
+                    skip_content = not _row_any_needs_content(conn, title_id, sc)
+                if not skip_content:
+                    if job_id and mode == "all":
+                        _bulk_progress.get(job_id, {})["current_phase"] = 3
+                    with get_connection() as conn:
+                        cur = db_execute(conn, "SELECT main_image, ingredient_image FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
+                        row = dict_row(cur.fetchone())
+                    main_ok = bool(row and (row.get("main_image") or "").strip().startswith("http"))
+                    ing_ok = bool(row and (row.get("ingredient_image") or "").strip().startswith("http"))
+                    if not main_ok or not ing_ok:
+                        if mode == "article":
+                            failed += 1
+                            continue
+                    else:
+                        article_ok = True
+                        with get_connection() as conn:
+                            gen_a = sc != "empty_only" or not _title_has_content(conn, ids[0])
+                        model_used = None
+                        if gen_a:
+                            try:
+                                if openrouter_mode == "rotation_blacklist" and openrouter_models:
+                                    available = [m for m in openrouter_models if m not in failed_models]
+                                    if not available:
+                                        raise Exception("No models available (all blacklisted)")
+                                    start_idx = rotation_index[0] % len(available)
+                                    rotation_index[0] += 1
+                                    rotated = available[start_idx:] + available[:start_idx]
+                                    last_err = None
+                                    for m in rotated:
+                                        try:
+                                            _do_generate_article_external(ids[0], ai_provider=ai_provider, openrouter_models=[m], openai_model=openai_model, openrouter_model=m, local_model=local_model, llamacpp_model_id=llamacpp_model_id, user_id=user_id)
+                                            model_used = m
+                                            break
+                                        except Exception as e:
+                                            last_err = e
+                                            failed_models.add(m)
+                                    else:
+                                        raise Exception(str(last_err) if last_err else "No models available (all blacklisted)")
+                                else:
+                                    _do_generate_article_external(ids[0], ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model, local_model=local_model, llamacpp_model_id=llamacpp_model_id, user_id=user_id)
+                            except Exception as e:
+                                failed += 1
+                                article_ok = False
+                                log.error("[bulk-group] article A failed tid=%s: %s", ids[0], e)
+                                _app_log("article", False, f"Article A failed: {e}", title_id=ids[0], group_id=group_id, job_id=job_id)
+                                if progress_updater:
+                                    pe = _bulk_progress.get(job_id, {})
+                                    pe["_last_error"] = str(e)[:200]
+                                    pe["error_detail"] = str(e)[:BULK_ERROR_DETAIL_MAX]
+                        if article_ok:
+                            recipe_a = None
+                            with get_connection() as conn:
+                                cur = db_execute(conn, "SELECT recipe FROM article_content WHERE title_id = ? AND language_code = 'en'", (ids[0],))
+                                row = dict_row(cur.fetchone())
+                                if row:
+                                    rv = row.get("recipe")
+                                    if isinstance(rv, dict):
+                                        recipe_a = rv
+                                    elif isinstance(rv, str) and rv.strip():
+                                        try:
+                                            recipe_a = json.loads(rv)
+                                        except json.JSONDecodeError:
+                                            pass
+                            for tid in ids[1:4]:
+                                if job_id and _bulk_cancel.get(job_id):
+                                    break
+                                with get_connection() as conn:
+                                    if sc == "empty_only" and _title_has_content(conn, tid):
+                                        continue
+                                try:
+                                    if openrouter_mode == "rotation_blacklist" and openrouter_models and model_used:
+                                        _do_generate_article_external(tid, recipe_from_a=recipe_a, ai_provider=ai_provider, openrouter_models=[model_used], openai_model=openai_model, openrouter_model=model_used, local_model=local_model, llamacpp_model_id=llamacpp_model_id, user_id=user_id)
+                                    elif openrouter_mode == "rotation_blacklist" and openrouter_models:
+                                        available = [m for m in openrouter_models if m not in failed_models]
+                                        if not available:
+                                            raise Exception("No models available (all blacklisted)")
+                                        start_idx = rotation_index[0] % len(available)
+                                        rotation_index[0] += 1
+                                        rotated = available[start_idx:] + available[:start_idx]
+                                        last_err = None
+                                        for m in rotated:
+                                            try:
+                                                _do_generate_article_external(tid, recipe_from_a=recipe_a, ai_provider=ai_provider, openrouter_models=[m], openai_model=openai_model, openrouter_model=m, local_model=local_model, llamacpp_model_id=llamacpp_model_id, user_id=user_id)
+                                                model_used = m
+                                                break
+                                            except Exception as e:
+                                                last_err = e
+                                                failed_models.add(m)
+                                        else:
+                                            raise Exception(str(last_err) if last_err else "No models available (all blacklisted)")
+                                    else:
+                                        _do_generate_article_external(tid, recipe_from_a=recipe_a, ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model, local_model=local_model, llamacpp_model_id=llamacpp_model_id, user_id=user_id)
+                                except Exception as e:
+                                    failed += 1
+                                    article_ok = False
+                                    log.error("[bulk-group] article BCD failed tid=%s: %s", tid, e)
+                                    _app_log("article", False, f"Article BCD failed: {e}", title_id=tid, group_id=group_id, job_id=job_id)
+                                    if progress_updater:
+                                        pe = _bulk_progress.get(job_id, {})
+                                        pe["_last_error"] = str(e)[:200]
+                                        pe["error_detail"] = str(e)[:BULK_ERROR_DETAIL_MAX]
+                                    break
             if mode == "main_image":
                 if job_id and _bulk_cancel.get(job_id):
                     break
@@ -4936,12 +5603,13 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
     return ok, failed
 
 
-def _run_bulk_group_async(job_id, group_id, mode, concurrency_n=1, scope="override", scope_content=None, scope_images=None, scope_pins=None, ai_provider=None, openrouter_models=None, openai_model=None, openrouter_model=None, user_id=None, openrouter_mode=None, local_model=None, llamacpp_model_id=None, group_ids_override=None):
+def _run_bulk_group_async(job_id, group_id, mode, concurrency_n=1, scope="override", scope_content=None, scope_images=None, scope_pins=None, scope_prompts=None, ai_provider=None, openrouter_models=None, openai_model=None, openrouter_model=None, user_id=None, openrouter_mode=None, local_model=None, llamacpp_model_id=None, group_ids_override=None):
     """scope_content/scope_images/scope_pins passed through. When group_ids_override is set, use those groups; else group_id+descendants."""
     try:
         sc = scope_content if scope_content is not None else scope
         si = scope_images if scope_images is not None else scope
         sp = scope_pins if scope_pins is not None else si
+        spr = scope_prompts if scope_prompts is not None else scope
         n = max(1, min(int(concurrency_n), 20))
         if n > 1:
             _progress_lock = threading.Lock()
@@ -4964,17 +5632,21 @@ def _run_bulk_group_async(job_id, group_id, mode, concurrency_n=1, scope="overri
                     tid = row.get("id")
                     if not tid:
                         continue
+                    if mode == "prompts":
+                        if not _row_any_needs_prompts(conn, tid, spr):
+                            continue
                     if mode == "article" and sc == "empty_only" and not _row_any_needs_content(conn, tid, sc):
                         continue
                     if mode == "images" and si == "empty_only" and not _row_any_needs_images(conn, tid, si):
                         continue
                     if mode == "pin_image" and sp == "empty_only" and not _row_any_needs_pins(conn, tid, sp):
                         continue
-                    if mode == "all" and (sc == "empty_only" or si == "empty_only" or sp == "empty_only"):
+                    if mode == "all" and (sc == "empty_only" or si == "empty_only" or sp == "empty_only" or spr == "empty_only"):
+                        needs_prompts = _row_any_needs_prompts(conn, tid, spr)
                         needs_c = sc != "empty_only" or _row_any_needs_content(conn, tid, sc)
                         needs_i = si != "empty_only" or _row_any_needs_images(conn, tid, si)
                         needs_p = sp != "empty_only" or _row_any_needs_pins(conn, tid, sp)
-                        if not needs_c and not needs_i and not needs_p:
+                        if not needs_prompts and not needs_c and not needs_i and not needs_p:
                             continue
                     row_queue.append((group_id, tid, (row.get("title") or "")[:45]))
             total_rows = len(row_queue)
@@ -4999,10 +5671,16 @@ def _run_bulk_group_async(job_id, group_id, mode, concurrency_n=1, scope="overri
                         if kwargs.get("ai_model"):
                             active_items[tid]["ai_model"] = kwargs["ai_model"]
                             tim[letter]["model"] = kwargs["ai_model"]
-            def on_image_progress(tid, sub_phase, status):
+            def on_image_progress(tid, sub_phase, status, **kwargs):
                 with _progress_lock:
                     if tid in active_items and isinstance(active_items[tid], dict):
                         active_items[tid].setdefault("image_progress", {})[sub_phase] = status
+                        if "result" in kwargs:
+                            active_items[tid].setdefault("image_results", {})[sub_phase] = str(kwargs["result"])[:500]
+                        if "attempts" in kwargs:
+                            active_items[tid].setdefault("image_retries", {})[sub_phase] = kwargs["attempts"]
+                        if "retry_errors" in kwargs:
+                            active_items[tid].setdefault("image_retry_errors", {})[sub_phase] = kwargs["retry_errors"]
                         tim = active_items[tid].setdefault("image_timings", {})
                         tim.setdefault(sub_phase, {})
                         if status == "running":
@@ -5030,7 +5708,7 @@ def _run_bulk_group_async(job_id, group_id, mode, concurrency_n=1, scope="overri
             failed_models_lock = threading.Lock() if failed_models is not None else None
             rotation_index = [0] if openrouter_mode == "rotation_blacklist" else None
             with ThreadPoolExecutor(max_workers=n) as ex:
-                futures = {ex.submit(_bulk_run_one_row, tid, mode, job_id, on_active, on_domain_progress, on_image_progress, scope, sc, si, sp, ai_provider, openrouter_models, openai_model, openrouter_model, user_id, openrouter_mode, failed_models, failed_models_lock, rotation_index, local_model, llamacpp_model_id): (group_id, tid, title) for _, tid, title in row_queue}
+                futures = {ex.submit(_bulk_run_one_row, tid, mode, job_id, on_active, on_domain_progress, on_image_progress, scope, sc, si, sp, spr, ai_provider, openrouter_models, openai_model, openrouter_model, user_id, openrouter_mode, failed_models, failed_models_lock, rotation_index, local_model, llamacpp_model_id): (group_id, tid, title) for _, tid, title in row_queue}
                 for future in as_completed(futures):
                     if _bulk_cancel.get(job_id):
                         for f in futures:
@@ -5111,13 +5789,14 @@ def _run_bulk_group_async(job_id, group_id, mode, concurrency_n=1, scope="overri
         _bulk_progress[job_id].update({"status": "error", "message": err, "error_detail": err})
 
 
-def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_progress=None, on_image_progress=None, scope="override", scope_content=None, scope_images=None, scope_pins=None, ai_provider=None, openrouter_models=None, openai_model=None, openrouter_model=None, user_id=None, openrouter_mode=None, failed_models=None, failed_models_lock=None, rotation_index=None, local_model=None, llamacpp_model_id=None):
+def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_progress=None, on_image_progress=None, scope="override", scope_content=None, scope_images=None, scope_pins=None, scope_prompts=None, ai_provider=None, openrouter_models=None, openai_model=None, openrouter_model=None, user_id=None, openrouter_mode=None, failed_models=None, failed_models_lock=None, rotation_index=None, local_model=None, llamacpp_model_id=None):
     """Run bulk for a single row (Domain A title). Returns (ok, failed, reason). When openrouter_mode=rotation_blacklist, uses round-robin over models (each article gets next model) and blacklists failed models."""
     sc = scope_content if scope_content is not None else scope
     si = scope_images if scope_images is not None else scope
     sp = scope_pins if scope_pins is not None else si
+    spr = scope_prompts if scope_prompts is not None else scope
     with get_connection() as conn:
-        if _should_skip_bulk_row(conn, title_id, mode, scope, sc, si, sp):
+        if _should_skip_bulk_row(conn, title_id, mode, scope, sc, si, sp, spr):
             return 0, 0, None
     cancel_check = (lambda: bool(job_id and _bulk_cancel.get(job_id))) if job_id else None
     try:
@@ -5142,18 +5821,167 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
         domain_letters = ",".join("ABCD"[i] for i in range(min(4, len(ids))))
         title_text = (title_row.get("title") or "")[:50] if title_row else ""
         _on_dp = on_domain_progress if callable(on_domain_progress) else (lambda tid, letter, status, **kw: None)
-        _on_img = on_image_progress if callable(on_image_progress) else (lambda tid, sub, status: None)
+        _on_img = on_image_progress if callable(on_image_progress) else (lambda tid, sub, status, **kw: None)
         if on_active:
             domain_title_ids = {"A": ids[0], "B": ids[1] if len(ids) > 1 else None, "C": ids[2] if len(ids) > 2 else None, "D": ids[3] if len(ids) > 3 else None}
             extra = {"domain_url": domain_url, "group_id": gid_val, "domain_letter": domain_letter, "domain_letters": domain_letters, "domain_title_ids": domain_title_ids, "website_template": website_template}
             on_active(title_id, title_text, True, extra)
         try:
+            # Workflow order: prompts (if needed) → images (main, ingredient) → article → pins
+            if mode == "prompts":
+                if cancel_check and cancel_check():
+                    return 0, 0, None
+                try:
+                    _do_generate_prompts(
+                        title_id,
+                        user_id=user_id,
+                        ai_provider=ai_provider,
+                        openai_model=openai_model,
+                        openrouter_model=openrouter_model,
+                        local_model=local_model,
+                        llamacpp_model_id=llamacpp_model_id,
+                    )
+                except Exception as e:
+                    return 0, 1, str(e)[:200]
+            if mode == "all":
+                with get_connection() as conn:
+                    skip_images = _should_skip_images(conn, title_id, si)
+                if not skip_images:
+                    with get_connection() as conn:
+                        cur = db_execute(conn, "SELECT prompt, prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
+                        row = dict_row(cur.fetchone())
+                    need_prompts = not (row and (row.get("prompt") or "").strip() and (row.get("prompt_image_ingredients") or "").strip())
+                    if need_prompts:
+                        try:
+                            _do_generate_prompts(
+                                title_id,
+                                user_id=user_id,
+                                ai_provider=ai_provider,
+                                openai_model=openai_model,
+                                openrouter_model=openrouter_model,
+                                local_model=local_model,
+                                llamacpp_model_id=llamacpp_model_id,
+                            )
+                        except Exception as e:
+                            return 0, 1, str(e)[:200]
+            if mode in ("images", "all"):
+                if cancel_check and cancel_check():
+                    return 0, 0, None
+                with get_connection() as conn:
+                    skip_images = _should_skip_images(conn, title_id, si)
+                if not skip_images:
+                    from imagine import generate_4_images_multi_channel
+                    user_config = get_user_config_for_api(user_id) if user_id else {}
+                    err, err2 = None, None
+                    with get_connection() as conn:
+                        cur = db_execute(conn, "SELECT prompt, prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
+                        row = dict_row(cur.fetchone())
+                    prompt = (row.get("prompt") or "").strip() if row else ""
+                    prompt_ing = (row.get("prompt_image_ingredients") or "").strip() if row else ""
+                    if not prompt and title_text:
+                        prompt = f"Professional food photography of {title_text}, overhead shot, natural lighting, editorial style --v 6.1"
+                    if prompt:
+                        _on_img(title_id, "main", "running")
+                        urls, err, used_ch = None, None, None
+                        max_attempts = 3
+                        attempts_made = 0
+                        retry_errors_main = []
+                        for attempt in range(1, max_attempts + 1):
+                            attempts_made = attempt
+                            urls, err, used_ch = generate_4_images_multi_channel(prompt, key_prefix="main_image", cancel_check=cancel_check, user_config=user_config)
+                            if not err or err == "Cancelled":
+                                break
+                            ch_info = f" [ch ..{used_ch[-4:]}]" if used_ch else ""
+                            retry_errors_main.append(f"Attempt {attempt}{ch_info}: {str(err)[:200]}")
+                            if attempt < max_attempts:
+                                # 429/busy → longer backoff; other errors → shorter backoff before trying next channel
+                                if "429" in str(err) or "busy" in str(err).lower():
+                                    backoff_sec = 30 * attempt  # 30s, 60s
+                                else:
+                                    backoff_sec = 10 * attempt  # 10s, 20s
+                                log.info("[bulk-img] main_image attempt %d/%d failed, waiting %ds...", attempt, max_attempts, backoff_sec)
+                                time.sleep(backoff_sec)
+                        res = urls[0] if (not err and urls) else err
+                        _on_img(title_id, "main", "done" if not err else "error", result=res, attempts=attempts_made, retry_errors=retry_errors_main)
+                        if err == "Cancelled":
+                            return 0, 0, None
+                        if not err:
+                            from imagine import flip_image_vertical_and_upload
+                            BOTTOM_SOURCE_INDEX = (1, 0, 3, 2)
+                            bottom_urls = [None] * 4
+                            for i in range(min(4, len(urls))):
+                                src = BOTTOM_SOURCE_INDEX[i]
+                                if src < len(urls) and urls[src]:
+                                    try:
+                                        bottom_urls[i] = flip_image_vertical_and_upload(urls[src], "bottom_image", user_config=user_config)
+                                    except Exception:
+                                        bottom_urls[i] = None
+                            with get_connection() as conn:
+                                for i, tid in enumerate(ids[:4]):
+                                    if i < len(urls):
+                                        main_url = urls[i]
+                                        bottom_url = bottom_urls[i] if i < len(bottom_urls) else None
+                                        cur = db_execute(conn, "UPDATE article_content SET main_image = ?, top_image = ?, bottom_image = ? WHERE title_id = ? AND language_code = 'en'", (main_url, main_url, bottom_url, tid))
+                                        if cur.rowcount == 0:
+                                            db_execute(conn, "INSERT INTO article_content (title_id, language_code, main_image, top_image, bottom_image) VALUES (?, 'en', ?, ?, ?)", (tid, main_url, main_url, bottom_url))
+                    if not prompt_ing and title_text:
+                        prompt_ing = f"Flat-lay of ingredients for {title_text}, white surface, natural light, editorial style --v 6.1"
+                    if prompt_ing and not (cancel_check and cancel_check()):
+                        delay_sec = user_config.get("image_request_delay_sec", 15)
+                        if delay_sec > 0:
+                            time.sleep(delay_sec)
+                        _on_img(title_id, "ingredient", "running")
+                        urls2, err2, used_ch2 = None, None, None
+                        max_attempts = 3
+                        attempts_made = 0
+                        retry_errors_ing = []
+                        for attempt in range(1, max_attempts + 1):
+                            attempts_made = attempt
+                            urls2, err2, used_ch2 = generate_4_images_multi_channel(prompt_ing, key_prefix="ingredient_image", cancel_check=cancel_check, user_config=user_config)
+                            if not err2 or err2 == "Cancelled":
+                                break
+                            ch_info2 = f" [ch ..{used_ch2[-4:]}]" if used_ch2 else ""
+                            retry_errors_ing.append(f"Attempt {attempt}{ch_info2}: {str(err2)[:200]}")
+                            if attempt < max_attempts:
+                                # 429/busy → longer backoff; other errors → shorter backoff before trying next channel
+                                if "429" in str(err2) or "busy" in str(err2).lower():
+                                    backoff_sec = 30 * attempt  # 30s, 60s
+                                else:
+                                    backoff_sec = 10 * attempt  # 10s, 20s
+                                log.info("[bulk-img] ingredient_image attempt %d/%d failed, waiting %ds...", attempt, max_attempts, backoff_sec)
+                                time.sleep(backoff_sec)
+                        res2 = urls2[0] if (not err2 and urls2) else err2
+                        _on_img(title_id, "ingredient", "done" if not err2 else "error", result=res2, attempts=attempts_made, retry_errors=retry_errors_ing)
+                        if err2 == "Cancelled":
+                            return 0, 0, None
+                        if not err2:
+                            with get_connection() as conn:
+                                for i, tid in enumerate(ids[:4]):
+                                    if i < len(urls2):
+                                        cur = db_execute(conn, "UPDATE article_content SET ingredient_image = ? WHERE title_id = ? AND language_code = 'en'", (urls2[i], tid))
+                                        if cur.rowcount == 0:
+                                            db_execute(conn, "INSERT INTO article_content (title_id, language_code, ingredient_image) VALUES (?, 'en', ?)", (tid, urls2[i]))
+                    for tid in ids[:4]:
+                        _update_article_html_images(tid)
+                    if mode == "images" and (err or err2):
+                        if err and err2:
+                            return 0, 1, f"main_image: {err}; ingredient_image: {err2}"[:200]
+                        return 0, 1, (err or err2)[:200]
             if mode in ("article", "all"):
                 if cancel_check and cancel_check():
                     return 0, 0, None
                 with get_connection() as conn:
                     skip_content = not _row_any_needs_content(conn, title_id, sc)
                 if not skip_content:
+                    with get_connection() as conn:
+                        cur = db_execute(conn, "SELECT main_image, ingredient_image FROM article_content WHERE title_id = ? AND language_code = 'en'", (ids[0],))
+                        ac = dict_row(cur.fetchone())
+                    main_ok = bool(ac and (ac.get("main_image") or "").strip().startswith("http"))
+                    ing_ok = bool(ac and (ac.get("ingredient_image") or "").strip().startswith("http"))
+                    if not main_ok:
+                        return 0, 1, "Images required for content; main image generation failed"
+                    if not ing_ok:
+                        log.warning("[bulk] tid=%s ingredient_image missing but main_image OK — proceeding with content generation", ids[0])
                     with get_connection() as conn:
                         gen_a = sc != "empty_only" or not _title_has_content(conn, ids[0])
                     model_used = None
@@ -5256,63 +6084,6 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
                                 _on_dp(title_id, letter, "done", ai_model=openrouter_model)
                         except Exception as e:
                             return 0, 1, str(e)[:200]
-            if mode in ("images", "all"):
-                if cancel_check and cancel_check():
-                    return 0, 0, None
-                with get_connection() as conn:
-                    skip_images = _should_skip_images(conn, title_id, si)
-                if not skip_images:
-                    from imagine import generate_4_images
-                    user_config = get_user_config_for_api(user_id) if user_id else {}
-                    with get_connection() as conn:
-                        cur = db_execute(conn, "SELECT prompt, prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
-                        row = dict_row(cur.fetchone())
-                    prompt = (row.get("prompt") or "").strip() if row else ""
-                    prompt_ing = (row.get("prompt_image_ingredients") or "").strip() if row else ""
-                    if not prompt and title_text:
-                        prompt = f"Professional food photography of {title_text}, overhead shot, natural lighting, editorial style --v 6.1"
-                    if prompt:
-                        _on_img(title_id, "main", "running")
-                        urls, err = generate_4_images(prompt, key_prefix="main_image", cancel_check=cancel_check, user_config=user_config)
-                        _on_img(title_id, "main", "done" if not err else "error")
-                        if err == "Cancelled":
-                            return 0, 0, None
-                        if not err:
-                            from imagine import flip_image_vertical_and_upload
-                            BOTTOM_SOURCE_INDEX = (1, 0, 3, 2)
-                            bottom_urls = [None] * 4
-                            for i in range(min(4, len(urls))):
-                                src = BOTTOM_SOURCE_INDEX[i]
-                                if src < len(urls) and urls[src]:
-                                    try:
-                                        bottom_urls[i] = flip_image_vertical_and_upload(urls[src], "bottom_image", user_config=user_config)
-                                    except Exception:
-                                        bottom_urls[i] = None
-                            with get_connection() as conn:
-                                for i, tid in enumerate(ids[:4]):
-                                    if i < len(urls):
-                                        main_url = urls[i]
-                                        bottom_url = bottom_urls[i] if i < len(bottom_urls) else None
-                                        cur = db_execute(conn, "UPDATE article_content SET main_image = ?, top_image = ?, bottom_image = ? WHERE title_id = ? AND language_code = 'en'", (main_url, main_url, bottom_url, tid))
-                                        if cur.rowcount == 0:
-                                            db_execute(conn, "INSERT INTO article_content (title_id, language_code, main_image, top_image, bottom_image) VALUES (?, 'en', ?, ?, ?)", (tid, main_url, main_url, bottom_url))
-                    if not prompt_ing and title_text:
-                        prompt_ing = f"Flat-lay of ingredients for {title_text}, white surface, natural light, editorial style --v 6.1"
-                    if prompt_ing and not (cancel_check and cancel_check()):
-                        _on_img(title_id, "ingredient", "running")
-                        urls2, err2 = generate_4_images(prompt_ing, key_prefix="ingredient_image", cancel_check=cancel_check, user_config=user_config)
-                        _on_img(title_id, "ingredient", "done" if not err2 else "error")
-                        if err2 == "Cancelled":
-                            return 0, 0, None
-                        if not err2:
-                            with get_connection() as conn:
-                                for i, tid in enumerate(ids[:4]):
-                                    if i < len(urls2):
-                                        cur = db_execute(conn, "UPDATE article_content SET ingredient_image = ? WHERE title_id = ? AND language_code = 'en'", (urls2[i], tid))
-                                        if cur.rowcount == 0:
-                                            db_execute(conn, "INSERT INTO article_content (title_id, language_code, ingredient_image) VALUES (?, 'en', ?)", (tid, urls2[i]))
-                    for tid in ids[:4]:
-                        _update_article_html_images(tid)
             if mode in ("pin_image", "all"):
                 if cancel_check and cancel_check():
                     return 0, 0, None
@@ -5356,7 +6127,7 @@ def _run_bulk_all_groups_async(job_id, mode, concurrency_type="row", concurrency
             _bulk_progress[job_id].update({"message": f"Running {n} groups in parallel...", "total_groups": num_groups})
             grp_done = [0]
             with ThreadPoolExecutor(max_workers=n) as ex:
-                futures = {ex.submit(_bulk_run_one_group, gid, mode, None, job_id, scope, scope_content, scope_images, scope_pins, ai_provider, openrouter_models, openai_model, openrouter_model, user_id, openrouter_mode, local_model): gid for gid in group_ids}
+                futures = {ex.submit(_bulk_run_one_group, gid, mode, None, job_id, scope, scope_content, scope_images, scope_pins, scope, ai_provider, openrouter_models, openai_model, openrouter_model, user_id, openrouter_mode, local_model): gid for gid in group_ids}
                 for future in as_completed(futures):
                     if _bulk_cancel.get(job_id):
                         for f in futures:
@@ -5430,10 +6201,14 @@ def _run_bulk_all_groups_async(job_id, mode, concurrency_type="row", concurrency
                         if kwargs.get("ai_model"):
                             active_items[tid]["ai_model"] = kwargs["ai_model"]
                             tim[letter]["model"] = kwargs["ai_model"]
-            def on_image_progress(tid, sub_phase, status):
+            def on_image_progress(tid, sub_phase, status, **kwargs):
                 with _progress_lock:
                     if tid in active_items and isinstance(active_items[tid], dict):
                         active_items[tid].setdefault("image_progress", {})[sub_phase] = status
+                        if "result" in kwargs:
+                            active_items[tid].setdefault("image_results", {})[sub_phase] = str(kwargs["result"])[:500]
+                        if "attempts" in kwargs:
+                            active_items[tid].setdefault("image_retries", {})[sub_phase] = kwargs["attempts"]
                         tim = active_items[tid].setdefault("image_timings", {})
                         tim.setdefault(sub_phase, {})
                         if status == "running":
@@ -5467,7 +6242,7 @@ def _run_bulk_all_groups_async(job_id, mode, concurrency_type="row", concurrency
             failed_models_lock = threading.Lock() if failed_models is not None else None
             rotation_index = [0] if openrouter_mode == "rotation_blacklist" else None
             with ThreadPoolExecutor(max_workers=n) as ex:
-                futures = {ex.submit(_bulk_run_one_row, tid, mode, job_id, on_active, on_domain_progress, on_image_progress, scope, scope_content, scope_images, scope_pins, ai_provider, openrouter_models, openai_model, openrouter_model, user_id, openrouter_mode, failed_models, failed_models_lock, rotation_index, local_model, llamacpp_model_id): (gid, tid, title) for gid, tid, title in row_queue}
+                futures = {ex.submit(_bulk_run_one_row, tid, mode, job_id, on_active, on_domain_progress, on_image_progress, scope, scope_content, scope_images, scope_pins, scope, ai_provider, openrouter_models, openai_model, openrouter_model, user_id, openrouter_mode, failed_models, failed_models_lock, rotation_index, local_model, llamacpp_model_id): (gid, tid, title) for gid, tid, title in row_queue}
                 for future in as_completed(futures):
                     if _bulk_cancel.get(job_id):
                         for f in futures:
@@ -5807,7 +6582,7 @@ def api_bulk_deploy_group():
 @app.route("/api/bulk-run-group", methods=["POST"])
 @login_required
 def api_bulk_run_group():
-    """Run bulk-run for all Domain A rows in a group. scope_content/scope_images/scope_pins for content vs images vs pins. Uses API keys from Profile."""
+    """Run bulk-run for all Domain A rows in a group. scope_content/scope_images/scope_pins/scope_prompts for content vs images vs pins vs prompts. Uses API keys from Profile."""
     req = {**(request.get_json(silent=True) or {}), **dict(request.args)}
     group_id = req.get("group_id")
     mode = str(req.get("mode", "all")).lower()
@@ -5829,9 +6604,10 @@ def api_bulk_run_group():
     scope_content = str(req.get("scope_content") or scope).lower()
     scope_images = str(req.get("scope_images") or scope).lower()
     scope_pins = str(req.get("scope_pins") or scope_images).lower()
-    for s in (scope, scope_content, scope_images, scope_pins):
+    scope_prompts = str(req.get("scope_prompts") or scope).lower()
+    for s in (scope, scope_content, scope_images, scope_pins, scope_prompts):
         if s not in ("override", "empty_only"):
-            scope = scope_content = scope_images = scope_pins = "override"
+            scope = scope_content = scope_images = scope_pins = scope_prompts = "override"
             break
     async_mode = str(req.get("async", "") or "").lower() in ("1", "true", "yes")
     # Concurrency can be in query string (GET-style POST) or body; prefer args for URL params
@@ -5861,9 +6637,9 @@ def api_bulk_run_group():
         _bulk_progress[job_id] = {"status": "running", "message": f"Starting... (up to {concurrency_n} rows in parallel)" if concurrency_n > 1 else "Starting...", "current_title": "", "type": "group", "group_id": group_id, "mode": mode, "domain_ids": domain_ids, "created_at": time.time(), "steps": [], "current_phase": 1, "total_phases": total_phases, "concurrency_n": concurrency_n, "request_url": request.url, "ai_provider": ai_provider or "openai", "ai_model": openrouter_model or openai_model or ""}
         user = get_current_user()
         user_id = user["id"] if user else None
-        threading.Thread(target=_run_bulk_group_async, args=(job_id, group_id, mode, concurrency_n, scope, scope_content, scope_images, scope_pins, ai_provider, openrouter_models, openai_model, openrouter_model, user_id, openrouter_mode, local_model, llamacpp_model_id, group_ids_override), daemon=True).start()
+        threading.Thread(target=_run_bulk_group_async, args=(job_id, group_id, mode, concurrency_n, scope, scope_content, scope_images, scope_pins, scope_prompts, ai_provider, openrouter_models, openai_model, openrouter_model, user_id, openrouter_mode, local_model, llamacpp_model_id, group_ids_override), daemon=True).start()
         return jsonify({"success": True, "job_id": job_id})
-    ok, failed = _bulk_run_one_group(group_id, mode, scope=scope, scope_content=scope_content, scope_images=scope_images, scope_pins=scope_pins, ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model, openrouter_mode=openrouter_mode, local_model=local_model, llamacpp_model_id=llamacpp_model_id, group_ids_override=group_ids_override)
+    ok, failed = _bulk_run_one_group(group_id, mode, scope=scope, scope_content=scope_content, scope_images=scope_images, scope_pins=scope_pins, scope_prompts=scope_prompts, ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model, openrouter_mode=openrouter_mode, local_model=local_model, llamacpp_model_id=llamacpp_model_id, group_ids_override=group_ids_override)
     if ok == 0 and failed == 0:
         return jsonify({"success": False, "error": "No Domain A titles in group"}), 400
     return jsonify({"success": True, "message": f"{ok} rows done" + (f", {failed} failed" if failed else "")})
@@ -6060,7 +6836,7 @@ def api_bulk_group_counts():
                     requested = [int(x.strip()) for x in group_ids_param.split(",") if x.strip()]
                     all_gids = [x for x in requested if x in allowed_gids]
                     if not all_gids:
-                        return jsonify({"total": 0, "no_html_css": 0, "no_images": 0, "no_pins": 0, "with_html": 0, "rows_needs_content": 0, "rows_needs_images": 0, "rows_needs_pins": 0})
+                        return jsonify({"total": 0, "no_html_css": 0, "no_images": 0, "no_pins": 0, "with_html": 0, "rows_needs_content": 0, "rows_needs_images": 0, "rows_needs_pins": 0, "rows_needs_prompts": 0})
                 except ValueError:
                     all_gids = allowed_gids
             else:
@@ -6186,8 +6962,17 @@ def api_bulk_group_counts():
                 tid = dict_row(r).get("id")
                 if tid and _row_any_needs_pins(conn, tid, "empty_only"):
                     rows_needs_pins += 1
+            rows_needs_prompts = 0
+            cur4 = db_execute(conn, f"""SELECT MIN(t.id) as id FROM titles t JOIN domains d ON t.domain_id = d.id
+                WHERE COALESCE(t.group_id, d.group_id) IN ({placeholders})
+                GROUP BY COALESCE(t.group_id, d.group_id), t.title
+                ORDER BY MIN(t.id)""", tuple(all_gids))
+            for r in cur4.fetchall():
+                tid = dict_row(r).get("id")
+                if tid and _row_any_needs_prompts(conn, tid, "empty_only"):
+                    rows_needs_prompts += 1
             
-        return jsonify({"total": total, "no_html_css": no_html_css, "no_images": no_images, "no_pins": no_pins, "with_html": with_html, "rows_needs_content": rows_needs_content, "rows_needs_images": rows_needs_images, "rows_needs_pins": rows_needs_pins})
+        return jsonify({"total": total, "no_html_css": no_html_css, "no_images": no_images, "no_pins": no_pins, "with_html": with_html, "rows_needs_content": rows_needs_content, "rows_needs_images": rows_needs_images, "rows_needs_pins": rows_needs_pins, "rows_needs_prompts": rows_needs_prompts})
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -6338,6 +7123,7 @@ def api_bulk_run_filtered():
         return jsonify({"success": False, "error": "Only async mode supported for filtered runs"}), 400
     
     job_id = str(uuid.uuid4())
+    need_delay_before_image = False
     _bulk_progress[job_id] = {
         "status": "running",
         "message": "Starting...",
@@ -6352,6 +7138,7 @@ def api_bulk_run_filtered():
     }
     
     def task():
+        nonlocal need_delay_before_image
         try:
             total_ok, total_failed = 0, 0
             for idx, tid in enumerate(title_ids):
@@ -6368,45 +7155,73 @@ def api_bulk_run_filtered():
                 _bulk_progress[job_id]["message"] = f"Processing {idx+1}/{len(title_ids)}"
                 
                 try:
-                    if mode == "article":
+                    if mode == "prompts":
+                        _do_generate_prompts(tid, user_id=user_id, ai_provider=ai_provider, openai_model=openai_model, openrouter_model=openrouter_model, local_model=local_model, llamacpp_model_id=llamacpp_model_id)
+                    elif mode == "article":
                         _do_generate_article_external(tid, ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model, local_model=local_model, llamacpp_model_id=llamacpp_model_id, user_id=user_id)
+                    elif mode == "pin_image":
+                        _do_generate_pin_image(tid, user_id=user_id)
                     elif mode == "main_image":
                         from imagine import generate_4_images
+                        user_config = get_user_config_for_api(user_id) or {}
+                        delay_sec = user_config.get("image_request_delay_sec", 15)
+                        if need_delay_before_image and delay_sec > 0:
+                            time.sleep(delay_sec)
                         with get_connection() as conn:
                             cur = db_execute(conn, "SELECT prompt FROM article_content WHERE title_id = ? AND language_code = 'en'", (tid,))
                             row = dict_row(cur.fetchone())
                         prompt = (row.get("prompt") or "").strip() if row else ""
                         if prompt:
-                            urls, err = generate_4_images(prompt, key_prefix="main_image")
+                            urls, err = generate_4_images(prompt, key_prefix="main_image", user_config=user_config)
                             if not err and urls:
+                                need_delay_before_image = True
                                 with get_connection() as conn:
                                     db_execute(conn, "UPDATE article_content SET main_image = ?, top_image = ? WHERE title_id = ? AND language_code = 'en'", (urls[0], urls[0], tid))
                     elif mode == "ingredient_image":
                         from imagine import generate_4_images
+                        user_config = get_user_config_for_api(user_id) or {}
+                        delay_sec = user_config.get("image_request_delay_sec", 15)
+                        if need_delay_before_image and delay_sec > 0:
+                            time.sleep(delay_sec)
                         with get_connection() as conn:
                             cur = db_execute(conn, "SELECT prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (tid,))
                             row = dict_row(cur.fetchone())
                         prompt = (row.get("prompt_image_ingredients") or "").strip() if row else ""
                         if prompt:
-                            urls, err = generate_4_images(prompt, key_prefix="ingredient_image")
+                            urls, err = generate_4_images(prompt, key_prefix="ingredient_image", user_config=user_config)
                             if not err and urls:
+                                need_delay_before_image = True
                                 with get_connection() as conn:
                                     db_execute(conn, "UPDATE article_content SET ingredient_image = ? WHERE title_id = ? AND language_code = 'en'", (urls[0], tid))
                     elif mode == "images":
                         from imagine import generate_4_images
+                        user_config = get_user_config_for_api(user_id) or {}
+                        delay_sec = user_config.get("image_request_delay_sec", 15)
+                        if need_delay_before_image and delay_sec > 0:
+                            time.sleep(delay_sec)
                         with get_connection() as conn:
                             cur = db_execute(conn, "SELECT prompt, prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (tid,))
                             row = dict_row(cur.fetchone())
                         prompt = (row.get("prompt") or "").strip() if row else ""
                         prompt_ing = (row.get("prompt_image_ingredients") or "").strip() if row else ""
                         if prompt:
-                            urls, err = generate_4_images(prompt, key_prefix="main_image")
+                            urls, err = generate_4_images(prompt, key_prefix="main_image", user_config=user_config)
+                            if err and ("429" in str(err) or "busy" in str(err).lower()):
+                                time.sleep(12)
+                                urls, err = generate_4_images(prompt, key_prefix="main_image", user_config=user_config)
                             if not err and urls:
+                                need_delay_before_image = True
                                 with get_connection() as conn:
                                     db_execute(conn, "UPDATE article_content SET main_image = ?, top_image = ? WHERE title_id = ? AND language_code = 'en'", (urls[0], urls[0], tid))
                         if prompt_ing:
-                            urls2, err2 = generate_4_images(prompt_ing, key_prefix="ingredient_image")
+                            if need_delay_before_image and delay_sec > 0:
+                                time.sleep(delay_sec)
+                            urls2, err2 = generate_4_images(prompt_ing, key_prefix="ingredient_image", user_config=user_config)
+                            if err2 and ("429" in str(err2) or "busy" in str(err2).lower()):
+                                time.sleep(12)
+                                urls2, err2 = generate_4_images(prompt_ing, key_prefix="ingredient_image", user_config=user_config)
                             if not err2 and urls2:
+                                need_delay_before_image = True
                                 with get_connection() as conn:
                                     db_execute(conn, "UPDATE article_content SET ingredient_image = ? WHERE title_id = ? AND language_code = 'en'", (urls2[0], tid))
                     
@@ -6931,8 +7746,84 @@ def _update_article_html_pin_image(title_id):
         log.info("[inject-pin-image] Updated %s with pin_image for title_id=%s", ", ".join([u.split("=")[0].strip() for u in updates]), title_id)
 
 
+def _do_generate_prompts(title_id, user_id=None, ai_provider=None, openai_model=None, openrouter_model=None, local_model=None, llamacpp_model_id=None):
+    """Generate prompt and prompt_image_ingredients for a recipe title via LLM. Uses user Profile API keys when user_id given.
+    Stores in article_content for Domain A and copies to B,C,D."""
+    with get_connection() as conn:
+        cur = db_execute(conn, "SELECT t.id, t.title, t.group_id, d.group_id as d_group_id, d.domain_index FROM titles t JOIN domains d ON t.domain_id = d.id WHERE t.id = ?", (title_id,))
+        t = dict_row(cur.fetchone())
+        if not t or t.get("domain_index") != 0:
+            raise ValueError("Use Domain A title")
+        title_text = (t.get("title") or "").strip()
+        gid_val = t.get("group_id") if t.get("group_id") is not None else t.get("d_group_id")
+    if not title_text:
+        raise ValueError("Title is empty")
+    user_config = get_user_config_for_api(user_id) if user_id else {}
+    provider = (ai_provider or "").strip().lower() or (user_config.get("ai_provider") or "openrouter")
+    out = generate_image_prompts_for_title(
+        title_text,
+        user_config=user_config,
+        ai_provider=provider,
+        openai_model=openai_model or user_config.get("openai_model"),
+        openrouter_model=openrouter_model or user_config.get("openrouter_model"),
+        local_model=local_model or user_config.get("local_models", "qwen3:8b").split(",")[0].strip() if user_config.get("local_models") else None,
+        llamacpp_model_id=llamacpp_model_id if llamacpp_model_id is not None else user_config.get("llamacpp_model_id"),
+    )
+    if out.get("error"):
+        raise ValueError(out["error"])
+    prompt = (out.get("prompt") or "").strip()
+    prompt_ing = (out.get("prompt_image_ingredients") or "").strip()
+    if not prompt or len(prompt) < 25:
+        prompt = f"Professional food photography of {title_text}, overhead shot, natural lighting, editorial style --v 6.1"
+    if not prompt_ing or len(prompt_ing) < 25:
+        prompt_ing = f"Flat-lay of ingredients for {title_text}, white surface, natural light, editorial style --v 6.1"
+    with get_connection() as conn:
+        cur = db_execute(conn, """SELECT t.id FROM titles t JOIN domains d ON t.domain_id = d.id
+            WHERE COALESCE(t.group_id, d.group_id) = ? AND t.title = ? AND d.domain_index IN (0,1,2,3) ORDER BY d.domain_index""", (gid_val, title_text))
+        title_ids = [dict_row(r).get("id") for r in cur.fetchall()]
+        for tid in title_ids:
+            if tid:
+                cur2 = db_execute(conn, "SELECT id FROM article_content WHERE title_id = ? AND language_code = 'en'", (tid,))
+                if cur2.fetchone():
+                    db_execute(conn, "UPDATE article_content SET prompt = ?, prompt_image_ingredients = ?, status_error = NULL WHERE title_id = ? AND language_code = 'en'", (prompt, prompt_ing, tid))
+                else:
+                    db_execute(conn, "INSERT INTO article_content (title_id, language_code, prompt, prompt_image_ingredients) VALUES (?, 'en', ?, ?)", (tid, prompt, prompt_ing))
+    return {"prompt": prompt, "prompt_image_ingredients": prompt_ing}
+
+
+@app.route("/api/generate-prompts", methods=["POST"])
+@login_required
+def api_generate_prompts():
+    """Generate prompt and prompt_image_ingredients for a recipe title (Domain A). First step before images."""
+    user = get_current_user()
+    user_id = user["id"]
+    has_keys, error_msg = check_user_has_required_keys(user_id, "content")
+    if not has_keys:
+        return jsonify({"success": False, "error": error_msg}), 403
+    data = request.get_json(silent=True) or request.form or {}
+    title_id = data.get("title_id") or request.args.get("title_id")
+    async_mode = str(data.get("async") or request.args.get("async", "") or "").lower() in ("1", "true", "yes")
+    if not title_id:
+        return jsonify({"success": False, "error": "title_id required"}), 400
+    title_id = int(title_id)
+    if async_mode:
+        job_id = str(uuid.uuid4())
+        _bulk_progress[job_id] = {"status": "running", "message": "Generating prompts...", "current_title": "", "type": "single", "action": "Prompts", "title_id": title_id, "created_at": time.time()}
+        def task():
+            try:
+                _do_generate_prompts(title_id, user_id=user_id)
+                _bulk_progress[job_id].update({"status": "done", "message": "Prompts generated"})
+            except Exception as e:
+                err = str(e)[:BULK_ERROR_DETAIL_MAX]
+                _bulk_progress[job_id].update({"status": "error", "message": err, "error_detail": err})
+        threading.Thread(target=task, daemon=True).start()
+        return jsonify({"success": True, "job_id": job_id})
+    _do_generate_prompts(title_id, user_id=user_id)
+    return jsonify({"success": True, "message": "Prompts generated"})
+
+
 def _do_generate_main_image(title_id, user_id=None):
-    """Core logic for generate-main-image. Raises on error."""
+    """Core logic for generate-main-image. Retries once on failure. Sets status_error if fails after retry."""
     from imagine import generate_4_images
     with get_connection() as conn:
         cur = db_execute(conn, "SELECT t.id, t.title, t.group_id, d.domain_index FROM titles t JOIN domains d ON t.domain_id = d.id WHERE t.id = ?", (title_id,))
@@ -6943,15 +7834,22 @@ def _do_generate_main_image(title_id, user_id=None):
         row = dict_row(cur.fetchone())
         prompt = (row.get("prompt") or "").strip() if row else ""
         if not prompt:
-            raise ValueError("Generate (A) first to get prompt")
+            raise ValueError("Generate prompts first")
         cur = db_execute(conn, """SELECT t.id FROM titles t JOIN domains d ON t.domain_id = d.id
             WHERE t.group_id = ? AND t.title = ? AND d.domain_index IN (0,1,2,3) ORDER BY d.domain_index""", (t["group_id"], t["title"]))
         title_ids = [dict_row(r).get("id") for r in cur.fetchall()]
     if len(title_ids) < 1:
-        raise ValueError("No titles found for this recipe in the group. Generate article (A) first.")
+        raise ValueError("No titles found for this recipe in the group.")
     user_config = get_user_config_for_api(user_id) if user_id else {}
     urls, err = generate_4_images(prompt, key_prefix="main_image", user_config=user_config)
     if err:
+        urls, err = generate_4_images(prompt, key_prefix="main_image", user_config=user_config)  # retry once
+    if err:
+        err_msg = f"main_image failed: {err}"
+        with get_connection() as conn:
+            for tid in title_ids[:4]:
+                if tid:
+                    db_execute(conn, "UPDATE article_content SET status_error = ? WHERE title_id = ? AND language_code = 'en'", (err_msg[:500], tid))
         raise ValueError(err)
     from imagine import flip_image_vertical_and_upload
     BOTTOM_SOURCE_INDEX = (1, 0, 3, 2)
@@ -6968,7 +7866,7 @@ def _do_generate_main_image(title_id, user_id=None):
             if i < len(urls):
                 main_url = urls[i]
                 bottom_url = bottom_urls[i] if i < len(bottom_urls) else None
-                cur = db_execute(conn, "UPDATE article_content SET main_image = ?, top_image = ?, bottom_image = ? WHERE title_id = ? AND language_code = 'en'", (main_url, main_url, bottom_url, tid))
+                cur = db_execute(conn, "UPDATE article_content SET main_image = ?, top_image = ?, bottom_image = ?, status_error = NULL WHERE title_id = ? AND language_code = 'en'", (main_url, main_url, bottom_url, tid))
                 if cur.rowcount == 0:
                     db_execute(conn, "INSERT INTO article_content (title_id, language_code, main_image, top_image, bottom_image) VALUES (?, 'en', ?, ?, ?)", (tid, main_url, main_url, bottom_url))
     for tid in title_ids[:4]:
@@ -7016,31 +7914,41 @@ def api_generate_main_image():
 
 
 def _do_generate_ingredient_image(title_id, user_id=None):
-    """Core logic for generate-ingredient-image. Raises on error."""
+    """Core logic for generate-ingredient-image. Requires main_image first. Retries once. Sets status_error if fails."""
     from imagine import generate_4_images
     with get_connection() as conn:
         cur = db_execute(conn, "SELECT t.id, t.title, t.group_id, d.domain_index FROM titles t JOIN domains d ON t.domain_id = d.id WHERE t.id = ?", (title_id,))
         t = dict_row(cur.fetchone())
         if not t or t.get("domain_index") != 0:
             raise ValueError("Use Domain A title")
-        cur = db_execute(conn, "SELECT prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
+        cur = db_execute(conn, "SELECT prompt_image_ingredients, main_image FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
         row = dict_row(cur.fetchone())
         prompt = (row.get("prompt_image_ingredients") or "").strip() if row else ""
+        main_img = (row.get("main_image") or "").strip() if row else ""
         if not prompt:
-            raise ValueError("Generate (A) first to get prompt_image_ingredients")
+            raise ValueError("Generate prompts first")
+        if not main_img or not main_img.startswith("http"):
+            raise ValueError("Generate main image first")
         cur = db_execute(conn, """SELECT t.id FROM titles t JOIN domains d ON t.domain_id = d.id
             WHERE t.group_id = ? AND t.title = ? AND d.domain_index IN (0,1,2,3) ORDER BY d.domain_index""", (t["group_id"], t["title"]))
         title_ids = [dict_row(r).get("id") for r in cur.fetchall()]
     if len(title_ids) < 1:
-        raise ValueError("No titles found for this recipe in the group. Generate article (A) first.")
+        raise ValueError("No titles found for this recipe in the group.")
     user_config = get_user_config_for_api(user_id) if user_id else {}
     urls, err = generate_4_images(prompt, key_prefix="ingredient_image", user_config=user_config)
     if err:
+        urls, err = generate_4_images(prompt, key_prefix="ingredient_image", user_config=user_config)  # retry once
+    if err:
+        err_msg = f"ingredient_image failed: {err}"
+        with get_connection() as conn:
+            for tid in title_ids[:4]:
+                if tid:
+                    db_execute(conn, "UPDATE article_content SET status_error = ? WHERE title_id = ? AND language_code = 'en'", (err_msg[:500], tid))
         raise ValueError(err)
     with get_connection() as conn:
         for i, tid in enumerate(title_ids[:4]):
             if i < len(urls):
-                cur = db_execute(conn, "UPDATE article_content SET ingredient_image = ? WHERE title_id = ? AND language_code = 'en'", (urls[i], tid))
+                cur = db_execute(conn, "UPDATE article_content SET ingredient_image = ?, status_error = NULL WHERE title_id = ? AND language_code = 'en'", (urls[i], tid))
                 if cur.rowcount == 0:
                     db_execute(conn, "INSERT INTO article_content (title_id, language_code, ingredient_image) VALUES (?, 'en', ?)", (tid, urls[i]))
     for tid in title_ids[:4]:
@@ -7099,11 +8007,15 @@ def _do_generate_pin_image(title_id, domain_template_id=None, user_id=None):
             templates = [dict_row(r) for r in cur.fetchall()]
             if not templates:
                 raise ValueError("No pin templates for this domain. Add templates in Admin → Domains → Templates.")
-            last_idx = int(t.get("last_pin_template_index") or 0)
-            idx = last_idx % len(templates)
-            template_row = templates[idx]
-            next_idx = (last_idx + 1) % len(templates)
-            db_execute(conn, "UPDATE domains SET last_pin_template_index = ? WHERE id = ?", (next_idx, domain_id))
+            # Lock per domain so parallel bulk runs rotate correctly: pin 1, pin 2, pin 1, pin 2...
+            with _get_pin_template_lock(domain_id):
+                cur = db_execute(conn, "SELECT last_pin_template_index FROM domains WHERE id = ?", (domain_id,))
+                drow = dict_row(cur.fetchone())
+                last_idx = int(drow.get("last_pin_template_index") or 0)
+                idx = last_idx % len(templates)
+                template_row = templates[idx]
+                next_idx = last_idx + 1
+                db_execute(conn, "UPDATE domains SET last_pin_template_index = ? WHERE id = ?", (next_idx, domain_id))
         template_json_str = (template_row.get("template_json") or "").strip()
         if not template_json_str:
             raise ValueError("Template JSON is empty")
@@ -7139,6 +8051,7 @@ def _do_generate_pin_image(title_id, domain_template_id=None, user_id=None):
             "subtitle": "",
             "badge": "",
             "website": esc(domain_display),
+            "domain": esc(domain_display),
             "time_badge": "",
         }
         filled = template_json_str
@@ -7166,7 +8079,8 @@ def _do_generate_pin_image(title_id, domain_template_id=None, user_id=None):
         if main_img or ing_img:
             payload["avatar_image"] = main_img or ing_img
         # Pass article title so 5000 injects it into prompts and calls OpenAI for text elements (except website)
-        payload["variables"] = {"title": article_title}
+        payload["variables"] = {"title": article_title, "domain": domain_display}
+        payload["domain"] = domain_display
         # Pass API keys from user Profile so Pin API can use them (avoids 401 when .env has no keys)
         user_config = {}
         if user_id:
@@ -7251,11 +8165,18 @@ def api_title_pin_templates():
         if not row:
             return jsonify({"error": "Title not found"}), 404
         domain_id = row["domain_id"]
-        cur = db_execute(conn, "SELECT id, name, preview_image_url, sort_order FROM domain_templates WHERE domain_id = ? ORDER BY sort_order, id", (domain_id,))
+        cur = db_execute(conn, "SELECT id, name, template_json, preview_image_url, sort_order FROM domain_templates WHERE domain_id = ? ORDER BY sort_order, id", (domain_id,))
         templates = []
         for r in cur.fetchall():
             dr = dict_row(r)
-            templates.append({"id": dr["id"], "name": dr.get("name") or "", "preview_image_url": dr.get("preview_image_url") or ""})
+            name = dr.get("name") or ""
+            if not name or name.strip().lower() in ("unnamed", "none"):
+                try:
+                    tj = json.loads(dr.get("template_json") or "{}")
+                    name = tj.get("template_file") or tj.get("template_name") or tj.get("template_id") or name
+                except Exception:
+                    pass
+            templates.append({"id": dr["id"], "name": name, "preview_image_url": dr.get("preview_image_url") or ""})
     return jsonify({"domain_id": domain_id, "templates": templates})
 
 
@@ -7406,6 +8327,39 @@ def api_pin_template(name):
         return jsonify(r.json())
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 502
+@app.route("/preview/<path:name>", methods=["GET"])
+def api_pin_preview(name):
+    """Proxy to Kimi_Agent_Pin /preview/<name> for the in-app editor."""
+    try:
+        r = requests_lib.get(_pin_api_url() + "/preview/" + name, stream=True, timeout=15)
+        if r.status_code != 200:
+            return jsonify({"error": "Preview not found"}), 404
+        
+        from io import BytesIO
+        return send_file(
+            BytesIO(r.content),
+            mimetype=r.headers.get("Content-Type", "image/png"),
+            as_attachment=False,
+            download_name=name if "." in name else f"{name}.png"
+        )
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 502
+
+@app.route("/api/pin-template-example-raw", methods=["GET"])
+def api_pin_template_example_raw():
+    """Returns the index_html of a pin template for preview iframes."""
+    name = (request.args.get("template") or request.args.get("name") or "").strip()
+    if not name:
+        return "Missing template name", 400
+    try:
+        # We call /generate with template_only=1 to get the HTML without screenshotting
+        url = _pin_api_url() + "/generate?name=" + str(name) + "&template_only=1"
+        r = requests_lib.post(url, json={}, timeout=15)
+        if r.status_code != 200:
+            return f"Pin API error: {r.status_code}", 502
+        return r.json().get("index_html", "No HTML returned")
+    except Exception as e:
+        return f"Error: {e}", 502
 
 
 @app.route("/api/pin-generate", methods=["POST"])
@@ -8045,7 +8999,20 @@ def api_domain_clear_articles(domain_id):
     is_admin = user.get("is_admin", 0)
     if not is_admin:
         user_domain_ids = get_user_domain_ids(user_id, is_admin)
-        if domain_id not in user_domain_ids:
+        user_group_ids = get_user_group_ids(user_id, is_admin)
+        if domain_id in user_domain_ids:
+            pass  # direct domain access
+        elif user_group_ids:
+            with get_connection() as conn:
+                cur = db_execute(conn, "SELECT group_id FROM domains WHERE id = ?", (domain_id,))
+                row = cur.fetchone()
+                if not row:
+                    return jsonify({"success": False, "error": "Domain not found"}), 404
+                dg = dict_row(row).get("group_id")
+                if dg is None or dg not in user_group_ids:
+                    return jsonify({"success": False, "error": "Access denied"}), 403
+                # else: group access ok
+        else:
             return jsonify({"success": False, "error": "Access denied"}), 403
     with get_connection() as conn:
         cur = db_execute(conn, "SELECT id FROM titles WHERE domain_id = ?", (domain_id,))
@@ -8140,7 +9107,7 @@ def api_domains_multi_group_action():
     data = request.get_json(silent=True) or {}
     raw_ids = data.get("group_ids") or []
     action = (data.get("action") or "").strip().lower()
-    if action not in ("ungroup", "clear_articles", "delete_titles", "delete_domains"):
+    if action not in ("ungroup", "clear_articles", "delete_titles", "delete_domains", "clear_images", "clear_content", "clear_pins"):
         return jsonify({"success": False, "error": "Invalid action"}), 400
     try:
         group_ids = [int(x) for x in raw_ids if str(x).strip().isdigit()]
@@ -8197,6 +9164,36 @@ def api_domains_multi_group_action():
             t_ph = ",".join(["?"] * len(title_ids))
             db_execute(conn, f"DELETE FROM article_content WHERE title_id IN ({t_ph})", tuple(title_ids))
             return jsonify({"success": True, "count": len(title_ids), "message": f"Cleared articles for {len(title_ids)} title(s) in {len(group_ids)} group(s)"})
+
+        if action == "clear_images":
+            cur = db_execute(conn, f"SELECT ac.id FROM article_content ac JOIN titles t ON ac.title_id = t.id WHERE t.domain_id IN ({dom_ph}) AND ac.language_code = 'en'", tuple(domain_ids))
+            ac_ids = [dict_row(r)["id"] for r in cur.fetchall()]
+            if not ac_ids:
+                return jsonify({"success": True, "count": 0, "message": "No article_content rows"})
+            ac_ph = ",".join(["?"] * len(ac_ids))
+            cur = db_execute(conn, f"UPDATE article_content SET main_image = NULL, ingredient_image = NULL, top_image = NULL, bottom_image = NULL WHERE id IN ({ac_ph})", tuple(ac_ids))
+            count = cur.rowcount if hasattr(cur, "rowcount") else len(ac_ids)
+            return jsonify({"success": True, "count": count, "message": f"Cleared main+ingredient images for {count} article(s) in {len(group_ids)} group(s)"})
+
+        if action == "clear_content":
+            cur = db_execute(conn, f"SELECT ac.id FROM article_content ac JOIN titles t ON ac.title_id = t.id WHERE t.domain_id IN ({dom_ph}) AND ac.language_code = 'en'", tuple(domain_ids))
+            ac_ids = [dict_row(r)["id"] for r in cur.fetchall()]
+            if not ac_ids:
+                return jsonify({"success": True, "count": 0, "message": "No article_content rows"})
+            ac_ph = ",".join(["?"] * len(ac_ids))
+            cur = db_execute(conn, f"UPDATE article_content SET article_html = NULL, article_css = NULL WHERE id IN ({ac_ph})", tuple(ac_ids))
+            count = cur.rowcount if hasattr(cur, "rowcount") else len(ac_ids)
+            return jsonify({"success": True, "count": count, "message": f"Cleared HTML+CSS content for {count} article(s) in {len(group_ids)} group(s)"})
+
+        if action == "clear_pins":
+            cur = db_execute(conn, f"SELECT ac.id FROM article_content ac JOIN titles t ON ac.title_id = t.id WHERE t.domain_id IN ({dom_ph}) AND ac.language_code = 'en'", tuple(domain_ids))
+            ac_ids = [dict_row(r)["id"] for r in cur.fetchall()]
+            if not ac_ids:
+                return jsonify({"success": True, "count": 0, "message": "No article_content rows"})
+            ac_ph = ",".join(["?"] * len(ac_ids))
+            cur = db_execute(conn, f"UPDATE article_content SET pin_image = NULL WHERE id IN ({ac_ph})", tuple(ac_ids))
+            count = cur.rowcount if hasattr(cur, "rowcount") else len(ac_ids)
+            return jsonify({"success": True, "count": count, "message": f"Cleared pin images for {count} article(s) in {len(group_ids)} group(s)"})
 
         if action == "delete_titles":
             cur = db_execute(conn, f"SELECT id FROM titles WHERE domain_id IN ({dom_ph})", tuple(domain_ids))
@@ -8463,7 +9460,17 @@ def api_domain_articles_by_stat(pk):
     
     with get_connection() as conn:
         sel = "t.id, t.title, ac.main_image, ac.ingredient_image, ac.pin_image"
-        if stat_type == "html_css":
+        if stat_type == "prompt":
+            cur = db_execute(conn, f"""SELECT {sel} FROM titles t
+                JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
+                WHERE t.domain_id = ? AND TRIM(COALESCE(ac.prompt,'')) != '' AND TRIM(COALESCE(ac.prompt_image_ingredients,'')) != ''
+                ORDER BY t.id""", (pk,))
+        elif stat_type == "no_prompt":
+            cur = db_execute(conn, f"""SELECT {sel} FROM titles t
+                LEFT JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
+                WHERE t.domain_id = ? AND (ac.id IS NULL OR TRIM(COALESCE(ac.prompt,'')) = '' OR TRIM(COALESCE(ac.prompt_image_ingredients,'')) = '')
+                ORDER BY t.id""", (pk,))
+        elif stat_type == "html_css":
             cur = db_execute(conn, f"""SELECT {sel} FROM titles t
                 JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
                 WHERE t.domain_id = ? AND TRIM(COALESCE(ac.article_html,'')) != '' AND TRIM(COALESCE(ac.article_css,'')) != ''
@@ -9071,7 +10078,7 @@ def api_all_articles_test_content():
 def api_domain_stats_articles(pk):
     """Return articles for domain filtered by type: html_css, no_html_css, main_img, no_main_img, ing_img, no_ing_img, pin_img, no_pin_img. Includes actions_html and group_id for Run UI."""
     stype = (request.args.get("type") or "").strip() or "html_css"
-    if stype not in ("html_css", "no_html_css", "main_img", "no_main_img", "ing_img", "no_ing_img", "pin_img", "no_pin_img"):
+    if stype not in ("prompt", "no_prompt", "html_css", "no_html_css", "main_img", "no_main_img", "ing_img", "no_ing_img", "pin_img", "no_pin_img"):
         stype = "html_css"
     with get_connection() as conn:
         cur = db_execute(conn, "SELECT group_id, domain_index FROM domains WHERE id = ?", (pk,))
@@ -9099,7 +10106,19 @@ def api_domain_stats_articles(pk):
                 "pin_image": pin_img,
             }
     with get_connection() as conn:
-        if stype == "html_css":
+        if stype == "prompt":
+            cur = db_execute(conn, """SELECT t.id AS title_id, t.title, ac.main_image, ac.ingredient_image, ac.pin_image, 1 AS has_val
+                FROM titles t
+                JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
+                WHERE t.domain_id = ? AND TRIM(COALESCE(ac.prompt,'')) != '' AND TRIM(COALESCE(ac.prompt_image_ingredients,'')) != ''
+                ORDER BY t.id DESC""", (pk,))
+        elif stype == "no_prompt":
+            cur = db_execute(conn, """SELECT t.id AS title_id, t.title, ac.main_image, ac.ingredient_image, ac.pin_image, 0 AS has_val
+                FROM titles t
+                LEFT JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
+                WHERE t.domain_id = ? AND (ac.id IS NULL OR TRIM(COALESCE(ac.prompt,'')) = '' OR TRIM(COALESCE(ac.prompt_image_ingredients,'')) = '')
+                ORDER BY t.id DESC""", (pk,))
+        elif stype == "html_css":
             cur = db_execute(conn, """SELECT t.id AS title_id, t.title, ac.main_image, ac.ingredient_image, ac.pin_image, 1 AS has_val
                 FROM titles t
                 LEFT JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
@@ -9294,6 +10313,59 @@ def api_writers_pool_delete(wid):
             return jsonify({"success": False, "error": "Not found"}), 404
         db_execute(conn, "DELETE FROM writers_pool WHERE id = ?", (wid,))
     return jsonify({"success": True})
+
+
+@app.route("/api/domains/bulk-stats")
+@login_required
+def api_domains_bulk_stats():
+    """Return fresh stats for all domains (or filtered by group_id). Used for live-refresh on admin/domains page."""
+    group_id = request.args.get("group_id")
+    with get_connection() as conn:
+        if group_id:
+            cur = db_execute(conn, "SELECT id FROM domains WHERE group_id = ? ORDER BY id", (group_id,))
+        else:
+            cur = db_execute(conn, "SELECT id FROM domains ORDER BY id")
+        domain_ids = [dict_row(r)["id"] for r in cur.fetchall()]
+    if not domain_ids:
+        return jsonify({"stats": {}})
+    placeholders = ",".join(["?"] * len(domain_ids))
+    with get_connection() as conn:
+        cur = db_execute(conn, f"""
+            SELECT t.domain_id,
+                COUNT(DISTINCT t.id) AS total,
+                SUM(CASE WHEN ac.id IS NOT NULL AND TRIM(COALESCE(ac.prompt,'')) != '' AND TRIM(COALESCE(ac.prompt_image_ingredients,'')) != '' THEN 1 ELSE 0 END) AS prompt,
+                SUM(CASE WHEN ac.id IS NOT NULL AND TRIM(COALESCE(ac.article_html,'')) != '' AND TRIM(COALESCE(ac.article_css,'')) != '' THEN 1 ELSE 0 END) AS html_css,
+                SUM(CASE WHEN ac.main_image IS NOT NULL AND TRIM(ac.main_image) LIKE 'http%%' THEN 1 ELSE 0 END) AS main_img,
+                SUM(CASE WHEN ac.ingredient_image IS NOT NULL AND TRIM(ac.ingredient_image) LIKE 'http%%' THEN 1 ELSE 0 END) AS ing_img,
+                SUM(CASE WHEN ac.pin_image IS NOT NULL AND TRIM(ac.pin_image) LIKE 'http%%' THEN 1 ELSE 0 END) AS pin_img
+            FROM titles t
+            LEFT JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
+            WHERE t.domain_id IN ({placeholders})
+            GROUP BY t.domain_id
+        """, tuple(domain_ids))
+        stats = {}
+        for r in cur.fetchall():
+            row = dict_row(r)
+            did = row["domain_id"]
+            total = row.get("total") or 0
+            prompt = row.get("prompt") or 0
+            html_css = row.get("html_css") or 0
+            main_img = row.get("main_img") or 0
+            ing_img = row.get("ing_img") or 0
+            pin_img = row.get("pin_img") or 0
+            stats[str(did)] = {
+                "total": total,
+                "prompt": prompt, "no_prompt": total - prompt,
+                "html_css": html_css, "no_html_css": total - html_css,
+                "main_img": main_img, "no_main_img": total - main_img,
+                "ing_img": ing_img, "no_ing_img": total - ing_img,
+                "pin_img": pin_img, "no_pin_img": total - pin_img,
+            }
+        # Include domain_ids with zero articles
+        for did in domain_ids:
+            if str(did) not in stats:
+                stats[str(did)] = {"total": 0, "prompt": 0, "no_prompt": 0, "html_css": 0, "no_html_css": 0, "main_img": 0, "no_main_img": 0, "ing_img": 0, "no_ing_img": 0, "pin_img": 0, "no_pin_img": 0}
+    return jsonify({"stats": stats})
 
 
 @app.route("/api/domains/<int:pk>/writers", methods=["GET"])
@@ -10261,6 +11333,21 @@ def api_pin_template_pool_list():
     return jsonify({"success": True, "templates": rows})
 
 
+def _parse_pin_api_template_names(data):
+    """Parse template names from Pin API /templates response. Handles list of dicts or dict."""
+    raw = data.get("templates") or []
+    if isinstance(raw, dict):
+        return list(raw.keys())
+    if isinstance(raw, list):
+        out = []
+        for t in raw:
+            n = t.get("name") if isinstance(t, dict) else (t if isinstance(t, str) else None)
+            if n and isinstance(n, str):
+                out.append(n)
+        return out
+    return []
+
+
 @app.route("/api/pin-template-pool/sync", methods=["POST"])
 @login_required
 def api_pin_template_pool_sync():
@@ -10270,9 +11357,7 @@ def api_pin_template_pool_sync():
         r = requests_lib.get(f"{pin_base}/templates", timeout=10)
         r.raise_for_status()
         data = r.json()
-        pin_names = data.get("templates") or []
-        if isinstance(pin_names, dict):
-            pin_names = list(pin_names.keys()) if pin_names else []
+        pin_names = _parse_pin_api_template_names(data)
         if not pin_names:
             return jsonify({"success": False, "error": "No templates from Pin API"}), 400
         synced = 0
@@ -10311,7 +11396,17 @@ def api_domain_templates_list():
     with get_connection() as conn:
         cur = db_execute(conn, "SELECT id, domain_id, name, template_json, sort_order, preview_image_url, created_at FROM domain_templates WHERE domain_id = ? ORDER BY sort_order, id", (domain_id,))
         rows = [dict_row(r) for r in cur.fetchall()]
-    return jsonify({"templates": [{"id": r["id"], "name": r["name"], "sort_order": r.get("sort_order") or 0, "preview_image_url": r.get("preview_image_url") or "", "created_at": r.get("created_at")} for r in rows]})
+    out = []
+    for r in rows:
+        name = r.get("name") or ""
+        if not name or name.strip().lower() in ("unnamed", "none"):
+            try:
+                tj = json.loads(r.get("template_json") or "{}")
+                name = tj.get("template_file") or tj.get("template_name") or tj.get("template_id") or name
+            except Exception:
+                pass
+        out.append({"id": r["id"], "name": name, "sort_order": r.get("sort_order") or 0, "preview_image_url": r.get("preview_image_url") or "", "created_at": r.get("created_at")})
+    return jsonify({"templates": out})
 
 
 @app.route("/api/domain-templates", methods=["POST"])
@@ -10359,7 +11454,14 @@ def api_domain_templates_get(pk):
         row = dict_row(cur.fetchone())
     if not row:
         return jsonify({"error": "Not found"}), 404
-    return jsonify({"id": row["id"], "domain_id": row["domain_id"], "name": row["name"], "template_json": row["template_json"], "sort_order": row.get("sort_order") or 0})
+    name = row.get("name") or ""
+    if not name or name.strip().lower() in ("unnamed", "none"):
+        try:
+            tj = json.loads(row.get("template_json") or "{}")
+            name = tj.get("template_file") or tj.get("template_name") or tj.get("template_id") or name
+        except Exception:
+            pass
+    return jsonify({"id": row["id"], "domain_id": row["domain_id"], "name": name, "template_json": row["template_json"], "sort_order": row.get("sort_order") or 0})
 
 
 @app.route("/api/domain-templates/<int:pk>", methods=["PUT", "DELETE"])
@@ -10734,6 +11836,8 @@ def admin_domains():
     # Support filtering by group_id (including all subgroups recursively)
     filter_group_id = request.args.get("group_id")
     filter_group_id = int(filter_group_id) if filter_group_id and str(filter_group_id).isdigit() else None
+    filter_domain_id = request.args.get("domain_id", type=int)
+    partial = request.args.get("partial") == "1"
     bulk_job_id = (request.args.get("bulk_job_id") or "").strip() or None
     
     # Get user's accessible domain IDs
@@ -10987,7 +12091,10 @@ def admin_domains():
               <span class="small fw-medium">Selected: <span id="multiGroupCount">0</span></span>
               <button type="button" class="btn btn-outline-secondary btn-sm" onclick="deselectAllMultiGroups()">Deselect all</button>
               <button type="button" class="btn btn-outline-warning btn-sm" onclick="multiGroupAction('ungroup')" title="Remove domains from selected groups (domains remain standalone)">🔓 Ungroup</button>
-              <button type="button" class="btn btn-outline-warning btn-sm" onclick="multiGroupAction('clear_articles')" title="Clear article content in selected groups">🧹 Clear Articles</button>
+              <button type="button" class="btn btn-outline-info btn-sm" onclick="multiGroupAction('clear_images')" title="Clear main+ingredient images only">🖼️ Clear Images</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="multiGroupAction('clear_content')" title="Clear HTML+CSS content only">📄 Clear Content</button>
+              <button type="button" class="btn btn-outline-primary btn-sm" onclick="multiGroupAction('clear_pins')" title="Clear pin images only">📌 Clear Pins</button>
+              <button type="button" class="btn btn-outline-warning btn-sm" onclick="multiGroupAction('clear_articles')" title="Clear all article content">🧹 Clear Articles</button>
               <button type="button" class="btn btn-outline-danger btn-sm" onclick="multiGroupAction('delete_titles')" title="Delete all titles in selected groups">🗑️ Delete Titles</button>
               <button type="button" class="btn btn-outline-danger btn-sm" onclick="multiGroupAction('delete_domains')" title="Delete all domains in selected groups">🗑️ Delete Domains</button>
             </div>
@@ -11042,7 +12149,7 @@ def admin_domains():
             function multiGroupAction(action) {{
               var ids = getSelectedMultiGroupIds();
               if (ids.length === 0) {{ alert('Select at least one group'); return; }}
-              var msgs = {{ 'ungroup': 'Remove domains from ' + ids.length + ' group(s)? Domains will become standalone.', 'clear_articles': 'Clear article content in ' + ids.length + ' group(s)?', 'delete_titles': 'Permanently delete ALL titles in ' + ids.length + ' group(s)?', 'delete_domains': 'Permanently delete ALL domains in ' + ids.length + ' group(s)? This cannot be undone.' }};
+              var msgs = {{ 'ungroup': 'Remove domains from ' + ids.length + ' group(s)? Domains will become standalone.', 'clear_images': 'Clear main+ingredient images in ' + ids.length + ' group(s)?', 'clear_content': 'Clear HTML+CSS content in ' + ids.length + ' group(s)?', 'clear_pins': 'Clear pin images in ' + ids.length + ' group(s)?', 'clear_articles': 'Clear all article content in ' + ids.length + ' group(s)?', 'delete_titles': 'Permanently delete ALL titles in ' + ids.length + ' group(s)?', 'delete_domains': 'Permanently delete ALL domains in ' + ids.length + ' group(s)? This cannot be undone.' }};
               if (!confirm(msgs[action] || 'Proceed?')) return;
               if ((action === 'delete_titles' || action === 'delete_domains') && !confirm('This action CANNOT be undone. Continue?')) return;
               if (typeof showGlobalLoading === 'function') showGlobalLoading();
@@ -11118,7 +12225,16 @@ def admin_domains():
                 user_domain_params = []
             # If filtering by group and user owns that group, don't apply domain filter (show empty group)
         
-        if group_ids_to_include:
+        if filter_domain_id:
+            cur = db_execute(conn, f"""SELECT id, domain_url, domain_name, group_id, domain_index, cloudflare_info,
+                website_template, article_template_config, domain_colors, domain_fonts, categories_list,
+                header_template, footer_template,
+                side_article_template, category_page_template, writer_template, writers,
+                domain_page_about_us, domain_page_terms_of_use, domain_page_privacy_policy, domain_page_gdpr_policy,
+                domain_page_cookie_policy, domain_page_copyright_policy, domain_page_disclaimer, domain_page_contact_us
+                FROM domains
+                WHERE id = ?{user_domain_filter}""", (filter_domain_id,) + tuple(user_domain_params))
+        elif group_ids_to_include:
             placeholders = ",".join(["?"] * len(group_ids_to_include))
             cur = db_execute(conn, f"""SELECT id, domain_url, domain_name, group_id, domain_index, cloudflare_info,
                 website_template, article_template_config, domain_colors, domain_fonts, categories_list,
@@ -11252,6 +12368,7 @@ def admin_domains():
             cur = db_execute(conn, f"""
                 SELECT t.domain_id,
                     COUNT(DISTINCT t.id) AS total,
+                    SUM(CASE WHEN ac.id IS NOT NULL AND TRIM(COALESCE(ac.prompt,'')) != '' AND TRIM(COALESCE(ac.prompt_image_ingredients,'')) != '' THEN 1 ELSE 0 END) AS prompt,
                     SUM(CASE WHEN ac.id IS NOT NULL AND TRIM(COALESCE(ac.article_html,'')) != '' AND TRIM(COALESCE(ac.article_css,'')) != '' THEN 1 ELSE 0 END) AS html_css,
                     SUM(CASE WHEN ac.main_image IS NOT NULL AND TRIM(ac.main_image) LIKE 'http%%' THEN 1 ELSE 0 END) AS main_img,
                     SUM(CASE WHEN ac.ingredient_image IS NOT NULL AND TRIM(ac.ingredient_image) LIKE 'http%%' THEN 1 ELSE 0 END) AS ing_img,
@@ -11267,11 +12384,13 @@ def admin_domains():
     for d in domains:
         s = stats_map.get(d["id"], {}) or {}
         d["stats_total"] = s.get("total") or 0
+        d["stats_prompt"] = s.get("prompt") or 0
         d["stats_html_css"] = s.get("html_css") or 0
         d["stats_main_img"] = s.get("main_img") or 0
         d["stats_ing_img"] = s.get("ing_img") or 0
         d["stats_pin_img"] = s.get("pin_img") or 0
         total = d.get("stats_total") or 0
+        d["stats_no_prompt"] = total - (d["stats_prompt"] or 0)
         d["stats_no_html_css"] = total - (d["stats_html_css"] or 0)
         d["stats_no_main_img"] = total - (d["stats_main_img"] or 0)
         d["stats_no_ing_img"] = total - (d["stats_ing_img"] or 0)
@@ -11281,32 +12400,38 @@ def admin_domains():
         d["saved_page_theme"] = _get_domain_page_theme(d)
 
     def stats_cell(d):
-        """Stats column: separate badges for with/without (html+css, main_img, ing_img, pin_img); Pin templates link."""
+        """Stats column: row 1 = with (prompt, html_css, main_img, ing_img, pin_img); row 2 = without."""
         total = d.get("stats_total") or 0
+        prompt = d.get("stats_prompt") or 0
         html_css = d.get("stats_html_css") or 0
         main_img = d.get("stats_main_img") or 0
         ing_img = d.get("stats_ing_img") or 0
         pin_img = d.get("stats_pin_img") or 0
+        no_prompt = d.get("stats_no_prompt") or 0
         no_html_css = d.get("stats_no_html_css") or 0
         no_main_img = d.get("stats_no_main_img") or 0
         no_ing_img = d.get("stats_no_ing_img") or 0
         no_pin_img = d.get("stats_no_pin_img") or 0
-        pin_count = d.get("stats_pin_count") or 0
         did = d["id"]
         if total == 0:
             return '<div class="stats-cell text-muted small">—</div>'
-        parts = [
+        with_row = [
+            f'<button type="button" class="badge bg-success text-white stats-badge stats-filter-btn" data-domain-id="{did}" data-stats-type="prompt" data-count="{prompt}" title="With prompt - Click to view & generate">{prompt}✓</button>',
             f'<button type="button" class="badge bg-secondary stats-badge stats-filter-btn" data-domain-id="{did}" data-stats-type="html_css" data-count="{html_css}" title="With HTML+CSS - Click to view & generate">{html_css}✓</button>',
-            f'<button type="button" class="badge bg-secondary bg-opacity-50 text-dark stats-badge stats-filter-btn" data-domain-id="{did}" data-stats-type="no_html_css" data-count="{no_html_css}" title="Without HTML+CSS - Click to view & generate">{no_html_css}✗</button>',
             f'<button type="button" class="badge bg-info text-dark stats-badge stats-filter-btn" data-domain-id="{did}" data-stats-type="main_img" data-count="{main_img}" title="With main image - Click to view & generate">{main_img}✓</button>',
-            f'<button type="button" class="badge bg-info bg-opacity-50 text-dark stats-badge stats-filter-btn" data-domain-id="{did}" data-stats-type="no_main_img" data-count="{no_main_img}" title="Without main image - Click to view & generate">{no_main_img}✗</button>',
             f'<button type="button" class="badge bg-primary stats-badge stats-filter-btn" data-domain-id="{did}" data-stats-type="ing_img" data-count="{ing_img}" title="With ingredient image - Click to view & generate">{ing_img}✓</button>',
-            f'<button type="button" class="badge bg-primary bg-opacity-50 text-dark stats-badge stats-filter-btn" data-domain-id="{did}" data-stats-type="no_ing_img" data-count="{no_ing_img}" title="Without ingredient image - Click to view & generate">{no_ing_img}✗</button>',
             f'<button type="button" class="badge bg-warning text-dark stats-badge stats-filter-btn" data-domain-id="{did}" data-stats-type="pin_img" data-count="{pin_img}" title="With pin image - Click to view & pick">{pin_img}✓</button>',
-            f'<button type="button" class="badge bg-warning bg-opacity-50 text-dark stats-badge stats-filter-btn" data-domain-id="{did}" data-stats-type="no_pin_img" data-count="{no_pin_img}" title="Without pin image - Click to view & pick">{no_pin_img}✗</button>',
-            f'<a href="/admin/domains/{did}/templates" class="btn btn-sm btn-outline-secondary py-0 px-1" title="Pin templates ({pin_count})">📌{pin_count}</a>',
         ]
-        return '<div class="stats-cell d-flex flex-wrap align-items-center" style="gap:2px">' + "".join(parts) + "</div>"
+        without_row = [
+            f'<button type="button" class="badge bg-success bg-opacity-50 text-dark stats-badge stats-filter-btn" data-domain-id="{did}" data-stats-type="no_prompt" data-count="{no_prompt}" title="Without prompt - Click to view & generate">{no_prompt}✗</button>',
+            f'<button type="button" class="badge bg-secondary bg-opacity-50 text-dark stats-badge stats-filter-btn" data-domain-id="{did}" data-stats-type="no_html_css" data-count="{no_html_css}" title="Without HTML+CSS - Click to view & generate">{no_html_css}✗</button>',
+            f'<button type="button" class="badge bg-info bg-opacity-50 text-dark stats-badge stats-filter-btn" data-domain-id="{did}" data-stats-type="no_main_img" data-count="{no_main_img}" title="Without main image - Click to view & generate">{no_main_img}✗</button>',
+            f'<button type="button" class="badge bg-primary bg-opacity-50 text-dark stats-badge stats-filter-btn" data-domain-id="{did}" data-stats-type="no_ing_img" data-count="{no_ing_img}" title="Without ingredient image - Click to view & generate">{no_ing_img}✗</button>',
+            f'<button type="button" class="badge bg-warning bg-opacity-50 text-dark stats-badge stats-filter-btn" data-domain-id="{did}" data-stats-type="no_pin_img" data-count="{no_pin_img}" title="Without pin image - Click to view & pick">{no_pin_img}✗</button>',
+        ]
+        row1 = '<div class="d-flex flex-wrap align-items-center stats-row-with" style="gap:2px">' + "".join(with_row) + "</div>"
+        row2 = '<div class="d-flex flex-wrap align-items-center stats-row-without" style="gap:2px">' + "".join(without_row) + "</div>"
+        return '<div class="stats-cell d-flex flex-column" style="gap:2px">' + row1 + row2 + "</div>"
 
     def last_deploy_cell(d):
         cf_raw = (d.get("cloudflare_info") or "").strip()
@@ -11355,6 +12480,7 @@ def admin_domains():
             else:
                 parts.append(f'<span class="pin-thumb-wrap">{del_btn}<span class="pin-thumb pin-thumb-placeholder" data-domain-id="{domain_id}" data-template-id="{tid}" title="{name_esc}">?</span></span>')
         parts.append(f'<button type="button" class="pin-thumb pin-add" data-domain-id="{domain_id}" title="Add template">+</button>')
+        parts.append(f'<button type="button" class="btn btn-sm btn-outline-info py-0 px-1 pin-example-btn" data-domain-id="{domain_id}" title="Preview all Styles">👁</button>')
         return '<div class="pin-templates-cell">' + "".join(parts) + "</div>"
 
     def colors_cell(domain_id, domain_colors_json):
@@ -11565,7 +12691,7 @@ def admin_domains():
         f'<td class="pin-templates-td">{pin_templates_cell(d["id"], d.get("templates") or [])}</td>'
         f'<td class="theme-td">{theme_cell(d)}</td>'
         f'<td class="article-td">{article_cell(d["id"], d.get("website_template"), d.get("article_template_config"), generators)}</td>'
-        f'<td class="stats-td">{stats_cell(d)}</td>'
+        f'<td class="stats-td{(" stats-td-needs-attention" if ((d.get("stats_no_prompt") or 0) > 0 or (d.get("stats_no_html_css") or 0) > 0 or (d.get("stats_no_main_img") or 0) > 0 or (d.get("stats_no_ing_img") or 0) > 0 or (d.get("stats_no_pin_img") or 0) > 0) else "")}">{stats_cell(d)}</td>'
         f'<td class="last-deploy-td">{last_deploy_cell(d)}</td>'
         f'<td class="actions-cell"><div class="btn-group btn-group-sm" role="group">'
         f'<a href="/preview-website/{d["id"]}" class="btn btn-success" target="_blank" title="View site">👁</a>'
@@ -11704,6 +12830,7 @@ def admin_domains():
     .theme-preview-card .theme-preview-loading {{ position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.8); font-size: 0.7rem; color: #6c757d; }}
     .stats-cell {{ font-size: 0.75rem; }}
     .stats-cell .badge, .stats-cell .stats-badge {{ font-size: 0.65rem; padding: 0.15em 0.4em; cursor: pointer; border: none; }}
+    .stats-td-needs-attention {{ background-color: #ffe6e6 !important; }}
     .stats-badge:hover {{ opacity: 0.9; }}
     .stats-articles-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; }}
     .stats-article-card {{ border: 1px solid #dee2e6; border-radius: 4px; padding: 4px; display: flex; flex-direction: column; gap: 4px; font-size: 0.7rem; min-height: 36px; }}
@@ -11757,8 +12884,7 @@ def admin_domains():
     }}
     #allArticlesModal .modal-body {{ height: calc(90vh - 120px); overflow: hidden; display: flex; flex-direction: column; }}
     #allArticlesModal .modal-body .row {{ min-height: 0; flex: 1 1 0; display: flex; }}
-    #allArticlesModal .modal-body .col-md-5 {{ min-height: 0; display: flex; flex-direction: column; overflow: hidden; }}
-    #allArticlesModal .col-md-7 {{ min-height: 0; }}
+    #allArticlesModal .modal-body .col-md-4 {{ min-height: 0; display: flex; flex-direction: column; overflow: hidden; }}
     #allArticlesListWrap {{ height: 55vh; max-height: 100%; overflow-y: scroll !important; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; flex-shrink: 0; }}
     #allArticlesList .list-group-item.active .btn-domain-sibling {{ background: #fff; color: #212529; border: 1px solid rgba(0,0,0,0.2); }}
     #allArticlesList .list-group-item.active .btn-domain-sibling.btn-primary {{ background: #fff; color: #0d6efd; border: 1px solid #0d6efd; font-weight: 600; }}
@@ -11779,17 +12905,10 @@ def admin_domains():
         <div id="domainSearchSuggestions" class="position-absolute w-100 bg-white border rounded shadow-sm domain-search-suggestions" style="display:none;max-height:350px;overflow-y:auto;z-index:1000;top:100%;margin-top:2px"></div>
       </div>
       <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearDomainSearch()">Clear Search</button>
-      <div class="ms-auto d-flex gap-2">
-        <button type="button" class="btn btn-outline-warning btn-sm" onclick="clearAllGroups()" title="Remove all domains from all groups (domains remain)" {('style="display:none"' if filter_group_id else '')}>🔓 Ungroup All</button>
-        <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteAllDomains()" title="Delete all domains permanently" {('style="display:none"' if filter_group_id else '')}>🗑️ Delete All Domains</button>
-        <button type="button" class="btn btn-outline-warning btn-sm" onclick="clearArticlesCurrentGroup()" title="Clear all article content in this group (titles and domains remain)" {('style="display:none"' if not filter_group_id else '')}>🧹 Clear All Articles in Group</button>
-        <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteTitlesCurrentGroup()" title="Permanently delete all titles in this group (article content and titles removed; domains remain)" {('style="display:none"' if not filter_group_id else '')}>🗑️ Delete Titles in Group</button>
-        <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteCurrentGroupDomains()" title="Delete all domains in this group" {('style="display:none"' if not filter_group_id else '')}>🗑️ Delete Group Domains</button>
-      </div>
     </div>
     <div class="d-flex flex-wrap gap-2 mb-4 align-items-center">
       <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#bulkAddCard">Bulk add domains</button>
-      <button type="button" class="btn btn-outline-info btn-sm" id="syncPinTemplatesBtn" title="Fetch Pin API templates and generate example images. Run once before bulk add.">📌 Sync pin templates</button>
+      <button type="button" class="btn btn-outline-info btn-sm" id="syncPinTemplatesBtn" title="Fetch Pin API templates and generate example images. Run once before bulk add." style="display:none">📌 Sync pin templates</button>
       {('<button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="collapse" data-bs-target="#distributeTitlesCard">📝 Distribute Titles</button>') if filter_group_id else ''}
       {('<button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="collapse" data-bs-target="#multiGroupActionsCard" title="Ungroup, Clear articles, Delete titles/domains for all or selected groups">🔧 Multi-group actions</button>') if multi_group_checkboxes else ''}
       {('<button type="button" class="btn btn-primary btn-sm" onclick="openBulkAllGroupsModal()" title="Run for all groups (same as Database Management)">Run all groups</button>') if not filter_group_id and any(d.get("group_id") for d in domains) else ""}
@@ -11847,9 +12966,11 @@ def admin_domains():
               {multi_group_checkboxes if multi_group_checkboxes else '<div class="text-muted small">No groups with domains in this view</div>'}
             </div>
           </div>
-          <div class="d-flex flex-wrap gap-2">
-            <button type="button" class="btn btn-outline-warning btn-sm" onclick="runMultiGroupAction('ungroup')">🔓 Ungroup</button>
-            <button type="button" class="btn btn-outline-warning btn-sm" onclick="runMultiGroupAction('clear_articles')">🧹 Clear Articles</button>
+          <div class="d-flex flex-wrap gap-2 mb-2">
+            <button type="button" class="btn btn-outline-info btn-sm" onclick="runMultiGroupAction('clear_images')" title="Clear main+ingredient images only">🖼️ Clear Images</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="runMultiGroupAction('clear_content')" title="Clear HTML+CSS content only">📄 Clear Content</button>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="runMultiGroupAction('clear_pins')" title="Clear pin images only">📌 Clear Pins</button>
+            <button type="button" class="btn btn-outline-warning btn-sm" onclick="runMultiGroupAction('clear_articles')">🧹 Clear Articles (all)</button>
             <button type="button" class="btn btn-outline-danger btn-sm" onclick="runMultiGroupAction('delete_titles')">🗑️ Delete Titles</button>
             <button type="button" class="btn btn-outline-danger btn-sm" onclick="runMultiGroupAction('delete_domains')">🗑️ Delete Domains</button>
           </div>
@@ -11860,36 +12981,28 @@ def admin_domains():
       <div class="card">
         <div class="card-body">
           <h6 class="mb-3">📝 Distribute Titles to Group Domains</h6>
+          <p class="small text-muted mb-2">Creates title rows only. Use &quot;Run for group&quot; to generate prompts, images, and content.</p>
           <form method="post" action="/admin/titles/distribute" id="distributeTitlesFormDomains">
             <input type="hidden" name="redirect" value="domains">
             <input type="hidden" name="group_id" value="{filter_group_id if filter_group_id else ''}">
             <input type="hidden" name="distribute_scope" id="distributeScopeDomains" value="all">
             <div class="mb-2">
-              <label class="form-label small fw-medium">Target groups</label>
-              <div class="d-flex gap-2 mb-2">
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" name="scope_radio_domains" id="scopeAllDomains" value="all" checked>
-                  <label class="form-check-label small" for="scopeAllDomains">All groups (round-robin)</label>
-                </div>
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" name="scope_radio_domains" id="scopeSelectedDomains" value="selected">
-                  <label class="form-check-label small" for="scopeSelectedDomains">Selected groups only</label>
-                </div>
+              <label class="form-label small fw-medium">Distribute scope</label>
+              <div class="form-check mb-1">
+                <input class="form-check-input" type="radio" name="distScopeDomains" id="distScopeAllDomains" value="all" checked>
+                <label class="form-check-label small" for="distScopeAllDomains">All subgroups in this group</label>
               </div>
-              <div id="distGroupCheckboxesDomains" class="border rounded p-2 mb-2" style="max-height: 180px; overflow-y: auto; display: none;">
-                <div class="d-flex gap-2 mb-2">
-                  <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.querySelectorAll('#distGroupCheckboxesDomains .dist-group-cb').forEach(function(cb){{cb.checked=true}})">Select all</button>
-                  <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.querySelectorAll('#distGroupCheckboxesDomains .dist-group-cb').forEach(function(cb){{cb.checked=false}})">Deselect all</button>
-                </div>
-                {dist_group_checkboxes if dist_group_checkboxes else '<div class="text-muted small">No groups with domains in this view</div>'}
+              <div class="form-check mb-1">
+                <input class="form-check-input" type="radio" name="distScopeDomains" id="distScopeSelectedDomains" value="selected">
+                <label class="form-check-label small" for="distScopeSelectedDomains">Selected subgroups only</label>
+              </div>
+              <div id="distSubgroupsWrapDomains" class="border rounded p-2 mb-2" style="max-height: 160px; overflow-y: auto; display: none;">
+                <div id="distSubgroupsListDomains" class="small">Loading…</div>
               </div>
             </div>
             <div class="mb-2">
               <label class="form-label small fw-medium">Titles (one per line)</label>
               <textarea name="titles" class="form-control font-monospace small" rows="8" placeholder="Best Chocolate Cake Recipe&#10;Easy Pasta Carbonara&#10;Homemade Pizza Dough&#10;..." style="min-width: 320px;" required></textarea>
-              <div class="form-text small">
-                <strong>All groups:</strong> Round-robin across valid subgroups. <strong>Selected only:</strong> Titles go only to checked groups.
-              </div>
             </div>
             <button type="submit" class="btn btn-success btn-sm">Distribute Titles</button>
           </form>
@@ -11898,28 +13011,64 @@ def admin_domains():
     </div>
     <script>
     (function(){{
-      var scopeAll = document.getElementById('scopeAllDomains');
-      var scopeSelected = document.getElementById('scopeSelectedDomains');
-      var checkboxesDiv = document.getElementById('distGroupCheckboxesDomains');
-      var hiddenScope = document.getElementById('distributeScopeDomains');
-      var form = document.getElementById('distributeTitlesFormDomains');
-      if (scopeAll && scopeSelected && checkboxesDiv && hiddenScope && form) {{
-        function updateScope() {{
-          if (scopeSelected.checked) {{ checkboxesDiv.style.display = 'block'; hiddenScope.value = 'selected'; }}
-          else {{ checkboxesDiv.style.display = 'none'; hiddenScope.value = 'all'; }}
-        }}
-        scopeAll.addEventListener('change', updateScope);
-        scopeSelected.addEventListener('change', updateScope);
-        form.addEventListener('submit', function(e) {{
-          if (scopeSelected.checked) {{
-            var checked = document.querySelectorAll('#distGroupCheckboxesDomains .dist-group-cb:checked');
-            if (checked.length === 0) {{ e.preventDefault(); alert('Select at least one group, or choose "All groups"'); return false; }}
+      var filterGroupId = {json.dumps(filter_group_id or 0)};
+      if (filterGroupId) {{
+        var scopeAll = document.getElementById('distScopeAllDomains');
+        var scopeSelected = document.getElementById('distScopeSelectedDomains');
+        var wrap = document.getElementById('distSubgroupsWrapDomains');
+        var listEl = document.getElementById('distSubgroupsListDomains');
+        var hiddenScope = document.getElementById('distributeScopeDomains');
+        var form = document.getElementById('distributeTitlesFormDomains');
+        function updateDistScope() {{
+          if (scopeSelected && scopeSelected.checked) {{
+            if (wrap) wrap.style.display = 'block';
+            if (hiddenScope) hiddenScope.value = 'selected';
+            if (!listEl.dataset.loaded) loadDistSubgroups();
+          }} else {{
+            if (wrap) wrap.style.display = 'none';
+            if (hiddenScope) hiddenScope.value = 'all';
           }}
-        }});
+        }}
+        function loadDistSubgroups() {{
+          if (!listEl) return;
+          listEl.innerHTML = 'Loading…';
+          fetch('/api/group-subgroups?group_id=' + filterGroupId).then(function(r){{ return r.json(); }}).then(function(d){{
+            var subs = d.subgroups || [];
+            listEl.dataset.loaded = '1';
+            if (subs.length === 0) {{
+              listEl.innerHTML = '<span class="text-muted">No subgroups with domains</span>';
+              return;
+            }}
+            listEl.innerHTML = '';
+            subs.forEach(function(s){{
+              var div = document.createElement('div');
+              div.className = 'form-check';
+              var label = (s.name || 'Group ' + s.id).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+              div.innerHTML = '<input class="form-check-input dist-subgroup-cb" type="checkbox" name="group_ids" value="' + s.id + '" id="distSgDom' + s.id + '"><label class="form-check-label" for="distSgDom' + s.id + '">' + label + '</label>';
+              listEl.appendChild(div);
+            }});
+          }}).catch(function(){{ listEl.innerHTML = '<span class="text-muted">Could not load subgroups</span>'; }});
+        }}
+        if (scopeAll) scopeAll.addEventListener('change', updateDistScope);
+        if (scopeSelected) scopeSelected.addEventListener('change', updateDistScope);
+        var collapseEl = document.getElementById('distributeTitlesCard');
+        if (collapseEl) {{
+          collapseEl.addEventListener('shown.bs.collapse', function(){{ if (scopeSelected && scopeSelected.checked) loadDistSubgroups(); }});
+        }}
+        if (form) {{
+          form.addEventListener('submit', function(e){{
+            if (scopeSelected && scopeSelected.checked) {{
+              var cbs = document.querySelectorAll('#distSubgroupsWrapDomains .dist-subgroup-cb:checked');
+              if (cbs.length === 0) {{
+                e.preventDefault();
+                alert('Select at least one subgroup, or choose "All subgroups in this group"');
+                return false;
+              }}
+            }}
+          }});
+        }}
       }}
     }})();
-    </script>
-    <script>
     window.MULTI_GROUP_ALL_IDS = {json.dumps(multi_group_all_ids)};
     (function(){{
       var scopeAll = document.getElementById('mgScopeAll');
@@ -11943,7 +13092,7 @@ def admin_domains():
         ids = Array.from(cbs).map(function(cb) {{ return parseInt(cb.value, 10); }});
       }}
       if (ids.length === 0) {{ alert('Select at least one group (or choose "All groups in table")'); return; }}
-      var msgs = {{ 'ungroup': 'Remove domains from ' + ids.length + ' group(s)?', 'clear_articles': 'Clear articles in ' + ids.length + ' group(s)?', 'delete_titles': 'Delete ALL titles in ' + ids.length + ' group(s)?', 'delete_domains': 'Delete ALL domains in ' + ids.length + ' group(s)? This cannot be undone.' }};
+      var msgs = {{ 'ungroup': 'Remove domains from ' + ids.length + ' group(s)?', 'clear_images': 'Clear main+ingredient images in ' + ids.length + ' group(s)?', 'clear_content': 'Clear HTML+CSS content in ' + ids.length + ' group(s)?', 'clear_pins': 'Clear pin images in ' + ids.length + ' group(s)?', 'clear_articles': 'Clear all article content in ' + ids.length + ' group(s)?', 'delete_titles': 'Delete ALL titles in ' + ids.length + ' group(s)?', 'delete_domains': 'Delete ALL domains in ' + ids.length + ' group(s)? This cannot be undone.' }};
       if (!confirm(msgs[action])) return;
       if ((action === 'delete_titles' || action === 'delete_domains') && !confirm('This cannot be undone. Continue?')) return;
       if (typeof showGlobalLoading === 'function') showGlobalLoading();
@@ -12231,10 +13380,21 @@ def admin_domains():
                 </div>
               </div>
               <div class="col-md-7 d-flex flex-column overflow-hidden" style="min-height:0;">
-                <p class="small fw-bold mb-1 flex-shrink-0 d-flex flex-wrap align-items-center gap-1">Article HTML <span id="domainArticlesHtmlMeta" class="text-muted fw-normal ms-1"></span><span class="ms-2 fw-normal small"><label class="mb-0"><input type="checkbox" id="domainArticlesAutoScrollCheck"> Smooth scroll</label> <input type="number" id="domainArticlesAutoScrollSec" min="1" step="0.5" value="5" style="width:3.5em" class="form-control form-control-sm d-inline-block" title="Seconds to scroll from top to bottom (one pass)"> s to bottom</span></p>
-                <div id="domainArticlesHtmlWrap" class="border rounded p-2 bg-light" style="min-height:200px;flex:1 1 0%;height:0;max-height:65vh;overflow-y:auto;overflow-x:hidden;">
-                  <p class="text-muted small mb-0" id="domainArticlesHtmlPlaceholder">Click an article to view HTML.</p>
-                  <div id="domainArticlesHtmlContent" style="display:none;"></div>
+                <div class="row g-2 flex-grow-1 overflow-hidden" style="min-height:0;">
+                  <div class="col-md-8 d-flex flex-column overflow-hidden" style="min-height:0;">
+                    <p class="small fw-bold mb-1 flex-shrink-0 d-flex flex-wrap align-items-center gap-1">Article HTML <span id="domainArticlesHtmlMeta" class="text-muted fw-normal ms-1"></span><span class="ms-2 fw-normal small"><label class="mb-0"><input type="checkbox" id="domainArticlesAutoScrollCheck"> Smooth scroll</label> <input type="number" id="domainArticlesAutoScrollSec" min="1" step="0.5" value="5" style="width:3.5em" class="form-control form-control-sm d-inline-block" title="Seconds to scroll from top to bottom (one pass)"> s to bottom</span></p>
+                    <div id="domainArticlesHtmlWrap" class="border rounded p-2 bg-light" style="min-height:200px;flex:1 1 0%;height:0;max-height:65vh;overflow-y:auto;overflow-x:hidden;">
+                      <p class="text-muted small mb-0" id="domainArticlesHtmlPlaceholder">Click an article to view HTML.</p>
+                      <div id="domainArticlesHtmlContent" style="display:none;"></div>
+                    </div>
+                  </div>
+                  <div class="col-md-4 d-flex flex-column overflow-hidden" style="min-height:0;">
+                    <p class="small fw-bold mb-1 flex-shrink-0">Pin Preview</p>
+                    <div id="domainArticlesPinWrap" class="border rounded p-1 bg-light d-flex align-items-start justify-content-center overflow-auto" style="flex:1 1 0%;height:0;max-height:65vh;">
+                       <p class="text-muted small mb-0" id="domainArticlesPinPlaceholder" style="margin-top:20px;">No Pin image.</p>
+                       <img id="domainArticlesPinImg" src="" style="max-width:100%;height:auto;display:none;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);" alt="Pin Preview">
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -12278,14 +13438,25 @@ def admin_domains():
               <button type="button" class="btn btn-success btn-sm" id="allArticlesValidateNextBtn" title="Mark current as validated and go to next">Validate &amp; next</button>
             </div>
             <div class="row g-2 flex-grow-1 overflow-hidden" style="min-height:0;">
-              <div class="col-md-5 d-flex flex-column overflow-hidden" style="min-height:0;flex:1 1 0;">
+              <div class="col-md-4 d-flex flex-column overflow-hidden" style="min-height:0;">
                 <div id="allArticlesListWrap" class="border rounded" style="height:55vh;overflow-y:scroll;overflow-x:hidden;">
                   <ul class="list-group list-group-flush" id="allArticlesList"></ul>
                   <div id="allArticlesListLoading" class="text-center py-3 text-muted small" style="display:none;">Loading more…</div>
                 </div>
               </div>
-              <div class="col-md-7 d-flex flex-column overflow-hidden" style="min-height:0;">
-                <p class="small fw-bold mb-1 flex-shrink-0 d-flex flex-wrap align-items-center gap-1">Article HTML <span id="allArticlesHtmlMeta" class="text-muted fw-normal ms-1"></span><span class="ms-2 fw-normal small"><label class="mb-0"><input type="checkbox" id="allArticlesAutoScrollCheck"> Smooth scroll</label> <input type="number" id="allArticlesAutoScrollSec" min="1" step="0.5" value="5" style="width:3.5em" class="form-control form-control-sm d-inline-block" title="Seconds to scroll from top to bottom (one pass)"> s to bottom</span></p>
+              <div class="col-md-4 d-flex flex-column overflow-hidden" style="min-height:0;">
+                <p class="small fw-bold mb-1 flex-shrink-0">Images</p>
+                <div id="allArticlesImagesWrap" class="border rounded p-2 bg-light d-flex flex-column gap-2" style="flex:1 1 0;min-height:120px;overflow-y:auto;">
+                  <p class="text-muted small mb-0" id="allArticlesImagesPlaceholder">Click an article to view images.</p>
+                  <div id="allArticlesImagesContent" style="display:none;">
+                    <div><span class="small fw-bold text-secondary">Main</span><div class="mt-1 border rounded p-1 bg-white"><img id="allArticlesMainImg" src="" alt="" style="max-width:100%;height:auto;max-height:160px;display:none"></div><div id="allArticlesMainNone" class="text-muted small mt-1">None</div></div>
+                    <div><span class="small fw-bold text-secondary">Ingredient</span><div class="mt-1 border rounded p-1 bg-white"><img id="allArticlesIngImg" src="" alt="" style="max-width:100%;height:auto;max-height:160px;display:none"></div><div id="allArticlesIngNone" class="text-muted small mt-1">None</div></div>
+                    <div><span class="small fw-bold text-secondary">Pin</span><div class="mt-1 border rounded p-1 bg-white"><img id="allArticlesPinImg" src="" alt="" style="max-width:100%;height:auto;max-height:160px;display:none"></div><div id="allArticlesPinNone" class="text-muted small mt-1">None</div></div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4 d-flex flex-column overflow-hidden" style="min-height:0;">
+                <p class="small fw-bold mb-1 flex-shrink-0 d-flex flex-wrap align-items-center gap-1">HTML Preview <span id="allArticlesHtmlMeta" class="text-muted fw-normal ms-1"></span><span class="ms-2 fw-normal small"><label class="mb-0"><input type="checkbox" id="allArticlesAutoScrollCheck"> Scroll</label> <input type="number" id="allArticlesAutoScrollSec" min="1" step="0.5" value="5" style="width:3.5em" class="form-control form-control-sm d-inline-block"> s</span></p>
                 <div id="allArticlesHtmlWrap" class="border rounded p-2 bg-light" style="min-height:200px;flex:1 1 0%;height:0;max-height:65vh;overflow-y:auto;overflow-x:hidden;">
                   <p class="text-muted small mb-0" id="allArticlesHtmlPlaceholder">Click an article to view HTML.</p>
                   <div id="allArticlesHtmlContent" style="display:none;"></div>
@@ -12521,37 +13692,35 @@ def admin_domains():
         }});
       }});
 
-      /* --- Page theme select: save on change --- */
-      document.querySelectorAll('.page-theme-select').forEach(function(sel) {{
-        sel.addEventListener('change', function() {{
-          var domainId = this.getAttribute('data-domain-id');
-          var theme = this.value;
-          var original = this.getAttribute('data-original') || '';
-          if (theme === original) return;
-          var selectEl = this;
-          selectEl.disabled = true;
-          fetch('/api/domains/' + domainId + '/page-theme', {{
-            method: 'PUT',
-            headers: {{'Content-Type': 'application/json'}},
-            body: JSON.stringify({{theme: theme}})
+      document.addEventListener('change', function(e) {{
+        var sel = e.target.closest('.page-theme-select');
+        if (!sel) return;
+        var domainId = sel.getAttribute('data-domain-id');
+        var theme = sel.value;
+        var original = sel.getAttribute('data-original') || '';
+        if (theme === original) return;
+        sel.disabled = true;
+        fetch('/api/domains/' + domainId + '/page-theme', {{
+          method: 'PUT',
+          headers: {{'Content-Type': 'application/json'}},
+          body: JSON.stringify({{theme: theme}})
+        }})
+          .then(function(r) {{ return r.json(); }})
+          .then(function(d) {{
+            if (d.success) {{
+              sel.setAttribute('data-original', theme);
+              sel.style.borderColor = '#198754';
+              setTimeout(function() {{ sel.style.borderColor = ''; }}, 2000);
+            }} else {{
+              alert('Failed to save theme: ' + (d.error || 'Unknown error'));
+              sel.value = original;
+            }}
           }})
-            .then(function(r) {{ return r.json(); }})
-            .then(function(d) {{
-              if (d.success) {{
-                selectEl.setAttribute('data-original', theme);
-                selectEl.style.borderColor = '#198754';
-                setTimeout(function() {{ selectEl.style.borderColor = ''; }}, 2000);
-              }} else {{
-                alert('Failed to save theme: ' + (d.error || 'Unknown error'));
-                selectEl.value = original;
-              }}
-            }})
-            .catch(function(e) {{
-              alert('Error saving theme: ' + e);
-              selectEl.value = original;
-            }})
-            .finally(function() {{ selectEl.disabled = false; }});
-        }});
+          .catch(function(e) {{
+            alert('Error saving theme: ' + e);
+            sel.value = original;
+          }})
+          .finally(function() {{ sel.disabled = false; }});
       }});
       if (typeof bootstrap === 'undefined') return;
       var pinModal = document.getElementById('pinEditorModal');
@@ -12559,6 +13728,7 @@ def admin_domains():
       function esc(s) {{ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }}
       function openPinEditor(domainId, templateId) {{
         if (!domainId) return;
+        window.lastEditedDomainId = domainId;
         document.getElementById('pinEditorDomainUrl').textContent = 'Domain ' + domainId;
         var iframe = document.getElementById('pinEditorIframe');
         var url = '/pin-editor?domain_id=' + domainId + '&embed=1';
@@ -12574,35 +13744,90 @@ def admin_domains():
         document.getElementById('pinEditorIframe').src = 'about:blank';
         if (typeof window.refreshDomainsAfterPinEditor === 'function') window.refreshDomainsAfterPinEditor();
       }});
-      document.querySelectorAll('.pin-templates-cell').forEach(function(cell) {{
-        cell.addEventListener('click', function(e) {{
-          var delBtn = e.target.closest('.pin-del');
-          if (delBtn) {{
-            e.stopPropagation();
-            var tid = delBtn.getAttribute('data-template-id');
-            if (!tid) return;
-            if (!confirm('Delete this pin template?')) return;
-            fetch('/api/domain-templates/' + tid, {{ method: 'DELETE' }})
-              .then(function(r) {{ return r.json(); }})
-              .then(function(d) {{
-                if (d.success) {{
-                  var wrap = delBtn.closest('.pin-thumb-wrap');
-                  if (wrap) wrap.remove();
-                }} else {{
-                  alert(d.error || 'Error deleting template');
-                }}
-              }})
-              .catch(function(err) {{ alert('Error: ' + err); }});
-            return;
-          }}
-          var t = e.target.closest('[data-domain-id]');
-          if (!t) return;
-          var domainId = t.getAttribute('data-domain-id');
-          var templateId = t.getAttribute('data-template-id');
-          if (t.classList.contains('pin-add')) templateId = null;
-          openPinEditor(domainId, templateId);
-        }});
+      document.addEventListener('click', function(e) {{
+        var cell = e.target.closest('.pin-templates-cell');
+        if (!cell) return;
+
+        var pinExBtn = e.target.closest('.pin-example-btn');
+        if (pinExBtn) {{
+          e.stopPropagation();
+          var domainId = pinExBtn.getAttribute('data-domain-id');
+          openPinExampleModal(domainId);
+          return;
+        }}
+        
+        var delBtn = e.target.closest('.pin-del');
+        if (delBtn) {{
+          e.stopPropagation();
+          var tid = delBtn.getAttribute('data-template-id');
+          if (!tid) return;
+          if (!confirm('Delete this pin template?')) return;
+          fetch('/api/domain-templates/' + tid, {{ method: 'DELETE' }})
+            .then(function(r) {{ return r.json(); }})
+            .then(function(d) {{
+              if (d.success) {{
+                var wrap = delBtn.closest('.pin-thumb-wrap');
+                if (wrap) wrap.remove();
+              }} else {{
+                alert(d.error || 'Error deleting template');
+              }}
+            }})
+            .catch(function(err) {{ alert('Error: ' + err); }});
+          return;
+        }}
+        
+        var t = e.target.closest('[data-domain-id]');
+        if (!t) return;
+        var domainId = t.getAttribute('data-domain-id');
+        var templateId = t.getAttribute('data-template-id');
+        if (t.classList.contains('pin-add')) templateId = null;
+        openPinEditor(domainId, templateId);
       }});
+
+      function openPinExampleModal(domainId) {{
+        if (typeof showGlobalLoading === 'function') showGlobalLoading();
+        fetch('/api/pin-templates').then(r => r.json()).then(function(d) {{
+          var templates = (d.templates || []).filter(t => !t.startsWith('group_'));
+          var modal = document.getElementById('templateExampleModal');
+          var infoEl = document.getElementById('templateExampleDomainInfo');
+          var bodyEl = document.getElementById('templateExampleContent');
+          if (infoEl) infoEl.textContent = '— Pin Styles';
+          if (bodyEl) {{
+            bodyEl.innerHTML = templates.map(function(t) {{
+              var previewUrl = '/api/pin-template-example-raw?template=' + encodeURIComponent(t);
+              return `
+                <div class="col-md-6 col-lg-3 mb-4">
+                  <div class="card h-100 shadow-sm border-0">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center py-2 border-bottom">
+                      <span class="fw-bold small text-truncate" style="max-width:140px;">${{t}}</span>
+                      <button type="button" class="btn btn-sm btn-primary select-pin-tpl-btn" data-template="${{t}}">Select</button>
+                    </div>
+                    <div class="card-body p-0 position-relative" style="height: 533px; overflow: hidden; background: #fff;">
+                      <div class="position-absolute w-100 h-100 d-flex justify-content-center align-items-center loading-spinner">
+                        <div class="spinner-border text-secondary" role="status"><span class="visually-hidden">Loading...</span></div>
+                      </div>
+                      <iframe src="${{previewUrl}}" 
+                              style="width: 200%; height: 200%; border: none; transform: scale(0.5); transform-origin: top left; position: relative; z-index: 1;"
+                              onload="this.previousElementSibling.style.display='none';"></iframe>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }}).join('');
+            
+            bodyEl.querySelectorAll('.select-pin-tpl-btn').forEach(function(btn) {{
+              btn.addEventListener('click', function() {{
+                var tpl = this.getAttribute('data-template');
+                openPinEditor(domainId, tpl);
+                var mInstance = bootstrap.Modal.getInstance(modal);
+                if (mInstance) mInstance.hide();
+              }});
+            }});
+          }}
+          if (modal) new bootstrap.Modal(modal).show();
+        }}).catch(function(err) {{ alert('Error loading pin templates: ' + err); }})
+        .finally(function() {{ if (typeof hideGlobalLoading === 'function') hideGlobalLoading(); }});
+      }};
       var editDomainTextModal = document.getElementById('editDomainTextModal');
       var editDomainTextBsModal = editDomainTextModal ? new bootstrap.Modal(editDomainTextModal) : null;
       document.addEventListener('click', function(e) {{
@@ -14015,7 +15240,7 @@ def admin_domains():
           var domainId = this.getAttribute('data-domain-id');
           var stype = this.getAttribute('data-stats-type');
           var count = parseInt(this.getAttribute('data-count') || '0');
-          if (!domainId || !stype || count === 0) return;
+          if (!domainId || !stype) return;
           
           document.getElementById('statsArticlesModalTitle').textContent = 'Loading…';
           document.getElementById('statsArticlesGrid').innerHTML = '';
@@ -14029,6 +15254,8 @@ def admin_domains():
             .then(function(r) {{ return r.json(); }})
             .then(function(d) {{
               var typeLabels = {{
+                prompt: 'Articles with prompt',
+                no_prompt: 'Articles without prompt',
                 html_css: 'Articles with HTML+CSS',
                 no_html_css: 'Articles without HTML+CSS',
                 main_img: 'Articles with main image',
@@ -14044,7 +15271,7 @@ def admin_domains():
               
               var runGroupEl = document.getElementById('statsArticlesModalRunGroup');
               if (runGroupEl && arts.length > 0) {{
-                var mode = stype.indexOf('html_css') >= 0 ? 'article' : (stype.indexOf('pin_img') >= 0 ? 'pin_image' : 'images');
+                var mode = (stype === 'prompt' || stype === 'no_prompt') ? 'prompts' : (stype.indexOf('html_css') >= 0 ? 'article' : (stype.indexOf('pin_img') >= 0 ? 'pin_image' : 'images'));
                 runGroupEl.innerHTML = '<button type="button" class="btn btn-success btn-sm" onclick="generateForFilteredArticles()">Generate for these ' + arts.length + ' articles</button>';
               }} else if (runGroupEl) {{
                 runGroupEl.innerHTML = '';
@@ -14058,7 +15285,7 @@ def admin_domains():
                 grid.innerHTML = '<p class="text-muted small mb-0">No articles</p>';
                 return;
               }}
-              var showImages = ['main_img','no_main_img','ing_img','no_ing_img','pin_img','no_pin_img'].indexOf(stype) >= 0;
+              var showImages = true;
               var html = '';
               arts.forEach(function(a) {{
                 var tid = a.id;
@@ -14402,6 +15629,10 @@ def admin_domains():
           if (ph) ph.style.display = '';
           if (content) {{ content.style.display = 'none'; content.innerHTML = ''; }}
           if (meta) meta.textContent = '';
+          var pinImg = document.getElementById('domainArticlesPinImg');
+          var pinPh = document.getElementById('domainArticlesPinPlaceholder');
+          if (pinImg) pinImg.style.display = 'none';
+          if (pinPh) {{ pinPh.style.display = ''; pinPh.textContent = 'Click an article to view Pin preview.'; }}
         }}
         function showDomainArticleHtml(titleId) {{
           var content = document.getElementById('domainArticlesHtmlContent');
@@ -14427,8 +15658,31 @@ def admin_domains():
               /* Auto-resize iframe to content height */
               var ifr = content.querySelector('iframe');
               if (ifr) {{ ifr.onload = function() {{ try {{ var h = ifr.contentDocument.documentElement.scrollHeight; ifr.style.height = h + 'px'; }} catch(e){{}} }}; }}
+
+              /* Handle Pin Preview */
+              var pinUrl = (d.pin_image || '').trim();
+              var pinImg = document.getElementById('domainArticlesPinImg');
+              var pinPh = document.getElementById('domainArticlesPinPlaceholder');
+              if (pinImg && pinPh) {{
+                  if (pinUrl && pinUrl.startsWith('http')) {{
+                      pinImg.src = pinUrl;
+                      pinImg.style.display = 'block';
+                      pinPh.style.display = 'none';
+                  }} else {{
+                      pinImg.src = '';
+                      pinImg.style.display = 'none';
+                      pinPh.style.display = 'block';
+                      pinPh.textContent = 'No Pin image.';
+                  }}
+              }}
             }})
-            .catch(function() {{ content.innerHTML = '<p class="text-danger small">Failed to load article.</p>'; }});
+            .catch(function() {{
+              content.innerHTML = '<p class="text-danger small">Failed to load article.</p>';
+              var pinImg = document.getElementById('domainArticlesPinImg');
+              var pinPh = document.getElementById('domainArticlesPinPlaceholder');
+              if (pinImg) pinImg.style.display = 'none';
+              if (pinPh) {{ pinPh.style.display = ''; pinPh.textContent = 'Error loading.'; }}
+            }});
         }}
         if (domainArticlesList) {{
           domainArticlesList.addEventListener('click', function(e) {{
@@ -14591,9 +15845,13 @@ def admin_domains():
           var ph = document.getElementById('allArticlesHtmlPlaceholder');
           var content = document.getElementById('allArticlesHtmlContent');
           var meta = document.getElementById('allArticlesHtmlMeta');
+          var imgPh = document.getElementById('allArticlesImagesPlaceholder');
+          var imgContent = document.getElementById('allArticlesImagesContent');
           if (ph) ph.style.display = '';
           if (content) {{ content.style.display = 'none'; content.innerHTML = ''; }}
           if (meta) meta.textContent = '';
+          if (imgPh) imgPh.style.display = '';
+          if (imgContent) {{ imgContent.style.display = 'none'; }}
         }}
         function showAllArticleHtml(titleId) {{
           var content = document.getElementById('allArticlesHtmlContent');
@@ -14623,9 +15881,31 @@ def admin_domains():
               /* Render inside an iframe to isolate article CSS from admin page */
               var iframeSrcdoc = '<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{{margin:0;padding:8px;font-family:sans-serif;}}' + (css || '') + '</style></head><body>' + (html || '<em>No content</em>') + '</body></html>';
               content.innerHTML = '<iframe id="allArticlePreviewFrame" srcdoc="' + iframeSrcdoc.replace(/"/g,'&quot;') + '" style="width:100%;border:none;min-height:400px;" sandbox="allow-same-origin"></iframe>';
-              /* Auto-resize iframe to content height */
               var ifr = content.querySelector('iframe');
               if (ifr) {{ ifr.onload = function() {{ try {{ var h = ifr.contentDocument.documentElement.scrollHeight; ifr.style.height = h + 'px'; }} catch(e){{}} }}; }}
+              /* Images panel */
+              var imgPh = document.getElementById('allArticlesImagesPlaceholder');
+              var imgContent = document.getElementById('allArticlesImagesContent');
+              var mainImg = document.getElementById('allArticlesMainImg');
+              var ingImg = document.getElementById('allArticlesIngImg');
+              var pinImg = document.getElementById('allArticlesPinImg');
+              var mainNone = document.getElementById('allArticlesMainNone');
+              var ingNone = document.getElementById('allArticlesIngNone');
+              var pinNone = document.getElementById('allArticlesPinNone');
+              if (imgPh) imgPh.style.display = 'none';
+              if (imgContent) imgContent.style.display = 'block';
+              function setImg(el, noneEl, url) {{
+                var u = (url || '').trim();
+                var hasUrl = u && u.startsWith('http');
+                if (el) {{
+                  el.src = hasUrl ? u : transparentPixel;
+                  el.style.display = hasUrl ? '' : 'none';
+                  el.onerror = function() {{ el.style.display = 'none'; if (noneEl) noneEl.style.display = ''; }};
+                }}
+                if (noneEl) noneEl.style.display = hasUrl ? 'none' : ''; }}
+              setImg(mainImg, mainNone, d.main_image);
+              setImg(ingImg, ingNone, d.ingredient_image);
+              setImg(pinImg, pinNone, d.pin_image);
             }})
             .catch(function() {{ content.innerHTML = '<p class="text-danger small">Failed to load article.</p>'; }});
         }}
@@ -14885,7 +16165,46 @@ def admin_domains():
             }});
         }});
       }});
-      window.refreshDomainsAfterPinEditor = function() {{ location.reload(); }};
+      window.refreshDomainsAfterPinEditor = function() {{
+        if (window.lastEditedDomainId && window.location.pathname.indexOf('/admin/domains') >= 0) {{
+          fetch('/admin/domains?domain_id=' + window.lastEditedDomainId + '&partial=1')
+            .then(function(r) {{ return r.json(); }})
+            .then(function(data) {{
+              if (data.rows) {{
+                var tr = document.querySelector('tr[data-domain-id="' + window.lastEditedDomainId + '"]');
+                if (tr) {{
+                  var tempDiv = document.createElement('div');
+                  tempDiv.innerHTML = '<table>' + data.rows + '</table>';
+                  var newTr = tempDiv.querySelector('tr');
+                  if (newTr) {{
+                    tr.replaceWith(newTr);
+                    if (typeof initDomainRowEvents === 'function') initDomainRowEvents(newTr);
+                  }}
+                }}
+              }}
+            }}).catch(function(){{ location.reload(); }});
+        }} else if (window.lastEditedTitleId && (window.location.pathname.indexOf('/database-management') >= 0 || window.location.pathname === '/')) {{
+          fetch('/api/render-title-row/' + window.lastEditedTitleId)
+            .then(function(r) {{ return r.text(); }})
+            .then(function(html) {{
+              if (html && html.indexOf('Title not found') < 0) {{
+                var li = document.querySelector('li.title-row[data-title-id="' + window.lastEditedTitleId + '"]');
+                if (li) {{
+                  var tempDiv = document.createElement('div');
+                  tempDiv.innerHTML = html;
+                  var newLi = tempDiv.firstElementChild;
+                  if (newLi) {{
+                    li.replaceWith(newLi);
+                  }}
+                }}
+              }} else {{
+                if (typeof refreshGroups === 'function') refreshGroups();
+              }}
+            }}).catch(function(){{ if (typeof refreshGroups === 'function') refreshGroups(); }});
+        }} else {{
+          location.reload();
+        }}
+      }};
       var FIELD_TO_KEY = {{ 'header_template': 'headers', 'footer_template': 'footers', 'side_article_template': 'side_articles', 'category_page_template': 'categories', 'writer_template': 'writers' }};
       function toBadgeLabel(field, val) {{
         if (!val) return '—';
@@ -15232,9 +16551,68 @@ def _generate_domain_previews_background(domain_id, template_ids, domain_colors,
         log.warning("[preview-bg] domain %s failed: %s", domain_id, e)
 
 
-def _assign_random_site_templates(conn, domain_id, user_id=None, domain_index=None):
+def _fetch_full_pin_template_pool(conn, prefer_api=False):
+    """Fetch full pin template pool. Returns list of {name, template_json, preview_image_url}.
+    Uses all templates from pin_generator (no limit).
+    When prefer_api=True: try Pin API first, use DB pool only as fallback if API fails.
+    When prefer_api=False: DB first, then Pin API if DB has <2."""
+    pool = []
+    pin_base = (PIN_API_URL or "http://localhost:5000").rstrip("/")
+
+    def _fetch_from_api():
+        api_pool = []
+        try:
+            r = requests_lib.get(f"{pin_base}/templates", timeout=15)
+            r.raise_for_status()
+            data = r.json()
+            raw = data.get("templates") or []
+            if isinstance(raw, dict):
+                pin_names = list(raw.keys())
+            elif isinstance(raw, list):
+                pin_names = []
+                for t in raw:
+                    n = t.get("name") if isinstance(t, dict) else (t if isinstance(t, str) else None)
+                    if n and isinstance(n, str):
+                        pin_names.append(n)
+            else:
+                pin_names = []
+            for name in pin_names:
+                try:
+                    tr = requests_lib.get(f"{pin_base}/template/{name}", timeout=10)
+                    tr.raise_for_status()
+                    tpl_data = tr.json()
+                    template_json = json.dumps(tpl_data) if isinstance(tpl_data, dict) else str(tpl_data)
+                    api_pool.append({"name": name, "template_json": template_json, "preview_image_url": None})
+                except Exception:
+                    pass
+        except Exception as pe:
+            log.info(f"[assign_templates] Pin API fetch failed: {pe}")
+            raise
+        return api_pool
+
+    def _fetch_from_db():
+        cur = db_execute(conn, "SELECT name, template_json, preview_image_url FROM pin_template_pool")
+        return [dict_row(r) for r in cur.fetchall()]
+
+    if prefer_api:
+        try:
+            pool = _fetch_from_api()
+        except Exception:
+            pool = _fetch_from_db()
+    else:
+        pool = _fetch_from_db()
+        if len(pool) < 2:
+            try:
+                pool = _fetch_from_api()
+            except Exception:
+                pass
+    return pool
+
+
+def _assign_random_site_templates(conn, domain_id, user_id=None, domain_index=None, pin_templates_override=None):
     """Assign random header, footer, sidebar, category, writer templates, colors, fonts, categories, pins, and article generator to domain.
-    When domain_index is provided (bulk add), themes 1-9 are distributed round-robin: first domain gets theme 1, second gets theme 2, etc."""
+    When domain_index is provided (bulk add), themes 1-9 are distributed round-robin: first domain gets theme 1, second gets theme 2, etc.
+    pin_templates_override: optional list of 2 dicts {name, template_json, preview_image_url} for bulk add rotation."""
     import random
     
     # 1. Random site templates
@@ -15331,32 +16709,20 @@ def _assign_random_site_templates(conn, domain_id, user_id=None, domain_index=No
     
     # 8. Assign 2 pin templates to domain with domain colors, then generate domain-colored preview images
     try:
-        pool = []
-        cur = db_execute(conn, "SELECT name, template_json, preview_image_url FROM pin_template_pool")
-        pool = [dict_row(r) for r in cur.fetchall()]
-        if len(pool) < 2:
-            # Fallback: fetch from Pin API directly when pool is empty
-            pin_base = (PIN_API_URL or "http://localhost:5000").rstrip("/")
-            try:
-                r = requests_lib.get(f"{pin_base}/templates", timeout=10)
-                r.raise_for_status()
-                data = r.json()
-                pin_names = data.get("templates") or []
-                if isinstance(pin_names, dict):
-                    pin_names = list(pin_names.keys()) if pin_names else []
-                for name in pin_names[:10]:  # fetch up to 10 to build pool
-                    try:
-                        tr = requests_lib.get(f"{pin_base}/template/{name}", timeout=10)
-                        tr.raise_for_status()
-                        tpl_data = tr.json()
-                        template_json = json.dumps(tpl_data) if isinstance(tpl_data, dict) else str(tpl_data)
-                        pool.append({"name": name, "template_json": template_json, "preview_image_url": None})
-                    except Exception:
-                        pass
-            except Exception as pe:
-                log.info(f"[assign_templates] Pin API fetch failed for domain {domain_id}: {pe}")
-        if len(pool) >= 2:
-            chosen = random.sample(pool, 2)
+        if pin_templates_override and len(pin_templates_override) >= 2:
+            chosen = list(pin_templates_override)[:2]
+        else:
+            pool = _fetch_full_pin_template_pool(conn, prefer_api=(domain_index is not None))
+            if len(pool) >= 2:
+                if domain_index is not None:
+                    random.shuffle(pool)
+                    n = len(pool)
+                    chosen = [pool[(domain_index * 2) % n], pool[(domain_index * 2 + 1) % n]]
+                else:
+                    chosen = random.sample(pool, 2)
+            else:
+                chosen = []
+        if chosen:
             template_ids = []
             for sort_order, row in enumerate(chosen):
                 name = row.get("name") or ""
@@ -15369,7 +16735,7 @@ def _assign_random_site_templates(conn, domain_id, user_id=None, domain_index=No
                     template_ids.append(tid)
                     db_execute(conn, """INSERT INTO domain_template_assignments (domain_id, template_id, sort_order) VALUES (?, ?, ?)""",
                               (domain_id, tid, sort_order))
-            log.info(f"[assign_templates] Domain {domain_id}: Assigned 2 pin templates, colors from palette")
+            log.info(f"[assign_templates] Domain {domain_id}: Assigned 2 pin templates ({chosen[0].get('name','')}, {chosen[1].get('name','')})")
             if template_ids and user_id:
                 threading.Thread(target=_generate_domain_previews_background, args=(domain_id, template_ids, palette, user_id), daemon=True).start()
         else:
@@ -15605,6 +16971,16 @@ def admin_domains_bulk_add():
                 skipped.append(url)
                 items_to_add[:] = [(u, d) for u, d in items_to_add if u != url]
         
+        # Fetch full pin template pool once for bulk add; prefer Pin API for bulk add; shuffle for random rotation across domains
+        pin_pool = []
+        pin_pool_shuffled = []
+        pool = _fetch_full_pin_template_pool(conn, prefer_api=True)
+        if len(pool) >= 2:
+            pin_pool_shuffled = list(pool)
+            random.shuffle(pin_pool_shuffled)
+            pin_pool = pin_pool_shuffled
+            log.info(f"[bulk_add] Using {len(pin_pool)} pin templates for rotation (2 per domain)")
+
         if not items_to_add:
             redirect_url = url_for("admin_domains")
             if target_group_id:
@@ -15654,11 +17030,15 @@ def admin_domains_bulk_add():
                 # Add domains to this subgroup with indexes 0, 1, 2, 3 (A, B, C, D)
                 for domain_index, (url, has_dns) in enumerate(chunk):
                     overall_index = theme_start_index + chunk_idx * 4 + domain_index
+                    pin_pair = None
+                    if len(pin_pool) >= 2:
+                        n = len(pin_pool)
+                        pin_pair = [pin_pool[(overall_index * 2) % n], pin_pool[(overall_index * 2 + 1) % n]]
                     cur = db_execute(conn, "INSERT INTO domains (domain_url, domain_name, group_id, domain_index) VALUES (?, ?, ?, ?)", 
                                    (url, url, new_group_id, domain_index))
                     did = last_insert_id(cur)
                     if did:
-                        _assign_random_site_templates(conn, did, user_id, domain_index=overall_index)
+                        _assign_random_site_templates(conn, did, user_id, domain_index=overall_index, pin_templates_override=pin_pair)
                         _assign_writers_from_pool(conn, did, user_id)
                         # Assign domain to current user
                         try:
@@ -15678,10 +17058,15 @@ def admin_domains_bulk_add():
             theme_start_index = dict_row(cur.fetchone()).get("cnt") or 0
             
             for idx, (url, has_dns) in enumerate(items_to_add):
+                overall_index = theme_start_index + idx
+                pin_pair = None
+                if len(pin_pool) >= 2:
+                    n = len(pin_pool)
+                    pin_pair = [pin_pool[(overall_index * 2) % n], pin_pool[(overall_index * 2 + 1) % n]]
                 cur = db_execute(conn, "INSERT INTO domains (domain_url, domain_name) VALUES (?, ?)", (url, url))
                 did = last_insert_id(cur)
                 if did:
-                    _assign_random_site_templates(conn, did, user_id, domain_index=theme_start_index + idx)
+                    _assign_random_site_templates(conn, did, user_id, domain_index=overall_index, pin_templates_override=pin_pair)
                     _assign_writers_from_pool(conn, did, user_id)
                     # Assign domain to current user
                     try:
@@ -15779,8 +17164,19 @@ def admin_domain_templates(pk):
     if not d:
         return redirect(url_for("admin_domains"))
     with get_connection() as conn:
-        cur = db_execute(conn, "SELECT id, name, sort_order, created_at FROM domain_templates WHERE domain_id = ? ORDER BY sort_order, id", (pk,))
-        templates = [dict_row(r) for r in cur.fetchall()]
+        cur = db_execute(conn, "SELECT id, name, template_json, sort_order, created_at FROM domain_templates WHERE domain_id = ? ORDER BY sort_order, id", (pk,))
+        templates = []
+        for r in cur.fetchall():
+            dr = dict_row(r)
+            name = dr.get("name") or ""
+            if not name or name.strip().lower() in ("unnamed", "none"):
+                try:
+                    tj = json.loads(dr.get("template_json") or "{}")
+                    name = tj.get("template_file") or tj.get("template_name") or tj.get("template_id") or name
+                except Exception:
+                    pass
+            dr["name"] = name
+            templates.append(dr)
     pin_editor_url = "/pin-editor?domain_id=" + str(pk)
     rows = "".join(
         f'<tr><td>{t["id"]}</td><td>{html.escape(t.get("name") or "")}</td><td>{html.escape(str(t.get("sort_order") or 0))}</td>'
@@ -17309,7 +18705,7 @@ def _render_preview_page(domain_id, main_html, main_css, page_title, ctx, includ
     return f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{html.escape(page_title)}</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<script src="/static/js/tailwindcss.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600" rel="stylesheet">
 <style>{full_css}
 {pagination_css}</style></head>
@@ -17724,7 +19120,7 @@ def _build_static_page_html(domain_id, ctx_static, page_type, **kwargs):
     return f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{html.escape(page_title)}</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<script src="/static/js/tailwindcss.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600" rel="stylesheet">
 <style>{full_css}{pagination_css}</style></head>
 <body>{header_html}
@@ -18333,7 +19729,10 @@ def _normalize_domain(value):
     if not v:
         return ""
     v = re.sub(r"^https?://", "", v, flags=re.IGNORECASE)
-    v = v.split("/")[0].split("?")[0].strip().lower()
+    # Split by common separators to get just the host part
+    for sep in ["/", "?", "#", "|", " ", "\t"]:
+        v = v.split(sep)[0]
+    v = v.strip().lower()
     if v.startswith("www."):
         v = v[4:]
     return v
@@ -19139,7 +20538,7 @@ def admin_titles():
       <div class="card-header">🔗🔄 Distribute Titles to Groups</div>
       <div class="card-body">
         <div class="alert alert-info small mb-3">
-          <strong>⚡ All Groups:</strong> Distributes titles round-robin across all groups in the system.
+          <strong>⚡ All Groups:</strong> Each group gets all titles (looping distribute).
           <br><strong>📌 Selected groups only:</strong> Check the groups you want; titles will be distributed only to those.
         </div>
         <form method="post" action="/admin/titles/distribute" id="distributeTitlesForm">
@@ -19167,6 +20566,19 @@ def admin_titles():
           <div class="mb-2">
             <label class="form-label fw-bold">Titles (one per line)</label>
             <textarea name="titles" class="form-control" rows="5" placeholder="Creamy Garlic Butter Chicken Skillet&#10;One-Pot Spicy Tomato Pasta&#10;..." required></textarea>
+          </div>
+          <div class="mb-2">
+            <label class="form-label fw-bold">AI provider (for prompts)</label>
+            <select name="ai_provider" id="distTitlesAiProvider" class="form-select form-select-sm" style="max-width:200px">
+              <option value="openrouter">OpenRouter</option>
+              <option value="openai">OpenAI</option>
+              <option value="local">Local (Ollama)</option>
+              <option value="llamacpp">llama.cpp</option>
+            </select>
+            <div id="distTitlesOpenAIWrap" class="mt-1" style="display:none"><label class="small text-muted">OpenAI model:</label><select name="openai_model" id="distTitlesOpenAIModel" class="form-select form-select-sm" style="max-width:220px"></select></div>
+            <div id="distTitlesOpenRouterWrap" class="mt-1" style="display:none"><label class="small text-muted">OpenRouter model:</label><select name="openrouter_model" id="distTitlesOpenRouterModel" class="form-select form-select-sm" style="max-width:220px"></select></div>
+            <div id="distTitlesLocalWrap" class="mt-1" style="display:none"><label class="small text-muted">Local model:</label><select name="local_model" id="distTitlesLocalModel" class="form-select form-select-sm" style="max-width:220px"></select></div>
+            <div id="distTitlesLlamaCppWrap" class="mt-1" style="display:none"><label class="small text-muted">llama.cpp model:</label><select name="llamacpp_model_id" id="distTitlesLlamaCppModel" class="form-select form-select-sm" style="max-width:220px"></select></div>
           </div>
           <button type="submit" class="btn btn-primary">Distribute (A B C D)</button>
         </form>
@@ -19202,6 +20614,56 @@ def admin_titles():
           }}
         }});
       }}
+      var distTAi = document.getElementById('distTitlesAiProvider');
+      if (distTAi) {{
+        function _distTitlesAiUpdate() {{
+          var p = distTAi.value || 'openrouter';
+          ['OpenAIWrap','OpenRouterWrap','LocalWrap','LlamaCppWrap'].forEach(function(suf) {{
+            var map = {{'OpenAIWrap':'openai','OpenRouterWrap':'openrouter','LocalWrap':'local','LlamaCppWrap':'llamacpp'}};
+            var w = document.getElementById('distTitles' + suf);
+            if (w) w.style.display = (p === map[suf]) ? 'block' : 'none';
+          }});
+        }}
+        distTAi.addEventListener('change', _distTitlesAiUpdate);
+        fetch('/api/profile-ai-defaults').then(function(r){{ return r.json(); }}).then(function(d){{
+          if (d && d.ai_provider && distTAi.querySelector('option[value="'+d.ai_provider+'"]')) {{ distTAi.value = d.ai_provider; }}
+          _distTitlesAiUpdate();
+          var sel, opts;
+          if (distTAi.value === 'openai') {{
+            sel = document.getElementById('distTitlesOpenAIModel');
+            if (sel && (!sel.options || sel.options.length === 0)) {{
+              fetch('/api/openai-models').then(function(r2){{ return r2.json(); }}).then(function(m){{
+                (m.model_options||m.models||[]).forEach(function(item){{ var o = document.createElement('option'); o.value = typeof item==='string' ? item : item.id; o.textContent = typeof item==='string' ? item : (item.label||item.id); sel.appendChild(o); }});
+                if (d.openai_model) {{ for (var i=0;i<sel.options.length;i++) if (sel.options[i].value===d.openai_model) {{ sel.selectedIndex=i; break; }} }}
+              }}).catch(function(){{}});
+            }}
+          }} else if (distTAi.value === 'openrouter') {{
+            sel = document.getElementById('distTitlesOpenRouterModel');
+            if (sel && (!sel.options || sel.options.length === 0)) {{
+              fetch('/api/openrouter-models').then(function(r2){{ return r2.json(); }}).then(function(m){{
+                (m.model_options||m.models||[]).forEach(function(item){{ var id = typeof item==='string' ? item : item.id; var o = document.createElement('option'); o.value = id; o.textContent = typeof item==='string' ? item : (item.label||item.id); sel.appendChild(o); }});
+                if (d.openrouter_model) {{ for (var i=0;i<sel.options.length;i++) if (sel.options[i].value===d.openrouter_model) {{ sel.selectedIndex=i; break; }} }}
+              }}).catch(function(){{}});
+            }}
+          }} else if (distTAi.value === 'local') {{
+            sel = document.getElementById('distTitlesLocalModel');
+            if (sel && (!sel.options || sel.options.length === 0)) {{
+              fetch('/api/ollama-models').then(function(r2){{ return r2.json(); }}).then(function(m){{
+                (m.models||[]).forEach(function(id){{ var o = document.createElement('option'); o.value = id; o.textContent = id; sel.appendChild(o); }});
+                if (d.local_model) {{ for (var i=0;i<sel.options.length;i++) if (sel.options[i].value===d.local_model) {{ sel.selectedIndex=i; break; }} }}
+              }}).catch(function(){{}});
+            }}
+          }} else if (distTAi.value === 'llamacpp') {{
+            sel = document.getElementById('distTitlesLlamaCppModel');
+            if (sel && (!sel.options || sel.options.length === 0)) {{
+              fetch('/api/llamacpp-models').then(function(r2){{ return r2.json(); }}).then(function(m){{
+                (m.models||m.model_options||[]).forEach(function(item){{ var id = typeof item==='object' ? (item.id!=null ? item.id : item) : item; var lab = typeof item==='object' ? (item.label||item.name||id) : item; var o = document.createElement('option'); o.value = id; o.textContent = lab; sel.appendChild(o); }});
+                if (d.llamacpp_model_id != null) {{ for (var i=0;i<sel.options.length;i++) if (sel.options[i].value===''+d.llamacpp_model_id) {{ sel.selectedIndex=i; break; }} }}
+              }}).catch(function(){{}});
+            }}
+          }}
+        }}).catch(function(){{ _distTitlesAiUpdate(); }});
+      }}
     }})();
     </script>
 
@@ -19223,17 +20685,49 @@ def admin_titles():
 
 
 @app.route("/admin/titles/distribute", methods=["POST"])
+@login_required
 def admin_titles_distribute():
     titles_text = request.form.get("titles", "")
     raw_scope = request.form.get("distribute_scope", "").strip()
     distribute_scope = raw_scope if raw_scope in ("all", "selected") else "all"
     selected_group_ids = [int(x) for x in request.form.getlist("group_ids") if str(x).strip().isdigit()]
-    # Legacy: old admin/domains form sends only group_id (no distribute_scope) — treat as selected that group
+    # From admin/domains: group_id = filter group; "all" = all subgroups of that group, "selected" = checked subgroups
     legacy_group_id = request.form.get("group_id") or None
-    if legacy_group_id and str(legacy_group_id).strip().isdigit() and not raw_scope and not selected_group_ids:
-        distribute_scope = "selected"
-        selected_group_ids = [int(legacy_group_id)]
+    from_domains = request.form.get("redirect") == "domains"
+    if legacy_group_id and str(legacy_group_id).strip().isdigit():
+        parent_gid = int(legacy_group_id)
+        if from_domains:
+            # Scope applies to subgroups of parent_gid
+            if distribute_scope == "selected" and selected_group_ids:
+                pass  # use selected_group_ids
+            else:
+                # "all" or no selection: use parent + all descendants
+                with get_connection() as conn:
+                    def get_descendants(gid):
+                        result = [gid]
+                        cur = db_execute(conn, "SELECT id FROM `groups` WHERE parent_group_id = ?", (gid,))
+                        for r in cur.fetchall():
+                            cid = dict_row(r).get("id")
+                            if cid:
+                                result.extend(get_descendants(cid))
+                        return result
+                    selected_group_ids = get_descendants(parent_gid)
+                    distribute_scope = "selected"
+        elif not raw_scope and not selected_group_ids:
+            distribute_scope = "selected"
+            selected_group_ids = [parent_gid]
     titles = [t.strip() for t in titles_text.splitlines() if t.strip()]
+    ai_provider = (request.form.get("ai_provider") or "").strip() or None
+    openai_model = (request.form.get("openai_model") or "").strip() or None
+    openrouter_model = (request.form.get("openrouter_model") or "").strip() or None
+    local_model = (request.form.get("local_model") or "").strip() or None
+    llamacpp_model_id = request.form.get("llamacpp_model_id")
+    if llamacpp_model_id is not None and str(llamacpp_model_id).strip().isdigit():
+        llamacpp_model_id = int(llamacpp_model_id)
+    else:
+        llamacpp_model_id = None
+    user = get_current_user()
+    user_config = get_user_config_for_api(user["id"]) if user else {}
     
     redirect_url = url_for("admin_titles")
     if request.form.get("redirect") == "domains":
@@ -19244,10 +20738,11 @@ def admin_titles_distribute():
     
     if not titles:
         return redirect(redirect_url)
-    
+
+    # Distribute only creates titles; prompts/images are generated in "Run this group"
     with get_connection() as conn:
         if distribute_scope == "selected" and selected_group_ids:
-            # Selected groups only — distribute only to the checked groups
+            # Selected groups only — loop: for each group, distribute ALL titles
             placeholders = ",".join(["?"] * len(selected_group_ids))
             cur = db_execute(conn, f"SELECT id, group_id FROM domains WHERE group_id IN ({placeholders}) ORDER BY group_id, domain_index, id", tuple(selected_group_ids))
             domain_rows = [dict_row(r) for r in cur.fetchall()]
@@ -19255,13 +20750,11 @@ def admin_titles_distribute():
             if not domain_rows:
                 return redirect(redirect_url)
             
-            # Group domains by their group_id (each subgroup can have 1-4 domains)
             group_domains_map = {}
             for dr in domain_rows:
                 gid = dr["group_id"]
                 group_domains_map.setdefault(gid, []).append(dr["id"])
             
-            # Filter to groups that have at least 1 domain
             valid_groups = {gid: doms for gid, doms in group_domains_map.items() if len(doms) >= 1}
             
             if not valid_groups:
@@ -19269,26 +20762,25 @@ def admin_titles_distribute():
                 sep = "&" if "?" in redirect_url else "?"
                 return redirect(redirect_url + f"{sep}error={urllib.parse.quote(error_msg)}")
             
-            # Distribute titles round-robin across valid subgroups
-            # Title 1 → Subgroup 1 (all domains), Title 2 → Subgroup 2 (all domains), etc.
             ordered_gids = sorted(valid_groups.keys())
+            # Round-robin groups: each title goes to one group (all A,B,C,D get it); cycle groups when titles > groups
+            if not valid_groups:
+                return redirect(redirect_url)
             titles_distributed = 0
-            total_domains = sum(len(doms) for doms in valid_groups.values())
-            
-            for i, title in enumerate(titles):
-                target_gid = ordered_gids[i % len(ordered_gids)]
-                for domain_id in valid_groups[target_gid]:
-                    cur = db_execute(conn, "INSERT INTO titles (title, domain_id, group_id) VALUES (?, ?, ?)", (title, domain_id, target_gid))
+            for idx, title in enumerate(titles):
+                gid = ordered_gids[idx % len(ordered_gids)]
+                for domain_id in valid_groups[gid]:
+                    cur = db_execute(conn, "INSERT INTO titles (title, domain_id, group_id) VALUES (?, ?, ?)", (title, domain_id, gid))
                     tid = last_insert_id(cur)
                     if tid:
                         db_execute(conn, "INSERT INTO article_content (title_id, language_code) VALUES (?, 'en')", (tid,))
-                titles_distributed += 1
-            
-            success_msg = f"Successfully distributed {titles_distributed} titles to {len(valid_groups)} subgroups ({total_domains} total domains)"
+                        titles_distributed += 1
+
+            success_msg = f"Successfully distributed {titles_distributed} title(s) (each title to one group's A,B,C,D; groups round-robin)"
             sep = "&" if "?" in redirect_url else "?"
             return redirect(redirect_url + f"{sep}success={urllib.parse.quote(success_msg)}")
         else:
-            # No group selected — round-robin across all groups
+            # All groups — loop: for each group, distribute ALL titles
             cur = db_execute(conn, "SELECT id FROM `groups` ORDER BY id")
             groups = [(r.get("id") if isinstance(r, dict) else r[0]) for r in cur.fetchall()]
             if not groups:
@@ -19297,19 +20789,26 @@ def admin_titles_distribute():
             for gid in groups:
                 cur = db_execute(conn, "SELECT id FROM domains WHERE group_id = ? ORDER BY domain_index", (gid,))
                 gdoms = [(r.get("id") if isinstance(r, dict) else r[0]) for r in cur.fetchall()]
-                if len(gdoms) == 4:
+                if len(gdoms) >= 1:
                     group_domains[gid] = gdoms
             if not group_domains:
                 return redirect(redirect_url)
-            ordered_gids = [g for g in groups if g in group_domains]
-            for i, title in enumerate(titles):
-                gid = ordered_gids[i % len(ordered_gids)]
+            ordered_gids = sorted(group_domains.keys())
+            # Round-robin groups: each title goes to one group (all A,B,C,D get it); cycle groups when titles > groups
+            if not group_domains:
+                return redirect(redirect_url)
+            titles_distributed = 0
+            for idx, title in enumerate(titles):
+                gid = ordered_gids[idx % len(ordered_gids)]
                 for domain_id in group_domains[gid]:
                     cur = db_execute(conn, "INSERT INTO titles (title, domain_id, group_id) VALUES (?, ?, ?)", (title, domain_id, gid))
                     tid = last_insert_id(cur)
                     if tid:
                         db_execute(conn, "INSERT INTO article_content (title_id, language_code) VALUES (?, 'en')", (tid,))
-    return redirect(redirect_url)
+                        titles_distributed += 1
+            success_msg = f"Successfully distributed {titles_distributed} title(s) (each title to one group's A,B,C,D; groups round-robin)"
+            sep = "&" if "?" in redirect_url else "?"
+            return redirect(redirect_url + f"{sep}success={urllib.parse.quote(success_msg)}")
 
 
 @app.route("/admin/titles/delete/<int:pk>")
@@ -20543,6 +22042,7 @@ def profile(target_user_id=None):
                 "llamacpp_model_id": _parse_int_or_none(request.form.get("llamacpp_model_id")),
                 "default_categories": request.form.get("default_categories", "").strip() or None,
                 "bulk_max_concurrency": _parse_bulk_max_concurrency(request.form.get("bulk_max_concurrency")),
+                "image_request_delay_sec": max(0, min(120, int(request.form.get("image_request_delay_sec") or 15))),
             }
             
             if exists:
@@ -20669,7 +22169,11 @@ def profile(target_user_id=None):
           
           <h5 class="mb-3 mt-4">Midjourney <span class="badge bg-danger">Required</span></h5>
           {field("midjourney_api_token", "API Token", "user:xxxx-xxxxxxxxxxxxxxx")}
-          {field("midjourney_channel_id", "Channel ID", "1464695640058495123")}
+          <div class="mb-3">
+            <label class="form-label">Channel IDs <span class="badge bg-info text-dark">multi-channel</span></label>
+            <textarea name="midjourney_channel_id" class="form-control" rows="4" placeholder="1464695640058495123&#10;1464695640058495124&#10;1464695640058495125">{html.escape(str(keys.get('midjourney_channel_id') or ''))}</textarea>
+            <div class="form-text">One channel ID per line. During image generation, channels rotate automatically. If a channel errors, it is skipped for 3 rounds of other channels before being retried.</div>
+          </div>
           
           <h5 class="mb-3 mt-4">Cloudflare <span class="badge bg-danger">Required</span></h5>
           {field("cloudflare_account_id", "Account ID", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")}
@@ -20727,6 +22231,10 @@ def profile(target_user_id=None):
           <h5 class="mb-3 mt-4">Bulk run concurrency <span class="badge bg-secondary">Optional</span></h5>
           {field("bulk_max_concurrency", "Max rows (Run for group / Run for all groups)", "6", "number")}
           <div class="form-text">Default number of rows when "Max" is selected (1–20). Used when cloning profile.</div>
+          
+          <h5 class="mb-3 mt-4">Image request delay (seconds) <span class="badge bg-secondary">Optional</span></h5>
+          {field("image_request_delay_sec", "Delay between images (any image generation request)", "15", "number")}
+          <div class="form-text">Pause (seconds) between each image request (main, ingredient, etc.) to avoid Midjourney rate limits (0–120). Default 15.</div>
           
           {admin_apply_html}
           

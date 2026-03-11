@@ -31,8 +31,6 @@ OUTPUT JSON FORMAT (EXACT STRUCTURE)
     ]
   },
   "recipe": { "name": "...", "summary": "...", "ingredients": [...], "instructions": [...], "prep_time": "...", "cook_time": "...", "total_time": "...", "servings": "...", "calories": "...", "course": "...", "cuisine": "..." },
-  "prompt": "...",
-  "prompt_image_ingredients": "...",
   "recipe_title_pin": "...",
   "pinterest_title": "...",
   "pinterest_description": "...",
@@ -143,25 +141,8 @@ RECIPE RULES
 recipe: name, summary, ingredients (array), instructions (array), prep_time, cook_time, total_time, servings, calories, course, cuisine.
 
 ---------------------------------------
-PROMPT IMAGE RULES (Midjourney-style, policy-safe, food-only)
+IMAGE PROMPTS (DO NOT GENERATE)
 ---------------------------------------
 
-prompt (final plated dish):
-- One Midjourney prompt in English. No labels, no markdown. Policy-safe and food-only.
-- Realistic, appetizing ULTRA close-up of the final plated dish.
-- Serve in a clean white ceramic bowl or plate (shape may vary), on a white or light neutral surface.
-- Tight composition filling ~90–100% of frame (partial plate crop OK).
-- Clear food texture, shallow depth of field, soft natural daylight, gentle shadows.
-- Sharp focus at food center, slight 3/4 or eye-level angle.
-- Exclude people, hands, faces, text, logos, and packaging.
-- End with --v 6.1
-
-prompt_image_ingredients (ingredients flat lay):
-- Extract the main ingredient NAMES from the recipe (comma-separated, unique, no duplicates, no quantities).
-- Format: "{ingredient1, ingredient2, ...}, ingredients-only, {scene}"
-- Scene: top-down flat lay, each ingredient appears once, neatly separated in small bowls and directly on the surface.
-- Wide framing with generous margins, clean spacing.
-- Light neutral background (soft gray or light beige) with subtle texture (stone or light wood).
-- Soft natural daylight, soft minimal shadows.
-- No text, no labels, no logos, no packaging, minimal styling.
-- End with --v 6.1
+prompt and prompt_image_ingredients are generated in a separate step (generate-prompts) from the recipe title.
+Do NOT output or set prompt or prompt_image_ingredients in this article generator.

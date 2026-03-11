@@ -1,0 +1,28 @@
+{
+  "template_id": "template_8",
+  "template_name": "Spicy Thai Basil Chicken",
+  "images": {
+    "top_image": {
+      "url": "",
+      "description_prompt": "",
+      "position": {
+        "top": 50,
+        "left": 50
+      },
+      "width": 500,
+      "height": 600,
+      "layer_order": 2
+    },
+    "background": {
+      "url": "",
+      "description_prompt": "",
+      "position": {
+        "top": 0,
+        "left": 0
+      },
+      "width": 600,
+      "height": 1067,
+      "layer_order": 1
+    }
+  }
+}

@@ -320,6 +320,10 @@ def _run_mysql_migrations(cursor):
         cursor.execute("ALTER TABLE article_content ADD COLUMN usage_json TEXT")
     except Exception:
         pass
+    try:
+        cursor.execute("ALTER TABLE article_content ADD COLUMN status_error TEXT")
+    except Exception:
+        pass
 
 
 def _run_mysql_migrations_part2(cursor):
@@ -398,6 +402,10 @@ def _run_mysql_migrations_part2(cursor):
         cursor.execute("ALTER TABLE user_api_keys ADD COLUMN llamacpp_model_id INT DEFAULT NULL")
     except Exception:
         pass
+    try:
+        cursor.execute("ALTER TABLE user_api_keys ADD COLUMN image_request_delay_sec INT DEFAULT 15")
+    except Exception:
+        pass  # column may already exist
     try:
         cursor.execute("ALTER TABLE domains ADD COLUMN pinterest_board_id VARCHAR(255)")
     except Exception:
@@ -593,6 +601,10 @@ def _init_supabase():
             cur.execute("ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS llamacpp_model_id INT DEFAULT NULL")
         except Exception:
             pass
+        try:
+            cur.execute("ALTER TABLE user_api_keys ADD COLUMN image_request_delay_sec INT DEFAULT 15")
+        except Exception:
+            pass  # column may already exist
         cur.execute("""
             CREATE TABLE IF NOT EXISTS user_domains (
                 id SERIAL PRIMARY KEY,
@@ -670,6 +682,10 @@ def _init_supabase():
             pass
         try:
             cur.execute("ALTER TABLE article_content ADD COLUMN IF NOT EXISTS usage_json TEXT")
+        except Exception:
+            pass
+        try:
+            cur.execute("ALTER TABLE article_content ADD COLUMN IF NOT EXISTS status_error TEXT")
         except Exception:
             pass
         cur.execute("""

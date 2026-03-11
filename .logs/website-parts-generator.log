@@ -10023,3 +10023,2717 @@ INFO:     Started server process [3872]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [6648]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:51244 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50768 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50274 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65000 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65002 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65008 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65010 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65017 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65022 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65028 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65032 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65039 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65043 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65062 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64688 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55758 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61322 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61356 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64718 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64735 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60051 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58288 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51219 - "POST /generate/writer/writer_1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57788 - "POST /generate/writer/writer_1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65008 - "POST /generate/writer/writer_1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51268 - "POST /generate/writer/writer_1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50450 - "POST /generate/writer/writer_1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49377 - "POST /generate/writer/writer_1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53982 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58316 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58724 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61296 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52187 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52539 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52875 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57995 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [4148]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60162 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57206 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51008 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51922 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57302 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64707 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56235 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58874 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58425 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59254 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65459 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64864 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64310 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53059 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49674 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54717 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [9644]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:49280 - "POST /generate/domain_page/theme_5/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49282 - "POST /generate/domain_page/theme_5/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62879 - "POST /generate/domain_page/theme_5/sidebar HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52050 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50765 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56583 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60679 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54436 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59597 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53907 - "POST /generate/domain_page/theme_5/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52294 - "POST /generate/domain_page/theme_5/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56732 - "POST /generate/domain_page/theme_5/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62481 - "POST /generate/domain_page/theme_5/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64153 - "POST /generate/domain_page/theme_5/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57260 - "POST /generate/domain_page/theme_5/sidebar HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [10716]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:62221 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58448 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51266 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61747 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56333 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [5728]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:54508 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55840 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49675 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54201 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61703 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55983 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60162 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49324 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51231 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [24848]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:55805 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50641 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58847 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50888 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63193 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59948 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59823 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [26220]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:65307 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55755 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60599 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54186 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [21552]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:59930 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55809 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50614 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61500 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49952 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55763 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63114 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51747 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64043 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63713 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [13056]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:55049 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51493 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49943 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59790 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54527 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53056 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50061 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64627 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54445 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65176 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53146 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58418 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59896 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [23772]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:61862 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65159 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [6712]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:64082 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52758 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57130 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [25984]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:53571 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [3076]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:59182 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64193 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63067 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62186 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [22524]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:59517 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56146 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56571 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56519 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53045 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50628 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52913 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62244 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52854 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63307 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60425 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [1072]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:53826 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58618 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [27464]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:51597 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52551 - "POST /generate/domain_page/theme_1/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61847 - "POST /generate/domain_page/theme_1/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59569 - "POST /generate/domain_page/theme_1/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61247 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56423 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63302 - "POST /generate/domain_page/theme_1/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63306 - "POST /generate/domain_page/theme_3/index HTTP/1.1" 200 OK
+Template error: hero_css() takes 1 positional argument but 2 were given
+NoneType: None
+
+Template error: hero_css() takes 1 positional argument but 2 were given
+NoneType: None
+
+INFO:     127.0.0.1:63308 - "POST /generate/domain_page/theme_5/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_5\index.py", line 158, in generate
+    _hero = hero_css(ROOT, font_family)
+TypeError: hero_css() takes 1 positional argument but 2 were given
+INFO:     127.0.0.1:63307 - "POST /generate/domain_page/theme_4/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_4\index.py", line 158, in generate
+    _hero = hero_css(ROOT, font_family)
+TypeError: hero_css() takes 1 positional argument but 2 were given
+INFO:     127.0.0.1:63309 - "POST /generate/domain_page/theme_2/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57458 - "POST /generate/domain_page/theme_1/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55079 - "POST /generate/index/index_4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49156 - "POST /generate/domain_page/theme_3/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61453 - "POST /generate/index/index_4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61457 - "POST /generate/domain_page/theme_2/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55667 - "POST /generate/domain_page/theme_1/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55669 - "POST /generate/domain_page/theme_5/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55671 - "POST /generate/domain_page/theme_3/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55673 - "POST /generate/domain_page/theme_4/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55675 - "POST /generate/domain_page/theme_2/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58574 - "POST /generate/domain_page/theme_5/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58576 - "POST /generate/domain_page/theme_4/footer HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [2692]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:58077 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63555 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [26128]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:52008 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [22328]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:55961 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61954 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60984 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58044 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54174 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50274 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56954 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63132 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62733 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58088 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [23752]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60053 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61992 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63695 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49172 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [28140]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50981 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58396 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55160 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64397 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [25804]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:55712 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49279 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [25252]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [24404]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:49252 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55746 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [22276]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:51286 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52872 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [5300]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [13552]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [14308]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [25468]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60717 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65019 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [17348]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [1684]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:53512 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64597 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53000 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53403 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63731 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58600 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [15368]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:55088 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51477 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62381 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63421 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57785 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58948 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62355 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55244 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [12448]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:64522 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59502 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62795 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62461 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [25536]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:53902 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64584 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64588 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64399 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [25684]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60810 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58950 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53332 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64800 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61573 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57075 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49878 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59373 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [29320]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:65250 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64004 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [14760]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60763 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60403 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54780 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [24992]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:49882 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53540 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61637 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63692 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53028 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60629 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51498 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52934 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57486 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55359 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54785 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52150 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [24636]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:63517 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [22216]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50812 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51095 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [28560]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:51860 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55744 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56501 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [28616]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [22756]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [6488]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:56468 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57399 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [18156]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:57670 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64634 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [16752]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:49925 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50381 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63179 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54899 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [22960]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [17792]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:57838 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59973 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [15808]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:62726 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58515 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59306 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61149 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [21796]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:58541 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51930 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [15508]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:49883 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49325 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [3272]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [27400]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [25468]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:55895 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64893 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58755 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54207 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56159 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57470 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56104 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64422 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62633 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49879 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65212 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53888 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64550 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64555 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59157 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62540 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59513 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63177 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63294 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59977 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54445 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62770 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57868 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55390 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53268 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54433 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64558 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57003 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56855 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [23940]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [10508]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:62065 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60842 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54976 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [24160]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:52751 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54815 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59136 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59334 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53505 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63264 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59785 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65157 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65178 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64951 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52763 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55387 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53314 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50887 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59090 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59144 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51144 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63984 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63016 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57933 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53114 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [14424]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:49920 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59698 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53067 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51014 - "GET /templates HTTP/1.1" 200 OK
+Template error: '_shared'
+NoneType: None
+
+INFO:     127.0.0.1:51963 - "POST /generate/domain_page/theme_2/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 248, in generate_domain_page_themed
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 790, in exec_module
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_2\index.py", line 3, in <module>
+    from _shared import theme_base
+  File "<frozen importlib._bootstrap>", line 1007, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 986, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 691, in _load_unlocked
+KeyError: '_shared'
+INFO:     127.0.0.1:51965 - "POST /generate/domain_page/theme_1/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51964 - "POST /generate/domain_page/theme_3/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51967 - "POST /generate/domain_page/theme_5/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51966 - "POST /generate/domain_page/theme_4/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60883 - "POST /generate/index/index_5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61294 - "POST /generate/domain_page/theme_4/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61293 - "POST /generate/domain_page/theme_3/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61295 - "POST /generate/domain_page/theme_5/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61296 - "POST /generate/domain_page/theme_1/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54173 - "POST /generate/domain_page/theme_2/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54175 - "POST /generate/domain_page/theme_3/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54176 - "POST /generate/domain_page/theme_4/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54178 - "POST /generate/domain_page/theme_5/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54177 - "POST /generate/domain_page/theme_1/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57364 - "POST /generate/domain_page/theme_2/footer HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [23952]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:57500 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59371 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [10228]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50769 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56670 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53925 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51939 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62754 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59141 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [2724]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:61151 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60819 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50107 - "POST /generate/domain_page/theme_1/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49883 - "POST /generate/domain_page/theme_4/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49880 - "POST /generate/domain_page/theme_2/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49882 - "POST /generate/domain_page/theme_3/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49881 - "POST /generate/domain_page/theme_5/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56136 - "POST /generate/domain_page/theme_1/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56140 - "POST /generate/domain_page/theme_3/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56139 - "POST /generate/domain_page/theme_2/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56138 - "POST /generate/domain_page/theme_4/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56141 - "POST /generate/domain_page/theme_5/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49338 - "POST /generate/domain_page/theme_1/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53096 - "POST /generate/domain_page/theme_5/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53094 - "POST /generate/domain_page/theme_3/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53095 - "POST /generate/domain_page/theme_4/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53097 - "POST /generate/domain_page/theme_2/footer HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [7100]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:54036 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55494 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53379 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52704 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64433 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51012 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53705 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51437 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54348 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58936 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61069 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [20832]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:53067 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55991 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55160 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49308 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61336 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53709 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52135 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51207 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61067 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62503 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58450 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64278 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53772 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49292 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [25096]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60920 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57838 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64696 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [13376]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:51469 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61601 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50361 - "POST /generate/writer/writer_1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53491 - "POST /generate/writer/writer_1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50958 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62188 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50433 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60361 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61207 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57340 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53094 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61536 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [12836]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:62430 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [21544]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [18976]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:53705 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60296 - "GET /templates HTTP/1.1" 200 OK
+Template error: '_shared'
+NoneType: None
+
+INFO:     127.0.0.1:55501 - "POST /generate/domain_page/theme_1/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 248, in generate_domain_page_themed
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 790, in exec_module
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_1\index.py", line 3, in <module>
+    from _shared import theme_base
+  File "<frozen importlib._bootstrap>", line 1007, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 986, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 691, in _load_unlocked
+KeyError: '_shared'
+INFO:     127.0.0.1:55505 - "POST /generate/domain_page/theme_5/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55502 - "POST /generate/domain_page/theme_2/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55506 - "POST /generate/domain_page/theme_6/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55503 - "POST /generate/domain_page/theme_3/index HTTP/1.1" 200 OK
+Template error: hero_css() takes 1 positional argument but 2 were given
+NoneType: None
+
+INFO:     127.0.0.1:55504 - "POST /generate/domain_page/theme_4/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_4\index.py", line 158, in generate
+    _hero = hero_css(ROOT, font_family)
+TypeError: hero_css() takes 1 positional argument but 2 were given
+INFO:     127.0.0.1:53923 - "POST /generate/index/index_5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53931 - "POST /generate/index/index_5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53935 - "POST /generate/domain_page/theme_5/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53936 - "POST /generate/domain_page/theme_6/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53938 - "POST /generate/domain_page/theme_2/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53937 - "POST /generate/domain_page/theme_3/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53814 - "POST /generate/domain_page/theme_7/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60628 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59315 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [28224]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50955 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56587 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57458 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [2776]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:54518 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52588 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57651 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56341 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62391 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62806 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59871 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54650 - "GET /templates HTTP/1.1" 200 OK
+Template error: '_shared'
+NoneType: None
+
+INFO:     127.0.0.1:62398 - "POST /generate/domain_page/theme_1/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 248, in generate_domain_page_themed
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 790, in exec_module
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_1\index.py", line 3, in <module>
+    from _shared import theme_base
+  File "<frozen importlib._bootstrap>", line 1007, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 986, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 691, in _load_unlocked
+KeyError: '_shared'
+Template error: f-string expression part cannot include a backslash (article_card_2.py, line 39)
+NoneType: None
+
+Template error: f-string expression part cannot include a backslash (article_card_2.py, line 39)
+NoneType: None
+
+INFO:     127.0.0.1:62403 - "POST /generate/domain_page/theme_6/index HTTP/1.1" 500 Internal Server Error
+Template error: f-string expression part cannot include a backslash (article_card_2.py, line 39)
+NoneType: None
+
+Template error: f-string expression part cannot include a backslash (article_card_2.py, line 39)
+NoneType: None
+
+Template error: f-string expression part cannot include a backslash (article_card_2.py, line 39)
+NoneType: None
+
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_6\index.py", line 50, in generate
+    cards_html, cards_css = render_cards(articles, config, show_excerpt=True, scope_prefix=ROOT)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\article_cards\article_card_2.py", line 39
+    meta_html = f'<div class="ac2-meta">{"<span class=\"ac2-sep\">&middot;</span>".join(meta_parts)}</div>' if meta_parts else ""
+                                                                                                            ^
+SyntaxError: f-string expression part cannot include a backslash
+INFO:     127.0.0.1:62402 - "POST /generate/domain_page/theme_4/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_4\index.py", line 127, in generate
+    cards_html, card_css = render_cards(
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\article_cards\article_card_2.py", line 39
+    meta_html = f'<div class="ac2-meta">{"<span class=\"ac2-sep\">&middot;</span>".join(meta_parts)}</div>' if meta_parts else ""
+                                                                                                            ^
+SyntaxError: f-string expression part cannot include a backslash
+INFO:     127.0.0.1:62399 - "POST /generate/domain_page/theme_5/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_5\index.py", line 127, in generate
+    cards_html, card_css = render_cards(
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\article_cards\article_card_2.py", line 39
+    meta_html = f'<div class="ac2-meta">{"<span class=\"ac2-sep\">&middot;</span>".join(meta_parts)}</div>' if meta_parts else ""
+                                                                                                            ^
+SyntaxError: f-string expression part cannot include a backslash
+INFO:     127.0.0.1:62400 - "POST /generate/domain_page/theme_3/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_3\index.py", line 76, in generate
+    cards_html, card_css = render_cards(articles, config, show_excerpt=True, scope_prefix=ROOT_CLS)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\article_cards\article_card_2.py", line 39
+    meta_html = f'<div class="ac2-meta">{"<span class=\"ac2-sep\">&middot;</span>".join(meta_parts)}</div>' if meta_parts else ""
+                                                                                                            ^
+SyntaxError: f-string expression part cannot include a backslash
+INFO:     127.0.0.1:62401 - "POST /generate/domain_page/theme_2/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_2\index.py", line 67, in generate
+    cards_html, card_css = render_cards(articles, config, show_excerpt=True, scope_prefix=".it2")
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\article_cards\article_card_2.py", line 39
+    meta_html = f'<div class="ac2-meta">{"<span class=\"ac2-sep\">&middot;</span>".join(meta_parts)}</div>' if meta_parts else ""
+                                                                                                            ^
+SyntaxError: f-string expression part cannot include a backslash
+Template error: f-string expression part cannot include a backslash (article_card_2.py, line 39)
+NoneType: None
+
+INFO:     127.0.0.1:52190 - "POST /generate/index/index_5 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 181, in generate_index
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\indexes\index_5.py", line 41, in generate
+    cards_html, card_css = render_cards(articles, config, show_excerpt=True, scope_prefix=".index-page")
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\article_cards\article_card_2.py", line 39
+    meta_html = f'<div class="ac2-meta">{"<span class=\"ac2-sep\">&middot;</span>".join(meta_parts)}</div>' if meta_parts else ""
+                                                                                                            ^
+SyntaxError: f-string expression part cannot include a backslash
+Template error: f-string expression part cannot include a backslash (article_card_2.py, line 39)
+NoneType: None
+
+Template error: f-string expression part cannot include a backslash (article_card_2.py, line 39)
+NoneType: None
+
+INFO:     127.0.0.1:52191 - "POST /generate/index/index_5 HTTP/1.1" 500 Internal Server Error
+Template error: f-string expression part cannot include a backslash (article_card_2.py, line 39)
+NoneType: None
+
+Template error: f-string expression part cannot include a backslash (article_card_2.py, line 39)
+NoneType: None
+
+Template error: f-string expression part cannot include a backslash (article_card_2.py, line 39)
+NoneType: None
+
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 181, in generate_index
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\indexes\index_5.py", line 41, in generate
+    cards_html, card_css = render_cards(articles, config, show_excerpt=True, scope_prefix=".index-page")
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\article_cards\article_card_2.py", line 39
+    meta_html = f'<div class="ac2-meta">{"<span class=\"ac2-sep\">&middot;</span>".join(meta_parts)}</div>' if meta_parts else ""
+                                                                                                            ^
+SyntaxError: f-string expression part cannot include a backslash
+INFO:     127.0.0.1:52194 - "POST /generate/index/index_5 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 181, in generate_index
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\indexes\index_5.py", line 41, in generate
+    cards_html, card_css = render_cards(articles, config, show_excerpt=True, scope_prefix=".index-page")
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\article_cards\article_card_2.py", line 39
+    meta_html = f'<div class="ac2-meta">{"<span class=\"ac2-sep\">&middot;</span>".join(meta_parts)}</div>' if meta_parts else ""
+                                                                                                            ^
+SyntaxError: f-string expression part cannot include a backslash
+INFO:     127.0.0.1:52192 - "POST /generate/index/index_5 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 181, in generate_index
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\indexes\index_5.py", line 41, in generate
+    cards_html, card_css = render_cards(articles, config, show_excerpt=True, scope_prefix=".index-page")
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\article_cards\article_card_2.py", line 39
+    meta_html = f'<div class="ac2-meta">{"<span class=\"ac2-sep\">&middot;</span>".join(meta_parts)}</div>' if meta_parts else ""
+                                                                                                            ^
+SyntaxError: f-string expression part cannot include a backslash
+INFO:     127.0.0.1:52195 - "POST /generate/index/index_5 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 181, in generate_index
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\indexes\index_5.py", line 41, in generate
+    cards_html, card_css = render_cards(articles, config, show_excerpt=True, scope_prefix=".index-page")
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\article_cards\article_card_2.py", line 39
+    meta_html = f'<div class="ac2-meta">{"<span class=\"ac2-sep\">&middot;</span>".join(meta_parts)}</div>' if meta_parts else ""
+                                                                                                            ^
+SyntaxError: f-string expression part cannot include a backslash
+INFO:     127.0.0.1:52193 - "POST /generate/index/index_5 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 181, in generate_index
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\indexes\index_5.py", line 41, in generate
+    cards_html, card_css = render_cards(articles, config, show_excerpt=True, scope_prefix=".index-page")
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\article_cards\article_card_2.py", line 39
+    meta_html = f'<div class="ac2-meta">{"<span class=\"ac2-sep\">&middot;</span>".join(meta_parts)}</div>' if meta_parts else ""
+                                                                                                            ^
+SyntaxError: f-string expression part cannot include a backslash
+INFO:     127.0.0.1:57218 - "POST /generate/domain_page/theme_2/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57217 - "POST /generate/domain_page/theme_1/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57222 - "POST /generate/domain_page/theme_6/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57224 - "POST /generate/domain_page/theme_5/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57223 - "POST /generate/domain_page/theme_3/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57221 - "POST /generate/domain_page/theme_4/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55311 - "POST /generate/domain_page/theme_2/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55310 - "POST /generate/domain_page/theme_1/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55312 - "POST /generate/domain_page/theme_4/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55309 - "POST /generate/domain_page/theme_5/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55308 - "POST /generate/domain_page/theme_6/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55314 - "POST /generate/domain_page/theme_3/footer HTTP/1.1" 200 OK
+Template error: f-string expression part cannot include a backslash (article_card_2.py, line 39)
+NoneType: None
+
+INFO:     127.0.0.1:51084 - "POST /generate/domain_page/theme_7/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_7\index.py", line 52, in generate
+    cards_html, cards_css = render_cards(articles, config, show_excerpt=True, scope_prefix=ROOT)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\article_cards\article_card_2.py", line 39
+    meta_html = f'<div class="ac2-meta">{"<span class=\"ac2-sep\">&middot;</span>".join(meta_parts)}</div>' if meta_parts else ""
+                                                                                                            ^
+SyntaxError: f-string expression part cannot include a backslash
+Template error: f-string expression part cannot include a backslash (article_card_2.py, line 39)
+NoneType: None
+
+INFO:     127.0.0.1:63128 - "POST /generate/index/index_5 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 181, in generate_index
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\indexes\index_5.py", line 41, in generate
+    cards_html, card_css = render_cards(articles, config, show_excerpt=True, scope_prefix=".index-page")
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\article_cards\article_card_2.py", line 39
+    meta_html = f'<div class="ac2-meta">{"<span class=\"ac2-sep\">&middot;</span>".join(meta_parts)}</div>' if meta_parts else ""
+                                                                                                            ^
+SyntaxError: f-string expression part cannot include a backslash
+INFO:     127.0.0.1:49352 - "POST /generate/domain_page/theme_7/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61452 - "POST /generate/domain_page/theme_7/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64174 - "POST /generate/domain_page/theme_3/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56453 - "POST /generate/domain_page/theme_3/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56457 - "POST /generate/domain_page/theme_3/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49886 - "POST /generate/domain_page/theme_3/sidebar HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64734 - "POST /generate/domain_page/theme_3/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55112 - "POST /generate/domain_page/theme_3/sidebar HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53204 - "POST /generate/domain_page/theme_3/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61033 - "POST /generate/domain_page/theme_3/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56550 - "POST /generate/domain_page/theme_3/sidebar HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52670 - "POST /generate/domain_page/theme_1/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52669 - "POST /generate/domain_page/theme_3/index HTTP/1.1" 200 OK
+Template error: hero_css() takes 1 positional argument but 2 were given
+NoneType: None
+
+INFO:     127.0.0.1:52673 - "POST /generate/domain_page/theme_5/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_5\index.py", line 158, in generate
+    _hero = hero_css(ROOT, font_family)
+TypeError: hero_css() takes 1 positional argument but 2 were given
+INFO:     127.0.0.1:52672 - "POST /generate/domain_page/theme_4/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52674 - "POST /generate/domain_page/theme_6/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52671 - "POST /generate/domain_page/theme_2/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60770 - "POST /generate/index/index_5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60772 - "POST /generate/domain_page/theme_1/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60774 - "POST /generate/domain_page/theme_3/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60775 - "POST /generate/domain_page/theme_4/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60780 - "POST /generate/domain_page/theme_2/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60776 - "POST /generate/domain_page/theme_6/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58761 - "POST /generate/domain_page/theme_1/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58834 - "POST /generate/domain_page/theme_3/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58835 - "POST /generate/domain_page/theme_4/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58833 - "POST /generate/domain_page/theme_5/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58832 - "POST /generate/domain_page/theme_2/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58839 - "POST /generate/domain_page/theme_6/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59197 - "POST /generate/domain_page/theme_5/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59199 - "POST /generate/domain_page/theme_7/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55591 - "POST /generate/domain_page/theme_7/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65165 - "POST /generate/domain_page/theme_7/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60095 - "POST /generate/domain_page/theme_7/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56301 - "POST /generate/domain_page/theme_7/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51563 - "POST /generate/domain_page/theme_7/sidebar HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56633 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51376 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63027 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56588 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60630 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [7904]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:57189 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65229 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [21512]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60372 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63915 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49879 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51498 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [25432]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:64634 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55837 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54332 - "POST /generate/writer/writer_1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50587 - "POST /generate/writer/writer_1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63947 - "POST /generate/writer/writer_1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53676 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60962 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55815 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [30664]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50064 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54480 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56325 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52424 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [21748]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [29836]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:54869 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60664 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64685 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62687 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58701 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49263 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49879 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64881 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58535 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58262 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [4480]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:64067 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61425 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55767 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53840 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62652 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55680 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55736 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60032 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60031 - "POST /generate/writer/writer_1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57811 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57078 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58849 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57952 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51234 - "POST /generate/writer/writer_1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62461 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58166 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61258 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56745 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60831 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64468 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59608 - "POST /generate/writer/writer_1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51240 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54594 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [27452]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [30304]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:55537 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54332 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51537 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54787 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65233 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62751 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64313 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57946 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57537 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [21524]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:52601 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49674 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61927 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61058 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56233 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60628 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58284 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56111 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [31180]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:56454 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57187 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [11748]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:63139 - "POST /generate/domain_page/theme_7/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60173 - "POST /generate/domain_page/theme_7/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59017 - "POST /generate/domain_page/theme_7/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63563 - "POST /generate/domain_page/theme_1/index HTTP/1.1" 200 OK
+Template error: hero_css() takes 1 positional argument but 2 were given
+NoneType: None
+
+INFO:     127.0.0.1:63564 - "POST /generate/domain_page/theme_4/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_4\index.py", line 158, in generate
+    _hero = hero_css(ROOT, font_family)
+TypeError: hero_css() takes 1 positional argument but 2 were given
+INFO:     127.0.0.1:63570 - "POST /generate/domain_page/theme_3/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63568 - "POST /generate/domain_page/theme_5/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63569 - "POST /generate/domain_page/theme_2/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63571 - "POST /generate/domain_page/theme_6/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49879 - "POST /generate/index/index_5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49888 - "POST /generate/domain_page/theme_1/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49891 - "POST /generate/domain_page/theme_2/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49894 - "POST /generate/domain_page/theme_6/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49893 - "POST /generate/domain_page/theme_5/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49895 - "POST /generate/domain_page/theme_3/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59525 - "POST /generate/domain_page/theme_1/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59526 - "POST /generate/domain_page/theme_4/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49891 - "POST /generate/domain_page/theme_2/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49897 - "POST /generate/domain_page/theme_5/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49901 - "POST /generate/domain_page/theme_6/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49900 - "POST /generate/domain_page/theme_3/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52075 - "POST /generate/domain_page/theme_4/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52077 - "POST /generate/domain_page/theme_7/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64393 - "POST /generate/domain_page/theme_7/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50885 - "POST /generate/domain_page/theme_7/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49886 - "POST /generate/domain_page/theme_7/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49897 - "POST /generate/domain_page/theme_7/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51063 - "POST /generate/domain_page/theme_7/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50721 - "POST /generate/domain_page/theme_7/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62552 - "POST /generate/domain_page/theme_7/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57230 - "POST /generate/domain_page/theme_7/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56290 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60190 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [16368]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:58215 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62959 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [10116]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:54083 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51376 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51494 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50062 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [7580]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [16100]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:64859 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60053 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62036 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55300 - "POST /generate/writer/writer_1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52140 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64198 - "POST /generate/writer/writer_1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52372 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58979 - "POST /generate/writer/writer_1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55911 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56494 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56509 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55502 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57923 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62389 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53408 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63202 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51471 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61297 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63667 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64123 - "POST /generate/domain_page/theme_7/index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57381 - "POST /generate/domain_page/theme_7/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60833 - "POST /generate/domain_page/theme_7/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63285 - "POST /generate/domain_page/theme_7/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56809 - "POST /generate/domain_page/theme_7/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51374 - "POST /generate/domain_page/theme_7/sidebar HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [25880]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:55955 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56780 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [4392]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:63930 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52207 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62067 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61006 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54630 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49989 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50062 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51025 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59126 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60836 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65462 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56704 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57829 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60051 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64116 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55618 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [19748]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:64801 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59460 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58824 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52726 - "POST /generate/writer/writer_1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58465 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58476 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64034 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57134 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50638 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50653 - "POST /generate/writer/writer_1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63834 - "POST /generate/writer/writer_1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55691 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62987 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58538 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59360 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55856 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60375 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54458 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57446 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64099 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61666 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59412 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57493 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51345 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61439 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65431 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64902 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55181 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49880 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53276 - "POST /generate/writer/writer_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56619 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53275 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [33788]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:51291 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62977 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61259 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [41036]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:58557 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52324 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60076 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [40712]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:54087 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65162 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64830 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63354 - "POST /generate/writer/writer_1 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62123 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57282 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51712 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51721 - "POST /generate/writer/writer_1 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58752 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49674 - "POST /generate/writer/writer_1 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50668 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50136 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49896 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62784 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60955 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57576 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51505 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55526 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57983 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49886 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50996 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50640 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55279 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62432 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+
+--- Started ---
+INFO:     Started server process [34400]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:54578 - "POST /generate/domain_page/theme_7/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54307 - "POST /generate/domain_page/theme_7/footer HTTP/1.1" 200 OK
+Template error: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+NoneType: None
+
+INFO:     127.0.0.1:51896 - "POST /generate/domain_page/theme_7/sidebar HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_7\sidebar.py", line 44, in generate
+    cards_html, cards_css = render_cards(articles, config, show_excerpt=False, scope_prefix=ROOT)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 922, in get_code
+  File "<frozen importlib._bootstrap_external>", line 979, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+INFO:     127.0.0.1:64773 - "POST /generate/sidebar/sidebar_1 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62855 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60358 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [27296]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:58829 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55149 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60074 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54562 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51965 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56153 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62020 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [34412]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [27656]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:57830 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64774 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65059 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58320 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58332 - "POST /generate/writer/writer_1 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63863 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63864 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59266 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52779 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60712 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59797 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62710 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58619 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+
+--- Started ---
+INFO:     Started server process [11648]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)

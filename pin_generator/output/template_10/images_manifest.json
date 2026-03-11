@@ -1,0 +1,28 @@
+{
+  "template_id": "template_10",
+  "template_name": "Rustic Italian Pasta Pin",
+  "images": {
+    "main_image": {
+      "url": "https://images.unsplash.com/photo-1473093226795-af9932fe5856?auto=format&fit=crop&q=80&w=600&h=700",
+      "description_prompt": "Close-up, high-quality food photography of a rustic Italian pasta dish with fresh basil, steaming, on a dark wooden table.",
+      "position": {
+        "top": 0,
+        "left": 0
+      },
+      "width": 600,
+      "height": 700,
+      "layer_order": 1
+    },
+    "background": {
+      "url": "",
+      "description_prompt": "",
+      "position": {
+        "top": 700,
+        "left": 0
+      },
+      "width": 600,
+      "height": 367,
+      "layer_order": 1
+    }
+  }
+}

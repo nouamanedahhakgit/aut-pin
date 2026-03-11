@@ -1,0 +1,28 @@
+{
+  "template_id": "template_9",
+  "template_name": "Organic Serenity Recipe Pin",
+  "images": {
+    "top_image": {
+      "url": "https://lh3.googleusercontent.com/aida-public/AB6AXuCyjkCxjNJA7_NgKYEssr0-djFCLFmTALVR5LLyo6JqTggJmAikvjAy0_mv5TyP7dJPGvREhVIO9L5vNuJ65bZ_1hoq7zvDOhlvPIs_VfXd0nJfAzjvDA2SrNe15v-6sXYNSK_tzGl7fkHT1SqwB4dMB7BWmnnCAt5KVJCZZVAcTc9xn6BtqTw5TNBQPU8WaFJajTpZkRO4B6t8shRZ8SugbqvN1MN-rZPTonuKcyAaWK2KtUZioWnVrH9w9tLAzgKilC9NwDaoKHc",
+      "description_prompt": "",
+      "position": {
+        "top": 40,
+        "left": 50
+      },
+      "width": 500,
+      "height": 600,
+      "layer_order": 2
+    },
+    "background": {
+      "url": "",
+      "description_prompt": "",
+      "position": {
+        "top": 0,
+        "left": 0
+      },
+      "width": 600,
+      "height": 1067,
+      "layer_order": 1
+    }
+  }
+}

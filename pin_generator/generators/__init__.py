@@ -29,23 +29,46 @@ except Exception as e:
     import traceback; traceback.print_exc()
 
 
+_TEMPLATES_ROOT = os.path.join(_HERE, "templates")
+if not os.path.isdir(_TEMPLATES_ROOT):
+    os.makedirs(_TEMPLATES_ROOT, exist_ok=True)
+
+
 def list_generators():
-    """Return list of generator names (template_1, template_2, ...)."""
+    """Return list of generator paths (e.g. template_1, group_1/template_1)."""
     names = []
-    for f in os.listdir(_HERE):
-        if f.startswith("template_") and f.endswith(".py") and f != "__init__.py":
-            names.append(f[:-3])  # strip .py
+    # Walk the templates directory to find all template_*.py files
+    for root, dirs, files in os.walk(_TEMPLATES_ROOT):
+        for f in files:
+            if f.startswith("template_") and f.endswith(".py"):
+                # Calculate relative path from _TEMPLATES_ROOT
+                rel_dir = os.path.relpath(root, _TEMPLATES_ROOT)
+                if rel_dir == ".":
+                    names.append(f[:-3])  # e.g. "template_1"
+                else:
+                    # e.g. "group_1/template_1"
+                    name = os.path.join(rel_dir, f[:-3]).replace(os.sep, "/")
+                    names.append(name)
     return sorted(names)
 
 
 def load_generator(name):
-    """Load generator module by name (e.g. template_1). Returns module or None."""
-    path = os.path.join(_HERE, f"{name}.py")
+    """Load generator module by name (e.g. template_1 or group_1/template_1). Returns module or None."""
+    # name might contain slashes if in a subdirectory
+    path = os.path.join(_TEMPLATES_ROOT, f"{name}.py")
     if not os.path.isfile(path):
-        print(f"[generators] load_generator: file not found: {path}")
-        return None
+        # Fallback for old templates that might still be in the root (legacy)
+        legacy_path = os.path.join(_HERE, f"{name}.py")
+        if os.path.isfile(legacy_path):
+            path = legacy_path
+        else:
+            print(f"[generators] load_generator: file not found: {path}")
+            return None
     try:
-        spec = importlib.util.spec_from_file_location(name, path)
+        # Unique module name to avoid conflicts; handle spaces/slashes for safe import naming
+        safe_name = name.replace("/", ".").replace(" ", "_")
+        mod_name = f"generators.templates.{safe_name}"
+        spec = importlib.util.spec_from_file_location(mod_name, path)
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         print(f"[generators] load_generator: {name} OK")
