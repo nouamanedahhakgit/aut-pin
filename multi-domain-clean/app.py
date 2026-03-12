@@ -734,6 +734,30 @@ function viewRecipe(tid) {{
     new bootstrap.Modal(document.getElementById('viewModal')).show();
   }}).finally(function() {{ hideGlobalLoading(); }});
 }}
+function viewPrompts(tid) {{
+  showGlobalLoading();
+  fetch('/api/article-content/' + tid).then(r=>r.json()).then(d=>{{
+    if(d.error) {{ alert(d.error); return; }}
+    var p1 = (d.prompt || '').toString().trim();
+    var p2 = (d.prompt_image_ingredients || '').toString().trim();
+    var html = '<div class="mb-3"><strong>Main prompt</strong><div class="border rounded p-2" style="white-space:pre-wrap;word-break:break-word">' + (p1 ? p1.replace(/</g,'&lt;').replace(/>/g,'&gt;') : '<em>Empty</em>') + '</div></div>';
+    html += '<div class="mb-3"><strong>Ingredient prompt</strong><div class="border rounded p-2" style="white-space:pre-wrap;word-break:break-word">' + (p2 ? p2.replace(/</g,'&lt;').replace(/>/g,'&gt;') : '<em>Empty</em>') + '</div></div>';
+    document.getElementById('viewModalBody').innerHTML = html;
+    document.getElementById('viewModalTitle').textContent = 'Prompts';
+    new bootstrap.Modal(document.getElementById('viewModal')).show();
+  }}).finally(function() {{ hideGlobalLoading(); }});
+}}
+function viewPin(tid) {{
+  showGlobalLoading();
+  fetch('/api/article-content/' + tid).then(r=>r.json()).then(d=>{{
+    if(d.error) {{ alert(d.error); return; }}
+    var pinUrl = (d.pin_image || '').trim();
+    var html = pinUrl && pinUrl.startsWith('http') ? '<div class="text-center"><img src="'+pinUrl.replace(/"/g,'&quot;')+'" style="max-width:100%;height:auto" alt="Pin"></div>' : '<p class="text-muted">No pin image</p>';
+    document.getElementById('viewModalBody').innerHTML = html;
+    document.getElementById('viewModalTitle').textContent = 'Pinterest Pin';
+    new bootstrap.Modal(document.getElementById('viewModal')).show();
+  }}).finally(function() {{ hideGlobalLoading(); }});
+}}
 function viewDomainSingle(tid, label) {{
   showGlobalLoading();
   fetch('/api/article-content/' + tid).then(r=>r.json()).then(d=>{{
@@ -1681,41 +1705,55 @@ function renderProgressBody(s, body) {{
         + (doneOk ? '<span class="badge bg-success" style="font-size:0.65rem">✓ ' + doneOk + ' ok</span>' : '')
         + (doneFail ? '<span class="badge bg-danger" style="font-size:0.65rem">✗ ' + doneFail + ' failed</span>' : '')
         + '</div>';
-      // ── Image Retry Summary Table ──
-      var imgArticles = completedArticles.filter(function(a){{ return a.image_progress && (a.image_progress.main || a.image_progress.ingredient); }});
-      if (imgArticles.length > 0) {{
-        var totalMainOk = 0, totalMainFail = 0, totalIngOk = 0, totalIngFail = 0, totalRetries = 0;
-        imgArticles.forEach(function(a){{
+      // ── Workflow Summary Table (Prompts, Images, Content, Pinterest) ──
+      if (completedArticles.length > 0) {{
+        var totalMainOk = 0, totalMainFail = 0, totalIngOk = 0, totalIngFail = 0, totalContentOk = 0, totalContentFail = 0, totalRetries = 0;
+        completedArticles.forEach(function(a){{
           var ip = a.image_progress || {{}};
           var ret = a.image_retries || {{}};
+          var dp = a.domain_progress || {{}};
           if (ip.main === 'done') totalMainOk++; else if (ip.main === 'error') totalMainFail++;
           if (ip.ingredient === 'done') totalIngOk++; else if (ip.ingredient === 'error') totalIngFail++;
           totalRetries += (ret.main || 0) + (ret.ingredient || 0);
+          var contentDone = Object.keys(dp).length === 0 || Object.keys(dp).every(function(l){{ return dp[l]==='done'||dp[l]==='skipped'; }});
+          if (contentDone) totalContentOk++; else if (Object.keys(dp).some(function(l){{ return dp[l]==='error'; }})) totalContentFail++;
         }});
         articlesHtml += '<div style="margin:6px 0 8px;border:1px solid #d1d5db;border-radius:6px;overflow:hidden;font-size:0.65rem">'
           + '<div style="background:linear-gradient(135deg,#1e293b,#334155);color:#fff;padding:6px 10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px">'
-          + '<span style="font-weight:700;font-size:0.72rem">📊 Image Retry Summary</span>'
+          + '<span style="font-weight:700;font-size:0.72rem">📊 Workflow Summary</span>'
           + '<div style="display:flex;gap:6px;flex-wrap:wrap">'
+          + '<span style="background:rgba(100,116,139,.3);color:#cbd5e1;padding:1px 8px;border-radius:99px;font-weight:600">Prompts</span>'
           + '<span style="background:rgba(34,197,94,.2);color:#4ade80;padding:1px 8px;border-radius:99px;font-weight:600">Main ✓' + totalMainOk + '</span>'
           + (totalMainFail ? '<span style="background:rgba(239,68,68,.2);color:#f87171;padding:1px 8px;border-radius:99px;font-weight:600">Main ✗' + totalMainFail + '</span>' : '')
           + '<span style="background:rgba(34,197,94,.2);color:#4ade80;padding:1px 8px;border-radius:99px;font-weight:600">Ing ✓' + totalIngOk + '</span>'
           + (totalIngFail ? '<span style="background:rgba(239,68,68,.2);color:#f87171;padding:1px 8px;border-radius:99px;font-weight:600">Ing ✗' + totalIngFail + '</span>' : '')
-          + '<span style="background:rgba(96,165,250,.2);color:#93c5fd;padding:1px 8px;border-radius:99px;font-weight:600">⟳ ' + totalRetries + ' total attempts</span>'
+          + '<span style="background:rgba(34,197,94,.2);color:#4ade80;padding:1px 8px;border-radius:99px;font-weight:600">Content ✓' + totalContentOk + '</span>'
+          + (totalContentFail ? '<span style="background:rgba(239,68,68,.2);color:#f87171;padding:1px 8px;border-radius:99px;font-weight:600">Content ✗' + totalContentFail + '</span>' : '')
+          + '<span style="background:rgba(168,85,247,.2);color:#c084fc;padding:1px 8px;border-radius:99px;font-weight:600">Pinterest</span>'
+          + '<span style="background:rgba(96,165,250,.2);color:#93c5fd;padding:1px 8px;border-radius:99px;font-weight:600">⟳ ' + totalRetries + ' img attempts</span>'
           + '</div></div>'
           + '<table style="width:100%;border-collapse:collapse;font-size:0.63rem">'
           + '<thead><tr style="background:#f1f5f9;border-bottom:2px solid #cbd5e1">'
           + '<th style="padding:4px 6px;text-align:left;font-weight:700;color:#475569;width:24px">#</th>'
           + '<th style="padding:4px 6px;text-align:left;font-weight:700;color:#475569;width:40px">TID</th>'
           + '<th style="padding:4px 6px;text-align:left;font-weight:700;color:#475569">Title</th>'
-          + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:100px">Main Image</th>'
-          + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:100px">Ingredient</th>'
+          + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:70px">Prompts</th>'
+          + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:75px">Main</th>'
+          + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:75px">Ing</th>'
+          + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:80px">Content</th>'
+          + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:70px">Pin</th>'
           + '<th style="padding:4px 6px;text-align:left;font-weight:700;color:#475569">Error</th>'
           + '</tr></thead><tbody>';
-         imgArticles.forEach(function(a, idx){{
+        completedArticles.forEach(function(a, idx){{
+          var tid = a.tid || '';
           var ip = a.image_progress || {{}};
+          var it = a.image_timings || {{}};
           var ir = a.image_results || {{}};
           var ret = a.image_retries || {{}};
           var retryErrs = a.image_retry_errors || {{}};
+          var dp = a.domain_progress || {{}};
+          var dt = a.domain_timings || {{}};
+          var dti = a.domain_title_ids || {{}};
           var mainSt = ip.main || '-';
           var ingSt = ip.ingredient || '-';
           var mainOk = mainSt === 'done';
@@ -1724,34 +1762,43 @@ function renderProgressBody(s, body) {{
           var ingErr = ingSt === 'error';
           var mainIcon = mainOk ? '✅' : (mainErr ? '❌' : '⏳');
           var ingIcon = ingOk ? '✅' : (ingErr ? '❌' : '⏳');
-          var mainRetries = ret.main ? '(' + ret.main + (ret.main > 1 ? ' attempts' : ' attempt') + ')' : '';
-          var ingRetries = ret.ingredient ? '(' + ret.ingredient + (ret.ingredient > 1 ? ' attempts' : ' attempt') + ')' : '';
-          // Build per-attempt error details
+          var mainElapsed = (it.main && it.main.done_at && it.main.started_at) ? Math.round(it.main.done_at - it.main.started_at) + 's' : '';
+          var ingElapsed = (it.ingredient && it.ingredient.done_at && it.ingredient.started_at) ? Math.round(it.ingredient.done_at - it.ingredient.started_at) + 's' : '';
+          var contentDone = Object.keys(dp).length === 0 || Object.keys(dp).every(function(l){{ return dp[l]==='done'||dp[l]==='skipped'; }});
+          var contentErr = Object.keys(dp).some(function(l){{ return dp[l]==='error'; }});
+          var contentTotalSec = 0;
+          Object.keys(dt || {{}}).forEach(function(l){{ var t=dt[l]; if(t.started_at && t.done_at) contentTotalSec += (t.done_at - t.started_at); }});
+          var contentElapsed = contentTotalSec > 0 ? Math.round(contentTotalSec) + 's' : '';
+          var firstLetterTid = dti.A || dti.B || dti.C || dti.D || tid;
+          var promptsClick = tid && typeof viewPrompts === 'function' ? 'cursor:pointer' : '';
+          var contentClick = firstLetterTid && typeof viewContent === 'function' ? 'cursor:pointer' : '';
+          var pinClick = tid && typeof viewPin === 'function' ? 'cursor:pointer' : '';
+          var promptsHtml = '<span style="' + promptsClick + '" onclick="' + (promptsClick ? 'event.stopPropagation();viewPrompts(' + tid + ')' : '') + '" title="Click to view prompts">✓</span>';
+          var contentLabel = contentDone ? '✓' : (contentErr ? '✗' : '-');
+          var contentHtml = '<span style="' + contentClick + ';color:' + (contentDone ? '#198754' : (contentErr ? '#dc3545' : '#6b7280')) + '" onclick="' + (contentClick ? 'event.stopPropagation();viewContent(' + firstLetterTid + ')' : '') + '" title="' + (contentElapsed ? contentElapsed + ' — Click to view' : 'Click to view') + '">' + contentLabel + (contentElapsed ? ' ' + contentElapsed : '') + '</span>';
+          var pinHtml = '<span style="' + pinClick + ';color:#9333ea" onclick="' + (pinClick ? 'event.stopPropagation();viewPin(' + tid + ')' : '') + '" title="Click to view pin">📌</span>';
+          var mainRetries = ret.main ? '(' + ret.main + ')' : '';
+          var ingRetries = ret.ingredient ? '(' + ret.ingredient + ')' : '';
           var errParts = [];
-          var mainRetryList = retryErrs.main || [];
-          var ingRetryList = retryErrs.ingredient || [];
-          if (mainRetryList.length > 0) {{
-            mainRetryList.forEach(function(e){{ errParts.push('🖼 ' + String(e).replace(/\\n/g,' ').substring(0,120)); }});
-          }} else if (mainErr && ir.main) {{
-            errParts.push('main: ' + String(ir.main).replace(/\\n/g,' ').substring(0,80));
-          }}
-          if (ingRetryList.length > 0) {{
-            ingRetryList.forEach(function(e){{ errParts.push('🥗 ' + String(e).replace(/\\n/g,' ').substring(0,120)); }});
-          }} else if (ingErr && ir.ingredient) {{
-            errParts.push('ing: ' + String(ir.ingredient).replace(/\\n/g,' ').substring(0,80));
-          }}
-          var errText = errParts.join('\\n').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-          var errTooltip = errText.replace(/"/g,'&quot;');
-          var errDisplay = errParts.length > 0 ? errParts.map(function(e){{ return '<div style="margin-bottom:1px">' + e.replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0,80) + '</div>'; }}).join('') : '<span style="color:#9ca3af">—</span>';
-          var rowBg = (mainErr || ingErr) ? '#fef2f2' : (idx % 2 === 0 ? '#fff' : '#f8fafc');
-          var rowBorder = (mainErr || ingErr) ? 'border-left:3px solid #ef4444;' : '';
+          (retryErrs.main || []).forEach(function(e){{ errParts.push('🖼 ' + String(e).replace(/\\n/g,' ').substring(0,100)); }});
+          (retryErrs.ingredient || []).forEach(function(e){{ errParts.push('🥗 ' + String(e).replace(/\\n/g,' ').substring(0,100)); }});
+          if (mainErr && ir.main) errParts.push('main: ' + String(ir.main).replace(/\\n/g,' ').substring(0,80));
+          if (ingErr && ir.ingredient) errParts.push('ing: ' + String(ir.ingredient).replace(/\\n/g,' ').substring(0,80));
+          var errDisplay = errParts.length > 0 ? errParts.map(function(e){{ return '<div style="margin-bottom:1px">' + (e.replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0,80)) + '</div>'; }}).join('') : '<span style="color:#9ca3af">—</span>';
+          var rowBg = (mainErr || ingErr || contentErr) ? '#fef2f2' : (idx % 2 === 0 ? '#fff' : '#f8fafc');
+          var rowBorder = (mainErr || ingErr || contentErr) ? 'border-left:3px solid #ef4444;' : '';
+          var mainCell = mainSt !== '-' ? '<span style="' + (tid && typeof viewContent === 'function' ? 'cursor:pointer' : '') + '" onclick="' + (tid ? 'event.stopPropagation();viewContent(' + tid + ')' : '') + '" title="Click to view">' + mainIcon + ' ' + mainSt + (mainElapsed ? ' ' + mainElapsed : '') + (mainRetries ? ' ' + mainRetries : '') + '</span>' : '—';
+          var ingCell = ingSt !== '-' ? '<span style="' + (tid && typeof viewContent === 'function' ? 'cursor:pointer' : '') + '" onclick="' + (tid ? 'event.stopPropagation();viewContent(' + tid + ')' : '') + '" title="Click to view">' + ingIcon + ' ' + ingSt + (ingElapsed ? ' ' + ingElapsed : '') + (ingRetries ? ' ' + ingRetries : '') + '</span>' : '—';
           articlesHtml += '<tr style="background:' + rowBg + ';border-bottom:1px solid #e2e8f0;' + rowBorder + '">'
             + '<td style="padding:3px 6px;color:#94a3b8;font-weight:600">' + (idx+1) + '</td>'
-            + '<td style="padding:3px 6px;font-weight:700;color:#3b82f6">' + (a.tid || '-') + '</td>'
-            + '<td style="padding:3px 6px;color:#334155;font-weight:500;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + ((a.title||'').replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0,40)) + '</td>'
-            + '<td style="padding:3px 6px;text-align:center"><span style="display:inline-flex;align-items:center;gap:2px;background:' + (mainOk ? '#dcfce7' : (mainErr ? '#fee2e2' : '#fefce8')) + ';color:' + (mainOk ? '#166534' : (mainErr ? '#991b1b' : '#854d0e')) + ';padding:1px 6px;border-radius:99px;font-weight:600">' + mainIcon + ' ' + mainSt + '</span>' + (mainRetries ? '<div style="color:#6b7280;margin-top:1px">' + mainRetries + '</div>' : '') + '</td>'
-            + '<td style="padding:3px 6px;text-align:center"><span style="display:inline-flex;align-items:center;gap:2px;background:' + (ingOk ? '#dcfce7' : (ingErr ? '#fee2e2' : '#fefce8')) + ';color:' + (ingOk ? '#166534' : (ingErr ? '#991b1b' : '#854d0e')) + ';padding:1px 6px;border-radius:99px;font-weight:600">' + ingIcon + ' ' + ingSt + '</span>' + (ingRetries ? '<div style="color:#6b7280;margin-top:1px">' + ingRetries + '</div>' : '') + '</td>'
-            + '<td style="padding:3px 6px;color:#991b1b;font-size:0.58rem;max-width:250px;overflow:hidden;white-space:normal;word-break:break-word" title="' + errTooltip + '">' + errDisplay + '</td>'
+            + '<td style="padding:3px 6px;font-weight:700;color:#3b82f6">' + tid + '</td>'
+            + '<td style="padding:3px 6px;color:#334155;font-weight:500;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + ((a.title||'').replace(/"/g,'&quot;')) + '">' + ((a.title||'').replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0,35)) + '</td>'
+            + '<td style="padding:3px 6px;text-align:center" title="Click to view prompts">' + promptsHtml + '</td>'
+            + '<td style="padding:3px 6px;text-align:center">' + mainCell + '</td>'
+            + '<td style="padding:3px 6px;text-align:center">' + ingCell + '</td>'
+            + '<td style="padding:3px 6px;text-align:center">' + contentHtml + '</td>'
+            + '<td style="padding:3px 6px;text-align:center">' + pinHtml + '</td>'
+            + '<td style="padding:3px 6px;color:#991b1b;font-size:0.58rem;max-width:200px;overflow:hidden;white-space:normal;word-break:break-word">' + errDisplay + '</td>'
             + '</tr>';
         }});
         articlesHtml += '</tbody></table></div>';
@@ -7481,7 +7528,8 @@ def api_titles_with_article():
 def api_article_content(title_id):
     """GET: Return article_content fields. PUT: Update article_html and/or article_css only (no AI regeneration). Body: { article_html?, article_css? }"""
     with get_connection() as conn:
-        cur = db_execute(conn, """SELECT ac.article_html, ac.article_css, ac.recipe, ac.main_image, ac.ingredient_image, ac.pin_image,
+        cur = db_execute(conn, """SELECT ac.article_html, ac.article_css, ac.recipe, ac.prompt, ac.prompt_image_ingredients,
+            ac.main_image, ac.ingredient_image, ac.pin_image,
             ac.model_used, ac.generated_at, ac.generation_time_seconds, ac.generation_cost_usd, ac.usage_json,
             d.website_template FROM article_content ac
             JOIN titles t ON ac.title_id = t.id AND ac.language_code = 'en'
@@ -7513,6 +7561,8 @@ def api_article_content(title_id):
         "article_html": html,
         "article_css": row.get("article_css") or "",
         "recipe": row.get("recipe") or "",
+        "prompt": row.get("prompt") or "",
+        "prompt_image_ingredients": row.get("prompt_image_ingredients") or "",
         "main_image": row.get("main_image") or "",
         "ingredient_image": row.get("ingredient_image") or "",
         "pin_image": row.get("pin_image") or "",

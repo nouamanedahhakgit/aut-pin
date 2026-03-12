@@ -1255,3 +1255,93 @@ INFO:     127.0.0.1:58662 - "GET /generators HTTP/1.1" 200 OK
 INFO:     127.0.0.1:57684 - "GET / HTTP/1.1" 404 Not Found
 INFO:     127.0.0.1:57684 - "GET /favicon.ico HTTP/1.1" 404 Not Found
 INFO:     127.0.0.1:64438 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [25288]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [3504]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60659 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49673 - "GET /generators HTTP/1.1" 200 OK
+Generating: Chicken Couscous Recipe
+[*] Generating all sections in a single JSON API call...
+Generating: Lamb Couscous Recipe
+[*] Generating all sections in a single JSON API call...
+[*] Generated content via single JSON.
+[*] Generated content via single JSON.
+INFO:     127.0.0.1:59253 - "POST /generate-article/generator-1 HTTP/1.1" 200 OK
+[*] Generated content via single JSON.
+INFO:     127.0.0.1:54468 - "POST /generate-article/generator-1 HTTP/1.1" 200 OK
+[*] Analyzing video structure... [DONE BY AI]
+[*] Generating content with OpenAI...
+[*] Generating all sections in a single JSON API call...
+[*] Analyzing video structure... [DONE BY AI]
+[*] Generating content with OpenAI...
+[*] Generating all sections in a single JSON API call...
+INFO:     127.0.0.1:57863 - "POST /generate-article/generator-5 HTTP/1.1" 200 OK
+Generating: Sweet Couscous with Raisins and Almonds
+[*] Generating all sections in a single JSON API call...
+[*] Generated content via single JSON.
+[*] Generating CSS...
+[*] Building HTML...
+INFO:     127.0.0.1:49977 - "POST /generate-article/generator-2 HTTP/1.1" 200 OK
+[*] Generated content via single JSON.
+[*] Generating CSS...
+[*] Building HTML...
+INFO:     127.0.0.1:63129 - "POST /generate-article/generator-2 HTTP/1.1" 200 OK
+[*] Generated content via single JSON.
+INFO:     127.0.0.1:61480 - "POST /generate-article/generator-5 HTTP/1.1" 200 OK
+[*] Starting generation for: Vegetable Couscous Recipe
+[*] Generated content via single JSON.
+INFO:     127.0.0.1:58359 - "POST /generate-article/generator-1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56557 - "POST /generate-article/generator-3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60121 - "POST /generate-article/generator-3 HTTP/1.1" 200 OK
+[*] Generated content via single JSON.
+[*] Analyzing video structure... [DONE BY AI]
+[*] Generating content with OpenAI...
+[*] Generating all sections in a single JSON API call...
+[*] Generating article: Chicken Couscous Recipe
+[*] Generating content with OpenAI (single JSON)...
+[*] Generating article: Lamb Couscous Recipe
+[*] Generating content with OpenAI (single JSON)...
+[*] Generated content via single JSON.
+INFO:     127.0.0.1:50062 - "POST /generate-article/generator-5 HTTP/1.1" 200 OK
+[*] Starting generation for: Chicken Couscous Recipe
+INFO:     127.0.0.1:57675 - "POST /generate-article/generator-5 HTTP/1.1" 200 OK
+[*] Generated content via single JSON.
+INFO:     127.0.0.1:62768 - "POST /generate-article/generator-6 HTTP/1.1" 200 OK
+[*] Starting generation for: Moroccan Couscous with Chickpeas
+[*] Starting generation for: Vegetable Couscous Recipe
+[*] Generated content via single JSON.
+INFO:     127.0.0.1:57185 - "POST /generate-article/generator-4 HTTP/1.1" 200 OK
+[*] Generated content via single JSON.
+INFO:     127.0.0.1:56798 - "POST /generate-article/generator-4 HTTP/1.1" 200 OK
+[*] Generated content via single JSON.
+[*] Generating CSS...
+[*] Building HTML...
+INFO:     127.0.0.1:60409 - "POST /generate-article/generator-2 HTTP/1.1" 200 OK
+[*] Generated content via single JSON.
+INFO:     127.0.0.1:53377 - "POST /generate-article/generator-6 HTTP/1.1" 200 OK
+[*] Generated content via single JSON.
+INFO:     127.0.0.1:53126 - "POST /generate-article/generator-6 HTTP/1.1" 200 OK
+[*] Generated content via single JSON.
+INFO:     127.0.0.1:61138 - "POST /generate-article/generator-6 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50614 - "POST /generate-article/generator-3 HTTP/1.1" 200 OK
+[*] Generating article: Sweet Couscous with Raisins and Almonds
+[*] Generating content with OpenAI (single JSON)...
+[*] Generated content via single JSON.
+INFO:     127.0.0.1:65509 - "POST /generate-article/generator-4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53819 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [19796]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50413 - "GET /generators HTTP/1.1" 200 OK

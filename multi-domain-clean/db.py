@@ -26,6 +26,10 @@ MYSQL_CONFIG = {
     "autocommit": True,
 }
 
+# If running inside Docker, automatically use host.docker.internal if MYSQL_HOST is localhost
+if os.path.exists("/.dockerenv") and MYSQL_CONFIG["host"] == "localhost":
+    MYSQL_CONFIG["host"] = "host.docker.internal"
+
 # Supabase (PostgreSQL): direct URL. If you get "could not translate host name", use pooler URL instead (see below).
 SUPABASE_DB_URL = os.getenv("SUPABASE_DB_URL", "")
 # Optional: use when direct host fails (Dashboard → Project Settings → Database → Connection pooling → Session mode)
