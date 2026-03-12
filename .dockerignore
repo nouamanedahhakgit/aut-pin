@@ -40,3 +40,5 @@ llamacpp_manager/llamacpp_manager.db
 
 # Large model files (mount via volume)
 llamacpp_manager/models/*.gguf
+_archive/llamacpp_manager/models/*.gguf
+_archive/llamacpp_manager/data/*.db

@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aut-Pin Orchestrator — Setup Wizard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: rgba(17, 24, 39, 0.7);
+            --bg-glass: rgba(255, 255, 255, 0.04);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(99, 102, 241, 0.4);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.3);
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.3);
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --danger-glow: rgba(239, 68, 68, 0.3);
+            --gradient-1: linear-gradient(135deg, #6366f1, #8b5cf6, #a78bfa);
+            --gradient-2: linear-gradient(135deg, #10b981, #059669);
+            --gradient-3: linear-gradient(135deg, #f59e0b, #d97706);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ─── Animated Background ──────────────────────────── */
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image:
+                radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.04) 0%, transparent 50%);
+            animation: bgPulse 8s ease-in-out infinite alternate;
+        }
+
+        @keyframes bgPulse {
+            0% {
+                opacity: 0.6;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+        }
+
+        /* ─── Header ───────────────────────────────────────── */
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .header .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+
+        .header .logo-icon {
+            width: 56px;
+            height: 56px;
+            background: var(--gradient-1);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            box-shadow: 0 0 30px var(--accent-glow);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-6px);
+            }
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 800;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 15px;
+            line-height: 1.6;
+            max-width: 550px;
+            margin: 0 auto;
+        }
+
+        /* ─── Stepper ──────────────────────────────────────── */
+        .stepper {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 40px;
+        }
+
+        .step-dot {
+            width: 44px;
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        .step-dot.active {
+            background: var(--gradient-1);
+            width: 64px;
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
+
+        .step-dot.done {
+            background: var(--success);
+        }
+
+        /* ─── Cards ────────────────────────────────────────── */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 32px;
+            margin-bottom: 24px;
+            backdrop-filter: blur(20px);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: var(--border-hover);
+            box-shadow: 0 0 40px rgba(99, 102, 241, 0.06);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .card-icon.db {
+            background: rgba(99, 102, 241, 0.15);
+        }
+
+        .card-icon.api {
+            background: rgba(16, 185, 129, 0.15);
+        }
+
+        .card-icon.ai {
+            background: rgba(245, 158, 11, 0.15);
+        }
+
+        .card-icon.env {
+            background: rgba(139, 92, 246, 0.15);
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* ─── Form Elements ────────────────────────────────── */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-input,
+        .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        .form-input:focus,
+        .form-select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-select option {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 640px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ─── Database Backend Selector ────────────────────── */
+        .db-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .db-option {
+            padding: 20px 16px;
+            background: var(--bg-glass);
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .db-option:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-2px);
+        }
+
+        .db-option.selected {
+            border-color: var(--accent);
+            background: rgba(99, 102, 241, 0.08);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .db-option .db-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .db-option .db-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .db-option .db-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* ─── Service Row ──────────────────────────────────── */
+        .service-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .service-row:hover {
+            border-color: var(--border-hover);
+        }
+
+        .service-status {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+
+        .service-status.online {
+            background: var(--success);
+            box-shadow: 0 0 10px var(--success-glow);
+            animation: pulse 2s infinite;
+        }
+
+        .service-status.error {
+            background: var(--danger);
+            box-shadow: 0 0 10px var(--danger-glow);
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .service-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .service-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .service-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .service-url-input {
+            flex: 1.5;
+            padding: 10px 14px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 13px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .service-url-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .btn-check {
+            padding: 8px 16px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .btn-check:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* ─── Buttons ──────────────────────────────────────── */
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 32px;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-secondary {
+            background: var(--bg-glass);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--border-hover);
+            color: var(--text-primary);
+        }
+
+        .btn-primary {
+            background: var(--gradient-1);
+            color: white;
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px var(--accent-glow);
+        }
+
+        .btn-success {
+            background: var(--gradient-2);
+            color: white;
+            box-shadow: 0 4px 15px var(--success-glow);
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px var(--success-glow);
+        }
+
+        .btn-test {
+            background: var(--gradient-3);
+            color: white;
+            padding: 10px 20px;
+        }
+
+        .btn-test:hover {
+            transform: translateY(-1px);
+        }
+
+        /* ─── Wizard Steps ─────────────────────────────────── */
+        .wizard-step {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .wizard-step.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ─── Toast ────────────────────────────────────────── */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 16px 24px;
+            border-radius: var(--radius-sm);
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideIn 0.4s ease, slideOut 0.4s ease 2.6s;
+            box-shadow: var(--shadow-xl);
+        }
+
+        .toast.success {
+            background: var(--success);
+        }
+
+        .toast.error {
+            background: var(--danger);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+            }
+        }
+
+        /* ─── Env Preview ──────────────────────────────────── */
+        .env-preview {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            margin-top: 16px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .env-file-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .env-content {
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 12px;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* ─── Section Divider ──────────────────────────────── */
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 28px 0;
+        }
+
+        /* ─── Hidden sections toggle ───────────────────────── */
+        .db-fields {
+            display: none;
+        }
+
+        .db-fields.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-grid"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon">🐳</div>
+            </div>
+            <h1>Aut-Pin Orchestrator</h1>
+            <p>Configure your database, service URLs, and API keys. The wizard generates <code>.env</code> files for all
+                containers.</p>
+        </div>
+
+        <!-- Stepper -->
+        <div class="stepper">
+            <div class="step-dot active" data-step="0" onclick="goToStep(0)"></div>
+            <div class="step-dot" data-step="1" onclick="goToStep(1)"></div>
+            <div class="step-dot" data-step="2" onclick="goToStep(2)"></div>
+        </div>
+
+        <!-- ═══ Step 0: Database ═══ -->
+        <div class="wizard-step active" id="step-0">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon db">🗄️</div>
+                    <div>
+                        <div class="card-title">Database Configuration</div>
+                        <div class="card-subtitle">Choose your database backend and enter credentials</div>
+                    </div>
+                </div>
+
+                <div class="db-options">
+                    <div class="db-option selected" data-db="mysql" onclick="selectDB('mysql')">
+                        <div class="db-icon">🐬</div>
+                        <div class="db-name">MySQL</div>
+                        <div class="db-desc">Traditional relational DB</div>
+                    </div>
+                    <div class="db-option" data-db="supabase" onclick="selectDB('supabase')">
+                        <div class="db-icon">⚡</div>
+                        <div class="db-name">Supabase</div>
+                        <div class="db-desc">PostgreSQL cloud backend</div>
+                    </div>
+                    <div class="db-option" data-db="sqlite" onclick="selectDB('sqlite')">
+                        <div class="db-icon">📦</div>
+                        <div class="db-name">SQLite</div>
+                        <div class="db-desc">Embedded, no server needed</div>
+                    </div>
+                </div>
+
+                <!-- MySQL Fields -->
+                <div class="db-fields show" id="mysql-fields">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Host</label>
+                            <input class="form-input" id="mysql_host" type="text" placeholder="host.docker.internal"
+                                value="host.docker.internal">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Database</label>
+                            <input class="form-input" id="mysql_database" type="text" placeholder="pinterest"
+                                value="pinterest">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Username</label>
+                            <input class="form-input" id="mysql_user" type="text" placeholder="root" value="root">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Password</label>
+                            <input class="form-input" id="mysql_password" type="password" placeholder="Enter password">
+                        </div>
+                    </div>
+                    <button class="btn btn-test" onclick="testDB()">🔍 Test Connection</button>
+                </div>
+
+                <!-- Supabase Fields -->
+                <div class="db-fields" id="supabase-fields">
+                    <div class="form-group">
+                        <label class="form-label">Supabase DB URL (Direct)</label>
+                        <input class="form-input" id="supabase_db_url" type="text"
+                            placeholder="postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/postgres">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Pooler URL (Optional fallback)</label>
+                        <input class="form-input" id="supabase_pooler_url" type="text"
+                            placeholder="postgresql://postgres.[PROJECT]:[PASSWORD]@...pooler.supabase.com:6543/postgres">
+                    </div>
+                    <button class="btn btn-test" onclick="testDB()">🔍 Test Connection</button>
+                </div>
+
+                <!-- SQLite Fields -->
+                <div class="db-fields" id="sqlite-fields">
+                    <p
+                        style="color: var(--text-secondary); font-size: 14px; padding: 16px; background: var(--bg-glass); border-radius: var(--radius-sm);">
+                        ✅ SQLite uses a local file — no connection details needed. The database will be created
+                        automatically inside the container.
+                    </p>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="form-group">
+                    <label class="form-label">Secret Key</label>
+                    <input class="form-input" id="secret_key" type="text" placeholder="your-secret-key-for-sessions"
+                        value="">
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="goToStep(1)">Next → Services</button>
+            </div>
+        </div>
+
+        <!-- ═══ Step 1: Service URLs ═══ -->
+        <div class="wizard-step" id="step-1">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon api">🔗</div>
+                    <div>
+                        <div class="card-title">Service API URLs</div>
+                        <div class="card-subtitle">Configure how containers communicate with each other</div>
+                    </div>
+                </div>
+
+                <div id="services-list">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn btn-secondary" onclick="goToStep(0)">← Back</button>
+                <button class="btn btn-primary" onclick="goToStep(2)">Next → Review & Save</button>
+            </div>
+        </div>
+
+        <!-- ═══ Step 2: Review & Save ═══ -->
+        <div class="wizard-step" id="step-2">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon env">📋</div>
+                    <div>
+                        <div class="card-title">Review & Generate</div>
+                        <div class="card-subtitle">Review your configuration and generate .env files</div>
+                    </div>
+                </div>
+
+                <div id="config-summary" style="margin-bottom: 24px;">
+                    <!-- Dynamically populated -->
+                </div>
+
+                <div class="btn-row" style="justify-content: center;">
+                    <button class="btn btn-success" onclick="saveConfig()" style="padding: 16px 40px; font-size: 16px;">
+                        🚀 Save & Generate .env Files
+                    </button>
+                </div>
+
+                <div id="env-output" style="margin-top: 24px;"></div>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn btn-secondary" onclick="goToStep(2)">← Back</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 0;
+        let selectedDB = 'mysql';
+        const defaultURLs = {
+            'pin_generator': 'http://pin_generator:5000',
+            'articles-website-generator': 'http://articles-website-generator:8000',
+            'website-parts-generator': 'http://website-parts-generator:8010',
+            'llamacpp_manager': 'http://llamacpp_manager:8080',
+        };
+
+        // ─── Step Navigation ──────────────────────────────────
+        function goToStep(step) {
+            document.querySelectorAll('.wizard-step').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.step-dot').forEach((el, i) => {
+                el.classList.remove('active');
+                if (i < step) el.classList.add('done');
+                else el.classList.remove('done');
+            });
+            document.getElementById(`step-${step}`).classList.add('active');
+            document.querySelector(`.step-dot[data-step="${step}"]`).classList.add('active');
+            currentStep = step;
+
+            if (step === 2) renderSummary();
+        }
+
+        // ─── DB Selection ─────────────────────────────────────
+        function selectDB(db) {
+            selectedDB = db;
+            document.querySelectorAll('.db-option').forEach(el => el.classList.remove('selected'));
+            document.querySelector(`.db-option[data-db="${db}"]`).classList.add('selected');
+            document.querySelectorAll('.db-fields').forEach(el => el.classList.remove('show'));
+            const fields = document.getElementById(`${db}-fields`);
+            if (fields) fields.classList.add('show');
+        }
+
+        // ─── Build Services List ──────────────────────────────
+        function buildServicesList() {
+            const container = document.getElementById('services-list');
+            const services = [
+                { key: 'pin_generator', label: 'Pin Generator', desc: 'Pin image generation API', port: 5000 },
+                { key: 'articles-website-generator', label: 'Articles Generator', desc: 'Article content API', port: 8000 },
+                { key: 'website-parts-generator', label: 'Website Parts Generator', desc: 'Templates API', port: 8010 },
+                { key: 'llamacpp_manager', label: 'LlamaCpp Manager', desc: 'Local LLM manager', port: 8080 },
+            ];
+
+            container.innerHTML = services.map(s => `
+                <div class="service-row">
+                    <div class="service-status" id="status-${s.key}"></div>
+                    <div class="service-info">
+                        <div class="service-name">${s.label}</div>
+                        <div class="service-desc">${s.desc} — port ${s.port}</div>
+                    </div>
+                    <input class="service-url-input" id="url-${s.key}" type="text"
+                        value="${defaultURLs[s.key] || ''}" placeholder="http://${s.key}:${s.port}">
+                    <button class="btn-check" onclick="checkService('${s.key}')">Test</button>
+                </div>
+            `).join('');
+        }
+
+        // ─── Health check ─────────────────────────────────────
+        async function checkService(key) {
+            const url = document.getElementById(`url-${key}`).value;
+            const dot = document.getElementById(`status-${key}`);
+            dot.classList.remove('online', 'error');
+            try {
+                const resp = await fetch('/api/health-check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url }),
+                });
+                const data = await resp.json();
+                dot.classList.add(data.ok ? 'online' : 'error');
+            } catch {
+                dot.classList.add('error');
+            }
+        }
+
+        // ─── Test DB ──────────────────────────────────────────
+        async function testDB() {
+            const payload = { backend: selectedDB };
+            if (selectedDB === 'mysql') {
+                payload.mysql_host = document.getElementById('mysql_host').value;
+                payload.mysql_user = document.getElementById('mysql_user').value;
+                payload.mysql_password = document.getElementById('mysql_password').value;
+                payload.mysql_database = document.getElementById('mysql_database').value;
+            } else if (selectedDB === 'supabase') {
+                payload.supabase_db_url = document.getElementById('supabase_db_url').value;
+            }
+            try {
+                const resp = await fetch('/api/test-db', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const data = await resp.json();
+                showToast(data.ok ? data.message : data.error, data.ok ? 'success' : 'error');
+            } catch (e) {
+                showToast('Connection test failed: ' + e, 'error');
+            }
+        }
+
+        // ─── Summary ─────────────────────────────────────────
+        function renderSummary() {
+            const summary = document.getElementById('config-summary');
+            const cfg = gatherConfig();
+            let html = '<div style="display: grid; gap: 12px;">';
+
+            // DB
+            html += `<div style="padding: 16px; background: var(--bg-glass); border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                <div style="font-weight: 600; color: var(--accent); margin-bottom: 8px;">🗄️ Database</div>
+                <div style="font-size: 14px; color: var(--text-secondary);">Backend: <strong style="color: var(--text-primary);">${cfg.database.backend.toUpperCase()}</strong></div>
+            </div>`;
+
+            // Services
+            html += `<div style="padding: 16px; background: var(--bg-glass); border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                <div style="font-weight: 600; color: var(--success); margin-bottom: 8px;">🔗 Services</div>`;
+            for (const [key, val] of Object.entries(cfg.services)) {
+                html += `<div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">
+                    <strong style="color: var(--text-primary);">${key}:</strong> ${val.url}
+                </div>`;
+            }
+            html += '</div>';
+
+            html += '</div>';
+            summary.innerHTML = html;
+        }
+
+        // ─── Gather config ───────────────────────────────────
+        function gatherConfig() {
+            const cfg = {
+                database: { backend: selectedDB },
+                services: {},
+                ai: {}, // Sent empty since we are ignoring UI fields entirely
+            };
+            if (selectedDB === 'mysql') {
+                cfg.database.mysql_host = document.getElementById('mysql_host').value;
+                cfg.database.mysql_user = document.getElementById('mysql_user').value;
+                cfg.database.mysql_password = document.getElementById('mysql_password').value;
+                cfg.database.mysql_database = document.getElementById('mysql_database').value;
+            } else if (selectedDB === 'supabase') {
+                cfg.database.supabase_db_url = document.getElementById('supabase_db_url').value;
+                cfg.database.supabase_pooler_url = document.getElementById('supabase_pooler_url').value;
+            }
+            cfg.database.secret_key = document.getElementById('secret_key').value;
+
+            for (const key of Object.keys(defaultURLs)) {
+                const el = document.getElementById(`url-${key}`);
+                cfg.services[key] = { url: el ? el.value : defaultURLs[key] };
+            }
+
+            return cfg;
+        }
+
+        // ─── Save Config ─────────────────────────────────────
+        async function saveConfig() {
+            const cfg = gatherConfig();
+            try {
+                const resp = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(cfg),
+                });
+                const data = await resp.json();
+                if (data.ok) {
+                    showToast('✅ Configuration saved & .env files generated!');
+                    loadEnvFiles();
+                } else {
+                    showToast('Error: ' + (data.error || 'Unknown'), 'error');
+                }
+            } catch (e) {
+                showToast('Save failed: ' + e, 'error');
+            }
+        }
+
+        // ─── Load generated .env files ───────────────────────
+        async function loadEnvFiles() {
+            try {
+                const resp = await fetch('/api/env-files');
+                const files = await resp.json();
+                const container = document.getElementById('env-output');
+                let html = '';
+                for (const [name, content] of Object.entries(files)) {
+                    html += `<div class="env-preview">
+                        <div class="env-file-name">📄 ${name}</div>
+                        <div class="env-content">${escapeHtml(content)}</div>
+                    </div>`;
+                }
+                container.innerHTML = html;
+            } catch (e) {
+                console.error('Failed to load env files:', e);
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ─── Toast ────────────────────────────────────────────
+        function showToast(msg, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // ─── Init ─────────────────────────────────────────────
+        async function init() {
+            buildServicesList();
+            try {
+                const resp = await fetch('/api/config');
+                const cfg = await resp.json();
+                if (cfg && cfg.database) {
+                    selectDB(cfg.database.backend || 'mysql');
+                    if (cfg.database.mysql_host) document.getElementById('mysql_host').value = cfg.database.mysql_host;
+                    if (cfg.database.mysql_user) document.getElementById('mysql_user').value = cfg.database.mysql_user;
+                    if (cfg.database.mysql_password) document.getElementById('mysql_password').value = cfg.database.mysql_password;
+                    if (cfg.database.mysql_database) document.getElementById('mysql_database').value = cfg.database.mysql_database;
+                    if (cfg.database.supabase_db_url) document.getElementById('supabase_db_url').value = cfg.database.supabase_db_url;
+                    if (cfg.database.supabase_pooler_url) document.getElementById('supabase_pooler_url').value = cfg.database.supabase_pooler_url;
+                    if (cfg.database.secret_key) document.getElementById('secret_key').value = cfg.database.secret_key;
+                }
+                if (cfg && cfg.services) {
+                    for (const [key, val] of Object.entries(cfg.services)) {
+                        const el = document.getElementById(`url-${key}`);
+                        if (el && val.url) el.value = val.url;
+                    }
+                }
+            } catch (e) {
+                // No saved config — use defaults
+            }
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

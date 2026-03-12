@@ -1,10 +1,27 @@
-# Use pre-built images from Docker Hub.
-# Replace <username> with your Docker Hub username.
-# Usage: docker compose -f docker-compose.hub.yml pull && docker compose -f docker-compose.hub.yml up -d
+# Aut-Pin Docker Hub Deployment
+# Pre-built images from Docker Hub with orchestrator setup wizard.
+#
+# Quick start:
+#   docker compose -f docker-compose.hub.yml up orchestrator
+#   → Open http://localhost:9000 → configure DB, URLs, API keys → Save
+#   docker compose -f docker-compose.hub.yml up -d
+#
+# All services communicate via Docker network (service names as hostnames).
 
 services:
+  # ─── Orchestrator Setup Wizard (starts first) ────────────────────
+  orchestrator:
+    image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-orchestrator:latest
+    ports:
+      - "9000:9000"
+    volumes:
+      - env-config:/app/env-output
+    environment:
+      - ENV_OUTPUT_DIR=/app/env-output
+
+  # ─── Main Admin UI & Controller ──────────────────────────────────
   multi-domain-clean:
-    image: ${DOCKERHUB_USERNAME:-<username>}/aut-pin-multi-domain-clean:latest
+    image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-multi-domain-clean:latest
     ports:
       - "5001:5001"
     environment:
@@ -18,45 +35,58 @@ services:
     volumes:
       - ./output/static-projects:/app/output/static-projects
       - ./articles-website-generator/generators:/app/shared/generators
+      - env-config:/app/env-config:ro
     env_file:
-      - multi-domain-clean/.env
+      - path: ./env-config/multi-domain-clean.env
+        required: false
     depends_on:
       - pin_generator
       - articles-website-generator
       - website-parts-generator
       - llamacpp_manager
 
+  # ─── Pin Generator ──────────────────────────────────────────────
   pin_generator:
-    image: ${DOCKERHUB_USERNAME:-<username>}/aut-pin-pin-generator:latest
+    image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-pin_generator:latest
     ports:
       - "5000:5000"
-    env_file:
-      - pin_generator/.env
     volumes:
       - pin_output:/app/output
+      - env-config:/app/env-config:ro
+    env_file:
+      - path: ./env-config/pin_generator.env
+        required: false
 
+  # ─── Articles & Website Generator ───────────────────────────────
   articles-website-generator:
-    image: ${DOCKERHUB_USERNAME:-<username>}/aut-pin-articles-website-generator:latest
+    image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-articles-website-generator:latest
     ports:
       - "8000:8000"
     environment:
       - LLAMACPP_MANAGER_URL=http://llamacpp_manager:8080
-    env_file:
-      - articles-website-generator/.env
     volumes:
       - ./articles-website-generator/generators:/app/generators
+      - env-config:/app/env-config:ro
+    env_file:
+      - path: ./env-config/articles-website-generator.env
+        required: false
     depends_on:
       - llamacpp_manager
 
+  # ─── Website Parts Generator ────────────────────────────────────
   website-parts-generator:
-    image: ${DOCKERHUB_USERNAME:-<username>}/aut-pin-website-parts-generator:latest
+    image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-website-parts-generator:latest
     ports:
       - "8010:8010"
+    volumes:
+      - env-config:/app/env-config:ro
     env_file:
-      - website-parts-generator/.env
+      - path: ./env-config/website-parts-generator.env
+        required: false
 
+  # ─── LlamaCpp Manager ──────────────────────────────────────────
   llamacpp_manager:
-    image: ${DOCKERHUB_USERNAME:-<username>}/aut-pin-llamacpp-manager:latest
+    image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-llamacpp_manager:latest
     ports:
       - "8080:8080"
     environment:
@@ -67,6 +97,7 @@ services:
       - llamacpp_data:/app/llamacpp_manager/data
 
 volumes:
+  env-config:
   pin_output:
   llamacpp_models:
   llamacpp_data:

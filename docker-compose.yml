@@ -3,6 +3,17 @@
 # Access: http://localhost:5001 (multi-domain-clean)
 
 services:
+  orchestrator:
+    build:
+      context: ./orchestrator
+      dockerfile: Dockerfile
+    ports:
+      - "9000:9000"
+    volumes:
+      - env-config:/app/env-output
+    environment:
+      - ENV_OUTPUT_DIR=/app/env-output
+
   multi-domain-clean:
     build:
       context: ./multi-domain-clean
@@ -77,6 +88,7 @@ services:
       - llamacpp_data:/app/llamacpp_manager/data
 
 volumes:
+  env-config:
   pin_output:
   llamacpp_models:
   llamacpp_data:
