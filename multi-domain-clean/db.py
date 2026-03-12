@@ -7,6 +7,10 @@ try:
     # Load .env from this package directory so it's found when running from repo root
     _env_dir = os.path.dirname(os.path.abspath(__file__))
     load_dotenv(os.path.join(_env_dir, ".env"))
+    # Also load from Docker volume mount (orchestrator-generated config)
+    _docker_env = "/app/env-config/multi-domain-clean.env"
+    if os.path.exists(_docker_env):
+        load_dotenv(_docker_env, override=True)
 except ImportError:
     pass
 
