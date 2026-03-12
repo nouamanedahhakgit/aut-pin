@@ -12757,3 +12757,42 @@ INFO:     Started server process [28100]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [19768]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+INFO:     127.0.0.1:61711 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58877 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56592 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56094 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54474 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59101 - "POST /generate/writer/writer_1 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63288 - "POST /generate/writer/writer_1 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64485 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55118 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51116 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50714 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64366 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56496 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57444 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57457 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49881 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49891 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58186 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57039 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61863 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53624 - "POST /generate/writer/writer_2 HTTP/1.1" 404 Not Found
+
+--- Started ---
+INFO:     Started server process [19120]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+INFO:     127.0.0.1:59770 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54474 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59101 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53280 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64442 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55762 - "GET /templates HTTP/1.1" 200 OK

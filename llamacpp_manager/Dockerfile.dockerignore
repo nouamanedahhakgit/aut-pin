@@ -1,0 +1,6 @@
+**/*.gguf
+**/*.db
+models/
+models/*
+llamacpp_manager/models/
+llamacpp_manager/models/*

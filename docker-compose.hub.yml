@@ -13,7 +13,7 @@ services:
   orchestrator:
     image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-orchestrator:latest
     ports:
-      - "9000:9000"
+      - "6005:5005"
     volumes:
       - env-config:/app/env-output
     environment:
@@ -23,13 +23,13 @@ services:
   multi-domain-clean:
     image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-multi-domain-clean:latest
     ports:
-      - "5001:5001"
+      - "6001:5001"
     environment:
-      - GENERATE_ARTICLE_API_URL=http://articles-website-generator:8000
-      - WEBSITE_PARTS_API_URL=http://website-parts-generator:8010
+      - GENERATE_ARTICLE_API_URL=http://articles-website-generator:5002
+      - WEBSITE_PARTS_API_URL=http://website-parts-generator:5003
       - PIN_API_URL=http://pin_generator:5000
-      - LLAMACPP_MANAGER_URL=http://llamacpp_manager:8080
-      - PIN_EDITOR_URL=http://llamacpp_manager:8080
+      - LLAMACPP_MANAGER_URL=http://llamacpp_manager:5004
+      - PIN_EDITOR_URL=http://llamacpp_manager:5004
       - ARTICLE_GENERATORS_DIR=/app/shared/generators
       - STATIC_PROJECT_OUTPUT_DIR=/app/output/static-projects
     volumes:
@@ -49,7 +49,7 @@ services:
   pin_generator:
     image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-pin_generator:latest
     ports:
-      - "5000:5000"
+      - "6000:5000"
     volumes:
       - pin_output:/app/output
       - env-config:/app/env-config:ro
@@ -61,9 +61,9 @@ services:
   articles-website-generator:
     image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-articles-website-generator:latest
     ports:
-      - "8000:8000"
+      - "6002:5002"
     environment:
-      - LLAMACPP_MANAGER_URL=http://llamacpp_manager:8080
+      - LLAMACPP_MANAGER_URL=http://llamacpp_manager:5004
     volumes:
       - ./articles-website-generator/generators:/app/generators
       - env-config:/app/env-config:ro
@@ -77,7 +77,7 @@ services:
   website-parts-generator:
     image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-website-parts-generator:latest
     ports:
-      - "8010:8010"
+      - "6003:5003"
     volumes:
       - env-config:/app/env-config:ro
     env_file:
@@ -88,7 +88,7 @@ services:
   llamacpp_manager:
     image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-llamacpp_manager:latest
     ports:
-      - "8080:8080"
+      - "6004:5004"
     environment:
       - LLAMACPP_MODELS_DIR=/app/llamacpp_manager/models
       - LLAMACPP_DB_PATH=/app/llamacpp_manager/data/llamacpp_manager.db

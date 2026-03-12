@@ -7,4 +7,4 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = BASE_DIR / "templates"
-PORT = int(os.getenv("WEBSITE_PARTS_PORT", "8010"))
+PORT = int(os.getenv("WEBSITE_PARTS_PORT", "5003"))

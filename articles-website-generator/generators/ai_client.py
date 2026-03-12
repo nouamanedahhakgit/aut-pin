@@ -329,7 +329,7 @@ def _single_call(client, model, prompt, max_tokens, system, temperature, provide
 def _llamacpp_call(generator, model_id, prompt, max_tokens, system, temperature):
     """Call llamacpp_manager POST /ai/generate. Returns (text, usage_dict)."""
     config = (getattr(generator, "config", None) or {})
-    manager_url = (config.get("llamacpp_manager_url") or os.getenv("LLAMACPP_MANAGER_URL", "http://localhost:8080")).strip().rstrip("/")
+    manager_url = (config.get("llamacpp_manager_url") or os.getenv("LLAMACPP_MANAGER_URL", "http://localhost:5004")).strip().rstrip("/")
     model_id = int(model_id) if model_id else 0
     if not model_id:
         raise ValueError("llamacpp_model_id required for llama.cpp provider.")

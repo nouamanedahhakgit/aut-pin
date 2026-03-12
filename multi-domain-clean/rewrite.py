@@ -48,7 +48,7 @@ def generate_image_prompts_for_title(title: str, user_config: dict = None, ai_pr
         elif p == "llamacpp":
             try:
                 import requests
-                mgr = user_config.get("llamacpp_manager_url") or "http://localhost:8080"
+                mgr = user_config.get("llamacpp_manager_url") or "http://localhost:5004"
                 mid = llamacpp_model_id or user_config.get("llamacpp_model_id")
                 if not mid:
                     r = requests.get(f"{mgr.rstrip('/')}/api/models", timeout=5)

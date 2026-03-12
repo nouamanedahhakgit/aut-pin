@@ -45,7 +45,7 @@ This starts:
 |-------------------------|------|------------------------------------|
 | multi-domain-clean      | 5001 | Main admin UI, domain management   |
 | pin_generator           | 5000 | Pin image generation API           |
-| articles-website-generator | 8000 | Article content generation API     |
+| articles-website-generator | 5002 | Article content generation API     |
 | website-parts-generator | 8010 | Header, footer, category templates |
 
 ### 5. Stop all services
@@ -85,7 +85,7 @@ cd multi-domain-clean && python app.py
 cd pin_generator && python generator.py --serve --port 5000
 
 # Articles generator API
-cd articles-website-generator && python -m uvicorn route:app --host 0.0.0.0 --port 8000
+cd articles-website-generator && python -m uvicorn route:app --host 0.0.0.0 --port 5002
 
 # Website parts generator API
 cd website-parts-generator && python -m uvicorn route:app --host 0.0.0.0 --port 8010

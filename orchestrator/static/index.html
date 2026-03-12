@@ -792,12 +792,12 @@
     <script>
         let currentStep = 0;
         let selectedDB = 'mysql';
-        const defaultURLs = {
-            'pin_generator': 'http://pin_generator:5000',
-            'articles-website-generator': 'http://articles-website-generator:8000',
-            'website-parts-generator': 'http://website-parts-generator:8010',
-            'llamacpp_manager': 'http://llamacpp_manager:8080',
-        };
+            const defaultURLs = {
+                'pin_generator': 'http://pin_generator:5000',
+                'articles-website-generator': 'http://articles-website-generator:5002',
+                'website-parts-generator': 'http://website-parts-generator:5003',
+                'llamacpp_manager': 'http://llamacpp_manager:5004',
+            };
 
         // ─── Step Navigation ──────────────────────────────────
         function goToStep(step) {
@@ -829,9 +829,9 @@
             const container = document.getElementById('services-list');
             const services = [
                 { key: 'pin_generator', label: 'Pin Generator', desc: 'Pin image generation API', port: 5000 },
-                { key: 'articles-website-generator', label: 'Articles Generator', desc: 'Article content API', port: 8000 },
-                { key: 'website-parts-generator', label: 'Website Parts Generator', desc: 'Templates API', port: 8010 },
-                { key: 'llamacpp_manager', label: 'LlamaCpp Manager', desc: 'Local LLM manager', port: 8080 },
+                { key: 'articles-website-generator', label: 'Articles Generator', desc: 'Article content API', port: 5002 },
+                { key: 'website-parts-generator', label: 'Website Parts Generator', desc: 'Templates API', port: 5003 },
+                { key: 'llamacpp_manager', label: 'LlamaCpp Manager', desc: 'Local LLM manager', port: 5004 },
             ];
 
             container.innerHTML = services.map(s => `

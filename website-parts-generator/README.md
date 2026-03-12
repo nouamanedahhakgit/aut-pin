@@ -19,7 +19,7 @@ Each domain in the database has:
 - `category_page_template` — e.g. `category-1`, `category-2`
 - `side_article_template` — e.g. `sidebar-1`, `sidebar-2`
 
-## API (port 8010)
+## API (port 5003)
 
 ```
 GET  /templates                    — list all available template names
@@ -40,14 +40,14 @@ Domain `article_template_config` can be reused for consistency across header, fo
 cd website-parts-generator
 pip install -r requirements.txt
 python run.py
-# or: uvicorn route:app --host 0.0.0.0 --port 8010
+# or: uvicorn route:app --host 0.0.0.0 --port 5003
 ```
 
 ## Multi-domain integration
 
 Set in multi-domain `.env`:
 ```
-WEBSITE_PARTS_API_URL=http://localhost:8010
+WEBSITE_PARTS_API_URL=http://localhost:5003
 ```
 
 - **Add domain** (single or bulk): each new domain gets random header, footer, category, sidebar templates.

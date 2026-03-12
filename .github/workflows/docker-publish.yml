@@ -45,8 +45,8 @@ jobs:
 
           - service: llamacpp_manager
             image: aut-pin-llamacpp_manager
-            context: ./_archive
-            dockerfile: ./_archive/llamacpp_manager/Dockerfile
+            context: .
+            dockerfile: ./llamacpp_manager/Dockerfile
 
     steps:
       - name: Checkout repository

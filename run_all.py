@@ -31,7 +31,7 @@ SERVICES = [
         "name": "llamacpp_manager",
         "cwd": ROOT / "_archive",
         "cmd": [sys.executable, "-m", "llamacpp_manager.app"],
-        "port": 8080,
+        "port": 5004,
     },
     {
         "name": "pin_generator",
@@ -42,14 +42,14 @@ SERVICES = [
     {
         "name": "articles-website-generator",
         "cwd": ROOT / "articles-website-generator",
-        "cmd": [sys.executable, "-m", "uvicorn", "route:app", "--host", "0.0.0.0", "--port", "8000"],
-        "port": 8000,
+        "cmd": [sys.executable, "-m", "uvicorn", "route:app", "--host", "0.0.0.0", "--port", "5002"],
+        "port": 5002,
     },
     {
         "name": "website-parts-generator",
         "cwd": ROOT / "website-parts-generator",
-        "cmd": [sys.executable, "-m", "uvicorn", "route:app", "--host", "0.0.0.0", "--port", "8010"],
-        "port": 8010,
+        "cmd": [sys.executable, "-m", "uvicorn", "route:app", "--host", "0.0.0.0", "--port", "5003"],
+        "port": 5003,
     },
 ]
 

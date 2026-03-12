@@ -998,3 +998,260 @@ INFO:     Started server process [27824]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [14900]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:59763 - "GET /generators HTTP/1.1" 200 OK
+[generate-article] generator failed: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************fUAA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'code': 'invalid_api_key', 'param': None}, 'status': 401}
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 434, in generate_article
+    content_data = generator.run(return_content_only=True)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-1.py", line 605, in run
+    sections_content = self.generate_all_content()
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-1.py", line 245, in generate_all_content
+    raw = ai_chat(self, user, max_tokens=5000, system=system)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\ai_client.py", line 214, in ai_chat
+    text, _ = _single_call(client, model or os.getenv("OPENAI_MODEL", "gpt-4o-mini"), prompt, max_tokens, system, temperature, provider)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\ai_client.py", line 316, in _single_call
+    resp = client.chat.completions.create(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\_utils\_utils.py", line 286, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\resources\chat\completions\completions.py", line 1192, in create
+    return self._post(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\_base_client.py", line 1297, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\_base_client.py", line 1070, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.AuthenticationError: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************fUAA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'code': 'invalid_api_key', 'param': None}, 'status': 401}
+
+[generate-article] generator failed: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************fUAA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'code': 'invalid_api_key', 'param': None}, 'status': 401}
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 434, in generate_article
+    content_data = generator.run(return_content_only=True)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-1.py", line 605, in run
+    sections_content = self.generate_all_content()
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-1.py", line 245, in generate_all_content
+    raw = ai_chat(self, user, max_tokens=5000, system=system)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\ai_client.py", line 214, in ai_chat
+    text, _ = _single_call(client, model or os.getenv("OPENAI_MODEL", "gpt-4o-mini"), prompt, max_tokens, system, temperature, provider)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\ai_client.py", line 316, in _single_call
+    resp = client.chat.completions.create(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\_utils\_utils.py", line 286, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\resources\chat\completions\completions.py", line 1192, in create
+    return self._post(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\_base_client.py", line 1297, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\_base_client.py", line 1070, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.AuthenticationError: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************fUAA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'code': 'invalid_api_key', 'param': None}, 'status': 401}
+
+[generate-article] generator failed: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************fUAA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'code': 'invalid_api_key', 'param': None}, 'status': 401}
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 434, in generate_article
+    content_data = generator.run(return_content_only=True)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-5.py", line 861, in run
+    content_data = self.generate_content()
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-5.py", line 414, in generate_content
+    raw = ai_chat(self, user, max_tokens=4500, system=system)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\ai_client.py", line 214, in ai_chat
+    text, _ = _single_call(client, model or os.getenv("OPENAI_MODEL", "gpt-4o-mini"), prompt, max_tokens, system, temperature, provider)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\ai_client.py", line 316, in _single_call
+    resp = client.chat.completions.create(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\_utils\_utils.py", line 286, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\resources\chat\completions\completions.py", line 1192, in create
+    return self._post(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\_base_client.py", line 1297, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\_base_client.py", line 1070, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.AuthenticationError: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************fUAA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'code': 'invalid_api_key', 'param': None}, 'status': 401}
+
+[generate-article] generator failed: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************fUAA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'code': 'invalid_api_key', 'param': None}, 'status': 401}
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 434, in generate_article
+    content_data = generator.run(return_content_only=True)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-5.py", line 861, in run
+    content_data = self.generate_content()
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-5.py", line 414, in generate_content
+    raw = ai_chat(self, user, max_tokens=4500, system=system)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\ai_client.py", line 214, in ai_chat
+    text, _ = _single_call(client, model or os.getenv("OPENAI_MODEL", "gpt-4o-mini"), prompt, max_tokens, system, temperature, provider)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\ai_client.py", line 316, in _single_call
+    resp = client.chat.completions.create(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\_utils\_utils.py", line 286, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\resources\chat\completions\completions.py", line 1192, in create
+    return self._post(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\_base_client.py", line 1297, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\_base_client.py", line 1070, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.AuthenticationError: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************fUAA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'code': 'invalid_api_key', 'param': None}, 'status': 401}
+[generate-article] generator failed: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************fUAA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'code': 'invalid_api_key', 'param': None}, 'status': 401}
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 434, in generate_article
+    content_data = generator.run(return_content_only=True)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-5.py", line 861, in run
+    content_data = self.generate_content()
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-5.py", line 414, in generate_content
+    raw = ai_chat(self, user, max_tokens=4500, system=system)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\ai_client.py", line 214, in ai_chat
+    text, _ = _single_call(client, model or os.getenv("OPENAI_MODEL", "gpt-4o-mini"), prompt, max_tokens, system, temperature, provider)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\ai_client.py", line 316, in _single_call
+    resp = client.chat.completions.create(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\_utils\_utils.py", line 286, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\resources\chat\completions\completions.py", line 1192, in create
+    return self._post(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\_base_client.py", line 1297, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\_base_client.py", line 1070, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.AuthenticationError: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************fUAA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'code': 'invalid_api_key', 'param': None}, 'status': 401}
+
+Generating: Lamb Couscous Recipe
+[*] Generating all sections in a single JSON API call...
+Generating: Chicken Couscous Recipe
+[*] Generating all sections in a single JSON API call...
+INFO:     127.0.0.1:63511 - "POST /generate-article/generator-1 HTTP/1.1" 500 Internal Server Error
+
+[generate-article] generator failed: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************fUAA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'code': 'invalid_api_key', 'param': None}, 'status': 401}
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 434, in generate_article
+    content_data = generator.run(return_content_only=True)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-5.py", line 861, in run
+    content_data = self.generate_content()
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-5.py", line 414, in generate_content
+    raw = ai_chat(self, user, max_tokens=4500, system=system)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\ai_client.py", line 214, in ai_chat
+    text, _ = _single_call(client, model or os.getenv("OPENAI_MODEL", "gpt-4o-mini"), prompt, max_tokens, system, temperature, provider)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\ai_client.py", line 316, in _single_call
+    resp = client.chat.completions.create(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\_utils\_utils.py", line 286, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\resources\chat\completions\completions.py", line 1192, in create
+    return self._post(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\_base_client.py", line 1297, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\_base_client.py", line 1070, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.AuthenticationError: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************fUAA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'code': 'invalid_api_key', 'param': None}, 'status': 401}
+[generate-article] generator failed: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************fUAA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'code': 'invalid_api_key', 'param': None}, 'status': 401}
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 434, in generate_article
+    content_data = generator.run(return_content_only=True)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-1.py", line 605, in run
+    sections_content = self.generate_all_content()
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-1.py", line 245, in generate_all_content
+    raw = ai_chat(self, user, max_tokens=5000, system=system)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\ai_client.py", line 214, in ai_chat
+    text, _ = _single_call(client, model or os.getenv("OPENAI_MODEL", "gpt-4o-mini"), prompt, max_tokens, system, temperature, provider)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\ai_client.py", line 316, in _single_call
+    resp = client.chat.completions.create(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\_utils\_utils.py", line 286, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\resources\chat\completions\completions.py", line 1192, in create
+    return self._post(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\_base_client.py", line 1297, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\_base_client.py", line 1070, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.AuthenticationError: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************fUAA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'code': 'invalid_api_key', 'param': None}, 'status': 401}
+
+
+[generate-article] generator failed: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************fUAA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'code': 'invalid_api_key', 'param': None}, 'status': 401}
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 434, in generate_article
+    content_data = generator.run(return_content_only=True)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-1.py", line 605, in run
+    sections_content = self.generate_all_content()
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-1.py", line 245, in generate_all_content
+    raw = ai_chat(self, user, max_tokens=5000, system=system)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\ai_client.py", line 214, in ai_chat
+    text, _ = _single_call(client, model or os.getenv("OPENAI_MODEL", "gpt-4o-mini"), prompt, max_tokens, system, temperature, provider)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\ai_client.py", line 316, in _single_call
+    resp = client.chat.completions.create(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\_utils\_utils.py", line 286, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\resources\chat\completions\completions.py", line 1192, in create
+    return self._post(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\_base_client.py", line 1297, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\openai\_base_client.py", line 1070, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.AuthenticationError: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************fUAA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'code': 'invalid_api_key', 'param': None}, 'status': 401}
+INFO:     127.0.0.1:63509 - "POST /generate-article/generator-5 HTTP/1.1" 500 Internal Server Error
+
+INFO:     127.0.0.1:63510 - "POST /generate-article/generator-5 HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:63512 - "POST /generate-article/generator-1 HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:64685 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58233 - "GET /generators HTTP/1.1" 200 OK
+Generating: Lamb Couscous Recipe
+[*] Generating all sections in a single JSON API call...
+Generating: Chicken Couscous Recipe
+[*] Generating all sections in a single JSON API call...
+[*] Generated content via single JSON.
+[*] Generated content via single JSON.
+INFO:     127.0.0.1:59223 - "POST /generate-article/generator-1 HTTP/1.1" 200 OK
+[*] Generated content via single JSON.
+INFO:     127.0.0.1:59221 - "POST /generate-article/generator-1 HTTP/1.1" 200 OK
+[*] Generated content via single JSON.
+[*] Analyzing video structure... [DONE BY AI]
+[*] Generating content with OpenAI...
+[*] Generating all sections in a single JSON API call...
+[*] Analyzing video structure... [DONE BY AI]
+[*] Generating content with OpenAI...
+[*] Generating all sections in a single JSON API call...
+INFO:     127.0.0.1:59220 - "POST /generate-article/generator-5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59222 - "POST /generate-article/generator-5 HTTP/1.1" 200 OK
+[*] Generated content via single JSON.
+INFO:     127.0.0.1:60297 - "POST /generate-article/generator-5 HTTP/1.1" 200 OK
+[*] Generated content via single JSON.
+[*] Generating CSS...
+[*] Building HTML...
+INFO:     127.0.0.1:57958 - "POST /generate-article/generator-2 HTTP/1.1" 200 OK
+[*] Generated content via single JSON.
+INFO:     127.0.0.1:64361 - "POST /generate-article/generator-5 HTTP/1.1" 200 OK
+[*] Starting generation for: Vegetable Couscous Recipe
+[*] Starting generation for: Vegetable Couscous Recipe
+[*] Generated content via single JSON.
+[*] Generating CSS...
+[*] Building HTML...
+INFO:     127.0.0.1:55608 - "POST /generate-article/generator-2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49320 - "POST /generate-article/generator-3 HTTP/1.1" 200 OK
+[*] Generated content via single JSON.
+INFO:     127.0.0.1:58440 - "POST /generate-article/generator-6 HTTP/1.1" 200 OK
+[*] Generating article: Chicken Couscous Recipe
+[*] Generating content with OpenAI (single JSON)...
+[*] Starting generation for: Vegetable Couscous Recipe
+[*] Generated content via single JSON.
+INFO:     127.0.0.1:52399 - "POST /generate-article/generator-6 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52848 - "POST /generate-article/generator-3 HTTP/1.1" 200 OK
+[*] Starting generation for: Vegetable Couscous Recipe
+[*] Generating article: Lamb Couscous Recipe
+[*] Generating content with OpenAI (single JSON)...
+[*] Generated content via single JSON.
+INFO:     127.0.0.1:59221 - "POST /generate-article/generator-4 HTTP/1.1" 200 OK
+[*] Generated content via single JSON.
+INFO:     127.0.0.1:59229 - "POST /generate-article/generator-6 HTTP/1.1" 200 OK
+[*] Generated content via single JSON.
+INFO:     127.0.0.1:57648 - "POST /generate-article/generator-4 HTTP/1.1" 200 OK
+[*] Generated content via single JSON.
+INFO:     127.0.0.1:57644 - "POST /generate-article/generator-6 HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [10916]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:52242 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59100 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58662 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57684 - "GET / HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57684 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64438 - "GET /generators HTTP/1.1" 200 OK

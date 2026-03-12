@@ -1,7 +1,43 @@
-_archive/*
+﻿# Archives
+_archive/
+
+# Python
+__pycache__/
+*.py[cod]
+*\.class
+
+# Virtual envs
+.venv
+venv
+env
+
+# Env files  
+.env
+.env.*
+!.env.example
+!.env.example.docker
+
+# Output, logs, state
+output/
+.logs/
+*.log
+.services.pid
+*.db
+
+# Node / Wrangler (multi-domain-clean)
+node_modules/
+.wrangler/
+
+# IDE / OS
+.idea
+.vscode
+.cursor/
+.DS_Store
+Thumbs.db
+
+# Large binary files
+llamacpp_manager/models/*.gguf
+llamacpp_manager/data/*.db
 llamacpp_manager/bin/
-.cursor/*
-website-parts-generator/prompts/*
-multi-domain-clean/__pycache__/imagine.cpython-39.pyc
-multi-domain-clean/__pycache__/r2_upload.cpython-39.pyc
 pin_generator/prompts/generate_pin_template.txt
+website-parts-generator/prompts/

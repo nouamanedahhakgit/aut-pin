@@ -3,7 +3,7 @@ Website Parts Generator API.
 Generates header, footer, category, sidebar templates.
 Each part is reskinnable via config (colors, fonts, layout).
 
-Run: uvicorn route:app --host 0.0.0.0 --port 8010
+Run: uvicorn route:app --host 0.0.0.0 --port 5003
 """
 import os
 import re

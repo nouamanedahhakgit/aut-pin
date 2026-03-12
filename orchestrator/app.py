@@ -42,7 +42,7 @@ SERVICES = [
     {
         "key": "articles-website-generator",
         "label": "Articles & Website Generator",
-        "port": 8000,
+        "port": 5002,
         "health": "/",
         "env_file": "articles-website-generator/.env",
         "description": "Article content generation API",
@@ -50,7 +50,7 @@ SERVICES = [
     {
         "key": "website-parts-generator",
         "label": "Website Parts Generator",
-        "port": 8010,
+        "port": 5003,
         "health": "/",
         "env_file": "website-parts-generator/.env",
         "description": "Header, footer, sidebar templates API",
@@ -58,7 +58,7 @@ SERVICES = [
     {
         "key": "llamacpp_manager",
         "label": "LlamaCpp Manager",
-        "port": 8080,
+        "port": 5004,
         "health": "/",
         "env_file": "",
         "description": "Local LLM model manager",
@@ -71,7 +71,21 @@ def _load_config():
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, "r") as f:
-                return json.load(f)
+                cfg = json.load(f)
+                
+                # Auto-patch old ports to new ports
+                if "services" in cfg:
+                    svcs = cfg["services"]
+                    if "articles-website-generator" in svcs:
+                        svcs["articles-website-generator"]["url"] = svcs["articles-website-generator"]["url"].replace(":8000", ":5002").replace("http://localhost:5002", "http://articles-website-generator:5002")
+                    if "website-parts-generator" in svcs:
+                        svcs["website-parts-generator"]["url"] = svcs["website-parts-generator"]["url"].replace(":8010", ":5003").replace("http://localhost:5003", "http://website-parts-generator:5003")
+                    if "llamacpp_manager" in svcs:
+                        svcs["llamacpp_manager"]["url"] = svcs["llamacpp_manager"]["url"].replace(":8080", ":5004").replace("http://localhost:5004", "http://llamacpp_manager:5004")
+                    if "pin_generator" in svcs:
+                        svcs["pin_generator"]["url"] = svcs["pin_generator"]["url"].replace("http://localhost:5000", "http://pin_generator:5000")
+                
+                return cfg
         except Exception:
             pass
     return {}
@@ -116,9 +130,9 @@ def _generate_env_files(cfg):
 
     # Service URLs
     pin_url = services_cfg.get("pin_generator", {}).get("url", "http://pin_generator:5000")
-    article_url = services_cfg.get("articles-website-generator", {}).get("url", "http://articles-website-generator:8000")
-    website_url = services_cfg.get("website-parts-generator", {}).get("url", "http://website-parts-generator:8010")
-    llama_url = services_cfg.get("llamacpp_manager", {}).get("url", "http://llamacpp_manager:8080")
+    article_url = services_cfg.get("articles-website-generator", {}).get("url", "http://articles-website-generator:5002")
+    website_url = services_cfg.get("website-parts-generator", {}).get("url", "http://website-parts-generator:5003")
+    llama_url = services_cfg.get("llamacpp_manager", {}).get("url", "http://llamacpp_manager:5004")
 
     mdc_lines.append(f"PIN_API_URL={pin_url}")
     mdc_lines.append(f"GENERATE_ARTICLE_API_URL={article_url}")
@@ -242,4 +256,4 @@ if __name__ == "__main__":
     print("  🚀 Orchestrator Setup Wizard")
     print("  Open http://localhost:9000 to configure your services")
     print("=" * 60)
-    app.run(host="0.0.0.0", port=9000, debug=False)
+    app.run(host="0.0.0.0", port=5005, debug=False)
