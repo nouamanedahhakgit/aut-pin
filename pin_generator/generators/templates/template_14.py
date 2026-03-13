@@ -20,7 +20,7 @@ FONT_SLOTS = {
 TEMPLATE_DATA = {
     "name": "Scandinavian Minimalist",
     "preview_url": "https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/template_preview/scandi_minimal.png",
-    "canvas": {"width": 600, "height": 1067, "aspect_ratio": "9:16"},
+    "canvas": {"width": 736, "height": 1308, "aspect_ratio": "9:16"},
     "prompt": "Generate a calm title and a short desc for {{title}}.",
     "field_prompts": {
         "title": "Title for {{title}}. Title Case, elegant.",
@@ -29,38 +29,38 @@ TEMPLATE_DATA = {
     "images": {
         "hero": {
             "src": "https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/main_image/ba00aa85/58c84a65007.png",
-            "position": {"top": 100, "left": 100}, "width": 400, "height": 600, "layer_order": 5, "object_fit": "cover"
+            "position": {"top": 123, "left": 123}, "width": 491, "height": 736, "layer_order": 5, "object_fit": "cover"
         }
     },
     "elements": {
         "bg_layer": {
-            "type": "div", "position": {"top": 0, "left": 0}, "width": 600, "height": 1067,
+            "type": "div", "position": {"top": 0, "left": 0}, "width": 736, "height": 1308,
             "background_color": "#F9F9F9", "z_index": 1
         },
         "frame": {
             "type": "div",
-            "position": {"top": 40, "left": 40}, "width": 520, "height": 987,
+            "position": {"top": 49, "left": 49}, "width": 638, "height": 1210,
             "border": {"width": 1, "color": "#E5E5E5"}, "z_index": 2
         },
         "title": {
             "type": "text",
             "text": "Quiet Morning Coffee",
-            "position": {"top": 740, "left": 60}, "width": 480, "height": 80,
-            "font_family": "'Playfair Display', serif", "font_size": 36, "font_weight": "400",
+            "position": {"top": 907, "left": 74}, "width": 589, "height": 98,
+            "font_family": "'Playfair Display', serif", "font_size": 44, "font_weight": "400",
             "color": "#2D2D2D", "text_align": "center", "z_index": 10
         },
         "subtitle": {
             "type": "text",
             "text": "A minimal approach to the perfect brew",
-            "position": {"top": 810, "left": 100}, "width": 400, "height": 60,
-            "font_family": "'Inter', sans-serif", "font_size": 16, "font_weight": "300",
+            "position": {"top": 993, "left": 123}, "width": 491, "height": 74,
+            "font_family": "'Inter', sans-serif", "font_size": 20, "font_weight": "300",
             "color": "#666666", "text_align": "center", "font_style": "italic", "z_index": 10
         },
         "website": {
             "type": "text",
             "text": "{{domain}}",
-            "position": {"top": 960, "left": 0}, "width": 600, "height": 30,
-            "font_family": "'Inter', sans-serif", "font_size": 12, "font_weight": "400",
+            "position": {"top": 1177, "left": 0}, "width": 736, "height": 37,
+            "font_family": "'Inter', sans-serif", "font_size": 15, "font_weight": "400",
             "color": "#999999", "text_align": "center", "letter_spacing": 2, "z_index": 10
         }
     }

@@ -21,7 +21,7 @@ FONT_SLOTS = {
 TEMPLATE_DATA = {
     "name": "Midnight Slate Pin",
     "preview_url": "https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/template_preview/a05ea757750.png",
-    "canvas": {"width": 600, "height": 1067, "aspect_ratio": "9:16"},
+    "canvas": {"width": 736, "height": 1308, "aspect_ratio": "9:16"},
     "prompt": "Generate text for each field based on the recipe title provided. Use the field_prompts JSON below: for each key, generate content using the corresponding prompt (replace {{title}} with the user's recipe title). Your response MUST be a single JSON object only, with one key per field and the value being the generated text.",
     "field_prompts": {
         "title": "Powerful title for recipe {{title}}. 2–4 words, ALL CAPS.",
@@ -31,41 +31,41 @@ TEMPLATE_DATA = {
         "background": {
             "src": "https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/main_image/ba00aa85/58c84a65007.png",
             "description_prompt": "Moody, dark-themed food photography of {{title}}, cinematic lighting, rich textures, deep shadows.",
-            "position": {"top": 0, "left": 0}, "width": 600, "height": 1067, "layer_order": 1
+            "position": {"top": 0, "left": 0}, "width": 736, "height": 1308, "layer_order": 1
         }
     },
     "elements": {
         "blade": {
             "type": "div",
-            "position": {"top": 600, "left": -50}, "width": 700, "height": 500,
+            "position": {"top": 736, "left": -50}, "width": 859, "height": 613,
             "background_color": "#111827", "rotation": -5, "z_index": 5, "opacity": 0.95
         },
         "accent_line": {
             "type": "div",
-            "position": {"top": 595, "left": -50}, "width": 700, "height": 8,
+            "position": {"top": 729, "left": -50}, "width": 859, "height": 10,
             "background_color": "#FACC15", "rotation": -5, "z_index": 10
         },
         "title": {
             "type": "text",
             "text": "SMOKED BBQ<br>BRISKET",
-            "position": {"top": 680, "left": 40}, "width": 520, "height": 200,
-            "font_family": "'Bebas Neue', sans-serif", "font_size": 80, "font_weight": "400",
+            "position": {"top": 834, "left": 49}, "width": 638, "height": 245,
+            "font_family": "'Bebas Neue', sans-serif", "font_size": 98, "font_weight": "400",
             "color": "#FFFFFF", "text_align": "left", "text_transform": "uppercase",
             "line_height": 1.0, "z_index": 15
         },
         "badge": {
             "type": "text",
             "text": "PREMIUM",
-            "position": {"top": 860, "left": 40}, "width": 140, "height": 50,
-            "font_family": "'Inter', sans-serif", "font_size": 16, "font_weight": "900",
+            "position": {"top": 1054, "left": 49}, "width": 172, "height": 61,
+            "font_family": "'Inter', sans-serif", "font_size": 20, "font_weight": "900",
             "color": "#FACC15", "text_align": "left", "text_transform": "uppercase",
             "letter_spacing": 3, "z_index": 15
         },
         "website": {
             "type": "text",
             "text": "{{domain}}",
-            "position": {"top": 1000, "left": 0}, "width": 600, "height": 40,
-            "font_family": "'Inter', sans-serif", "font_size": 16, "font_weight": "700",
+            "position": {"top": 1226, "left": 0}, "width": 736, "height": 49,
+            "font_family": "'Inter', sans-serif", "font_size": 20, "font_weight": "700",
             "color": "#94A3B8", "text_align": "center", "text_transform": "uppercase",
             "z_index": 20
         }

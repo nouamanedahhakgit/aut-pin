@@ -1,17 +1,17 @@
 {
   "template_id": "template_1",
-  "template_name": "Homemade Artisan Pasta Pin",
+  "template_name": "Million Dollar Chicken Salad",
   "images": {
-    "recipe_image": {
-      "url": "https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/main_image/ba00aa85/58c84a65007.png",
-      "description_prompt": "Pinterest-style food photography of {{title}}, vibrant and appetizing.",
+    "background": {
+      "url": "https://californiagrown.org/wp-content/uploads/2024/12/CAG-Loaded-Baked-Potato-17.jpg",
+      "description_prompt": "Close-up overhead shot of creamy chicken salad, food photography",
       "position": {
         "top": 0,
         "left": 0
       },
-      "width": 600,
-      "height": 1067,
-      "layer_order": 0
+      "width": 736,
+      "height": 1308,
+      "layer_order": 1
     }
   }
 }

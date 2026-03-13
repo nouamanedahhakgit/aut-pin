@@ -12975,3 +12975,1690 @@ INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
 INFO:     127.0.0.1:53159 - "GET /domain-page-themes HTTP/1.1" 200 OK
 INFO:     127.0.0.1:61585 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65398 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54985 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [21564]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [29596]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [29876]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [1684]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [11088]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [29176]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [23948]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+INFO:     127.0.0.1:55112 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52860 - "GET /templates HTTP/1.1" 200 OK
+Template error: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+NoneType: None
+
+INFO:     127.0.0.1:49673 - "POST /generate/domain_page/theme_8/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_8\index.py", line 45, in generate
+    cards_html, cards_css = render_cards(articles, config, show_excerpt=True, scope_prefix=ROOT)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 922, in get_code
+  File "<frozen importlib._bootstrap_external>", line 979, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+INFO:     127.0.0.1:62662 - "POST /generate/index/index_5 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58749 - "POST /generate/domain_page/theme_8/header HTTP/1.1" 200 OK
+Template error: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+NoneType: None
+
+Template error: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+NoneType: None
+
+Template error: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+NoneType: None
+
+INFO:     127.0.0.1:53194 - "POST /generate/domain_page/theme_5/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_5\index.py", line 127, in generate
+    cards_html, card_css = render_cards(
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 922, in get_code
+  File "<frozen importlib._bootstrap_external>", line 979, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+INFO:     127.0.0.1:53198 - "POST /generate/domain_page/theme_1/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_1\index.py", line 70, in generate
+    cards_html, card_css = render_cards(articles, config, show_excerpt=True, scope_prefix=".it1")
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 922, in get_code
+  File "<frozen importlib._bootstrap_external>", line 979, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+INFO:     127.0.0.1:53196 - "POST /generate/domain_page/theme_3/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_3\index.py", line 76, in generate
+    cards_html, card_css = render_cards(articles, config, show_excerpt=True, scope_prefix=ROOT_CLS)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 922, in get_code
+  File "<frozen importlib._bootstrap_external>", line 979, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+Template error: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+NoneType: None
+
+INFO:     127.0.0.1:53195 - "POST /generate/domain_page/theme_4/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_4\index.py", line 127, in generate
+    cards_html, card_css = render_cards(
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 922, in get_code
+  File "<frozen importlib._bootstrap_external>", line 979, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+Template error: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+NoneType: None
+
+INFO:     127.0.0.1:53197 - "POST /generate/domain_page/theme_2/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_2\index.py", line 67, in generate
+    cards_html, card_css = render_cards(articles, config, show_excerpt=True, scope_prefix=".it2")
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 922, in get_code
+  File "<frozen importlib._bootstrap_external>", line 979, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+INFO:     127.0.0.1:53204 - "POST /generate/domain_page/theme_8/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52250 - "POST /generate/index/index_5 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52252 - "POST /generate/index/index_5 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52253 - "POST /generate/index/index_5 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52251 - "POST /generate/index/index_5 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52259 - "POST /generate/index/index_5 HTTP/1.1" 404 Not Found
+Template error: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+NoneType: None
+
+INFO:     127.0.0.1:52270 - "POST /generate/domain_page/theme_6/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_6\index.py", line 50, in generate
+    cards_html, cards_css = render_cards(articles, config, show_excerpt=True, scope_prefix=ROOT)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 922, in get_code
+  File "<frozen importlib._bootstrap_external>", line 979, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+INFO:     127.0.0.1:58096 - "POST /generate/domain_page/theme_4/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58097 - "POST /generate/domain_page/theme_3/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58095 - "POST /generate/domain_page/theme_1/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58102 - "POST /generate/domain_page/theme_5/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58101 - "POST /generate/domain_page/theme_2/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59738 - "POST /generate/index/index_5 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59743 - "POST /generate/domain_page/theme_1/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59744 - "POST /generate/domain_page/theme_3/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59745 - "POST /generate/domain_page/theme_4/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63212 - "POST /generate/domain_page/theme_2/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63213 - "POST /generate/domain_page/theme_5/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61089 - "POST /generate/domain_page/theme_6/header HTTP/1.1" 200 OK
+Template error: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+NoneType: None
+
+INFO:     127.0.0.1:51574 - "POST /generate/domain_page/theme_8/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_8\index.py", line 45, in generate
+    cards_html, cards_css = render_cards(articles, config, show_excerpt=True, scope_prefix=ROOT)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 922, in get_code
+  File "<frozen importlib._bootstrap_external>", line 979, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+Template error: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+NoneType: None
+
+INFO:     127.0.0.1:51575 - "POST /generate/domain_page/theme_7/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_7\index.py", line 52, in generate
+    cards_html, cards_css = render_cards(articles, config, show_excerpt=True, scope_prefix=ROOT)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 922, in get_code
+  File "<frozen importlib._bootstrap_external>", line 979, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+INFO:     127.0.0.1:58809 - "POST /generate/domain_page/theme_6/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64025 - "POST /generate/index/index_5 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64028 - "POST /generate/index/index_5 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57917 - "POST /generate/domain_page/theme_8/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57919 - "POST /generate/domain_page/theme_7/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52219 - "POST /generate/domain_page/theme_8/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52221 - "POST /generate/domain_page/theme_7/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53908 - "POST /generate/domain_page/theme_8/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53910 - "POST /generate/domain_page/theme_8/footer HTTP/1.1" 200 OK
+Template error: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+NoneType: None
+
+INFO:     127.0.0.1:53624 - "POST /generate/domain_page/theme_8/sidebar HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_8\sidebar.py", line 43, in generate
+    cards_html, cards_css = render_cards(articles, config, show_excerpt=False, scope_prefix=ROOT)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 922, in get_code
+  File "<frozen importlib._bootstrap_external>", line 979, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+INFO:     127.0.0.1:53502 - "POST /generate/sidebar/sidebar_1 HTTP/1.1" 404 Not Found
+
+--- Started ---
+INFO:     Started server process [992]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [10596]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [12596]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [2316]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+INFO:     127.0.0.1:63136 - "GET / HTTP/1.1" 404 Not Found
+
+--- Started ---
+INFO:     Started server process [30040]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+INFO:     127.0.0.1:58496 - "GET / HTTP/1.1" 404 Not Found
+
+--- Started ---
+INFO:     Started server process [30356]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [15332]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+INFO:     127.0.0.1:54056 - "GET / HTTP/1.1" 404 Not Found
+
+--- Started ---
+INFO:     Started server process [29864]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [29752]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+INFO:     127.0.0.1:53560 - "GET / HTTP/1.1" 404 Not Found
+
+--- Started ---
+INFO:     Started server process [21064]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [25740]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+INFO:     127.0.0.1:49881 - "GET / HTTP/1.1" 404 Not Found
+
+--- Started ---
+INFO:     Started server process [31300]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [15844]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [28860]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+INFO:     127.0.0.1:57759 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64780 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [26068]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [23924]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [11092]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+INFO:     127.0.0.1:62273 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65333 - "GET /templates HTTP/1.1" 200 OK
+Template error: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+NoneType: None
+
+Template error: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+NoneType: None
+
+INFO:     127.0.0.1:58649 - "POST /generate/domain_page/theme_1/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_1\index.py", line 70, in generate
+    cards_html, card_css = render_cards(articles, config, show_excerpt=True, scope_prefix=".it1")
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 922, in get_code
+  File "<frozen importlib._bootstrap_external>", line 979, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+INFO:     127.0.0.1:58648 - "POST /generate/domain_page/theme_4/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_4\index.py", line 127, in generate
+    cards_html, card_css = render_cards(
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 922, in get_code
+  File "<frozen importlib._bootstrap_external>", line 979, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+Template error: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+NoneType: None
+
+Template error: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+NoneType: None
+
+INFO:     127.0.0.1:58654 - "POST /generate/domain_page/theme_3/index HTTP/1.1" 500 Internal Server Error
+Template error: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+NoneType: None
+
+Template error: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+NoneType: None
+
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_3\index.py", line 76, in generate
+    cards_html, card_css = render_cards(articles, config, show_excerpt=True, scope_prefix=ROOT_CLS)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 922, in get_code
+  File "<frozen importlib._bootstrap_external>", line 979, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+INFO:     127.0.0.1:58650 - "POST /generate/domain_page/theme_6/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_6\index.py", line 50, in generate
+    cards_html, cards_css = render_cards(articles, config, show_excerpt=True, scope_prefix=ROOT)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 922, in get_code
+  File "<frozen importlib._bootstrap_external>", line 979, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+INFO:     127.0.0.1:58651 - "POST /generate/domain_page/theme_5/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_5\index.py", line 127, in generate
+    cards_html, card_css = render_cards(
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 922, in get_code
+  File "<frozen importlib._bootstrap_external>", line 979, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+INFO:     127.0.0.1:58652 - "POST /generate/domain_page/theme_2/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_2\index.py", line 67, in generate
+    cards_html, card_css = render_cards(articles, config, show_excerpt=True, scope_prefix=".it2")
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 922, in get_code
+  File "<frozen importlib._bootstrap_external>", line 979, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+INFO:     127.0.0.1:52021 - "POST /generate/index/index_5 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52020 - "POST /generate/index/index_5 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52024 - "POST /generate/index/index_5 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52026 - "POST /generate/index/index_5 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52025 - "POST /generate/index/index_5 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52031 - "POST /generate/index/index_5 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49878 - "POST /generate/domain_page/theme_4/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49877 - "POST /generate/domain_page/theme_1/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49883 - "POST /generate/domain_page/theme_3/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49882 - "POST /generate/domain_page/theme_2/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49881 - "POST /generate/domain_page/theme_5/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49887 - "POST /generate/domain_page/theme_6/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59679 - "POST /generate/domain_page/theme_1/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59680 - "POST /generate/domain_page/theme_4/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59681 - "POST /generate/domain_page/theme_5/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60385 - "POST /generate/domain_page/theme_2/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60386 - "POST /generate/domain_page/theme_3/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55076 - "POST /generate/domain_page/theme_6/footer HTTP/1.1" 200 OK
+Template error: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+NoneType: None
+
+INFO:     127.0.0.1:58372 - "POST /generate/domain_page/theme_8/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_8\index.py", line 45, in generate
+    cards_html, cards_css = render_cards(articles, config, show_excerpt=True, scope_prefix=ROOT)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 922, in get_code
+  File "<frozen importlib._bootstrap_external>", line 979, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+Template error: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+NoneType: None
+
+INFO:     127.0.0.1:58374 - "POST /generate/domain_page/theme_7/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_7\index.py", line 52, in generate
+    cards_html, cards_css = render_cards(articles, config, show_excerpt=True, scope_prefix=ROOT)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 922, in get_code
+  File "<frozen importlib._bootstrap_external>", line 979, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+INFO:     127.0.0.1:53336 - "POST /generate/index/index_5 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53340 - "POST /generate/index/index_5 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53346 - "POST /generate/domain_page/theme_8/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53347 - "POST /generate/domain_page/theme_7/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50725 - "POST /generate/domain_page/theme_8/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50724 - "POST /generate/domain_page/theme_7/footer HTTP/1.1" 200 OK
+Template error: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+NoneType: None
+
+INFO:     127.0.0.1:58306 - "POST /generate/domain_page/theme_8/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_8\index.py", line 45, in generate
+    cards_html, cards_css = render_cards(articles, config, show_excerpt=True, scope_prefix=ROOT)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 922, in get_code
+  File "<frozen importlib._bootstrap_external>", line 979, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+INFO:     127.0.0.1:58308 - "POST /generate/index/index_5 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54785 - "POST /generate/domain_page/theme_8/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55463 - "POST /generate/domain_page/theme_8/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53777 - "POST /generate/domain_page/theme_8/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56316 - "POST /generate/domain_page/theme_8/footer HTTP/1.1" 200 OK
+Template error: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+NoneType: None
+
+INFO:     127.0.0.1:56168 - "POST /generate/domain_page/theme_8/sidebar HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_8\sidebar.py", line 43, in generate
+    cards_html, cards_css = render_cards(articles, config, show_excerpt=False, scope_prefix=ROOT)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 922, in get_code
+  File "<frozen importlib._bootstrap_external>", line 979, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+INFO:     127.0.0.1:56094 - "POST /generate/sidebar/sidebar_1 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63431 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58035 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [18840]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+INFO:     127.0.0.1:57556 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55463 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [12024]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+INFO:     127.0.0.1:64611 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59497 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53892 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54627 - "GET /templates HTTP/1.1" 200 OK
+Template error: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+NoneType: None
+
+INFO:     127.0.0.1:53504 - "POST /generate/domain_page/theme_8/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_8\index.py", line 45, in generate
+    cards_html, cards_css = render_cards(articles, config, show_excerpt=True, scope_prefix=ROOT)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 922, in get_code
+  File "<frozen importlib._bootstrap_external>", line 979, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+INFO:     127.0.0.1:63461 - "POST /generate/index/index_5 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59526 - "POST /generate/domain_page/theme_8/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56199 - "POST /generate/domain_page/theme_8/footer HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [28832]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+INFO:     127.0.0.1:58903 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60380 - "GET /templates HTTP/1.1" 200 OK
+Template error: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+NoneType: None
+
+INFO:     127.0.0.1:64029 - "POST /generate/domain_page/theme_8/index HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\route.py", line 251, in generate_domain_page_themed
+    out = mod.generate(config)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\templates\domain_pages\theme_8\index.py", line 45, in generate
+    cards_html, cards_css = render_cards(articles, config, show_excerpt=True, scope_prefix=ROOT)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 39, in render_cards
+    mod = _load_article_card_template(template_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\website-parts-generator\shared_article_card.py", line 26, in _load_article_card_template
+    spec.loader.exec_module(mod)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 922, in get_code
+  File "<frozen importlib._bootstrap_external>", line 979, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\leno\\Documents\\GitHub\\aut-pin\\website-parts-generator\\templates\\article_cards\\article_card_1.py'
+INFO:     127.0.0.1:49963 - "POST /generate/index/index_5 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51368 - "POST /generate/domain_page/theme_8/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63614 - "POST /generate/domain_page/theme_8/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50781 - "POST /generate/domain_page/theme_8/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58227 - "POST /generate/domain_page/theme_8/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59743 - "POST /generate/domain_page/theme_8/header HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [2232]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+INFO:     127.0.0.1:63931 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50340 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [15020]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+INFO:     127.0.0.1:58408 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50472 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51917 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50061 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55762 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [31544]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)

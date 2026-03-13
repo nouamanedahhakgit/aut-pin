@@ -19,7 +19,7 @@ FONT_SLOTS = {
 TEMPLATE_DATA = {
     "name": "Geometric Flat",
     "preview_url": "https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/template_preview/geometric_flat.png",
-    "canvas": {"width": 600, "height": 1067, "aspect_ratio": "9:16"},
+    "canvas": {"width": 736, "height": 1308, "aspect_ratio": "9:16"},
     "prompt": "Generate a geometric-style title for {{title}}.",
     "field_prompts": {
         "title": "A modern, bold title for {{title}}. e.g. 'SHARP FLAVOR', 'PURE DESIGN'."
@@ -27,27 +27,27 @@ TEMPLATE_DATA = {
     "images": {
         "main_img": {
             "src": "https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/main_image/ba00aa85/58c84a65007.png",
-            "position": {"top": 0, "left": 0}, "width": 600, "height": 700, "layer_order": -1
+            "position": {"top": 0, "left": 0}, "width": 736, "height": 858, "layer_order": -1
         }
     },
     "elements": {
         "circle": {
-            "type": "div", "position": {"top": 600, "left": -100}, "width": 400, "height": 400,
-            "background_color": "#FFC107", "border_radius": 200, "z_index": 5, "opacity": 0.9
+            "type": "div", "position": {"top": 736, "left": -100}, "width": 491, "height": 490,
+            "background_color": "#FFC107", "border_radius": 245, "z_index": 5, "opacity": 0.9
         },
         "rect": {
-            "type": "div", "position": {"top": 700, "left": 100}, "width": 550, "height": 250,
+            "type": "div", "position": {"top": 858, "left": 123}, "width": 675, "height": 306,
             "background_color": "#1A1A1A", "z_index": 6
         },
         "title": {
             "type": "text", "text": "BOLD<br>MOVES",
-            "position": {"top": 740, "left": 140}, "width": 420, "height": 160,
-            "font_family": "'Inter', sans-serif", "font_size": 70, "font_weight": "900",
+            "position": {"top": 907, "left": 172}, "width": 515, "height": 196,
+            "font_family": "'Inter', sans-serif", "font_size": 86, "font_weight": "900",
             "color": "#FFFFFF", "text_align": "left", "line_height": 0.9, "z_index": 10
         },
         "website": {
-            "type": "text", "text": "{{domain}}", "position": {"top": 1000, "left": 0}, "width": 600, "height": 40,
-            "font_family": "'Inter', sans-serif", "font_size": 20, "font_weight": "700",
+            "type": "text", "text": "{{domain}}", "position": {"top": 1226, "left": 0}, "width": 736, "height": 49,
+            "font_family": "'Inter', sans-serif", "font_size": 25, "font_weight": "700",
             "color": "#1A1A1A", "text_align": "center", "z_index": 20
         }
     }

@@ -19,7 +19,7 @@ FONT_SLOTS = {
 
 TEMPLATE_DATA = {
     "name": "Frosted Elegance (Glassmorphism)",
-    "canvas": {"width": 600, "height": 1067, "aspect_ratio": "9:16", "background_color": "#f0f2f5"},
+    "canvas": {"width": 736, "height": 1308, "aspect_ratio": "9:16", "background_color": "#f0f2f5"},
     "prompt": "You are a luxury food stylist. Generate a punchy, click-worthy title for this recipe. Keep it under 6 words. For the badge, use 2-3 words like 'MUST TRY' or '5-MIN RECIPE'.",
     "field_prompts": {
         "title": "Main title of the recipe pin (e.g. 'The Only Lasagna You Need').",
@@ -28,50 +28,50 @@ TEMPLATE_DATA = {
     "images": {
         "background": {
             "src": "https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/main_image/ba00aa85/58c84a65007.png",
-            "position": {"top": 0, "left": 0}, "width": 600, "height": 1067, "layer_order": 1
+            "position": {"top": 0, "left": 0}, "width": 736, "height": 1308, "layer_order": 1
         }
     },
     "elements": {
         "glass_card": {
             "type": "div",
-            "position": {"top": 450, "left": 40}, "width": 520, "height": 450,
+            "position": {"top": 552, "left": 49}, "width": 638, "height": 552,
             "background": "rgba(255, 255, 255, 0.7)",
             "backdrop_filter": "blur(20px) saturate(180%)",
-            "border_radius": 32,
+            "border_radius": 39,
             "border": "1px solid rgba(255, 255, 255, 0.3)",
-            "box_shadow": "0 8px 32px 0 rgba(31, 38, 135, 0.15)",
+            "box_shadow": "0 10px 39px 0 rgba(31, 38, 135, 0.15)",
             "z_index": 5
         },
         "badge_bg": {
             "type": "div",
-            "position": {"top": 430, "left": 220}, "width": 160, "height": 40,
+            "position": {"top": 527, "left": 270}, "width": 196, "height": 49,
             "background": "#FF7849",
-            "border_radius": 20,
+            "border_radius": 25,
             "z_index": 15,
-            "box_shadow": "0 4px 15px rgba(0,0,0,0.1)"
+            "box_shadow": "0 5px 18px rgba(0,0,0,0.1)"
         },
         "badge_text": {
             "type": "text", "text": "BEST EVER",
-            "position": {"top": 430, "left": 220}, "width": 160, "height": 40,
-            "font_family": "'Inter', sans-serif", "font_size": 14, "font_weight": "800",
+            "position": {"top": 527, "left": 270}, "width": 196, "height": 49,
+            "font_family": "'Inter', sans-serif", "font_size": 17, "font_weight": "800",
             "color": "#FFFFFF", "text_align": "center", "text_transform": "uppercase",
             "letter_spacing": 1.5, "z_index": 16
         },
         "title": {
             "type": "text", "text": "CREAMY GARLIC BUTTER PASTA",
-            "position": {"top": 500, "left": 70}, "width": 460, "height": 280,
-            "font_family": "'Playfair Display', serif", "font_size": 58, "font_weight": "900",
+            "position": {"top": 613, "left": 86}, "width": 564, "height": 343,
+            "font_family": "'Playfair Display', serif", "font_size": 71, "font_weight": "900",
             "line_height": 1.1, "color": "#1a1a1a", "text_align": "center",
             "z_index": 10
         },
         "stars": {
-            "type": "stars", "count": 5, "star_size": 24, "color": "#FFB800",
-            "position": {"top": 780, "left": 230}, "z_index": 10, "spacing": 6
+            "type": "stars", "count": 5, "star_size": 29, "color": "#FFB800",
+            "position": {"top": 956, "left": 282}, "z_index": 10, "spacing": 6
         },
         "website": {
             "type": "text", "text": "{{domain}}",
-            "position": {"top": 840, "left": 40}, "width": 520, "height": 40,
-            "font_family": "'Inter', sans-serif", "font_size": 18, "font_weight": "600",
+            "position": {"top": 1030, "left": 49}, "width": 638, "height": 49,
+            "font_family": "'Inter', sans-serif", "font_size": 22, "font_weight": "600",
             "color": "#666666", "text_align": "center", "opacity": 0.8,
             "z_index": 10
         }
