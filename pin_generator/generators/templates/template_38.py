@@ -27,7 +27,9 @@ TEMPLATE_DATA = {
     "images": {
         "background": {
             "src": "https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/main_image/ba00aa85/58c84a65007.png",
-            "position": {"top": 0, "left": 0}, "width": 736, "height": 850, "layer_order": 1
+            "position": {"top": 0, "left": 0}, "width": 736, "height": 850, "layer_order": 1,
+            "object_fit": "contain",
+            "background": "#f8f8f8"
         }
     },
     "elements": {

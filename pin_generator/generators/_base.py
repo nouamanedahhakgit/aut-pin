@@ -149,8 +149,9 @@ def build_css(tpl):
         pos_str = _pos_css(pos) or "top:0px; left:0px;"
         w, h, z = idata["width"], idata["height"], idata.get("layer_order", 1)
         cls = ik.replace("_", "-")
-        s = f".{cls} {{ position:absolute; {pos_str} width:{w}px; height:{h}px; object-fit:cover; z-index:{z}; }}"
-        for prop in ("border_radius", "border", "clip_path", "opacity", "box_shadow", "filter"):
+        fit = idata.get("object_fit", "cover")
+        s = f".{cls} {{ position:absolute; {pos_str} width:{w}px; height:{h}px; object-fit:{fit}; z-index:{z}; }}"
+        for prop in ("border_radius", "border", "clip_path", "opacity", "box_shadow", "filter", "background"):
             if idata.get(prop) is not None:
                 css_prop = prop.replace("_", "-")
                 val = _handle_complex_prop(prop, idata[prop])

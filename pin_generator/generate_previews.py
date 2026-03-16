@@ -75,6 +75,12 @@ def generate_previews():
                 css = build_css(tpl)
                 html = build_html(tpl, image_urls, css)
                 
+                # Set viewport to match template canvas size so screenshot isn't cropped
+                canvas = tpl.get("canvas", {})
+                w = canvas.get("width", 600)
+                h = canvas.get("height", 1067)
+                page.set_viewport_size({"width": w, "height": h})
+
                 # Small hack: if we're on Windows, file:// paths might be tricky. 
                 # Better set content directly.
                 page.set_content(html, wait_until="load")
@@ -83,7 +89,8 @@ def generate_previews():
                 time.sleep(2)
                 
                 screenshot_path = os.path.join(output_base, f"{name}.png")
-                page.screenshot(path=screenshot_path)
+                # Use clip to ensure we capture exactly the canvas area
+                page.screenshot(path=screenshot_path, clip={"x": 0, "y": 0, "width": w, "height": h})
                 print(f"  [OK] Saved to {screenshot_path}")
                 
             except Exception as e:

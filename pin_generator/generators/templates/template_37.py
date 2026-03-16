@@ -31,7 +31,9 @@ TEMPLATE_DATA = {
             "src": "https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/main_image/ba00aa85/58c84a65007.png",
             "position": {"top": 40, "left": 40}, "width": 656, "height": 1100, "layer_order": 1,
             "border_radius": "30px",
-            "box_shadow": "0 20px 40px rgba(0,0,0,0.15)"
+            "box_shadow": "0 20px 40px rgba(0,0,0,0.15)",
+            "object_fit": "contain",
+            "background": "#f0f0f0"
         }
     },
     "elements": {
