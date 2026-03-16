@@ -17,7 +17,8 @@ def generate(config: dict) -> dict:
         (f"{base_url}/recipes", "Recipes"),
     ]
     right_links = []
-    for c in categories[:3]:
+    cats_with_recipes = [c for c in categories if int(c.get("count", 0) or 0) > 0]
+    for c in cats_with_recipes[:3]:
         url = html_module.escape(c.get("url") or f"{base_url}/categories")
         cat_name = html_module.escape(c.get("name", ""))
         if cat_name:

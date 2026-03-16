@@ -332,6 +332,10 @@ def _run_mysql_migrations(cursor):
         cursor.execute("ALTER TABLE article_content ADD COLUMN status_error TEXT")
     except Exception:
         pass
+    try:
+        cursor.execute("ALTER TABLE article_content ADD COLUMN pinterest_board_slug VARCHAR(128)")
+    except Exception:
+        pass
 
 
 def _run_mysql_migrations_part2(cursor):
@@ -442,19 +446,22 @@ def _run_mysql_migrations_part2(cursor):
         cursor.execute("ALTER TABLE domains ADD COLUMN pinterest_mode VARCHAR(32) DEFAULT NULL")
     except Exception:
         pass
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS pinterest_schedule (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            title_id INT NOT NULL,
-            scheduled_at DATETIME NOT NULL,
-            status VARCHAR(32) DEFAULT 'pending',
-            posted_at DATETIME,
-            error TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_status (status),
-            INDEX idx_scheduled_at (scheduled_at)
-        )
-    """)
+    try:
+        cursor.execute("ALTER TABLE domains ADD COLUMN pinterest_domain_verify VARCHAR(128) DEFAULT NULL")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE domains ADD COLUMN pinterest_boards TEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE user_api_keys ADD COLUMN rss_base_url VARCHAR(512) DEFAULT NULL")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE user_api_keys ADD COLUMN skip_cf_status_check TINYINT DEFAULT 0")
+    except Exception:
+        pass
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS app_logs (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -613,6 +620,14 @@ def _init_supabase():
             cur.execute("ALTER TABLE user_api_keys ADD COLUMN image_request_delay_sec INT DEFAULT 15")
         except Exception:
             pass  # column may already exist
+        try:
+            cur.execute("ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS rss_base_url VARCHAR(512) DEFAULT NULL")
+        except Exception:
+            pass
+        try:
+            cur.execute("ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS skip_cf_status_check SMALLINT DEFAULT 0")
+        except Exception:
+            pass
         cur.execute("""
             CREATE TABLE IF NOT EXISTS user_domains (
                 id SERIAL PRIMARY KEY,
@@ -696,6 +711,10 @@ def _init_supabase():
             cur.execute("ALTER TABLE article_content ADD COLUMN IF NOT EXISTS status_error TEXT")
         except Exception:
             pass
+        try:
+            cur.execute("ALTER TABLE article_content ADD COLUMN IF NOT EXISTS pinterest_board_slug VARCHAR(128)")
+        except Exception:
+            pass
         cur.execute("""
             CREATE TABLE IF NOT EXISTS domain_templates (
                 id SERIAL PRIMARY KEY,
@@ -728,8 +747,8 @@ def _init_supabase():
                     "domain_page_about_us", "domain_page_terms_of_use", "domain_page_privacy_policy",
                     "domain_page_gdpr_policy", "domain_page_cookie_policy", "domain_page_copyright_policy",
                     "domain_page_disclaimer", "domain_page_contact_us",
-                    "cloudflare_info", "pinterest_board_id", "pinterest_access_token", "pinterest_refresh_token",
-                    "pinterest_app_id", "pinterest_app_secret", "visual_customizations", "pinterest_mode"):
+                    "cloudflare_info", "pinterest_board_id", "pinterest_boards", "pinterest_access_token", "pinterest_refresh_token",
+                    "pinterest_app_id", "pinterest_app_secret", "visual_customizations", "pinterest_mode", "pinterest_domain_verify"):
             try:
                 cur.execute(f'ALTER TABLE domains ADD COLUMN IF NOT EXISTS {col} TEXT')
             except Exception:
@@ -737,19 +756,6 @@ def _init_supabase():
                     cur.execute(f'ALTER TABLE domains ADD COLUMN IF NOT EXISTS {col} VARCHAR(255)')
                 except Exception:
                     pass
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS pinterest_schedule (
-                id SERIAL PRIMARY KEY,
-                title_id INT NOT NULL,
-                scheduled_at TIMESTAMP NOT NULL,
-                status VARCHAR(32) DEFAULT 'pending',
-                posted_at TIMESTAMP,
-                error TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_pinterest_schedule_status ON pinterest_schedule(status)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_pinterest_schedule_scheduled_at ON pinterest_schedule(scheduled_at)")
         cur.execute("""
             CREATE TABLE IF NOT EXISTS app_logs (
                 id SERIAL PRIMARY KEY,

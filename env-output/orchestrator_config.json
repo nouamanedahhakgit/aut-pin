@@ -1,0 +1,33 @@
+{
+  "database": {
+    "backend": "mysql",
+    "mysql_host": "localhost",
+    "mysql_user": "root",
+    "mysql_password": "Nouamane10",
+    "mysql_database": "pinterest",
+    "secret_key": ""
+  },
+  "services": {
+    "pin_generator": {
+      "url": "http://localhost:5000",
+      "version": "latest"
+    },
+    "articles-website-generator": {
+      "url": "http://localhost:5002",
+      "version": "latest"
+    },
+    "website-parts-generator": {
+      "url": "http://localhost:5003",
+      "version": "latest"
+    },
+    "llamacpp_manager": {
+      "url": "http://localhost:5004",
+      "version": "latest"
+    },
+    "multi-domain-clean": {
+      "url": "http://localhost:5001",
+      "version": "latest"
+    }
+  },
+  "ai": {}
+}

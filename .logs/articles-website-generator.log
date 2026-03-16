@@ -1546,3 +1546,517 @@ INFO:     Started server process [23156]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:65144 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [13760]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:56234 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62181 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51448 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64950 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [4744]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:56021 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60983 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [9104]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:58143 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63940 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [16816]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [16436]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:57978 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60296 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [21452]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:65049 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57933 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [16328]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [17112]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:61580 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [22016]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [8084]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [2608]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:57185 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [3984]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:63819 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [6932]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:59223 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [15980]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:57972 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65456 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60863 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53869 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60319 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63247 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [10624]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:49230 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [21704]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:61362 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [21728]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50888 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [15964]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:51000 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [20744]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:61543 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [17176]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:53984 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50528 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [25964]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:64236 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [15732]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:63292 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63993 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [22072]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60776 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60881 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54149 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [24748]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [25964]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:53814 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55445 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [7600]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:49155 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58845 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [10980]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [29788]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:62572 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [15060]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [15744]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [16808]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:63135 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52789 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [25496]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:61587 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [24100]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [25744]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [8124]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [31080]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:59397 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [34796]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:54390 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [3152]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [16320]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:51195 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52746 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56473 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [19792]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:55259 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [33960]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:57397 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [27508]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [21924]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:63204 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [35272]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:63123 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61892 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [2520]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50616 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62942 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49884 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [26800]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:49877 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [23112]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:62905 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [25176]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [34332]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:58232 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [25848]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:62839 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60014 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [19740]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:49877 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [34188]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [18096]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [11848]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [28956]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:63511 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56883 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65167 - "GET /generators HTTP/1.1" 200 OK
+Generating: Classic Iced Tea
+[*] Generating all sections in a single JSON API call...
+[*] Generated content via single JSON.
+INFO:     127.0.0.1:54475 - "POST /generate-article/generator-1 HTTP/1.1" 200 OK
+[*] Analyzing video structure... [DONE BY AI]
+[*] Generating content with OpenAI...
+[*] Generating all sections in a single JSON API call...
+[*] Generated content via single JSON.
+[*] Generating CSS...
+[*] Building HTML...
+INFO:     127.0.0.1:52937 - "POST /generate-article/generator-2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50535 - "POST /generate-article/generator-3 HTTP/1.1" 200 OK
+[*] Generating article: Classic Iced Tea
+[*] Generating content with OpenAI (single JSON)...
+[*] Generated content via single JSON.
+INFO:     127.0.0.1:50554 - "POST /generate-article/generator-4 HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [28196]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:59524 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59582 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55646 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [16336]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [28784]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [21248]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:56882 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55503 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58978 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [31140]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:61921 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [12172]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:62978 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [17328]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:53443 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [7204]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:56112 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [30048]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:51753 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [24720]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:49886 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [17264]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [25240]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:57222 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57548 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [26844]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50520 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [30052]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:59932 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54669 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62867 - "GET /generators HTTP/1.1" 200 OK

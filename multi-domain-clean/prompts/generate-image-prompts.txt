@@ -1,11 +1,17 @@
-Generate image prompts for a recipe. Return ONLY valid JSON. No markdown, no explanation.
+Generate image prompts, recipe, and category for a recipe. Return ONLY valid JSON. No markdown, no explanation.
 
-INPUT: Recipe TITLE only (e.g. "Creamy Garlic Chicken Skillet")
+INPUT:
+- Recipe TITLE (e.g. "Creamy Garlic Chicken Skillet")
+- CATEGORIES: list of category names from the blog (e.g. ["dessert", "breakfast", "main course", "appetizer", "soup"])
+- BOARDS (optional): list of Pinterest boards for RSS, each with "name", "slug", and "count" (articles already in that board). If present, you MUST add "board_slug" to the output.
 
-OUTPUT: JSON with two keys:
+OUTPUT: JSON with four keys (five if BOARDS provided):
 {
   "prompt": "...",
-  "prompt_image_ingredients": "..."
+  "prompt_image_ingredients": "...",
+  "recipe": { "name": "...", "summary": "...", "ingredients": [...], "instructions": [...], "prep_time": "...", "cook_time": "...", "total_time": "...", "servings": "...", "calories": "...", "course": "...", "cuisine": "..." },
+  "course": "...",
+  "board_slug": "..."   (only if BOARDS was provided: exactly one slug from BOARDS; if multiple boards match the recipe, choose the one with the SMALLEST count to balance RSS)
 }
 
 RULES:
@@ -28,3 +34,23 @@ prompt_image_ingredients (ingredients flat lay):
 - Soft natural daylight, soft minimal shadows.
 - No text, no labels, no logos, no packaging.
 - End with --v 6.1
+
+recipe:
+- Generate a full recipe from the title. Structure: name, summary (2-3 sentences), ingredients (array of strings with quantities), instructions (array of step strings), prep_time, cook_time, total_time, servings, calories, course, cuisine.
+- course: MUST be exactly ONE of the provided CATEGORIES that best matches this recipe. Pick the most appropriate category from the list.
+- If CATEGORIES is empty, use a sensible default like "main course" or "dessert" based on the recipe type.
+- ingredients: e.g. ["2 chicken breasts", "3 cloves garlic", "1 cup cream", ...]
+- instructions: e.g. ["Season the chicken with salt and pepper.", "Heat oil in a skillet over medium-high heat.", ...]
+- times: e.g. "15 min", "25 min", "40 min"
+- servings: e.g. "4"
+- calories: e.g. "350 kcal"
+
+course:
+- Same value as recipe.course. The category from CATEGORIES that best fits this recipe.
+
+board_slug (only when BOARDS is provided):
+- Pick exactly ONE board whose theme CLEARLY matches this recipe. Return its "slug" value.
+- Match by meaning: e.g. slug "chicken" = only recipes where chicken is a main ingredient; "drink" = only beverages (smoothies, cocktails, coffee, tea, juices, milkshakes). Do NOT put main courses, sides, desserts, or grain dishes (e.g. couscous, rice) into a "drink" board.
+- If several boards could fit, choose the one with the SMALLEST "count" to balance content.
+- If no board fits the recipe type, use the board with the SMALLEST "count" as fallback (so every recipe gets a board).
+- Must be exactly one of the slugs from the BOARDS list.

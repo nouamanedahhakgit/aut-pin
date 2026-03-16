@@ -20,9 +20,76 @@ def _read_prompt_image_prompts() -> str:
         return f.read().strip()
 
 
-def generate_image_prompts_for_title(title: str, user_config: dict = None, ai_provider: str = None, openai_model: str = None, openrouter_model: str = None, local_model: str = None, llamacpp_model_id=None) -> dict:
-    """Generate prompt and prompt_image_ingredients for a recipe title via LLM. Returns {prompt, prompt_image_ingredients} or {error}.
-    When user_config and ai_provider are provided, uses user's API keys and model. Otherwise uses config.get_openai_client()."""
+def _normalize_categories_list(cats) -> list:
+    """Normalize categories to a list of strings. Accepts ['a','b'] or [{'categorie':'a'}, ...]."""
+    if not cats:
+        return []
+    out = []
+    for c in (cats if isinstance(cats, list) else [cats]):
+        if isinstance(c, dict):
+            out.append(str(c.get("categorie") or c.get("name") or c.get("category") or "").strip())
+        else:
+            out.append(str(c).strip())
+    return [x for x in out if x]
+
+
+# Course values that indicate a beverage (drink board only for these)
+_BEVERAGE_COURSES = frozenset({"beverages", "beverage", "drinks", "drink"})
+# Course values that are clearly NOT beverages — never put these in "drink" board
+_NON_BEVERAGE_COURSES = frozenset({
+    "desserts", "dessert", "main course", "main courses", "appetizers", "appetizer",
+    "soups", "soup", "salads", "salad", "snacks", "snack", "breakfast", "sides", "side",
+    "main", "entree", "entrees", "lunch", "dinner"
+})
+_BEVERAGE_KEYWORDS = re.compile(
+    r"\b(smoothie|smoothies|cocktail|juice|tea|coffee|lemonade|mocktail|milkshake|"
+    r"latte|cappuccino|soda|punch|infusion|tonic)\b",
+    re.IGNORECASE
+)
+
+
+def _is_likely_beverage(recipe_val: dict, title: str) -> bool:
+    """True if recipe is clearly a beverage (for drink board). Else False so we can avoid putting dishes in drink."""
+    if not recipe_val and not title:
+        return False
+    title_lower = (title or "").lower()
+    course = ""
+    if isinstance(recipe_val, dict):
+        course = str(recipe_val.get("course") or "").strip().lower()
+        summary = str(recipe_val.get("summary") or "").lower()
+    else:
+        summary = ""
+    # Explicit: desserts, main courses, etc. are never beverages
+    if course and course in _NON_BEVERAGE_COURSES:
+        return False
+    if course and course in _BEVERAGE_COURSES:
+        return True
+    text = f"{title_lower} {summary}"
+    return bool(_BEVERAGE_KEYWORDS.search(text))
+
+
+def _fix_drink_board_mismatch(board_slug: str, recipe_val: dict, title: str, boards: list) -> str:
+    """If AI returned 'drink' but recipe is not a beverage, return the non-drink board with smallest count."""
+    if not board_slug or board_slug != "drink" or not boards:
+        return board_slug
+    if _is_likely_beverage(recipe_val, title):
+        return board_slug
+    non_drink = [b for b in boards if b.get("slug") and str(b.get("slug", "")).strip().lower() != "drink"]
+    if not non_drink:
+        return board_slug
+    best = min(non_drink, key=lambda b: int(b.get("count") or 0))
+    fixed = str(best.get("slug", "")).strip()
+    if fixed:
+        log.info("[generate_image_prompts] Override board: recipe is not a beverage, using %s instead of drink", fixed)
+        return fixed
+    return board_slug
+
+
+def generate_image_prompts_for_title(title: str, categories_list: list = None, user_config: dict = None, ai_provider: str = None, openai_model: str = None, openrouter_model: str = None, local_model: str = None, llamacpp_model_id=None, pinterest_boards: list = None) -> dict:
+    """Generate prompt, prompt_image_ingredients, recipe, course, and optionally board_slug for a recipe title via LLM.
+    categories_list: domain's categories (strings or {categorie:...}). AI picks the best matching one.
+    pinterest_boards: optional list of {name, slug, count} for RSS board assignment; AI picks one slug (prefer smallest count).
+    Returns {prompt, prompt_image_ingredients, recipe, course, board_slug?} or {error}."""
     client = None
     ai_model = None
     if user_config and ai_provider:
@@ -56,10 +123,17 @@ def generate_image_prompts_for_title(title: str, user_config: dict = None, ai_pr
                     if not models:
                         return {"error": "No llama.cpp model available"}
                     mid = models[0].get("id") or models[0]
+                cats = _normalize_categories_list(categories_list or [])
+                cats_str = json.dumps(cats) if cats else "[]"
+                user_content = f"Recipe title: {title or 'Recipe'}\n\nCATEGORIES: {cats_str}"
+                boards = pinterest_boards or []
+                if boards:
+                    boards_str = json.dumps([{"name": b.get("name"), "slug": b.get("slug"), "count": b.get("count", 0)} for b in boards if b.get("slug")], ensure_ascii=False)
+                    user_content += f"\n\nBOARDS: {boards_str}"
                 r = requests.post(f"{mgr.rstrip('/')}/api/chat", json={"model_id": mid, "messages": [
-                    {"role": "system", "content": _read_prompt_image_prompts() or "Generate two Midjourney prompts for a recipe. Return JSON: {\"prompt\": \"...\", \"prompt_image_ingredients\": \"...\"}"},
-                    {"role": "user", "content": f"Recipe title: {title or 'Recipe'}"}
-                ]}, timeout=120)
+                    {"role": "system", "content": _read_prompt_image_prompts() or "Generate image prompts, recipe, and category. Return JSON: {\"prompt\": \"...\", \"prompt_image_ingredients\": \"...\", \"recipe\": {...}, \"course\": \"...\"}"},
+                    {"role": "user", "content": user_content}
+                ]}, timeout=180)
                 data = r.json() or {}
                 raw = (data.get("message") or data.get("content") or "").strip()
                 if not raw:
@@ -71,7 +145,22 @@ def generate_image_prompts_for_title(title: str, user_config: dict = None, ai_pr
                     prompt = f"Professional food photography of {title or 'Recipe'}, overhead shot, natural lighting, editorial style --v 6.1"
                 if not prompt_ing or len(prompt_ing) < 25:
                     prompt_ing = f"Flat-lay of ingredients for {title or 'Recipe'}, white surface, natural light, editorial style --v 6.1"
-                return {"prompt": prompt, "prompt_image_ingredients": prompt_ing}
+                recipe_val = result.get("recipe")
+                course_val = str(result.get("course") or (recipe_val.get("course") if isinstance(recipe_val, dict) else "") or "").strip()
+                if isinstance(recipe_val, dict) and course_val and not recipe_val.get("course"):
+                    recipe_val["course"] = course_val
+                elif not course_val and isinstance(recipe_val, dict) and recipe_val.get("course"):
+                    course_val = str(recipe_val["course"] or "").strip()
+                if not course_val and cats:
+                    course_val = cats[0] if cats else ""
+                recipe_str = json.dumps(recipe_val, ensure_ascii=False) if isinstance(recipe_val, dict) else ""
+                out = {"prompt": prompt, "prompt_image_ingredients": prompt_ing, "recipe": recipe_str, "course": course_val}
+                valid_slugs = {str(b.get("slug", "")).strip() for b in boards if b.get("slug")}
+                board_slug = str(result.get("board_slug") or "").strip()
+                if board_slug and board_slug in valid_slugs:
+                    board_slug = _fix_drink_board_mismatch(board_slug, recipe_val, title, boards)
+                    out["board_slug"] = board_slug
+                return out
             except Exception as e:
                 return {"error": str(e)}
     if client is None:
@@ -79,8 +168,14 @@ def generate_image_prompts_for_title(title: str, user_config: dict = None, ai_pr
             client, ai_model = get_openai_client(ai_provider or None)
         except ValueError as e:
             return {"error": str(e)}
-    sys_prompt = _read_prompt_image_prompts() or """Generate two Midjourney prompts for a recipe. Return JSON: {"prompt": "main dish photo... --v 6.1", "prompt_image_ingredients": "ingredients flat lay... --v 6.1"}"""
-    user_msg = f"Recipe title: {title or 'Recipe'}"
+    sys_prompt = _read_prompt_image_prompts() or """Generate image prompts, recipe, and category. Return JSON: {"prompt": "...", "prompt_image_ingredients": "...", "recipe": {...}, "course": "..."}"""
+    cats = _normalize_categories_list(categories_list or [])
+    cats_str = json.dumps(cats) if cats else "[]"
+    user_msg = f"Recipe title: {title or 'Recipe'}\n\nCATEGORIES: {cats_str}"
+    boards = pinterest_boards or []
+    if boards:
+        boards_str = json.dumps([{"name": b.get("name"), "slug": b.get("slug"), "count": b.get("count", 0)} for b in boards if b.get("slug")], ensure_ascii=False)
+        user_msg += f"\n\nBOARDS: {boards_str}"
     try:
         log.info("[generate_image_prompts] Calling %s for: %s", (ai_model or "LLM"), (title or "Recipe")[:50])
         resp = client.chat.completions.create(
@@ -90,7 +185,7 @@ def generate_image_prompts_for_title(title: str, user_config: dict = None, ai_pr
                 {"role": "user", "content": user_msg},
             ],
             temperature=0.5,
-            max_tokens=500,
+            max_tokens=2500,
             timeout=120.0,
         )
         log.info("[generate_image_prompts] Done for: %s", (title or "Recipe")[:50])
@@ -102,7 +197,22 @@ def generate_image_prompts_for_title(title: str, user_config: dict = None, ai_pr
             prompt = f"Professional food photography of {title or 'Recipe'}, overhead shot, natural lighting, editorial style --v 6.1"
         if not prompt_ing or len(prompt_ing) < 25:
             prompt_ing = f"Flat-lay of ingredients for {title or 'Recipe'}, white surface, natural light, editorial style --v 6.1"
-        return {"prompt": prompt, "prompt_image_ingredients": prompt_ing}
+        recipe_val = result.get("recipe")
+        course_val = str(result.get("course") or (recipe_val.get("course") if isinstance(recipe_val, dict) else "") or "").strip()
+        if isinstance(recipe_val, dict) and course_val and not recipe_val.get("course"):
+            recipe_val["course"] = course_val
+        elif not course_val and isinstance(recipe_val, dict) and recipe_val.get("course"):
+            course_val = str(recipe_val["course"] or "").strip()
+        if not course_val and cats:
+            course_val = cats[0] if cats else ""
+        recipe_str = json.dumps(recipe_val, ensure_ascii=False) if isinstance(recipe_val, dict) else ""
+        out = {"prompt": prompt, "prompt_image_ingredients": prompt_ing, "recipe": recipe_str, "course": course_val}
+        valid_slugs = {str(b.get("slug", "")).strip() for b in boards if b.get("slug")}
+        board_slug = str(result.get("board_slug") or "").strip()
+        if board_slug and board_slug in valid_slugs:
+            board_slug = _fix_drink_board_mismatch(board_slug, recipe_val, title, boards)
+            out["board_slug"] = board_slug
+        return out
     except Exception as e:
         return {"error": str(e)}
 

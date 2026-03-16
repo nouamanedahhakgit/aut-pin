@@ -3224,3 +3224,399 @@
  * Running on http://127.0.0.1:5004
  * Running on http://192.168.1.101:5004
 2026-03-13 07:44:01,659 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-13 09:17:07,097 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-13 09:17:07,121 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://10.20.30.25:5004
+2026-03-13 09:17:07,121 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-03-13 09:27:34,875 [INFO] llamacpp_manager: [GET /ai/models] returning 0 models
+2026-03-13 09:27:34,876 [INFO] werkzeug: 127.0.0.1 - - [13/Mar/2026 09:27:34] "GET /ai/models HTTP/1.1" 200 -
+
+--- Started ---
+2026-03-13 10:02:46,814 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-13 10:02:46,832 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://10.20.30.25:5004
+2026-03-13 10:02:46,832 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-03-13 10:43:03,604 [INFO] llamacpp_manager: [GET /ai/models] returning 0 models
+2026-03-13 10:43:03,606 [INFO] werkzeug: 127.0.0.1 - - [13/Mar/2026 10:43:03] "GET /ai/models HTTP/1.1" 200 -
+2026-03-13 10:43:54,683 [INFO] llamacpp_manager: [GET /ai/models] returning 0 models
+2026-03-13 10:43:54,684 [INFO] werkzeug: 127.0.0.1 - - [13/Mar/2026 10:43:54] "GET /ai/models HTTP/1.1" 200 -
+2026-03-13 10:44:05,789 [INFO] llamacpp_manager: [GET /ai/models] returning 0 models
+2026-03-13 10:44:05,790 [INFO] werkzeug: 127.0.0.1 - - [13/Mar/2026 10:44:05] "GET /ai/models HTTP/1.1" 200 -
+
+--- Started ---
+2026-03-13 11:08:01,845 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-13 11:08:01,881 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://10.114.102.135:5004
+2026-03-13 11:08:01,881 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-13 11:11:12,577 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-13 11:11:12,608 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://10.114.102.135:5004
+2026-03-13 11:11:12,608 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-13 11:18:34,525 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-13 11:18:34,550 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://10.114.102.135:5004
+2026-03-13 11:18:34,550 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-13 11:38:00,440 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-13 11:38:00,477 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://10.20.30.25:5004
+2026-03-13 11:38:00,478 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-13 11:44:26,603 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-13 11:44:26,651 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://10.20.30.25:5004
+2026-03-13 11:44:26,651 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-13 11:49:24,246 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-13 11:49:24,288 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://10.20.30.25:5004
+2026-03-13 11:49:24,288 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-13 12:02:55,712 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-13 12:02:55,731 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://10.20.30.25:5004
+2026-03-13 12:02:55,732 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-13 12:03:13,896 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-13 12:03:13,914 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://10.20.30.25:5004
+2026-03-13 12:03:13,914 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-13 12:20:15,201 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-13 12:20:15,229 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://10.20.30.25:5004
+2026-03-13 12:20:15,229 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-13 14:13:13,604 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-13 14:13:13,633 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://10.20.30.25:5004
+2026-03-13 14:13:13,633 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-13 14:22:08,865 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-13 14:22:08,883 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://10.20.30.25:5004
+2026-03-13 14:22:08,884 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-13 17:02:56,685 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-13 17:02:56,715 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://192.168.1.18:5004
+2026-03-13 17:02:56,715 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-13 17:22:51,185 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-13 17:22:51,208 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://192.168.1.18:5004
+2026-03-13 17:22:51,208 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-13 17:41:33,949 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-13 17:41:33,994 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://192.168.1.18:5004
+2026-03-13 17:41:33,994 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-13 17:52:03,642 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-13 17:52:03,669 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://192.168.1.18:5004
+2026-03-13 17:52:03,669 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-13 17:55:44,822 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-13 17:55:44,843 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://192.168.1.18:5004
+2026-03-13 17:55:44,843 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-13 18:15:47,227 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-13 18:15:47,310 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://192.168.1.18:5004
+2026-03-13 18:15:47,310 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-13 22:26:55,967 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-13 22:26:56,089 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://192.168.1.18:5004
+2026-03-13 22:26:56,089 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-13 22:53:26,205 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-13 22:53:26,232 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://192.168.1.18:5004
+2026-03-13 22:53:26,232 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-13 22:58:32,870 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-13 22:58:32,922 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://192.168.1.18:5004
+2026-03-13 22:58:32,923 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-14 07:25:55,021 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-14 07:25:55,048 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://192.168.219.135:5004
+2026-03-14 07:25:55,048 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-14 08:17:03,263 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-14 08:17:03,290 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://192.168.219.135:5004
+2026-03-14 08:17:03,290 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+
+--- Started ---
+2026-03-14 08:22:30,193 [INFO] llamacpp_manager.db: [llamacpp_manager] Database initialized (SQLite: C:\Users\leno\Documents\GitHub\aut-pin\_archive\llamacpp_manager\llamacpp_manager.db)
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-03-14 08:22:30,219 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://192.168.219.135:5004
+2026-03-14 08:22:30,219 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-03-14 08:28:57,481 [INFO] llamacpp_manager: [GET /ai/models] returning 0 models
+2026-03-14 08:28:57,482 [INFO] werkzeug: 127.0.0.1 - - [14/Mar/2026 08:28:57] "GET /ai/models HTTP/1.1" 200 -
+2026-03-14 08:29:59,238 [INFO] llamacpp_manager: [GET /ai/models] returning 0 models
+2026-03-14 08:29:59,238 [INFO] werkzeug: 127.0.0.1 - - [14/Mar/2026 08:29:59] "GET /ai/models HTTP/1.1" 200 -
+2026-03-14 08:30:36,297 [INFO] llamacpp_manager: [GET /ai/models] returning 0 models
+2026-03-14 08:30:36,298 [INFO] werkzeug: 127.0.0.1 - - [14/Mar/2026 08:30:36] "GET /ai/models HTTP/1.1" 200 -
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')
+
+--- Started ---
+C:\Users\leno\AppData\Local\Programs\Python\Python39\python.exe: Error while finding module specification for 'llamacpp_manager.app' (ModuleNotFoundError: No module named 'llamacpp_manager')

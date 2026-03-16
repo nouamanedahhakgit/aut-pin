@@ -187,18 +187,7 @@ ALTER TABLE domains ADD COLUMN IF NOT EXISTS pinterest_app_id TEXT;
 ALTER TABLE domains ADD COLUMN IF NOT EXISTS pinterest_app_secret TEXT;
 ALTER TABLE domains ADD COLUMN IF NOT EXISTS visual_customizations TEXT;
 ALTER TABLE domains ADD COLUMN IF NOT EXISTS pinterest_mode TEXT;
-
-CREATE TABLE IF NOT EXISTS pinterest_schedule (
-    id SERIAL PRIMARY KEY,
-    title_id INT NOT NULL,
-    scheduled_at TIMESTAMP NOT NULL,
-    status VARCHAR(32) DEFAULT 'pending',
-    posted_at TIMESTAMP,
-    error TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-CREATE INDEX IF NOT EXISTS idx_pinterest_schedule_status ON pinterest_schedule(status);
-CREATE INDEX IF NOT EXISTS idx_pinterest_schedule_scheduled_at ON pinterest_schedule(scheduled_at);
+ALTER TABLE domains ADD COLUMN IF NOT EXISTS pinterest_domain_verify VARCHAR(128);
 
 CREATE TABLE IF NOT EXISTS app_logs (
     id SERIAL PRIMARY KEY,

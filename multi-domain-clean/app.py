@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Clean Multi-Domain Flask app - database-management, admin pages."""
+import hashlib
 import html
 import io
 import json
@@ -46,6 +47,18 @@ DEFAULT_DOMAIN_COLORS = {"primary": "#2ecc71", "secondary": "#27ae60", "backgrou
 BULK_DEPLOY_JOBS = {}
 BULK_DEPLOY_JOBS_LOCK = threading.Lock()
 BULK_DEPLOY_CANCEL = {}  # job_id -> True if cancel requested
+
+# Per-domain Cloudflare deploy progress (in-memory): domain_id -> {step, percent, message, done, result, error}
+DEPLOY_CF_PROGRESS = {}
+DEPLOY_CF_PROGRESS_LOCK = threading.Lock()
+
+# Per-domain Cloudflare info fetch progress (background): domain_id -> {percent, message, done, result, error, domain_url}
+CF_INFO_PROGRESS = {}
+CF_INFO_PROGRESS_LOCK = threading.Lock()
+
+# Per-domain Cloudflare DNS setup progress (background): domain_id -> {percent, message, done, result, error, domain_url}
+CF_DNS_PROGRESS = {}
+CF_DNS_PROGRESS_LOCK = threading.Lock()
 
 # Per-domain lock for pin template rotation (pin 1, pin 2, pin 1, pin 2...) to avoid race when parallel bulk runs
 _PIN_TEMPLATE_LOCKS = {}
@@ -493,6 +506,12 @@ def get_user_config_for_api(user_id):
     config["cloudflare_account_id"] = keys.get("cloudflare_account_id")
     config["cloudflare_api_token"] = keys.get("cloudflare_api_token")
     
+    # Pinterest RSS (public base URL for feed - ngrok, deployed URL, etc.)
+    config["rss_base_url"] = (keys.get("rss_base_url") or "").strip().rstrip("/") or None
+    
+    # Domains page: skip automatic Cloudflare/DNS status check on load
+    config["skip_cf_status_check"] = keys.get("skip_cf_status_check")
+    
     return config
 
 def check_user_has_required_keys(user_id, operation_type="content"):
@@ -666,7 +685,6 @@ def base_layout(content, title, nav_extra=None):
     <div class="navbar-nav ms-auto">
       {nav_extra_html}
       <a class="nav-link" href="/admin/domains">Domains</a>
-      <a class="nav-link" href="/admin/titles">Titles</a>
       <a class="nav-link" href="/admin/writers">Writers</a>
       <a class="nav-link" href="/admin/ai-models">AI Models</a>
       <a class="nav-link" href="/admin/logs">📋 Logs</a>
@@ -1190,7 +1208,7 @@ function openBulkGroupModal(gid) {{
   if (btnArticle) btnArticle.textContent = 'Run content';
   if (btnImages) btnImages.textContent = 'Run images';
   if (btnPinterest) btnPinterest.textContent = 'Run Pinterest';
-  if (btnAll) btnAll.textContent = 'Run all (prompts, content, images, Pinterest)';
+  if (btnAll) btnAll.textContent = 'Run all';
   fetch('/api/bulk-group-counts?group_id=' + encodeURIComponent(gid)).then(function(r){{ return r.json(); }}).then(function(d) {{
     window._bulkGroupModalCounts = d;
     _updateBulkGroupModalButtons(d);
@@ -1737,6 +1755,7 @@ function renderProgressBody(s, body) {{
           + '<th style="padding:4px 6px;text-align:left;font-weight:700;color:#475569;width:24px">#</th>'
           + '<th style="padding:4px 6px;text-align:left;font-weight:700;color:#475569;width:40px">TID</th>'
           + '<th style="padding:4px 6px;text-align:left;font-weight:700;color:#475569">Title</th>'
+          + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:52px" title="Per-domain content status">A B C D</th>'
           + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:70px">Prompts</th>'
           + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:75px">Main</th>'
           + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:75px">Ing</th>'
@@ -1787,12 +1806,22 @@ function renderProgressBody(s, body) {{
           var errDisplay = errParts.length > 0 ? errParts.map(function(e){{ return '<div style="margin-bottom:1px">' + (e.replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0,80)) + '</div>'; }}).join('') : '<span style="color:#9ca3af">—</span>';
           var rowBg = (mainErr || ingErr || contentErr) ? '#fef2f2' : (idx % 2 === 0 ? '#fff' : '#f8fafc');
           var rowBorder = (mainErr || ingErr || contentErr) ? 'border-left:3px solid #ef4444;' : '';
+          var letterList = ('A,B,C,D').split(',');
+          var domainIcons = letterList.map(function(l){{
+            var st = dp[l];
+            if (st === 'done' || st === 'skipped') return '<span style="color:#16a34a" title="' + l + ': done">✓</span>';
+            if (st === 'error') return '<span style="color:#dc2626" title="' + l + ': error">✗</span>';
+            if (st === 'running' || st === 'pending') return '<span style="color:#ca8a04" title="' + l + ': pending">⏳</span>';
+            return '<span style="color:#9ca3af" title="' + l + '">—</span>';
+          }}).join(' ');
+          var domainCell = '<span style="font-size:0.7rem;letter-spacing:0.5px">' + domainIcons + '</span>';
           var mainCell = mainSt !== '-' ? '<span style="' + (tid && typeof viewContent === 'function' ? 'cursor:pointer' : '') + '" onclick="' + (tid ? 'event.stopPropagation();viewContent(' + tid + ')' : '') + '" title="Click to view">' + mainIcon + ' ' + mainSt + (mainElapsed ? ' ' + mainElapsed : '') + (mainRetries ? ' ' + mainRetries : '') + '</span>' : '—';
           var ingCell = ingSt !== '-' ? '<span style="' + (tid && typeof viewContent === 'function' ? 'cursor:pointer' : '') + '" onclick="' + (tid ? 'event.stopPropagation();viewContent(' + tid + ')' : '') + '" title="Click to view">' + ingIcon + ' ' + ingSt + (ingElapsed ? ' ' + ingElapsed : '') + (ingRetries ? ' ' + ingRetries : '') + '</span>' : '—';
           articlesHtml += '<tr style="background:' + rowBg + ';border-bottom:1px solid #e2e8f0;' + rowBorder + '">'
             + '<td style="padding:3px 6px;color:#94a3b8;font-weight:600">' + (idx+1) + '</td>'
             + '<td style="padding:3px 6px;font-weight:700;color:#3b82f6">' + tid + '</td>'
             + '<td style="padding:3px 6px;color:#334155;font-weight:500;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + ((a.title||'').replace(/"/g,'&quot;')) + '">' + ((a.title||'').replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0,35)) + '</td>'
+            + '<td style="padding:3px 6px;text-align:center" title="Per-domain content: A B C D">' + domainCell + '</td>'
             + '<td style="padding:3px 6px;text-align:center" title="Click to view prompts">' + promptsHtml + '</td>'
             + '<td style="padding:3px 6px;text-align:center">' + mainCell + '</td>'
             + '<td style="padding:3px 6px;text-align:center">' + ingCell + '</td>'
@@ -2084,6 +2113,8 @@ function openProgressModalForJob(jobId) {{
         if(iv) clearInterval(iv);
         iv = null;
         _progressPollInterval = null;
+        if (typeof refreshAfterRun==='function') refreshAfterRun();
+        if (typeof refreshRunningTasks==='function') refreshRunningTasks();
       }}
     }}).catch(function(){{}});
   }}
@@ -2141,8 +2172,8 @@ function refreshRunningTasks() {{
       }} else {{
         badges = '<span class="badge bg-secondary me-1">' + (mode==='all'?'Art+M+I+Pin':(mode==='article'?'Art':(mode==='images'?'M+I':(mode==='pin_image'?'Pin':mode)))) + '</span>';
       }}
-      var typeLabel = j.type==='deploy' ? '☁️ Deploy to Cloudflare' : (j.type==='all' ? 'All groups' : (j.type==='single' ? ((j.action||'') + (j.title_id ? ' (id '+j.title_id+')' : '')) : ('Group '+j.group_id)));
-      var modeLabel = j.type==='single' ? '' : (' (' + (j.mode||'all').toUpperCase() + ')');
+      var typeLabel = j.type==='deploy' ? '☁️ Deploy to Cloudflare' : (j.type==='deploy_cf' ? '☁️ Deploy — ' + (j.domain_url||('Domain '+j.domain_id)).replace(/</g,'&lt;') : (j.type==='cloudflare_dns' ? '🌐 DNS — ' + (j.domain_url||('Domain '+j.domain_id)).replace(/</g,'&lt;') : (j.type==='cloudflare_info' ? '🔄 CF status — ' + (j.domain_url||('Domain '+j.domain_id)).replace(/</g,'&lt;') : (j.type==='all' ? 'All groups' : (j.type==='single' ? ((j.action||'') + (j.title_id ? ' (id '+j.title_id+')' : '')) : (j.type==='affect_rss' ? 'Affect to RSS' : ('Group '+j.group_id)))))));
+      var modeLabel = j.type==='single' ? '' : (j.type==='deploy_cf'||j.type==='cloudflare_dns'||j.type==='cloudflare_info' ? '' : (' (' + (j.mode||'all').toUpperCase() + ')'));
       var statusClass = j.status==='running' ? 'text-primary' : (j.status==='done' ? 'text-success' : (j.status==='cancelled' ? 'text-warning' : 'text-danger'));
       var activeLine = (j.current_title||'') ? ('<br><span class="text-info small">Processing: ' + (j.current_title||'').replace(/</g,'&lt;') + '</span>') : '';
       var failedCount = (j.steps||[]).filter(function(x){{ return String(x).indexOf('✗')>=0; }}).length;
@@ -2150,9 +2181,12 @@ function refreshRunningTasks() {{
       var stepsLine = (j.steps&&j.steps.length) ? ('<br><span class="text-muted small">' + j.steps.length + ' step(s)' + (failedCount ? ' <span class="text-danger fw-medium">' + failedCount + ' failed</span>' : '') + (okCount ? ' <span class="text-success fw-medium">' + okCount + ' ok</span>' : '') + '</span>') : '';
       var clickable = 'cursor:pointer';
       var btns = '<span class="text-muted me-1" style="font-size:0.65rem" title="Job ID">' + jidShort + '</span>';
-      btns += '<button type="button" class="btn btn-outline-secondary btn-sm flex-shrink-0 me-1 run-task-view-btn py-0 px-1" data-job-id="' + jidEsc + '" title="View details &amp; copy debug report" style="font-size:0.7rem">' + (j.status==='running' ? 'View' : 'Details') + '</button>';
-      if(j.status==='running') btns += '<button type="button" class="btn btn-outline-danger btn-sm flex-shrink-0 run-task-stop py-0 px-1" data-job-id="' + jidEsc + '" style="font-size:0.7rem">Stop</button>';
-      else {{
+      if(j.type==='deploy_cf'||j.type==='cloudflare_dns'||j.type==='cloudflare_info') {{
+        var did = j.domain_id || '';
+        if(did) btns += '<a href="/admin/domains?domain_id=' + did + '" class="btn btn-outline-secondary btn-sm flex-shrink-0 me-1 py-0 px-1" style="font-size:0.7rem">View</a>';
+      }} else {{
+        btns += '<button type="button" class="btn btn-outline-secondary btn-sm flex-shrink-0 me-1 run-task-view-btn py-0 px-1" data-job-id="' + jidEsc + '" title="View details &amp; copy debug report" style="font-size:0.7rem">' + (j.status==='running' ? 'View' : 'Details') + '</button>';
+        if(j.status==='running') btns += '<button type="button" class="btn btn-outline-danger btn-sm flex-shrink-0 run-task-stop py-0 px-1" data-job-id="' + jidEsc + '" style="font-size:0.7rem">Stop</button>';
         if(j.title_id && (j.status==='done'||j.status==='error') && typeof viewContent==='function') btns += '<button type="button" class="btn btn-outline-success btn-sm flex-shrink-0 me-1 run-task-view-article py-0 px-1" data-title-id="' + j.title_id + '" title="View article" style="font-size:0.7rem">View</button>';
         var tid = j.title_id || '';
         if(tid) btns += '<div class="stats-article-actions d-inline-flex flex-wrap gap-1 me-1"><button type="button" class="btn btn-secondary btn-sm py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-prompts\\',{{title_id:'+tid+'}},\\'Prompts\\')" title="Prompts">Pp</button><button type="button" class="btn btn-success btn-sm py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-article-external\\',{{title_id:'+tid+'}},\\'Article\\')" title="Article">Art</button><button type="button" class="btn btn-info btn-sm text-white py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-main-image\\',{{title_id:'+tid+'}},\\'Main image\\')" title="Main">M</button><button type="button" class="btn btn-warning btn-sm text-dark py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-ingredient-image\\',{{title_id:'+tid+'}},\\'Ingredient\\')" title="Ingredient">I</button><button type="button" class="btn btn-outline-primary btn-sm py-0 px-1" onclick="event.stopPropagation(); openPinPickerModal('+tid+')" title="Pin">P</button><button type="button" class="btn btn-danger btn-sm py-0 px-1" onclick="event.stopPropagation(); openPinToPinterest('+tid+')" title="Pin (open Pinterest)">Post</button><button type="button" class="btn btn-secondary btn-sm py-0 px-1" onclick="event.stopPropagation(); var sm=document.getElementById(\\'statsArticlesModal\\'); if(sm&&bootstrap.Modal.getInstance(sm)) bootstrap.Modal.getInstance(sm).hide(); openBulkModal('+tid+');" title="Run A,B,C,D">Run</button></div>';
@@ -2277,6 +2311,7 @@ function cancelBulkJob(jobId, stopBtn) {{
           if(titleEl) titleEl.textContent = (s.status==='cancelled' ? 'Stopped' : s.status==='done' ? 'Done' : s.status==='error' ? 'Error' : 'Workflow progress');
           if(s.status === 'done' || s.status === 'error' || s.status === 'cancelled') {{
             if(iv) clearInterval(iv);
+            if (typeof refreshAfterRun==='function') refreshAfterRun();
             if(typeof refreshRunningTasks==='function') refreshRunningTasks();
             setTimeout(function(){{ if(modal && bootstrap.Modal.getInstance(modal)) bootstrap.Modal.getInstance(modal).hide(); }}, 2000);
           }}
@@ -2673,7 +2708,7 @@ function runSingleAction(foreground) {{
 </script>
 <div id="viewModal" class="modal fade" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="viewModalTitle">View</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body" id="viewModalBody"></div></div></div></div>
 <div id="bulkModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Run for this row</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="bulkModalTitleId"><p class="mb-2">What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkModalBtnPrompts" class="btn btn-outline-secondary" onclick="runBulk('prompts')">Run prompts</button><button type="button" id="bulkModalBtnImages" class="btn btn-outline-info" onclick="runBulk('images')">Run images</button><button type="button" id="bulkModalBtnArticle" class="btn btn-outline-success" onclick="runBulk('article')">Run content</button><button type="button" id="bulkModalBtnPinterest" class="btn btn-outline-danger" onclick="runBulk('pin_image')">Run Pinterest</button><button type="button" id="bulkModalBtnAll" class="btn btn-primary" onclick="runBulk('all')">Run all (prompts, images, content, Pinterest)</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option><option value="local">Local (Ollama)</option><option value="llamacpp">llama.cpp</option></select><div id="bulkModalLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model (≤15B):</p><select id="bulkModalLocalModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkModalLlamaCppWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">llama.cpp model:</p><select id="bulkModalLlamaCppModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkModalOpenAIWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenAI model:</p><select id="bulkModalOpenAIModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkModalOpenRouterWrap" class="mb-3" style="display:none"><p class="mb-1 fw-medium small">OpenRouter:</p><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalOpenRouterMode" value="rotation"> Rotation (try next on failure)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalOpenRouterMode" value="select"> Select model(s)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalOpenRouterMode" value="rotation_blacklist" checked> Rotation (exclude failed for next)</label></div><div class="d-flex align-items-center gap-2 mb-1"><div class="btn-group btn-group-sm"><button type="button" id="bulkModalOrFilterAll" class="btn btn-primary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkModal','all')">All</button><button type="button" id="bulkModalOrFilterFree" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkModal','free')">Free</button><button type="button" id="bulkModalOrFilterPaid" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkModal','paid')">Paid</button></div></div><select id="bulkModalOpenRouterModels" class="form-select form-select-sm" multiple style="max-height:100px;width:100%"></select></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeContent" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeContent" value="empty_only" checked> Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for images (main+ingredient):</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeImages" value="override"> Override existing</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeImages" value="empty_only" checked> Only rows without main+ingredient images</label></div><p class="mb-2 fw-medium small">Scope for Pinterest:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopePins" value="override"> Override existing</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopePins" value="empty_only" checked> Only rows without pin images</label></div><p class="small text-muted mt-2 mb-0">Note: Articles without article_html will be skipped for image generation.</p></div></div></div></div>
-<div id="bulkGroupModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="bulkGroupModalTitle">Run for group</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="bulkGroupModalGroupId"><p class="mb-2 fw-medium small">Run scope:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalRunScope" id="bulkGroupModalScopeAll" value="all" checked><label class="form-check-label small" for="bulkGroupModalScopeAll">All subgroups in this group</label></div><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalRunScope" id="bulkGroupModalScopeSelected" value="selected"><label class="form-check-label small" for="bulkGroupModalScopeSelected">Selected subgroups only</label></div><div id="bulkGroupSubgroupsWrap" class="border rounded p-2 mb-2" style="max-height:140px;overflow-y:auto;display:none"><div class="d-flex gap-2 mb-1"><button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.querySelectorAll('#bulkGroupSubgroupsWrap .bulk-group-subgroup-cb').forEach(function(cb){{cb.checked=true}})">Select all</button><button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.querySelectorAll('#bulkGroupSubgroupsWrap .bulk-group-subgroup-cb').forEach(function(cb){{cb.checked=false}})">Deselect all</button></div><div id="bulkGroupSubgroupsList"></div></div><p class="mb-2">What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkGroupBtnPrompts" class="btn btn-outline-secondary" onclick="runBulkGroupFromModal('prompts')">Run prompts</button><button type="button" id="bulkGroupBtnImages" class="btn btn-outline-info" onclick="runBulkGroupFromModal('images')">Run images</button><button type="button" id="bulkGroupBtnArticle" class="btn btn-outline-success" onclick="runBulkGroupFromModal('article')">Run content</button><button type="button" id="bulkGroupBtnPinterest" class="btn btn-outline-danger" onclick="runBulkGroupFromModal('pin_image')">Run Pinterest</button><button type="button" id="bulkGroupBtnAll" class="btn btn-primary" onclick="runBulkGroupFromModal('all')">Run all (prompts, images, content, Pinterest)</button><hr class="my-2"><button type="button" id="bulkGroupBtnDeployCf" class="btn btn-info" onclick="runBulkGroupDeployCloudflare()">☁️ Deploy all to Cloudflare</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkGroupModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter">OpenRouter</option><option value="openai" selected>OpenAI</option><option value="local">Local (Ollama)</option><option value="llamacpp">llama.cpp</option></select><div id="bulkGroupModalLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model (≤15B):</p><select id="bulkGroupModalLocalModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkGroupModalLlamaCppWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">llama.cpp model:</p><select id="bulkGroupModalLlamaCppModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkGroupModalOpenAIWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenAI model:</p><select id="bulkGroupModalOpenAIModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkGroupModalOrOpts" class="mb-3 p-2 bg-light border rounded small" style="display:none;"><div class="fw-medium mb-1">OpenRouter:</div><div class="mb-2"><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeRot" value="rotation"><label class="form-check-label" for="bulkGroupModalOrModeRot">Rotation (try next on failure)</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeFall" value="fallback"><label class="form-check-label" for="bulkGroupModalOrModeFall">Fallback (run all simultaneously, use first success)</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeBlack" value="rotation_blacklist" checked><label class="form-check-label" for="bulkGroupModalOrModeBlack">Rotation (exclude failed for next articles)</label></div></div><div class="d-flex align-items-center gap-2 mb-1"><span class="fw-medium">Select model(s)</span><div class="btn-group btn-group-sm"><button type="button" id="bulkGroupModalOrFilterAll" class="btn btn-primary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkGroupModal','all')">All</button><button type="button" id="bulkGroupModalOrFilterFree" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkGroupModal','free')">Free</button><button type="button" id="bulkGroupModalOrFilterPaid" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkGroupModal','paid')">Paid</button></div></div><select id="bulkGroupModalOpenRouterModels" class="form-select form-select-sm mb-1" multiple style="max-height:120px;width:100%"></select><button type="button" class="btn btn-outline-secondary btn-sm" onclick="_resetOpenRouterModels('bulkGroupModal')">Reset to defaults</button></div><p class="mb-2 fw-medium small">Scope for prompts (main+ingredient):</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopePrompts" id="bgmScopePrompts1" value="override"><label class="form-check-label small" for="bgmScopePrompts1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkGroupModalScopePrompts" id="bgmScopePrompts2" value="empty_only" checked><label class="form-check-label small" for="bgmScopePrompts2">Only rows without main+ingredient prompts</label></div><p class="mb-2 fw-medium small">Scope for images:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopeImages" id="bgmScopeImages1" value="override"><label class="form-check-label small" for="bgmScopeImages1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkGroupModalScopeImages" id="bgmScopeImages2" value="empty_only" checked><label class="form-check-label small" for="bgmScopeImages2">Only rows without main+ingredient images</label></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopeContent" id="bgmScopeContent1" value="override"><label class="form-check-label small" for="bgmScopeContent1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkGroupModalScopeContent" id="bgmScopeContent2" value="empty_only" checked><label class="form-check-label small" for="bgmScopeContent2">Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for Pinterest:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopePins" id="bgmScopePins1" value="override"><label class="form-check-label small" for="bgmScopePins1">Override existing</label></div><div class="form-check mb-2"><input class="form-check-input" type="radio" name="bulkGroupModalScopePins" id="bgmScopePins2" value="empty_only" checked><label class="form-check-label small" for="bgmScopePins2">Only rows without pin images</label></div><p class="small text-muted mb-2">Workflow order (Run all): prompts → images (main, ingredient) → content → Pinterest.</p><hr class="my-3"><p class="mb-2 fw-medium">Concurrency:</p><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkGroupConcurrencyPreset" value="low"> Low — 1 row</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkGroupConcurrencyPreset" value="medium"> Medium — 2 rows</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkGroupConcurrencyPreset" value="max" checked> Max — <input type="number" id="bulkGroupConcurrencyN" value="6" min="1" max="20" class="form-control form-control-sm d-inline-block" style="width:55px"> rows</label></div></div></div></div></div>
+<div id="bulkGroupModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="bulkGroupModalTitle">Run for group</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="bulkGroupModalGroupId"><p class="mb-2 fw-medium small">Run scope:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalRunScope" id="bulkGroupModalScopeAll" value="all" checked><label class="form-check-label small" for="bulkGroupModalScopeAll">All subgroups in this group</label></div><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalRunScope" id="bulkGroupModalScopeSelected" value="selected"><label class="form-check-label small" for="bulkGroupModalScopeSelected">Selected subgroups only</label></div><div id="bulkGroupSubgroupsWrap" class="border rounded p-2 mb-2" style="max-height:140px;overflow-y:auto;display:none"><div class="d-flex gap-2 mb-1"><button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.querySelectorAll('#bulkGroupSubgroupsWrap .bulk-group-subgroup-cb').forEach(function(cb){{cb.checked=true}})">Select all</button><button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.querySelectorAll('#bulkGroupSubgroupsWrap .bulk-group-subgroup-cb').forEach(function(cb){{cb.checked=false}})">Deselect all</button></div><div id="bulkGroupSubgroupsList"></div></div><p class="mb-2">What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkGroupBtnPrompts" class="btn btn-outline-secondary" onclick="runBulkGroupFromModal('prompts')">Run prompts</button><button type="button" id="bulkGroupBtnImages" class="btn btn-outline-info" onclick="runBulkGroupFromModal('images')">Run images</button><button type="button" id="bulkGroupBtnArticle" class="btn btn-outline-success" onclick="runBulkGroupFromModal('article')">Run content</button><button type="button" id="bulkGroupBtnPinterest" class="btn btn-outline-danger" onclick="runBulkGroupFromModal('pin_image')">Run Pinterest</button><button type="button" id="bulkGroupBtnAll" class="btn btn-primary" onclick="runBulkGroupFromModal('all')">Run all</button><hr class="my-2"><button type="button" id="bulkGroupBtnDeployCf" class="btn btn-info" onclick="runBulkGroupDeployCloudflare()">☁️ Deploy all to Cloudflare</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkGroupModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter">OpenRouter</option><option value="openai" selected>OpenAI</option><option value="local">Local (Ollama)</option><option value="llamacpp">llama.cpp</option></select><div id="bulkGroupModalLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model (≤15B):</p><select id="bulkGroupModalLocalModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkGroupModalLlamaCppWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">llama.cpp model:</p><select id="bulkGroupModalLlamaCppModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkGroupModalOpenAIWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenAI model:</p><select id="bulkGroupModalOpenAIModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkGroupModalOrOpts" class="mb-3 p-2 bg-light border rounded small" style="display:none;"><div class="fw-medium mb-1">OpenRouter:</div><div class="mb-2"><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeRot" value="rotation"><label class="form-check-label" for="bulkGroupModalOrModeRot">Rotation (try next on failure)</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeFall" value="fallback"><label class="form-check-label" for="bulkGroupModalOrModeFall">Fallback (run all simultaneously, use first success)</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeBlack" value="rotation_blacklist" checked><label class="form-check-label" for="bulkGroupModalOrModeBlack">Rotation (exclude failed for next articles)</label></div></div><div class="d-flex align-items-center gap-2 mb-1"><span class="fw-medium">Select model(s)</span><div class="btn-group btn-group-sm"><button type="button" id="bulkGroupModalOrFilterAll" class="btn btn-primary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkGroupModal','all')">All</button><button type="button" id="bulkGroupModalOrFilterFree" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkGroupModal','free')">Free</button><button type="button" id="bulkGroupModalOrFilterPaid" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkGroupModal','paid')">Paid</button></div></div><select id="bulkGroupModalOpenRouterModels" class="form-select form-select-sm mb-1" multiple style="max-height:120px;width:100%"></select><button type="button" class="btn btn-outline-secondary btn-sm" onclick="_resetOpenRouterModels('bulkGroupModal')">Reset to defaults</button></div><p class="mb-2 fw-medium small">Scope for prompts (main+ingredient):</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopePrompts" id="bgmScopePrompts1" value="override"><label class="form-check-label small" for="bgmScopePrompts1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkGroupModalScopePrompts" id="bgmScopePrompts2" value="empty_only" checked><label class="form-check-label small" for="bgmScopePrompts2">Only rows without main+ingredient prompts</label></div><p class="mb-2 fw-medium small">Scope for images:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopeImages" id="bgmScopeImages1" value="override"><label class="form-check-label small" for="bgmScopeImages1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkGroupModalScopeImages" id="bgmScopeImages2" value="empty_only" checked><label class="form-check-label small" for="bgmScopeImages2">Only rows without main+ingredient images</label></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopeContent" id="bgmScopeContent1" value="override"><label class="form-check-label small" for="bgmScopeContent1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkGroupModalScopeContent" id="bgmScopeContent2" value="empty_only" checked><label class="form-check-label small" for="bgmScopeContent2">Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for Pinterest:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopePins" id="bgmScopePins1" value="override"><label class="form-check-label small" for="bgmScopePins1">Override existing</label></div><div class="form-check mb-2"><input class="form-check-input" type="radio" name="bulkGroupModalScopePins" id="bgmScopePins2" value="empty_only" checked><label class="form-check-label small" for="bgmScopePins2">Only rows without pin images</label></div><p class="small text-muted mb-2">Workflow order (Run all): prompts → images (main, ingredient) → content → Pinterest.</p><hr class="my-3"><p class="mb-2 fw-medium">Concurrency:</p><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkGroupConcurrencyPreset" value="low"> Low — 1 row</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkGroupConcurrencyPreset" value="medium"> Medium — 2 rows</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkGroupConcurrencyPreset" value="max" checked> Max — <input type="number" id="bulkGroupConcurrencyN" value="6" min="1" max="20" class="form-control form-control-sm d-inline-block" style="width:55px"> rows</label></div></div></div></div></div>
 
 <div id="bulkAllGroupsModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Run for all groups</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><p class="mb-2">Run for all rows in all groups. What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkAllGroupsBtnPrompts" class="btn btn-outline-secondary" onclick="runBulkAllGroups('prompts')">Run prompts</button><button type="button" id="bulkAllGroupsBtnImages" class="btn btn-outline-info" onclick="runBulkAllGroups('images')">Run images</button><button type="button" id="bulkAllGroupsBtnArticle" class="btn btn-outline-success" onclick="runBulkAllGroups('article')">Run content</button><button type="button" id="bulkAllGroupsBtnPinterest" class="btn btn-outline-danger" onclick="runBulkAllGroups('pin_image')">Run Pinterest</button><button type="button" id="bulkAllGroupsBtnAll" class="btn btn-primary" onclick="runBulkAllGroups('all')">Run all (prompts, images, content, Pinterest)</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkAllGroupsModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option><option value="local">Local (Ollama)</option><option value="llamacpp">llama.cpp</option></select><div id="bulkAllGroupsModalLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model (≤15B):</p><select id="bulkAllGroupsModalLocalModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkAllGroupsModalLlamaCppWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">llama.cpp model:</p><select id="bulkAllGroupsModalLlamaCppModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkAllGroupsModalOpenAIWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenAI model:</p><select id="bulkAllGroupsModalOpenAIModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkAllGroupsModalOpenRouterWrap" class="mb-3" style="display:none"><p class="mb-1 fw-medium small">OpenRouter:</p><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalOpenRouterMode" value="rotation"> Rotation (try next on failure)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalOpenRouterMode" value="select"> Select model(s)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalOpenRouterMode" value="rotation_blacklist" checked> Rotation (exclude failed for next articles)</label></div><div class="d-flex align-items-center gap-2 mb-1"><div class="btn-group btn-group-sm"><button type="button" id="bulkAllGroupsModalOrFilterAll" class="btn btn-primary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkAllGroupsModal','all')">All</button><button type="button" id="bulkAllGroupsModalOrFilterFree" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkAllGroupsModal','free')">Free</button><button type="button" id="bulkAllGroupsModalOrFilterPaid" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkAllGroupsModal','paid')">Paid</button></div></div><select id="bulkAllGroupsModalOpenRouterModels" class="form-select form-select-sm" multiple style="max-height:100px;width:100%"></select></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeContent" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeContent" value="empty_only" checked> Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for images:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeImages" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeImages" value="empty_only" checked> Only rows without main+ingredient images</label></div><p class="mb-2 fw-medium small">Scope for Pinterest:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopePins" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopePins" value="empty_only" checked> Only rows without pin images</label></div><hr class="my-3"><p class="mb-2 fw-medium">Concurrency (rows A B C D at a time):</p><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrencyPreset" value="low"> Low — 1 row at a time</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrencyPreset" value="medium"> Medium — 2 rows at a time</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrencyPreset" value="max" checked> Max — <input type="number" id="allGroupsConcurrencyN" value="6" min="1" max="20" class="form-control form-control-sm d-inline-block" style="width:55px"> rows at a time</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrencyPreset" value="group"> Group — max <input type="number" id="allGroupsGroupN" value="2" min="1" max="10" class="form-control form-control-sm d-inline-block" style="width:55px"> groups in parallel</label></div><p class="small text-muted mt-2 mb-0">Note: Articles without article_html will be skipped for image generation.</p></div></div></div></div>
 <div id="singleActionModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="singleActionModalTitle">Run</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="singleActionUrl"><input type="hidden" id="singleActionData"><input type="hidden" id="singleActionLabel"><div id="singleActionAiProviderWrap" class="mb-3" style="display:none"><p class="mb-2 fw-medium small">AI provider:</p><select id="singleActionAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option><option value="local">Local</option><option value="llamacpp">llama.cpp</option></select><div id="singleActionOpenRouterWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenRouter:</p><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="singleActionOpenRouterMode" value="rotation" checked> Rotation (try next on failure)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="singleActionOpenRouterMode" value="select"> Select model(s)</label></div><select id="singleActionOpenRouterModels" class="form-select form-select-sm" multiple style="max-height:100px;width:100%"></select></div><div id="singleActionLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model:</p><select id="singleActionLocalModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="singleActionLlamaCppWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">llama.cpp model:</p><select id="singleActionLlamaCppModel" class="form-select form-select-sm" style="width:100%"></select></div></div><p class="mb-3" id="singleActionPrompt">Run in background?</p><div class="d-flex gap-2"><button type="button" class="btn btn-primary" onclick="runSingleAction(false)">Background</button></div></div></div></div></div>
@@ -2684,9 +2719,8 @@ function runSingleAction(foreground) {{
 <script src="/static/js/bootstrap.bundle.min.js"></script>
 <script>
 if(typeof refreshRunningTasks==='function') refreshRunningTasks();
-// Only poll running tasks every 5s on database-management; avoids constant API calls on admin/domains
+setInterval(function() {{ if(typeof refreshRunningTasks==='function') refreshRunningTasks(); }}, 5000);
 if(window.location.pathname.indexOf('database-management')>=0 || window.location.pathname==='/') {{
-  setInterval(function() {{ if(typeof refreshRunningTasks==='function') refreshRunningTasks(); }}, 5000);
   setInterval(function() {{ if(typeof refreshGroups==='function') refreshGroups(); }}, 60000);
   setTimeout(function() {{
     var el = document.getElementById('groups-container');
@@ -2896,11 +2930,13 @@ if (window.location.pathname.indexOf('/admin/domains') >= 0) {{
   }};
   // Watch for _progressPollInterval being set (task started)
   setInterval(function() {{
-    if (_progressPollInterval && !_statsPollInterval) {{
-      _startStatsPoll();
-    }} else if (!_progressPollInterval && _statsPollInterval) {{
-      _stopStatsPoll();
-    }}
+    try {{
+      if (typeof _progressPollInterval !== 'undefined' && _progressPollInterval && typeof _statsPollInterval !== 'undefined' && !_statsPollInterval) {{
+        _startStatsPoll();
+      }} else if (typeof _progressPollInterval !== 'undefined' && !_progressPollInterval && typeof _statsPollInterval !== 'undefined' && _statsPollInterval) {{
+        _stopStatsPoll();
+      }}
+    }} catch (e) {{}}
   }}, 1000);
 }}
 
@@ -3540,8 +3576,8 @@ def database_management():
             '''
     
     group_name = next((x["name"] for x in groups_data if x.get("id") == filter_group_id), "Current Group")
-    escaped_group_name = html.escape(group_name).replace("'", "\\'")
-    run_btn = f'<button type="button" class="btn btn-primary btn-sm ms-2" onclick="openBulkGroupModal({filter_group_id}, \'{escaped_group_name}\')" title="Run for rows in this group only">Run this group</button>'
+    gname_js = json.dumps(group_name).replace('"', '&quot;')
+    run_btn = f'<button type="button" class="btn btn-primary btn-sm ms-2" onclick="openBulkGroupModal({filter_group_id}, {gname_js})" title="Run for rows in this group only">Run this group</button>'
     admin_domains_btn = '<a href="/admin/domains" class="btn btn-outline-secondary btn-sm ms-2">📋 Domains Admin</a>'
     back_btn = '<a href="/database-management" class="btn btn-outline-secondary btn-sm">← Select group</a>'
     
@@ -4584,6 +4620,9 @@ def api_profile_ai_defaults():
         bulk_max = 6
     lm = config.get("local_models") or ""
     local_model = (lm.split(",")[0].strip() if lm else None) or None
+    skip_cf = config.get("skip_cf_status_check")
+    if skip_cf is None:
+        skip_cf = 0
     return jsonify({
         "ai_provider": (config.get("ai_provider") or "openai").lower(),
         "openai_model": config.get("openai_model") or "gpt-4o-mini",
@@ -4591,6 +4630,7 @@ def api_profile_ai_defaults():
         "local_model": local_model,
         "llamacpp_model_id": config.get("llamacpp_model_id"),
         "bulk_max_concurrency": bulk_max,
+        "skip_cf_status_check": bool(skip_cf),
     })
 
 
@@ -5113,7 +5153,7 @@ def api_bulk_run():
         with get_connection() as conn:
             skip_images = _should_skip_images(conn, title_id, scope_images)
         if not skip_images:
-            from imagine import generate_4_images
+            from imagine import generate_4_images_multi_channel
             with get_connection() as conn:
                 cur = db_execute(conn, "SELECT prompt, prompt_image_ingredients, main_image FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
                 row = dict_row(cur.fetchone())
@@ -5121,9 +5161,8 @@ def api_bulk_run():
             prompt_ing = (row.get("prompt_image_ingredients") or "").strip() if row else ""
             main_ok = False
             if prompt:
-                urls, err = generate_4_images(prompt, key_prefix="main_image", user_config=get_user_config_for_api(user_id) or {})
-                if err:
-                    urls, err = generate_4_images(prompt, key_prefix="main_image", user_config=get_user_config_for_api(user_id) or {})
+                cfg = get_user_config_for_api(user_id) or {}
+                urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", user_config=cfg)
                 if not err:
                     from imagine import flip_image_vertical_and_upload
                     BOTTOM_SOURCE_INDEX = (1, 0, 3, 2)
@@ -5155,9 +5194,7 @@ def api_bulk_run():
                 delay_sec = cfg.get("image_request_delay_sec", 15)
                 if delay_sec > 0:
                     time.sleep(delay_sec)
-                urls2, err2 = generate_4_images(prompt_ing, key_prefix="ingredient_image", user_config=cfg)
-                if err2:
-                    urls2, err2 = generate_4_images(prompt_ing, key_prefix="ingredient_image", user_config=get_user_config_for_api(user_id) or {})
+                urls2, err2, _ = generate_4_images_multi_channel(prompt_ing, key_prefix="ingredient_image", user_config=cfg)
                 if not err2:
                     with get_connection() as conn:
                         for i, tid in enumerate(title_ids[:4]):
@@ -5222,14 +5259,14 @@ def api_bulk_run():
                     return jsonify({"success": False, "error": f"Generate pin for title_id {tid}: {e}"}), 500
             done.append("pin_image")
     if mode == "main_image":
-        from imagine import generate_4_images
+        from imagine import generate_4_images_multi_channel
         with get_connection() as conn:
             cur = db_execute(conn, "SELECT prompt FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
             row = dict_row(cur.fetchone())
         prompt = (row.get("prompt") or "").strip() if row else ""
         if not prompt:
             return jsonify({"success": False, "error": "Generate prompts first"}), 400
-        urls, err = generate_4_images(prompt, key_prefix="main_image")
+        urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", user_config={})
         if err:
             return jsonify({"success": False, "error": err}), 500
         from imagine import flip_image_vertical_and_upload
@@ -5254,14 +5291,14 @@ def api_bulk_run():
             _update_article_html_images(tid)
         done.append("main_image")
     elif mode == "ingredient_image":
-        from imagine import generate_4_images
+        from imagine import generate_4_images_multi_channel
         with get_connection() as conn:
             cur = db_execute(conn, "SELECT prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
             row = dict_row(cur.fetchone())
         prompt_ing = (row.get("prompt_image_ingredients") or "").strip() if row else ""
         if not prompt_ing:
             return jsonify({"success": False, "error": "Generate prompts first"}), 400
-        urls2, err2 = generate_4_images(prompt_ing, key_prefix="ingredient_image")
+        urls2, err2, _ = generate_4_images_multi_channel(prompt_ing, key_prefix="ingredient_image", user_config={})
         if err2:
             return jsonify({"success": False, "error": err2}), 500
         with get_connection() as conn:
@@ -5340,7 +5377,8 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                 with get_connection() as conn:
                     cur = db_execute(conn, "SELECT prompt, prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
                     row = dict_row(cur.fetchone())
-                need_prompts = not (row and (row.get("prompt") or "").strip() and (row.get("prompt_image_ingredients") or "").strip())
+                # When scope_prompts=override, always run; when empty_only, only if row lacks both prompts
+                need_prompts = (spr == "override") or not (row and (row.get("prompt") or "").strip() and (row.get("prompt_image_ingredients") or "").strip())
                 if need_prompts:
                     try:
                         _do_generate_prompts(
@@ -5363,7 +5401,7 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                 with get_connection() as conn:
                     skip_images = _should_skip_images(conn, title_id, si)
                 if not skip_images:
-                    from imagine import generate_4_images
+                    from imagine import generate_4_images_multi_channel
                     cancel_check = (lambda: bool(job_id and _bulk_cancel.get(job_id))) if job_id else None
                     with get_connection() as conn:
                         cur = db_execute(conn, "SELECT prompt, prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
@@ -5376,13 +5414,7 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                         delay_sec = user_config.get("image_request_delay_sec", 15)
                         if need_delay_before_image and delay_sec > 0:
                             time.sleep(delay_sec)
-                        urls, err = None, None
-                        for attempt in range(1, 4):
-                            urls, err = generate_4_images(prompt, key_prefix="main_image", cancel_check=cancel_check, user_config=user_config)
-                            if not err or err == "Cancelled":
-                                break
-                            if attempt < 3 and ("429" in str(err) or "busy" in str(err).lower()):
-                                time.sleep(18)
+                        urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", cancel_check=cancel_check, user_config=user_config)
                         if err and err == "Cancelled":
                             break
                         if not err:
@@ -5422,13 +5454,7 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                         delay_sec = user_config.get("image_request_delay_sec", 15)
                         if need_delay_before_image and delay_sec > 0:
                             time.sleep(delay_sec)
-                        urls2, err2 = None, None
-                        for attempt in range(1, 4):
-                            urls2, err2 = generate_4_images(prompt_ing, key_prefix="ingredient_image", cancel_check=cancel_check, user_config=user_config)
-                            if not err2 or err2 == "Cancelled":
-                                break
-                            if attempt < 3 and ("429" in str(err2) or "busy" in str(err2).lower()):
-                                time.sleep(18)
+                        urls2, err2, _ = generate_4_images_multi_channel(prompt_ing, key_prefix="ingredient_image", cancel_check=cancel_check, user_config=user_config)
                         if err2 == "Cancelled":
                             break
                         if not err2:
@@ -5556,14 +5582,14 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
             if mode == "main_image":
                 if job_id and _bulk_cancel.get(job_id):
                     break
-                from imagine import generate_4_images
+                from imagine import generate_4_images_multi_channel
                 cancel_check = (lambda: bool(job_id and _bulk_cancel.get(job_id))) if job_id else None
                 with get_connection() as conn:
                     cur = db_execute(conn, "SELECT prompt FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
                     row = dict_row(cur.fetchone())
                 prompt = (row.get("prompt") or "").strip() if row else ""
                 if prompt:
-                    urls, err = generate_4_images(prompt, key_prefix="main_image", cancel_check=cancel_check)
+                    urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", cancel_check=cancel_check, user_config=user_config)
                     if err == "Cancelled":
                         break
                     if not err:
@@ -5591,14 +5617,14 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
             if mode == "ingredient_image":
                 if job_id and _bulk_cancel.get(job_id):
                     break
-                from imagine import generate_4_images
+                from imagine import generate_4_images_multi_channel
                 cancel_check = (lambda: bool(job_id and _bulk_cancel.get(job_id))) if job_id else None
                 with get_connection() as conn:
                     cur = db_execute(conn, "SELECT prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
                     row = dict_row(cur.fetchone())
                 prompt_ing = (row.get("prompt_image_ingredients") or "").strip() if row else ""
                 if prompt_ing:
-                    urls2, err2 = generate_4_images(prompt_ing, key_prefix="ingredient_image", cancel_check=cancel_check)
+                    urls2, err2, _ = generate_4_images_multi_channel(prompt_ing, key_prefix="ingredient_image", cancel_check=cancel_check, user_config=user_config)
                     if err2 == "Cancelled":
                         break
                     if not err2:
@@ -5875,6 +5901,7 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
             on_active(title_id, title_text, True, extra)
         try:
             # Workflow order: prompts (if needed) → images (main, ingredient) → article → pins
+            ran_prompts_this_row = False  # so we can run images after override prompts even with scope_images=empty_only
             if mode == "prompts":
                 if cancel_check and cancel_check():
                     return 0, 0, None
@@ -5897,7 +5924,7 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
                     with get_connection() as conn:
                         cur = db_execute(conn, "SELECT prompt, prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
                         row = dict_row(cur.fetchone())
-                    need_prompts = not (row and (row.get("prompt") or "").strip() and (row.get("prompt_image_ingredients") or "").strip())
+                    need_prompts = (spr == "override") or not (row and (row.get("prompt") or "").strip() and (row.get("prompt_image_ingredients") or "").strip())
                     if need_prompts:
                         try:
                             _do_generate_prompts(
@@ -5909,6 +5936,7 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
                                 local_model=local_model,
                                 llamacpp_model_id=llamacpp_model_id,
                             )
+                            ran_prompts_this_row = True
                         except Exception as e:
                             return 0, 1, str(e)[:200]
             if mode in ("images", "all"):
@@ -5916,6 +5944,13 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
                     return 0, 0, None
                 with get_connection() as conn:
                     skip_images = _should_skip_images(conn, title_id, si)
+                # After override prompts, always run images for this row (so new prompts get images)
+                if skip_images and mode == "all" and spr == "override" and ran_prompts_this_row:
+                    skip_images = False
+                if skip_images:
+                    log.info("[bulk-group] tid=%s skipping images (scope_images=empty_only, row already has both)", title_id)
+                    _on_img(title_id, "main", "skipped", result="already have both")
+                    _on_img(title_id, "ingredient", "skipped", result="already have both")
                 if not skip_images:
                     from imagine import generate_4_images_multi_channel
                     user_config = get_user_config_for_api(user_id) if user_id else {}
@@ -6404,6 +6439,55 @@ def api_bulk_run_jobs():
                 "done": done,
             }
             jobs.append(deploy_job)
+    # Single-domain Cloudflare deploys, DNS setup, CF info (so one panel shows all tasks)
+    with DEPLOY_CF_PROGRESS_LOCK:
+        for domain_id, p in list(DEPLOY_CF_PROGRESS.items()):
+            if p.get("done"):
+                continue
+            with get_connection() as conn:
+                cur = db_execute(conn, "SELECT domain_url, domain_name FROM domains WHERE id = ?", (domain_id,))
+                row = dict_row(cur.fetchone())
+            domain_url = (row.get("domain_url") or row.get("domain_name") or "").strip() or f"Domain {domain_id}"
+            jobs.append({
+                "job_id": "deploy_cf_%s" % domain_id,
+                "type": "deploy_cf",
+                "status": "running",
+                "message": p.get("message", "Deploying…"),
+                "action": "Deploy to Cloudflare",
+                "domain_id": domain_id,
+                "percent": p.get("percent", 0),
+                "created_at": time.time(),
+            })
+    with CF_DNS_PROGRESS_LOCK:
+        for domain_id, p in list(CF_DNS_PROGRESS.items()):
+            if p.get("done"):
+                continue
+            domain_url = p.get("domain_url") or f"Domain {domain_id}"
+            jobs.append({
+                "job_id": "cloudflare_dns_%s" % domain_id,
+                "type": "cloudflare_dns",
+                "status": "running",
+                "message": p.get("message", "DNS setup…"),
+                "action": "Cloudflare DNS",
+                "domain_id": domain_id,
+                "percent": p.get("percent", 0),
+                "created_at": time.time(),
+            })
+    with CF_INFO_PROGRESS_LOCK:
+        for domain_id, p in list(CF_INFO_PROGRESS.items()):
+            if p.get("done"):
+                continue
+            domain_url = p.get("domain_url") or f"Domain {domain_id}"
+            jobs.append({
+                "job_id": "cloudflare_info_%s" % domain_id,
+                "type": "cloudflare_info",
+                "status": "running",
+                "message": p.get("message", "Fetching…"),
+                "action": "Cloudflare status",
+                "domain_id": domain_id,
+                "percent": p.get("percent", 0),
+                "created_at": time.time(),
+            })
     jobs.sort(key=lambda x: x.get("created_at", 0), reverse=True)
     return jsonify({"jobs": jobs[:50]})
 
@@ -6690,6 +6774,149 @@ def api_bulk_run_group():
     if ok == 0 and failed == 0:
         return jsonify({"success": False, "error": "No Domain A titles in group"}), 400
     return jsonify({"success": True, "message": f"{ok} rows done" + (f", {failed} failed" if failed else "")})
+
+
+def _run_bulk_affect_rss_async(job_id, group_id, user_id, group_ids_override, ai_provider, openai_model, openrouter_model, local_model, llamacpp_model_id):
+    """Background: assign board_slug to all articles in group that have html+css but no board (Domain A rows only for iteration)."""
+    try:
+        with get_connection() as conn:
+            def get_all_descendants(gid_val):
+                result = [gid_val]
+                cur = db_execute(conn, "SELECT id FROM `groups` WHERE parent_group_id = ?", (gid_val,))
+                for r in cur.fetchall():
+                    cid = dict_row(r).get("id")
+                    if cid:
+                        result.extend(get_all_descendants(cid))
+                return result
+            allowed_gids = get_all_descendants(group_id)
+            if group_ids_override:
+                all_gids = [x for x in group_ids_override if x in allowed_gids]
+            else:
+                all_gids = allowed_gids
+            if not all_gids:
+                _bulk_progress[job_id].update({"status": "done", "message": "No groups in scope", "done": 0})
+                return
+            placeholders = ",".join(["?"] * len(all_gids))
+            # Only include titles whose domain has at least one Pinterest board (so assignment can succeed)
+            cur = db_execute(conn, f"""
+                SELECT MIN(t.id) as id FROM titles t
+                JOIN domains d ON t.domain_id = d.id
+                JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
+                WHERE COALESCE(t.group_id, d.group_id) IN ({placeholders})
+                  AND d.domain_index = 0
+                  AND TRIM(COALESCE(ac.article_html,'')) != '' AND TRIM(COALESCE(ac.article_css,'')) != ''
+                  AND (ac.pinterest_board_slug IS NULL OR TRIM(ac.pinterest_board_slug) = '')
+                  AND d.pinterest_boards IS NOT NULL AND TRIM(COALESCE(d.pinterest_boards,'')) != '' AND TRIM(COALESCE(d.pinterest_boards,'')) != '[]'
+                GROUP BY COALESCE(t.group_id, d.group_id), t.title
+                ORDER BY MIN(t.id)
+            """, tuple(all_gids))
+            title_ids = [dict_row(r).get("id") for r in cur.fetchall() if dict_row(r).get("id")]
+        total = len(title_ids)
+        _bulk_progress[job_id]["total"] = total
+        done, failed = 0, 0
+        first_error = None
+        for idx, tid in enumerate(title_ids):
+            if _bulk_cancel.get(job_id):
+                break
+            with get_connection() as conn:
+                cur = db_execute(conn, "SELECT title FROM titles WHERE id = ?", (tid,))
+                r = dict_row(cur.fetchone())
+                title = (r.get("title") or "")[:50] if r else ""
+            _bulk_progress[job_id]["current_title"] = title
+            _bulk_progress[job_id]["done"] = idx
+            _bulk_progress[job_id]["message"] = f"Assigning board {idx+1}/{total}: {title}"
+            try:
+                _do_assign_board_for_article(tid, user_id=user_id, ai_provider=ai_provider, openai_model=openai_model, openrouter_model=openrouter_model, local_model=local_model, llamacpp_model_id=llamacpp_model_id)
+                done += 1
+            except Exception as e:
+                failed += 1
+                if first_error is None:
+                    first_error = str(e)[:400]
+                log.warning("[bulk-affect-rss] title_id=%s: %s", tid, e)
+        msg = f"Done: {done} assigned" + (f", {failed} failed" if failed else "")
+        if failed and first_error and "no Pinterest boards" in first_error.lower():
+            msg += ". Add boards in Domains → Pinterest (📌) for each domain, then Deploy to Cloudflare so RSS URLs are available."
+        _bulk_progress[job_id].update({"status": "done", "message": msg, "done": total})
+        if first_error:
+            _bulk_progress[job_id]["error_detail"] = first_error
+    except Exception as e:
+        _bulk_progress[job_id].update({"status": "error", "message": str(e)[:500]})
+
+
+@app.route("/api/bulk-affect-rss", methods=["POST"])
+@login_required
+def api_bulk_affect_rss():
+    """Assign Pinterest board (RSS) to articles that have HTML+CSS and URL but no board yet. Only affects 'ready' articles. Async returns job_id."""
+    req = {**(request.get_json(silent=True) or {}), **dict(request.args)}
+    group_id = req.get("group_id")
+    if not group_id:
+        return jsonify({"success": False, "error": "group_id required"}), 400
+    try:
+        group_id = int(group_id)
+    except ValueError:
+        return jsonify({"success": False, "error": "invalid group_id"}), 400
+    group_ids_param = req.get("group_ids") or request.args.get("group_ids") or ""
+    group_ids_override = None
+    if group_ids_param and str(group_ids_param).strip():
+        try:
+            group_ids_override = [int(x) for x in str(group_ids_param).split(",") if str(x).strip().isdigit()]
+        except (TypeError, ValueError):
+            pass
+    user = get_current_user()
+    user_id = user["id"] if user else None
+    has_keys, _ = check_user_has_required_keys(user_id, "content")
+    if not has_keys:
+        return jsonify({"success": False, "error": "AI keys required for board assignment"}), 403
+    ai_provider = (req.get("ai_provider") or "").strip() or None
+    openai_model = (req.get("openai_model") or "").strip() or None
+    openrouter_model = (req.get("openrouter_model") or "").strip() or None
+    local_model = (req.get("local_model") or "").strip() or None
+    llamacpp_model_id = req.get("llamacpp_model_id")
+    if llamacpp_model_id is not None and str(llamacpp_model_id).strip():
+        try:
+            llamacpp_model_id = int(llamacpp_model_id)
+        except (TypeError, ValueError):
+            llamacpp_model_id = None
+    else:
+        llamacpp_model_id = None
+    async_mode = str(req.get("async", "") or "").lower() in ("1", "true", "yes")
+    if async_mode:
+        job_id = str(uuid.uuid4())
+        _bulk_progress[job_id] = {"status": "running", "message": "Starting affect to RSS...", "current_title": "", "type": "affect_rss", "group_id": group_id, "created_at": time.time(), "done": 0, "total": 0}
+        threading.Thread(target=_run_bulk_affect_rss_async, args=(job_id, group_id, user_id, group_ids_override, ai_provider, openai_model, openrouter_model, local_model, llamacpp_model_id), daemon=True).start()
+        return jsonify({"success": True, "job_id": job_id})
+    # Sync: run in thread and wait (simplified - just run first one for sync path or run all in loop)
+    with get_connection() as conn:
+        def get_all_descendants(gid_val):
+            result = [gid_val]
+            cur = db_execute(conn, "SELECT id FROM `groups` WHERE parent_group_id = ?", (gid_val,))
+            for r in cur.fetchall():
+                cid = dict_row(r).get("id")
+                if cid:
+                    result.extend(get_all_descendants(cid))
+            return result
+        allowed_gids = get_all_descendants(group_id)
+        all_gids = [x for x in group_ids_override if x in allowed_gids] if group_ids_override else allowed_gids
+        if not all_gids:
+            return jsonify({"success": False, "error": "No groups in scope"}), 400
+        placeholders = ",".join(["?"] * len(all_gids))
+        cur = db_execute(conn, f"""
+            SELECT MIN(t.id) as id FROM titles t JOIN domains d ON t.domain_id = d.id
+            JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
+            WHERE COALESCE(t.group_id, d.group_id) IN ({placeholders}) AND d.domain_index = 0
+              AND TRIM(COALESCE(ac.article_html,'')) != '' AND TRIM(COALESCE(ac.article_css,'')) != ''
+              AND (ac.pinterest_board_slug IS NULL OR TRIM(ac.pinterest_board_slug) = '')
+            GROUP BY COALESCE(t.group_id, d.group_id), t.title ORDER BY MIN(t.id)
+        """, tuple(all_gids))
+        title_ids = [dict_row(r).get("id") for r in cur.fetchall() if dict_row(r).get("id")]
+    done, failed = 0, 0
+    for tid in title_ids:
+        try:
+            _do_assign_board_for_article(tid, user_id=user_id, ai_provider=ai_provider, openai_model=openai_model, openrouter_model=openrouter_model, local_model=local_model, llamacpp_model_id=llamacpp_model_id)
+            done += 1
+        except Exception as e:
+            failed += 1
+    return jsonify({"success": True, "message": f"{done} assigned to RSS" + (f", {failed} failed" if failed else "")})
 
 
 @app.route("/api/group-subgroups", methods=["GET"])
@@ -7018,7 +7245,6 @@ def api_bulk_group_counts():
                 tid = dict_row(r).get("id")
                 if tid and _row_any_needs_prompts(conn, tid, "empty_only"):
                     rows_needs_prompts += 1
-            
         return jsonify({"total": total, "no_html_css": no_html_css, "no_images": no_images, "no_pins": no_pins, "with_html": with_html, "rows_needs_content": rows_needs_content, "rows_needs_images": rows_needs_images, "rows_needs_pins": rows_needs_pins, "rows_needs_prompts": rows_needs_prompts})
     except Exception as e:
         import traceback
@@ -7209,7 +7435,7 @@ def api_bulk_run_filtered():
                     elif mode == "pin_image":
                         _do_generate_pin_image(tid, user_id=user_id)
                     elif mode == "main_image":
-                        from imagine import generate_4_images
+                        from imagine import generate_4_images_multi_channel
                         user_config = get_user_config_for_api(user_id) or {}
                         delay_sec = user_config.get("image_request_delay_sec", 15)
                         if need_delay_before_image and delay_sec > 0:
@@ -7219,13 +7445,13 @@ def api_bulk_run_filtered():
                             row = dict_row(cur.fetchone())
                         prompt = (row.get("prompt") or "").strip() if row else ""
                         if prompt:
-                            urls, err = generate_4_images(prompt, key_prefix="main_image", user_config=user_config)
+                            urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", user_config=user_config)
                             if not err and urls:
                                 need_delay_before_image = True
                                 with get_connection() as conn:
                                     db_execute(conn, "UPDATE article_content SET main_image = ?, top_image = ? WHERE title_id = ? AND language_code = 'en'", (urls[0], urls[0], tid))
                     elif mode == "ingredient_image":
-                        from imagine import generate_4_images
+                        from imagine import generate_4_images_multi_channel
                         user_config = get_user_config_for_api(user_id) or {}
                         delay_sec = user_config.get("image_request_delay_sec", 15)
                         if need_delay_before_image and delay_sec > 0:
@@ -7235,13 +7461,13 @@ def api_bulk_run_filtered():
                             row = dict_row(cur.fetchone())
                         prompt = (row.get("prompt_image_ingredients") or "").strip() if row else ""
                         if prompt:
-                            urls, err = generate_4_images(prompt, key_prefix="ingredient_image", user_config=user_config)
+                            urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="ingredient_image", user_config=user_config)
                             if not err and urls:
                                 need_delay_before_image = True
                                 with get_connection() as conn:
                                     db_execute(conn, "UPDATE article_content SET ingredient_image = ? WHERE title_id = ? AND language_code = 'en'", (urls[0], tid))
                     elif mode == "images":
-                        from imagine import generate_4_images
+                        from imagine import generate_4_images_multi_channel
                         user_config = get_user_config_for_api(user_id) or {}
                         delay_sec = user_config.get("image_request_delay_sec", 15)
                         if need_delay_before_image and delay_sec > 0:
@@ -7252,10 +7478,7 @@ def api_bulk_run_filtered():
                         prompt = (row.get("prompt") or "").strip() if row else ""
                         prompt_ing = (row.get("prompt_image_ingredients") or "").strip() if row else ""
                         if prompt:
-                            urls, err = generate_4_images(prompt, key_prefix="main_image", user_config=user_config)
-                            if err and ("429" in str(err) or "busy" in str(err).lower()):
-                                time.sleep(12)
-                                urls, err = generate_4_images(prompt, key_prefix="main_image", user_config=user_config)
+                            urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", user_config=user_config)
                             if not err and urls:
                                 need_delay_before_image = True
                                 with get_connection() as conn:
@@ -7263,10 +7486,7 @@ def api_bulk_run_filtered():
                         if prompt_ing:
                             if need_delay_before_image and delay_sec > 0:
                                 time.sleep(delay_sec)
-                            urls2, err2 = generate_4_images(prompt_ing, key_prefix="ingredient_image", user_config=user_config)
-                            if err2 and ("429" in str(err2) or "busy" in str(err2).lower()):
-                                time.sleep(12)
-                                urls2, err2 = generate_4_images(prompt_ing, key_prefix="ingredient_image", user_config=user_config)
+                            urls2, err2, _ = generate_4_images_multi_channel(prompt_ing, key_prefix="ingredient_image", user_config=user_config)
                             if not err2 and urls2:
                                 need_delay_before_image = True
                                 with get_connection() as conn:
@@ -7797,32 +8017,75 @@ def _update_article_html_pin_image(title_id):
 
 
 def _do_generate_prompts(title_id, user_id=None, ai_provider=None, openai_model=None, openrouter_model=None, local_model=None, llamacpp_model_id=None):
-    """Generate prompt and prompt_image_ingredients for a recipe title via LLM. Uses user Profile API keys when user_id given.
+    """Generate prompt, prompt_image_ingredients, and recipe for a recipe title via LLM.
+    Uses domain's categories_list – AI picks the best-matching category for recipe.course.
     Stores in article_content for Domain A and copies to B,C,D."""
     with get_connection() as conn:
-        cur = db_execute(conn, "SELECT t.id, t.title, t.group_id, d.group_id as d_group_id, d.domain_index FROM titles t JOIN domains d ON t.domain_id = d.id WHERE t.id = ?", (title_id,))
+        cur = db_execute(conn, """SELECT t.id, t.title, t.group_id, d.group_id as d_group_id, d.domain_index, d.id as domain_id
+            FROM titles t JOIN domains d ON t.domain_id = d.id WHERE t.id = ?""", (title_id,))
         t = dict_row(cur.fetchone())
         if not t or t.get("domain_index") != 0:
             raise ValueError("Use Domain A title")
         title_text = (t.get("title") or "").strip()
         gid_val = t.get("group_id") if t.get("group_id") is not None else t.get("d_group_id")
+        domain_id = t.get("domain_id")
     if not title_text:
         raise ValueError("Title is empty")
+    categories_list = []
+    pinterest_boards = []
+    if domain_id:
+        with get_connection() as conn:
+            cur = db_execute(conn, "SELECT categories_list, pinterest_boards FROM domains WHERE id = ?", (domain_id,))
+            row = dict_row(cur.fetchone())
+            if row:
+                raw = (row.get("categories_list") or "").strip()
+                if raw:
+                    try:
+                        parsed = json.loads(raw)
+                        categories_list = parsed if isinstance(parsed, list) else []
+                    except json.JSONDecodeError:
+                        pass
+                raw_boards = (row.get("pinterest_boards") or "").strip()
+                if raw_boards:
+                    try:
+                        pinterest_boards = json.loads(raw_boards) if isinstance(raw_boards, str) else raw_boards
+                        if not isinstance(pinterest_boards, list):
+                            pinterest_boards = []
+                    except json.JSONDecodeError:
+                        pinterest_boards = []
+            # Per-board article count for this domain (to prefer board with fewer articles)
+            if pinterest_boards:
+                boards_with_count = []
+                for b in pinterest_boards:
+                    if not isinstance(b, dict) or not b.get("slug"):
+                        continue
+                    slug = (b.get("slug") or "").strip()
+                    cur = db_execute(conn, """SELECT COUNT(*) as c FROM article_content ac
+                        JOIN titles t ON t.id = ac.title_id WHERE t.domain_id = ? AND ac.language_code = 'en'
+                        AND TRIM(COALESCE(ac.pinterest_board_slug,'')) = ?""", (domain_id, slug))
+                    r = cur.fetchone()
+                    cnt = (dict_row(r).get("c") or 0) if r else 0
+                    boards_with_count.append({"name": b.get("name") or slug, "slug": slug, "count": cnt})
+                pinterest_boards = boards_with_count
     user_config = get_user_config_for_api(user_id) if user_id else {}
     provider = (ai_provider or "").strip().lower() or (user_config.get("ai_provider") or "openrouter")
     out = generate_image_prompts_for_title(
         title_text,
+        categories_list=categories_list,
         user_config=user_config,
         ai_provider=provider,
         openai_model=openai_model or user_config.get("openai_model"),
         openrouter_model=openrouter_model or user_config.get("openrouter_model"),
         local_model=local_model or user_config.get("local_models", "qwen3:8b").split(",")[0].strip() if user_config.get("local_models") else None,
         llamacpp_model_id=llamacpp_model_id if llamacpp_model_id is not None else user_config.get("llamacpp_model_id"),
+        pinterest_boards=pinterest_boards,
     )
     if out.get("error"):
         raise ValueError(out["error"])
     prompt = (out.get("prompt") or "").strip()
     prompt_ing = (out.get("prompt_image_ingredients") or "").strip()
+    recipe_str = (out.get("recipe") or "").strip()
+    board_slug = (out.get("board_slug") or "").strip() or None
     if not prompt or len(prompt) < 25:
         prompt = f"Professional food photography of {title_text}, overhead shot, natural lighting, editorial style --v 6.1"
     if not prompt_ing or len(prompt_ing) < 25:
@@ -7835,10 +8098,83 @@ def _do_generate_prompts(title_id, user_id=None, ai_provider=None, openai_model=
             if tid:
                 cur2 = db_execute(conn, "SELECT id FROM article_content WHERE title_id = ? AND language_code = 'en'", (tid,))
                 if cur2.fetchone():
-                    db_execute(conn, "UPDATE article_content SET prompt = ?, prompt_image_ingredients = ?, status_error = NULL WHERE title_id = ? AND language_code = 'en'", (prompt, prompt_ing, tid))
+                    if board_slug is not None:
+                        db_execute(conn, "UPDATE article_content SET prompt = ?, prompt_image_ingredients = ?, recipe = ?, pinterest_board_slug = ?, status_error = NULL WHERE title_id = ? AND language_code = 'en'", (prompt, prompt_ing, recipe_str or None, board_slug or "", tid))
+                    else:
+                        db_execute(conn, "UPDATE article_content SET prompt = ?, prompt_image_ingredients = ?, recipe = ?, status_error = NULL WHERE title_id = ? AND language_code = 'en'", (prompt, prompt_ing, recipe_str or None, tid))
                 else:
-                    db_execute(conn, "INSERT INTO article_content (title_id, language_code, prompt, prompt_image_ingredients) VALUES (?, 'en', ?, ?)", (tid, prompt, prompt_ing))
-    return {"prompt": prompt, "prompt_image_ingredients": prompt_ing}
+                    db_execute(conn, "INSERT INTO article_content (title_id, language_code, prompt, prompt_image_ingredients, recipe, pinterest_board_slug) VALUES (?, 'en', ?, ?, ?, ?)", (tid, prompt, prompt_ing, recipe_str or None, board_slug or ""))
+    return {"prompt": prompt, "prompt_image_ingredients": prompt_ing, "recipe": recipe_str, "board_slug": board_slug}
+
+
+def _do_assign_board_for_article(title_id_a, user_id=None, ai_provider=None, openai_model=None, openrouter_model=None, local_model=None, llamacpp_model_id=None):
+    """Assign a Pinterest board (RSS) to an article that already has HTML+CSS. Uses AI to pick board from domain's boards (prefer smallest count). Updates only pinterest_board_slug for all domain rows of this recipe."""
+    with get_connection() as conn:
+        cur = db_execute(conn, """SELECT t.id, t.title, t.group_id, d.group_id as d_group_id, d.id as domain_id
+            FROM titles t JOIN domains d ON t.domain_id = d.id WHERE t.id = ? AND d.domain_index = 0""", (title_id_a,))
+        t = dict_row(cur.fetchone())
+        if not t:
+            raise ValueError("Use Domain A title_id")
+        title_text = (t.get("title") or "").strip()
+        domain_id = t.get("domain_id")
+        gid_val = t.get("group_id") if t.get("group_id") is not None else t.get("d_group_id")
+    if not title_text:
+        raise ValueError("Title is empty")
+    pinterest_boards = []
+    if domain_id:
+        with get_connection() as conn:
+            cur = db_execute(conn, "SELECT pinterest_boards FROM domains WHERE id = ?", (domain_id,))
+            row = dict_row(cur.fetchone())
+            if row:
+                raw = (row.get("pinterest_boards") or "").strip()
+                if raw:
+                    try:
+                        pinterest_boards = json.loads(raw) if isinstance(raw, str) else raw
+                        if not isinstance(pinterest_boards, list):
+                            pinterest_boards = []
+                    except json.JSONDecodeError:
+                        pinterest_boards = []
+            if pinterest_boards:
+                boards_with_count = []
+                for b in pinterest_boards:
+                    if not isinstance(b, dict) or not b.get("slug"):
+                        continue
+                    slug = (b.get("slug") or "").strip()
+                    cur = db_execute(conn, """SELECT COUNT(*) as c FROM article_content ac
+                        JOIN titles t ON t.id = ac.title_id WHERE t.domain_id = ? AND ac.language_code = 'en'
+                        AND TRIM(COALESCE(ac.pinterest_board_slug,'')) = ?""", (domain_id, slug))
+                    r = cur.fetchone()
+                    cnt = (dict_row(r).get("c") or 0) if r else 0
+                    boards_with_count.append({"name": b.get("name") or slug, "slug": slug, "count": cnt})
+                pinterest_boards = boards_with_count
+    if not pinterest_boards:
+        raise ValueError("Domain has no Pinterest boards; add boards in Pinterest setup first")
+    user_config = get_user_config_for_api(user_id) if user_id else {}
+    provider = (ai_provider or "").strip().lower() or (user_config.get("ai_provider") or "openrouter")
+    out = generate_image_prompts_for_title(
+        title_text,
+        categories_list=[],
+        user_config=user_config,
+        ai_provider=provider,
+        openai_model=openai_model or user_config.get("openai_model"),
+        openrouter_model=openrouter_model or user_config.get("openrouter_model"),
+        local_model=local_model or user_config.get("local_models", "qwen3:8b").split(",")[0].strip() if user_config.get("local_models") else None,
+        llamacpp_model_id=llamacpp_model_id if llamacpp_model_id is not None else user_config.get("llamacpp_model_id"),
+        pinterest_boards=pinterest_boards,
+    )
+    if out.get("error"):
+        raise ValueError(out["error"])
+    board_slug = (out.get("board_slug") or "").strip()
+    if not board_slug:
+        raise ValueError("AI did not return a board_slug")
+    with get_connection() as conn:
+        cur = db_execute(conn, """SELECT t.id FROM titles t JOIN domains d ON t.domain_id = d.id
+            WHERE COALESCE(t.group_id, d.group_id) = ? AND t.title = ? AND d.domain_index IN (0,1,2,3) ORDER BY d.domain_index""", (gid_val, title_text))
+        title_ids = [dict_row(r).get("id") for r in cur.fetchall()]
+        for tid in title_ids:
+            if tid:
+                db_execute(conn, "UPDATE article_content SET pinterest_board_slug = ? WHERE title_id = ? AND language_code = 'en'", (board_slug, tid))
+    return {"board_slug": board_slug}
 
 
 @app.route("/api/generate-prompts", methods=["POST"])
@@ -7873,8 +8209,8 @@ def api_generate_prompts():
 
 
 def _do_generate_main_image(title_id, user_id=None):
-    """Core logic for generate-main-image. Retries once on failure. Sets status_error if fails after retry."""
-    from imagine import generate_4_images
+    """Core logic for generate-main-image. Uses multi-channel: try each channel until one succeeds. Sets status_error if all fail."""
+    from imagine import generate_4_images_multi_channel
     with get_connection() as conn:
         cur = db_execute(conn, "SELECT t.id, t.title, t.group_id, d.domain_index FROM titles t JOIN domains d ON t.domain_id = d.id WHERE t.id = ?", (title_id,))
         t = dict_row(cur.fetchone())
@@ -7891,9 +8227,7 @@ def _do_generate_main_image(title_id, user_id=None):
     if len(title_ids) < 1:
         raise ValueError("No titles found for this recipe in the group.")
     user_config = get_user_config_for_api(user_id) if user_id else {}
-    urls, err = generate_4_images(prompt, key_prefix="main_image", user_config=user_config)
-    if err:
-        urls, err = generate_4_images(prompt, key_prefix="main_image", user_config=user_config)  # retry once
+    urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", user_config=user_config)
     if err:
         err_msg = f"main_image failed: {err}"
         with get_connection() as conn:
@@ -7964,8 +8298,8 @@ def api_generate_main_image():
 
 
 def _do_generate_ingredient_image(title_id, user_id=None):
-    """Core logic for generate-ingredient-image. Requires main_image first. Retries once. Sets status_error if fails."""
-    from imagine import generate_4_images
+    """Core logic for generate-ingredient-image. Requires main_image first. Uses multi-channel: try each channel until one succeeds."""
+    from imagine import generate_4_images_multi_channel
     with get_connection() as conn:
         cur = db_execute(conn, "SELECT t.id, t.title, t.group_id, d.domain_index FROM titles t JOIN domains d ON t.domain_id = d.id WHERE t.id = ?", (title_id,))
         t = dict_row(cur.fetchone())
@@ -7985,9 +8319,7 @@ def _do_generate_ingredient_image(title_id, user_id=None):
     if len(title_ids) < 1:
         raise ValueError("No titles found for this recipe in the group.")
     user_config = get_user_config_for_api(user_id) if user_id else {}
-    urls, err = generate_4_images(prompt, key_prefix="ingredient_image", user_config=user_config)
-    if err:
-        urls, err = generate_4_images(prompt, key_prefix="ingredient_image", user_config=user_config)  # retry once
+    urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="ingredient_image", user_config=user_config)
     if err:
         err_msg = f"ingredient_image failed: {err}"
         with get_connection() as conn:
@@ -8293,6 +8625,38 @@ def api_pinterest_pin_url():
     return jsonify({"url": base + "?" + params})
 
 
+def _domain_host_from_url(domain_url):
+    """Extract host from domain_url (e.g. 'https://elkhayati.site' or 'elkhayati.site' -> 'elkhayati.site')."""
+    u = (domain_url or "").strip().lower()
+    for p in ("https://", "http://"):
+        if u.startswith(p):
+            u = u[len(p):]
+            break
+    return u.split("/")[0].split(":")[0]
+
+
+@app.route("/rss/<slug>", methods=["GET"])
+def rss_board_by_domain_host(slug):
+    """
+    RSS 2.0 feed for a board when requested on the domain URL.
+    URL format: https://yourdomain.com/rss/{board_slug}
+    Resolves domain from request Host so the same app can serve multiple domains.
+    """
+    slug = (slug or "").strip().lower()
+    if not slug:
+        return jsonify({"error": "Board slug required"}), 400
+    host = (request.host or "").split(":")[0].lower().strip()
+    if not host or host in ("localhost", "127.0.0.1"):
+        return jsonify({"error": "Use /rss/domain/<id>/board/<slug> when not on the domain host"}), 404
+    with get_connection() as conn:
+        cur = db_execute(conn, "SELECT id, domain_url, domain_name FROM domains")
+        for r in cur.fetchall():
+            row = dict_row(r)
+            if _domain_host_from_url(row.get("domain_url")) == host:
+                return rss_domain_board_feed(row["id"], slug)
+    return jsonify({"error": "Domain not found for this host"}), 404
+
+
 @app.route("/rss/domain/<int:domain_id>", methods=["GET"])
 def rss_domain_feed(domain_id):
     """
@@ -8328,6 +8692,63 @@ def rss_domain_feed(domain_id):
     out.write("    <title>%s</title>\n" % feed_title)
     out.write("    <link>%s</link>\n" % html.escape(feed_link))
     out.write("    <description>Articles for %s</description>\n" % feed_title)
+    for r in rows:
+        title_id = r.get("title_id")
+        title = (r.get("title") or "").strip() or "Article %s" % title_id
+        desc = (r.get("pinterest_title") or r.get("recipe_title_pin") or title or "")[:500]
+        link = pinterest_build_article_url(domain_url, title_id) or ""
+        pin_img = (r.get("pin_image") or "").strip()
+        out.write("    <item>\n")
+        out.write("      <title>%s</title>\n" % html.escape(title))
+        out.write("      <link>%s</link>\n" % html.escape(link))
+        out.write("      <description>%s</description>\n" % html.escape(desc))
+        if pin_img and pin_img.startswith("http"):
+            out.write('      <enclosure url="%s" type="image/jpeg" />\n' % html.escape(pin_img))
+        out.write("    </item>\n")
+    out.write("  </channel>\n</rss>\n")
+    resp = make_response(out.getvalue())
+    resp.headers["Content-Type"] = "application/rss+xml; charset=utf-8"
+    return resp
+
+
+@app.route("/rss/domain/<int:domain_id>/board/<slug>", methods=["GET"])
+def rss_domain_board_feed(domain_id, slug):
+    """
+    RSS 2.0 feed for a single Pinterest board of a domain. Use one URL per board
+    in Pinterest: Settings → Create Pins in bulk → Auto-publish → Connect RSS feed.
+    Same items as domain feed for now; later can filter by board when articles are assigned to boards.
+    """
+    slug = (slug or "").strip().lower()
+    if not slug:
+        return jsonify({"error": "Board slug required"}), 400
+    with get_connection() as conn:
+        cur = db_execute(conn, "SELECT id, domain_url, domain_name FROM domains WHERE id = ?", (domain_id,))
+        row = dict_row(cur.fetchone())
+        if not row:
+            return jsonify({"error": "Domain not found"}), 404
+        domain_url = (row.get("domain_url") or "").strip()
+        domain_name = (row.get("domain_name") or domain_url or ("Domain %s" % domain_id))[:200]
+        cur = db_execute(conn, """
+            SELECT t.id AS title_id, t.title,
+                   ac.pin_image, ac.pinterest_title, ac.recipe_title_pin
+            FROM titles t
+            JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
+            WHERE t.domain_id = ?
+              AND ac.pin_image IS NOT NULL AND TRIM(ac.pin_image) != ''
+              AND TRIM(COALESCE(ac.pinterest_board_slug,'')) = ?
+            ORDER BY t.id DESC
+            LIMIT 100
+        """, (domain_id, slug))
+        rows = [dict_row(r) for r in cur.fetchall()]
+    feed_title = html.escape(domain_name) + " — " + html.escape(slug)
+    feed_link = (domain_url if domain_url.startswith("http") else "https://" + domain_url).rstrip("/") if domain_url else request.url_root.rstrip("/")
+    out = io.StringIO()
+    out.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+    out.write('<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">\n')
+    out.write("  <channel>\n")
+    out.write("    <title>%s</title>\n" % feed_title)
+    out.write("    <link>%s</link>\n" % html.escape(feed_link))
+    out.write("    <description>Articles for %s (board: %s)</description>\n" % (html.escape(domain_name), html.escape(slug)))
     for r in rows:
         title_id = r.get("title_id")
         title = (r.get("title") or "").strip() or "Article %s" % title_id
@@ -8789,7 +9210,7 @@ def api_domain_get(pk):
             db_execute(conn, "UPDATE domains SET domain_url = ?, domain_name = ? WHERE id = ?", (url, url, pk))
         return jsonify({"success": True, "id": pk, "domain_url": url})
     with get_connection() as conn:
-        cur = db_execute(conn, "SELECT id, domain_url, domain_name, domain_colors, domain_fonts, pinterest_board_id, pinterest_access_token, pinterest_app_id, pinterest_app_secret, pinterest_mode FROM domains WHERE id = ?", (pk,))
+        cur = db_execute(conn, "SELECT id, domain_url, domain_name, domain_colors, domain_fonts, pinterest_board_id, pinterest_boards, pinterest_access_token, pinterest_app_id, pinterest_app_secret, pinterest_mode, pinterest_domain_verify FROM domains WHERE id = ?", (pk,))
         row = dict_row(cur.fetchone())
     if not row:
         return jsonify({"error": "Domain not found"}), 404
@@ -8812,27 +9233,89 @@ def api_domain_get(pk):
     out["pinterest_app_id"] = (row.get("pinterest_app_id") or "").strip()
     out["pinterest_app_secret_set"] = bool((row.get("pinterest_app_secret") or "").strip())
     out["pinterest_configured"] = bool((row.get("pinterest_access_token") or "").strip() and (row.get("pinterest_board_id") or "").strip())
-    # RSS feed for Pinterest auto-pin (no API): connect in Pinterest → Auto-publish
-    out["pinterest_rss_feed_url"] = (request.url_root or "").rstrip("/") + "/rss/domain/" + str(pk)
+    # RSS feed for Pinterest auto-pin: public website URL + /rss.xml (deployed site serves this)
+    domain_url = (row.get("domain_url") or "").strip()
+    base = domain_url.rstrip("/") if domain_url else ""
+    rss_base = (request.url_root or "").rstrip("/")
+    out["pinterest_rss_feed_url"] = base + "/rss.xml" if base else rss_base + "/rss/domain/" + str(pk)
+    # Multi boards: each board has its own RSS URL
+    raw_boards = (row.get("pinterest_boards") or "").strip()
+    pinterest_boards = []
+    if raw_boards:
+        try:
+            pinterest_boards = json.loads(raw_boards) if isinstance(raw_boards, str) else raw_boards
+            if not isinstance(pinterest_boards, list):
+                pinterest_boards = []
+        except (json.JSONDecodeError, TypeError):
+            pass
+    for b in pinterest_boards:
+        if isinstance(b, dict) and b.get("slug"):
+            # Per-board RSS URL: https://domain/rss/{slug}.xml (static deploy serves rss/<slug>.xml)
+            base = (domain_url or "").strip().rstrip("/")
+            if base and not base.startswith("http"):
+                base = "https://" + base
+            b["rss_url"] = (base + "/rss/" + b["slug"] + ".xml") if base else (rss_base + "/rss/domain/" + str(pk) + "/board/" + b["slug"])
+    out["pinterest_boards"] = pinterest_boards
     out["pinterest_mode"] = (row.get("pinterest_mode") or "").strip() or None  # 'rss' | 'manual' | 'schedule'
+    out["pinterest_domain_verify"] = (row.get("pinterest_domain_verify") or "").strip() or None  # meta content for Pinterest claim
     return jsonify(out)
+
+
+def _slug_from_board_name(name):
+    """Generate URL-safe slug from board name: lowercase, spaces to hyphens, strip non-alphanumeric."""
+    if not name or not isinstance(name, str):
+        return ""
+    s = name.strip().lower()
+    s = " ".join(s.split())
+    s = "".join(c if c.isalnum() or c in " -" else "" for c in s)
+    s = "-".join(s.split()).strip("-")
+    return s[:128] if s else "board"
 
 
 @app.route("/api/domains/<int:pk>/pinterest", methods=["PUT"])
 @login_required
 def api_domain_pinterest(pk):
-    """Set Pinterest mode for domain: 'rss' (auto from feed), 'manual' (button per article), 'schedule' (Pinterest checks feed periodically)."""
+    """Set Pinterest mode, domain verify, and/or boards for domain."""
     data = request.get_json(silent=True) or {}
     mode = (data.get("pinterest_mode") or "").strip().lower()
-    if mode not in ("rss", "manual", "schedule", ""):
+    if mode and mode not in ("rss", "manual", "schedule"):
         return jsonify({"success": False, "error": "pinterest_mode must be rss, manual, or schedule"}), 400
     mode = mode if mode else None
+    pinterest_domain_verify = (data.get("pinterest_domain_verify") or "").strip() or None
+    if pinterest_domain_verify and len(pinterest_domain_verify) > 128:
+        pinterest_domain_verify = pinterest_domain_verify[:128]
+    raw_boards = data.get("pinterest_boards")
+    pinterest_boards_json = None
+    if raw_boards is not None:
+        if not isinstance(raw_boards, list):
+            return jsonify({"success": False, "error": "pinterest_boards must be an array"}), 400
+        seen_slugs = set()
+        normalized = []
+        for b in raw_boards:
+            if not isinstance(b, dict):
+                continue
+            name = (b.get("name") or "").strip() or "Board"
+            slug = (b.get("slug") or "").strip() or _slug_from_board_name(name)
+            if not slug:
+                slug = _slug_from_board_name(name)
+            slug = slug.lower().replace(" ", "-")[:64]
+            if slug in seen_slugs:
+                continue
+            seen_slugs.add(slug)
+            normalized.append({"name": name[:200], "slug": slug})
+        pinterest_boards_json = json.dumps(normalized)
     with get_connection() as conn:
-        cur = db_execute(conn, "SELECT id FROM domains WHERE id = ?", (pk,))
-        if not cur.fetchone():
+        cur = db_execute(conn, "SELECT id, pinterest_mode FROM domains WHERE id = ?", (pk,))
+        row = cur.fetchone()
+        if not row:
             return jsonify({"error": "Domain not found"}), 404
-        db_execute(conn, "UPDATE domains SET pinterest_mode = ? WHERE id = ?", (mode, pk))
-    return jsonify({"success": True, "pinterest_mode": mode})
+        new_mode = mode if mode is not None else (dict_row(row).get("pinterest_mode") or "")
+        if pinterest_boards_json is not None:
+            db_execute(conn, "UPDATE domains SET pinterest_mode = ?, pinterest_domain_verify = ?, pinterest_boards = ? WHERE id = ?",
+                       (new_mode or "", pinterest_domain_verify or "", pinterest_boards_json, pk))
+        else:
+            db_execute(conn, "UPDATE domains SET pinterest_mode = ?, pinterest_domain_verify = ? WHERE id = ?", (new_mode or "", pinterest_domain_verify or "", pk))
+    return jsonify({"success": True, "pinterest_mode": mode, "pinterest_domain_verify": pinterest_domain_verify})
 
 
 @app.route("/api/domains/<int:pk>/change-group", methods=["PUT"])
@@ -8891,7 +9374,6 @@ def api_domain_delete(pk):
         if title_ids:
             ph = ",".join(["?"] * len(title_ids))
             db_execute(conn, f"DELETE FROM article_content WHERE title_id IN ({ph})", tuple(title_ids))
-            db_execute(conn, f"DELETE FROM pinterest_schedule WHERE title_id IN ({ph})", tuple(title_ids))
             db_execute(conn, f"DELETE FROM titles WHERE id IN ({ph})", tuple(title_ids))
         db_execute(conn, "DELETE FROM domain_template_assignments WHERE domain_id = ?", (pk,))
         db_execute(conn, "DELETE FROM domain_templates WHERE domain_id = ?", (pk,))
@@ -8951,7 +9433,6 @@ def api_domains_delete_all():
 
             # Delete in order to respect foreign keys
             db_execute(conn, "DELETE FROM article_content")
-            db_execute(conn, "DELETE FROM pinterest_schedule")
             db_execute(conn, "DELETE FROM titles")
             db_execute(conn, "DELETE FROM domain_template_assignments")
             db_execute(conn, "DELETE FROM domain_templates")
@@ -8969,7 +9450,6 @@ def api_domains_delete_all():
             if title_ids:
                 title_placeholders = ",".join(["?"] * len(title_ids))
                 db_execute(conn, f"DELETE FROM article_content WHERE title_id IN ({title_placeholders})", tuple(title_ids))
-                db_execute(conn, f"DELETE FROM pinterest_schedule WHERE title_id IN ({title_placeholders})", tuple(title_ids))
                 db_execute(conn, f"DELETE FROM titles WHERE id IN ({title_placeholders})", tuple(title_ids))
 
             db_execute(conn, f"DELETE FROM domain_template_assignments WHERE domain_id IN ({placeholders})", tuple(user_domain_ids))
@@ -9025,7 +9505,6 @@ def api_domains_delete_group(group_id):
         if title_ids:
             title_placeholders = ",".join(["?"] * len(title_ids))
             db_execute(conn, f"DELETE FROM article_content WHERE title_id IN ({title_placeholders})", tuple(title_ids))
-            db_execute(conn, f"DELETE FROM pinterest_schedule WHERE title_id IN ({title_placeholders})", tuple(title_ids))
             db_execute(conn, f"DELETE FROM titles WHERE id IN ({title_placeholders})", tuple(title_ids))
 
         db_execute(conn, f"DELETE FROM user_domains WHERE domain_id IN ({domain_placeholders})", tuple(domain_ids))
@@ -9252,7 +9731,6 @@ def api_domains_multi_group_action():
                 return jsonify({"success": True, "count": 0, "message": "No titles"})
             t_ph = ",".join(["?"] * len(title_ids))
             db_execute(conn, f"DELETE FROM article_content WHERE title_id IN ({t_ph})", tuple(title_ids))
-            db_execute(conn, f"DELETE FROM pinterest_schedule WHERE title_id IN ({t_ph})", tuple(title_ids))
             db_execute(conn, f"DELETE FROM titles WHERE id IN ({t_ph})", tuple(title_ids))
             return jsonify({"success": True, "count": len(title_ids), "message": f"Deleted {len(title_ids)} title(s) in {len(group_ids)} group(s)"})
 
@@ -9262,7 +9740,6 @@ def api_domains_multi_group_action():
             if title_ids:
                 t_ph = ",".join(["?"] * len(title_ids))
                 db_execute(conn, f"DELETE FROM article_content WHERE title_id IN ({t_ph})", tuple(title_ids))
-                db_execute(conn, f"DELETE FROM pinterest_schedule WHERE title_id IN ({t_ph})", tuple(title_ids))
                 db_execute(conn, f"DELETE FROM titles WHERE id IN ({t_ph})", tuple(title_ids))
             db_execute(conn, f"DELETE FROM domain_template_assignments WHERE domain_id IN ({dom_ph})", tuple(domain_ids))
             db_execute(conn, f"DELETE FROM domain_templates WHERE domain_id IN ({dom_ph})", tuple(domain_ids))
@@ -9614,6 +10091,83 @@ def api_domain_website_template_put(pk):
                 WHERE language_code = 'en' AND title_id IN (SELECT id FROM titles WHERE domain_id = ?)
             """, (pk,))
     return jsonify({"success": True, "website_template": template})
+
+
+@app.route("/api/pinterest-suggest-boards", methods=["POST"])
+@login_required
+def api_pinterest_suggest_boards():
+    """Generate N Pinterest board names by AI. Body: count (int), context (str, optional), existing (list of names/slugs to avoid)."""
+    user = get_current_user()
+    user_id = user["id"]
+    user_config = get_user_config_for_api(user_id)
+    openai_key = user_config.get("openai_api_key")
+    openrouter_key = user_config.get("openrouter_api_key")
+    if not openai_key and not openrouter_key:
+        return jsonify({"success": False, "error": "OpenAI or OpenRouter API key not configured in your profile"}), 400
+    data = request.get_json(silent=True) or {}
+    count = data.get("count")
+    try:
+        count = int(count) if count is not None else 5
+    except (TypeError, ValueError):
+        count = 5
+    count = max(1, min(30, count))
+    context = (data.get("context") or "recipes, food").strip() or "recipes, food"
+    existing = data.get("existing") or []
+    if isinstance(existing, list):
+        existing = [str(x).strip().lower() for x in existing if x]
+    else:
+        existing = []
+    existing_set = set(existing)
+
+    def _slug(s):
+        return (s or "").strip().lower().replace(" ", "-").replace("_", "-")[:64]
+
+    try:
+        import openai
+        if openrouter_key:
+            client = openai.OpenAI(base_url="https://openrouter.ai/api/v1", api_key=openrouter_key)
+            ai_model = user_config.get("openrouter_model") or "openai/gpt-4o-mini"
+        else:
+            client = openai.OpenAI(api_key=openai_key)
+            ai_model = user_config.get("openai_model") or "gpt-4o-mini"
+
+        existing_str = ", ".join(repr(x) for x in (existing[:50] or ["(none)"]))
+        prompt = f"""Generate exactly {count} Pinterest board names for a food/recipe site. Theme/category: {context}.
+
+RULES:
+1. Return ONLY a JSON array of strings, e.g. ["Board One", "Board Two", ...]. No markdown, no explanation.
+2. Each name must be short (1-4 words), title-case, suitable for a Pinterest board.
+3. Do NOT use any of these existing names or slugs (avoid duplicates): {existing_str}
+4. All {count} names must be different from each other.
+5. Names should fit the theme "{context}" (e.g. Desserts, Chicken Recipes, Drinks, Vegetarian)."""
+
+        resp = client.chat.completions.create(
+            model=ai_model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.8,
+            max_tokens=500,
+        )
+        content = (resp.choices[0].message.content or "").strip()
+        content = content.replace("```json", "").replace("```", "").strip()
+        raw = json.loads(content)
+        if not isinstance(raw, list):
+            raw = [raw] if raw else []
+        names = []
+        seen_slugs = set(existing_set)
+        for item in raw:
+            name = (item if isinstance(item, str) else str(item)).strip()
+            if not name or len(name) > 100:
+                continue
+            slug = _slug(name)
+            if slug and slug not in seen_slugs:
+                seen_slugs.add(slug)
+                names.append(name)
+        return jsonify({"success": True, "names": names[:count]})
+    except json.JSONDecodeError as e:
+        return jsonify({"success": False, "error": f"Invalid response: {e}"}), 500
+    except Exception as e:
+        log.exception("[pinterest-suggest-boards] %s", e)
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @app.route("/api/generate-color-palette", methods=["POST"])
@@ -10313,43 +10867,88 @@ def api_writers_pool_get():
 @login_required
 def api_writers_pool_generate():
     """Generate writers with AI and add to pool. Body: { batches: N } — each batch = 4 writers (1 Midjourney job).
-    batches=10 → 10×4=40 writers."""
-    try:
-        user = get_current_user()
-        user_id = user["id"]
-        data = request.get_json(silent=True) or {}
-        batches = int(data.get("batches", 1))
-        batches = max(1, min(batches, 50))
-        user_config = get_user_config_for_api(user_id)
-        api_key = user_config.get("openai_api_key")
-        model = user_config.get("openai_model") or OPENAI_MODEL
-        base_url = None
-        if not api_key and user_config.get("openrouter_api_key"):
-            api_key = user_config.get("openrouter_api_key")
-            model = user_config.get("openrouter_model") or "openai/gpt-4o-mini"
-            base_url = "https://openrouter.ai/api/v1"
-        if not api_key:
-            return jsonify({"success": False, "error": "No OpenAI or OpenRouter API key. Add one in your profile."}), 400
+    Runs in background. Returns 202 with job_id for polling. batches=10 → 10×4=40 writers."""
+    user = get_current_user()
+    user_id = user["id"]
+    data = request.get_json(silent=True) or {}
+    batches = int(data.get("batches", 1))
+    batches = max(1, min(batches, 50))
+    user_config = get_user_config_for_api(user_id)
+    api_key = user_config.get("openai_api_key")
+    model = user_config.get("openai_model") or OPENAI_MODEL
+    base_url = None
+    if not api_key and user_config.get("openrouter_api_key"):
+        api_key = user_config.get("openrouter_api_key")
+        model = user_config.get("openrouter_model") or "openai/gpt-4o-mini"
+        base_url = "https://openrouter.ai/api/v1"
+    if not api_key:
+        return jsonify({"success": False, "error": "No OpenAI or OpenRouter API key. Add one in your profile."}), 400
 
-        all_writers = []
-        for b in range(batches):
-            writers = _generate_writers_with_ai("Food Blog", api_key=api_key, model=model, base_url=base_url)
-            try:
-                avatar_urls = _generate_writer_avatars_batch(writers, user_config=user_config)
-            except RuntimeError:
-                avatar_urls = []
-            for i, w in enumerate(writers):
-                w["avatar"] = avatar_urls[i] if i < len(avatar_urls) else ""
-            all_writers.extend(writers)
-            with get_connection() as conn:
-                for w in writers:
-                    db_execute(conn, "INSERT INTO writers_pool (user_id, name, title, bio, avatar) VALUES (?, ?, ?, ?, ?)",
-                               (user_id, w.get("name") or "", w.get("title") or "", w.get("bio") or "", w.get("avatar") or ""))
+    job_id = str(uuid.uuid4())
+    total = batches * 4
+    _bulk_progress[job_id] = {
+        "status": "running",
+        "message": "Starting...",
+        "current_title": "",
+        "type": "writers_pool",
+        "action": "Generate writers",
+        "batches": batches,
+        "total": total,
+        "done": 0,
+        "created_at": time.time(),
+        "steps": [],
+    }
 
-        return jsonify({"success": True, "writers": all_writers, "message": f"Added {len(all_writers)} writers to pool ({batches}×4)"})
-    except Exception as e:
-        log.error("[writers-pool] generate error: %s", e, exc_info=True)
-        return jsonify({"success": False, "error": str(e)}), 500
+    def _task():
+        try:
+            all_writers = []
+            avatar_errors = []
+            for b in range(batches):
+                _bulk_progress[job_id].update({
+                    "message": f"Batch {b + 1}/{batches} – generating writers...",
+                    "current_title": f"Batch {b + 1}/{batches}",
+                    "done": b * 4,
+                })
+                writers = _generate_writers_with_ai("Food Blog", api_key=api_key, model=model, base_url=base_url)
+                _bulk_progress[job_id].update({
+                    "message": f"Batch {b + 1}/{batches} – generating avatars...",
+                })
+                try:
+                    avatar_urls = _generate_writer_avatars_batch(writers, user_config=user_config)
+                except RuntimeError as e:
+                    avatar_urls = []
+                    avatar_errors.append(str(e))
+                for i, w in enumerate(writers):
+                    w["avatar"] = avatar_urls[i] if i < len(avatar_urls) else ""
+                all_writers.extend(writers)
+                with get_connection() as conn:
+                    for w in writers:
+                        db_execute(conn, "INSERT INTO writers_pool (user_id, name, title, bio, avatar) VALUES (?, ?, ?, ?, ?)",
+                                   (user_id, w.get("name") or "", w.get("title") or "", w.get("bio") or "", w.get("avatar") or ""))
+                steps = _bulk_progress[job_id].get("steps", [])
+                steps.append(f"Batch {b + 1} ✓ – {len(writers)} writers")
+                _bulk_progress[job_id]["steps"] = steps[-20:]
+                _bulk_progress[job_id]["done"] = (b + 1) * 4
+
+            _bulk_progress[job_id].update({
+                "status": "done",
+                "message": f"Added {len(all_writers)} writers to pool ({batches}×4)",
+                "done": total,
+            })
+            if avatar_errors:
+                _bulk_progress[job_id]["avatar_error"] = avatar_errors[0] if len(avatar_errors) == 1 else "; ".join(avatar_errors)
+                _bulk_progress[job_id]["avatar_warning"] = "Avatars could not be generated for some batches."
+            log.info("[writers-pool] job %s completed: %d writers", job_id[:8], len(all_writers))
+        except Exception as e:
+            log.error("[writers-pool] job %s error: %s", job_id[:8], e, exc_info=True)
+            _bulk_progress[job_id].update({
+                "status": "error",
+                "message": str(e)[:500],
+                "error_detail": str(e)[:500],
+            })
+
+    threading.Thread(target=_task, daemon=True).start()
+    return jsonify({"success": True, "job_id": job_id}), 202
 
 
 @app.route("/api/writers-pool/<int:wid>", methods=["DELETE"])
@@ -11112,8 +11711,8 @@ def _generate_writer_avatars_batch(writers: list, user_config: dict = None) -> l
     log.info(f"[generate-writer-avatars] Generating 4 {descriptor} avatars with ONE Midjourney job")
     log.info(f"[generate-writer-avatars] Prompt: {prompt}")
     
-    # Use the same generate_4_images function; pass user_config for Midjourney/R2 from profile
-    urls, err = imagine.generate_4_images(prompt, key_prefix="writer_avatars", user_config=user_config or {})
+    # Use multi-channel: try each channel in sequence until one succeeds
+    urls, err, _ = imagine.generate_4_images_multi_channel(prompt, key_prefix="writer_avatars", user_config=user_config or {})
     
     if err:
         log.error(f"[generate-writer-avatars] Failed: {err}")
@@ -11552,6 +12151,7 @@ def admin_writers():
     content = """
     <h2>Writers Pool</h2>
     <p class="text-muted">Add writers to your pool. When you bulk add domains, each domain gets 2 writers chosen randomly from this pool. Each batch = 4 writers (1 Midjourney job).</p>
+    <div id="running-tasks-panel" class="mb-3" style="display:none"></div>
     <div class="mb-3 d-flex align-items-center gap-2 flex-wrap">
       <label class="form-label mb-0">Batches:</label>
       <input type="number" id="writersBatchCount" class="form-control" min="1" max="50" value="1" style="width:70px;">
@@ -11616,14 +12216,39 @@ def admin_writers():
       text.classList.add('d-none');
       loading.classList.remove('d-none');
       btn.disabled = true;
-      fetch('/api/writers-pool/generate', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({batches: batches})})
-        .then(r => r.json())
-        .then(function(d) {
-          if (d.success) { loadWritersPool(); alert('Added ' + total + ' writers to pool!'); }
-          else { alert('Error: ' + (d.error || 'Unknown')); }
+      fetch('/api/writers-pool/generate', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({batches: batches}) })
+        .then(function(r) {
+          if (r.status === 202) return r.json();
+          return r.json().then(function(d) { throw new Error(d.error || 'Failed'); });
         })
-        .catch(function(e) { alert('Error: ' + e); })
-        .finally(function() {
+        .then(function(d) {
+          if (d.success && d.job_id) {
+            if (typeof refreshRunningTasks==='function') refreshRunningTasks();
+            var jobId = d.job_id;
+            var iv = setInterval(function() {
+              fetch('/api/bulk-run-status?job_id=' + jobId).then(function(res) { return res.json(); })
+                .then(function(s) {
+                  if (typeof refreshRunningTasks==='function') refreshRunningTasks();
+                  if (s.status === 'done' || s.status === 'error') {
+                    clearInterval(iv);
+                    loadWritersPool();
+                    text.textContent = 'Generate';
+                    text.classList.remove('d-none');
+                    loading.classList.add('d-none');
+                    btn.disabled = false;
+                    if (s.status === 'done') {
+                      var msg = 'Added ' + (s.done || total) + ' writers to pool!';
+                      if (s.avatar_error) msg += '\\n\\n' + s.avatar_error;
+                      if (s.avatar_warning) msg += '\\n\\n' + s.avatar_warning;
+                      alert(msg);
+                    } else alert('Error: ' + (s.message || s.error_detail || 'Unknown'));
+                  }
+                });
+            }, 1500);
+          }
+        })
+        .catch(function(e) {
+          alert('Error: ' + (e.message || e));
           text.textContent = 'Generate';
           text.classList.remove('d-none');
           loading.classList.add('d-none');
@@ -11893,6 +12518,16 @@ def admin_domains():
     # Get user's accessible domain IDs
     user_domain_ids = get_user_domain_ids(user_id, is_admin)
     
+    # If domain_id given but no group_id, redirect to domain's group
+    if filter_domain_id and not filter_group_id:
+        with get_connection() as conn:
+            cur = db_execute(conn, "SELECT group_id FROM domains WHERE id = ?", (filter_domain_id,))
+            row = cur.fetchone()
+        if row:
+            gid = dict_row(row).get("group_id")
+            if gid:
+                return redirect(url_for("admin_domains", group_id=gid, domain_id=filter_domain_id))
+    
     # If no group selected, show group selector page
     if not filter_group_id:
         with get_connection() as conn:
@@ -12133,6 +12768,7 @@ def admin_domains():
               <h2 class="mb-0">Select a Group</h2>
               <button type="button" class="btn btn-success" onclick="showCreateGroupModal()">+ Create New Group</button>
             </div>
+            <div id="running-tasks-panel" class="mb-3" style="display:none"></div>
             <div class="alert alert-info">
               <strong>📁 Select a top-level parent group to manage domains</strong><br>
               Showing only top-level parent groups. Each group can have multiple subgroups with domains. Check groups to perform actions on multiple groups.
@@ -12281,7 +12917,8 @@ def admin_domains():
                 header_template, footer_template,
                 side_article_template, category_page_template, writer_template, writers,
                 domain_page_about_us, domain_page_terms_of_use, domain_page_privacy_policy, domain_page_gdpr_policy,
-                domain_page_cookie_policy, domain_page_copyright_policy, domain_page_disclaimer, domain_page_contact_us
+                domain_page_cookie_policy, domain_page_copyright_policy, domain_page_disclaimer, domain_page_contact_us,
+                pinterest_boards
                 FROM domains
                 WHERE id = ?{user_domain_filter}""", (filter_domain_id,) + tuple(user_domain_params))
         elif group_ids_to_include:
@@ -12291,7 +12928,8 @@ def admin_domains():
                 header_template, footer_template,
                 side_article_template, category_page_template, writer_template, writers,
                 domain_page_about_us, domain_page_terms_of_use, domain_page_privacy_policy, domain_page_gdpr_policy,
-                domain_page_cookie_policy, domain_page_copyright_policy, domain_page_disclaimer, domain_page_contact_us
+                domain_page_cookie_policy, domain_page_copyright_policy, domain_page_disclaimer, domain_page_contact_us,
+                pinterest_boards
                 FROM domains
                 WHERE group_id IN ({placeholders}){user_domain_filter}
                 ORDER BY COALESCE(group_id, 0), COALESCE(domain_index, 0)""", tuple(group_ids_to_include) + tuple(user_domain_params))
@@ -12301,7 +12939,8 @@ def admin_domains():
                 header_template, footer_template,
                 side_article_template, category_page_template, writer_template, writers,
                 domain_page_about_us, domain_page_terms_of_use, domain_page_privacy_policy, domain_page_gdpr_policy,
-                domain_page_cookie_policy, domain_page_copyright_policy, domain_page_disclaimer, domain_page_contact_us
+                domain_page_cookie_policy, domain_page_copyright_policy, domain_page_disclaimer, domain_page_contact_us,
+                pinterest_boards
                 FROM domains
                 WHERE 1=1{user_domain_filter}
                 ORDER BY (group_id IS NULL), COALESCE(group_id, 0), COALESCE(domain_index, 0)""", tuple(user_domain_params))
@@ -12691,32 +13330,92 @@ def admin_domains():
             except json.JSONDecodeError:
                 pass
         status = cf.get("status", "")
-        # Determine badge state: check if pages.dev is up but custom domain is down
         checks = cf.get("check_details") or []
         pages_up = any(c.get("up") and ".pages.dev" in (c.get("url") or "") for c in checks)
         custom_up = any(c.get("up") and ".pages.dev" not in (c.get("url") or "") for c in checks)
         if checks:
             if pages_up and custom_up:
-                badge_cls, badge_label = "success", "up"
+                site_cls, site_label = "success", "up"
             elif pages_up and not custom_up:
-                badge_cls, badge_label = "warning", "↑ pages / ↓ domain"
+                site_cls, site_label = "warning", "↑pages"
             elif status == "up":
-                badge_cls, badge_label = "success", "up"
+                site_cls, site_label = "success", "up"
             else:
-                badge_cls, badge_label = "danger", "down"
+                site_cls, site_label = "danger", "down"
         elif status == "up":
-            badge_cls, badge_label = "success", "up"
+            site_cls, site_label = "success", "up"
+        elif status == "project_missing":
+            site_cls, site_label = "warning", "deploy"
         elif status in ("down", "error"):
-            badge_cls, badge_label = "danger", status
+            site_cls, site_label = "danger", status
         else:
-            badge_cls, badge_label = "secondary", status or "—"
-        badge = f'<span class="badge bg-{badge_cls} cf-info-badge" data-domain-id="{did}" data-cf-json="{html.escape(cf_raw or "{}", quote=True)}" title="Click to view full JSON">{badge_label}</span>' if cf else '<span class="text-muted">—</span>'
+            site_cls, site_label = "secondary", "—"
+        site_badge = f'<span class="badge bg-{site_cls} cf-info-badge" data-domain-id="{did}" data-cf-json="{html.escape(cf_raw or "{}", quote=True)}" title="Site: {site_label} — Click to view details" style="cursor:pointer">Site {site_label}</span>' if (cf or status) else '<span class="badge bg-secondary" title="Click ↻ to check">Site —</span>'
         dns_setup = cf.get("dns_setup", False)
-        dns_badge = f'<span class="badge bg-{"success" if dns_setup else "secondary"}" title="DNS zone in Cloudflare: {"yes" if dns_setup else "no"}">DNS{"✓" if dns_setup else "✗"}</span>'
+        dns_badge = f'<span class="badge bg-{"success" if dns_setup else "secondary"}" title="DNS in your Cloudflare: {"configured" if dns_setup else "not configured"}">DNS{"✓" if dns_setup else "✗"}</span>'
+        deploys = cf.get("deployments") or []
+        deploy_badge = '<span class="text-muted small">—</span>'
+        if deploys:
+            created_on = deploys[0].get("created_on") or ""
+            if created_on:
+                import datetime as _dt
+                try:
+                    ts = _dt.datetime.fromisoformat(created_on.replace("Z", "+00:00"))
+                    now = _dt.datetime.now(_dt.timezone.utc)
+                    diff = now - ts
+                    days = diff.days
+                    if days == 0:
+                        hours = diff.seconds // 3600
+                        label = f"{hours}h" if hours > 0 else "now"
+                    elif days == 1:
+                        label = "1d"
+                    elif days < 30:
+                        label = f"{days}d"
+                    else:
+                        label = created_on[:10]
+                    deploy_badge = f'<span class="badge bg-light text-dark" title="Last deploy: {html.escape(created_on)}">{label}</span>'
+                except Exception:
+                    deploy_badge = f'<span class="badge bg-light text-dark" title="{html.escape(created_on[:19])}">{created_on[:10]}</span>'
         dns_btn = f'<button type="button" class="btn btn-sm btn-outline-primary cf-dns-btn" data-domain-id="{did}" data-domain-url="{html.escape(d.get("domain_url") or "")}" title="Setup DNS in Cloudflare">DNS</button>'
         ver_btn = f'<button type="button" class="btn btn-sm btn-outline-secondary cf-versions-btn" data-domain-id="{did}" data-domain-url="{html.escape(d.get("domain_url") or "")}" title="Manage deployment versions">🕓</button>'
         deploy_btn = f'<button type="button" class="btn btn-sm btn-info deploy-cf-btn" data-domain-id="{did}" title="Deploy to Cloudflare">☁️</button>'
-        return f'<div class="cloudflare-cell d-flex align-items-center gap-1">{deploy_btn}{dns_btn}{ver_btn}{dns_badge}{badge}</div>'
+        fetch_btn = f'<button type="button" class="btn btn-sm btn-outline-secondary cf-fetch-btn" data-domain-id="{did}" title="Refresh status">↻</button>'
+        status_row = f'<div class="d-flex flex-wrap align-items-center gap-1" style="font-size:0.65rem;line-height:1.2"><span>{dns_badge}</span><span>{site_badge}</span><span>{deploy_badge}</span></div>'
+        return f'<div class="cloudflare-cell d-flex flex-column gap-1"><div class="d-flex align-items-center gap-1">{deploy_btn}{dns_btn}{ver_btn}{fetch_btn}</div>{status_row}</div>'
+
+    def boards_cell(d):
+        """Pinterest boards column: show first 2 boards + (+N rest). Click 📌 to see/manage all."""
+        did = d["id"]
+        domain_url = (d.get("domain_url") or d.get("domain_name") or "").strip() or ""
+        base = domain_url.rstrip("/") if domain_url else ""
+        if base and not base.startswith(("http://", "https://")):
+            base = "https://" + base
+        raw_boards = (d.get("pinterest_boards") or "").strip()
+        boards = []
+        if raw_boards:
+            try:
+                boards = json.loads(raw_boards) if isinstance(raw_boards, str) else raw_boards
+                if not isinstance(boards, list):
+                    boards = []
+            except (json.JSONDecodeError, TypeError):
+                pass
+        tags = []
+        for b in boards:
+            if isinstance(b, dict) and b.get("slug"):
+                name = (b.get("name") or b.get("slug") or "").strip() or b.get("slug")
+                slug = b.get("slug")
+                rss_url = (base + "/rss/" + slug + ".xml") if base else ""
+                if rss_url:
+                    tags.append(f'<span class="board-tag board-copy-rss" data-rss-url="{html.escape(rss_url, quote=True)}" title="Click to copy RSS URL">{html.escape(name)}</span>')
+                else:
+                    tags.append(f'<span class="board-tag text-muted">{html.escape(name)}</span>')
+        # Show only first 2 tags + (+N) for the rest
+        show_tags = tags[:2]
+        rest_count = len(tags) - 2
+        rest_html = f'<span class="board-rest-count" title="Click 📌 to see all boards">+{rest_count}</span>' if rest_count > 0 else ""
+        tags_html = "".join(show_tags) + rest_html if (show_tags or rest_html) else '<span class="text-muted small">—</span>'
+        pin_btn = f'<button type="button" class="boards-pin-btn pinterest-setup-btn" data-domain-id="{did}" data-domain-name="{html.escape(domain_url or "-", quote=True)}" title="Pinterest: see all boards &amp; RSS">📌</button>'
+        return f'<div class="boards-cell" data-domain-id="{did}"><div class="boards-list">{tags_html}</div>{pin_btn}</div>'
 
     prev_gid = None
     row_parts = []
@@ -12734,6 +13433,7 @@ def admin_domains():
         f'<td class="text-muted small">{d["id"]}</td>'
         f'<td class="domain-url-cell">{domain_url_cell(d, abcd)}</td>'
         f'<td class="cloudflare-td">{cloudflare_cell(d)}</td>'
+        f'<td class="boards-td">{boards_cell(d)}</td>'
         f'<td class="colors-td">{colors_cell(d["id"], d.get("domain_colors"))}</td>'
         f'<td class="fonts-td">{fonts_cell(d["id"], d.get("domain_fonts"))}</td>'
         f'<td class="categories-td">{categories_cell(d["id"], d.get("categories_list"))}</td>'
@@ -12747,7 +13447,6 @@ def admin_domains():
         f'<a href="/preview-website/{d["id"]}" class="btn btn-success" target="_blank" title="View site">👁</a>'
         f'<button type="button" class="btn btn-outline-primary list-domain-articles-btn" data-domain-id="{d["id"]}" data-domain-url="{html.escape((d.get("domain_url") or "").strip() or "-")}" title="List all articles in this domain">Articles</button>'
         f'<button type="button" class="btn btn-outline-warning clear-articles-domain-btn" data-domain-id="{d["id"]}" data-domain-url="{html.escape((d.get("domain_url") or "").strip() or "-", quote=True)}" title="Clear all article content in this domain">🧹 Clear</button>'
-        f'<button type="button" class="btn btn-outline-danger pinterest-setup-btn" data-domain-id="{d["id"]}" data-domain-name="{html.escape((d.get("domain_url") or d.get("domain_name") or "").strip() or "-", quote=True)}" title="Pinterest setup (RSS, schedule, manual)">📌</button>'
         f'<a href="/database-management?domain_id={d["id"]}" class="btn btn-outline-info" title="View in Database Management">📊</a>'
         f'<button type="button" class="btn btn-outline-danger delete-domain-btn" data-domain-id="{d["id"]}" title="Delete">🗑</button>'
         f'</div></td></tr>'
@@ -12761,8 +13460,9 @@ def admin_domains():
 
     run_this_group_btn_html = ""
     if filter_group_id:
-        gname = html.escape(next((g["name"] for g in all_groups if g["id"] == filter_group_id), "Current Group")).replace("'", "\\'")
-        run_this_group_btn_html = f'<button type="button" class="btn btn-primary btn-sm" onclick="openBulkGroupModal({filter_group_id}, \'{gname}\')" title="Run for all rows in this group">Run this group</button>'
+        gname_raw = next((g["name"] for g in all_groups if g["id"] == filter_group_id), "Current Group")
+        gname_js = json.dumps(gname_raw).replace('"', '&quot;')
+        run_this_group_btn_html = f'<button type="button" class="btn btn-primary btn-sm" onclick="openBulkGroupModal({filter_group_id}, {gname_js})" title="Run for all rows in this group">Run this group</button>'
 
     # Build group checkboxes for distribute titles (groups with domains in current view)
     dist_group_checkboxes = ""  # used in distribute form when filter_group_id is set
@@ -12800,22 +13500,33 @@ def admin_domains():
 
     bulk_deploy_panel_html = ""
     if bulk_job_id:
+        job_id_js = json.dumps(bulk_job_id)
         bulk_deploy_panel_html = f'''<div id="bulkDeployProgressPanel" class="card mb-3 border-info"><div class="card-header bg-info text-white py-2"><strong>☁️ Bulk Deploy in Progress</strong></div><div class="card-body py-2"><div class="progress mb-2" style="height:24px"><div id="bulkDeployProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-info" role="progressbar" style="width:0%">0%</div></div><p class="mb-1 small"><strong>Current:</strong> <span id="bulkDeployCurrent">Starting...</span></p><p class="mb-1 small text-muted"><strong>Generated:</strong> <span id="bulkDeployGenerated">—</span></p><p id="bulkDeployErrors" class="mb-0 small text-danger" style="display:none"></p></div></div><script>
 (function(){{
-  var jobId = "{bulk_job_id}";
+  var jobId = {job_id_js};
   var bar = document.getElementById("bulkDeployProgressBar");
   var curEl = document.getElementById("bulkDeployCurrent");
   var genEl = document.getElementById("bulkDeployGenerated");
   var errEl = document.getElementById("bulkDeployErrors");
+  function hidePanelAndCleanUrl(){{
+    var panel = document.getElementById("bulkDeployProgressPanel");
+    if(panel) panel.style.display = "none";
+    var u = new URL(window.location.href);
+    u.searchParams.delete("bulk_job_id");
+    if(u.searchParams.toString()) u.search = "?"+u.searchParams.toString();
+    else u.search = "";
+    history.replaceState({{}}, "", u.toString());
+  }}
   function poll(){{
     fetch("/api/bulk-deploy-job/"+jobId).then(r=>r.json()).then(function(d){{
-      if(!d.found) return;
+      if(!d.found){{ hidePanelAndCleanUrl(); return; }}
       if(bar){{ bar.style.width = (d.percent||0)+"%"; bar.textContent = (d.percent||0)+"%"; }}
       if(curEl) curEl.textContent = d.current ? "Generating "+d.current+"..." : (d.complete ? "Done" : "Starting...");
       if(genEl) genEl.textContent = (d.generated||[]).length ? (d.generated||[]).join(", ") : "—";
       if(d.errors&&d.errors.length&&errEl){{ errEl.style.display="block"; errEl.innerHTML="Errors: "+d.errors.map(function(x){{return x.url+": "+x.error;}}).join("; "); }}
       if(d.complete && bar){{ bar.classList.remove("progress-bar-animated"); bar.classList.add("bg-success"); }}
-      if(!d.complete) setTimeout(poll, 2000);
+      if(d.complete) {{ hidePanelAndCleanUrl(); return; }}
+      setTimeout(poll, 2000);
     }}).catch(function(){{ setTimeout(poll, 3000); }});
   }}
   poll();
@@ -12832,7 +13543,19 @@ def admin_domains():
     .domains-table .col-id, .domains-table td.text-muted.small:first-child {{ width: 32px; }}
     .domains-table .col-domain, .domains-table .domain-url-cell {{ max-width: 220px; }}
     .domains-table .col-last-deploy, .domains-table .last-deploy-td {{ width: 80px; white-space: nowrap; text-align: center; }}
-    .domains-table .col-cf, .domains-table .cloudflare-td {{ white-space: nowrap; }}
+    .domains-table .col-cf {{ min-width: 140px; }}
+    .domains-table .cloudflare-td {{ white-space: normal; }}
+    .domains-table .col-boards {{ min-width: 100px; max-width: 180px; }}
+    .domains-table .boards-td {{ font-size: 0.75rem; vertical-align: top; }}
+    .domains-table .boards-cell {{ display: flex; flex-direction: column; gap: 4px; }}
+    .domains-table .boards-list {{ display: flex; flex-wrap: wrap; gap: 4px; align-items: center; line-height: 1.3; }}
+    .domains-table .board-tag {{ display: inline-block; padding: 1px 6px; font-size: 0.65rem; border-radius: 4px; background: #e9ecef; color: #495057; cursor: pointer; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; border: 1px solid #dee2e6; }}
+    .domains-table .board-tag:hover {{ background: #dee2e6; color: #0d6efd; }}
+    .domains-table .board-tag.text-muted {{ cursor: default; }}
+    .domains-table .board-rest-count {{ font-size: 0.65rem; color: #6c757d; padding: 0 4px; }}
+    .domains-table .boards-pin-btn {{ padding: 2px 6px; font-size: 0.7rem; line-height: 1; border: 1px solid #dc3545; background: transparent; color: #dc3545; border-radius: 4px; cursor: pointer; flex-shrink: 0; }}
+    .domains-table .boards-pin-btn:hover {{ background: #dc3545; color: #fff; }}
+    .domains-table .board-copy-rss {{ cursor: pointer; }}
     .domains-table .col-actions, .domains-table .actions-cell {{ white-space: nowrap; }}
     .domains-table .btn {{ white-space: nowrap; }}
     .cf-info-badge {{ cursor: pointer; }}
@@ -13264,7 +13987,7 @@ def admin_domains():
 
     <div id="cfRefreshStatus" class="alert alert-info py-2 mb-2" style="display:none;"><span class="spinner-border spinner-border-sm me-2" role="status"></span><span id="cfRefreshStatusText">Updating Cloudflare status for all domains...</span></div>
     <div class="table-responsive">
-    <table class="table table-sm table-hover table-bordered domains-table"><thead class="table-light"><tr><th class="col-id">#</th><th class="col-domain">Domain</th><th class="col-cf">CF</th><th class="col-colors">Colors</th><th class="col-fonts">Fonts</th><th class="col-categories">Categories</th><th class="col-writers">Writers</th><th class="col-pins">Pins</th><th class="col-theme">Theme</th><th class="col-article">Article</th><th class="col-stats">Stats</th><th class="col-last-deploy">Deployed</th><th class="col-actions">Actions</th></tr></thead><tbody id="adminDomainsTableBody">{rows_html}</tbody></table>
+    <table class="table table-sm table-hover table-bordered domains-table"><thead class="table-light"><tr><th class="col-id">#</th><th class="col-domain">Domain</th><th class="col-cf">CF</th><th class="col-boards">Boards</th><th class="col-colors">Colors</th><th class="col-fonts">Fonts</th><th class="col-categories">Categories</th><th class="col-writers">Writers</th><th class="col-pins">Pins</th><th class="col-theme">Theme</th><th class="col-article">Article</th><th class="col-stats">Stats</th><th class="col-last-deploy">Deployed</th><th class="col-actions">Actions</th></tr></thead><tbody id="adminDomainsTableBody">{rows_html}</tbody></table>
     </div>
 
     <div id="articleEditorModal" class="modal fade" tabindex="-1">
@@ -13681,28 +14404,120 @@ def admin_domains():
         </div>
       </div>
     </div>
-    <div id="pinterestSetupModal" class="modal fade" tabindex="-1">
+    <div id="pinterestSetupModal" class="modal fade" tabindex="-1" aria-labelledby="pinterestSetupModalTitle">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content pinterest-setup-modal">
+          <div class="modal-header border-0 pb-0">
+            <div class="d-flex align-items-center gap-2">
+              <span class="pinterest-setup-icon" aria-hidden="true">📌</span>
+              <div>
+                <h5 class="modal-title mb-0" id="pinterestSetupModalTitle">Pinterest setup</h5>
+                <p class="text-muted small mb-0 mt-1"><span id="pinterestSetupDomainName"></span></p>
+              </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body pt-3">
+            <input type="hidden" id="pinterestSetupDomainId">
+            <div class="pinterest-setup-step card border-0 bg-light mb-3">
+              <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <span class="badge bg-primary rounded-circle p-2" style="width:28px;height:28px;font-size:0.7rem;line-height:1;">1</span>
+                  <h6 class="mb-0">Main RSS feed</h6>
+                </div>
+                <p class="small text-muted mb-2">Use this URL in Pinterest: <strong>Settings → Create Pins in bulk → Auto-publish → Connect RSS feed</strong>.</p>
+                <div class="input-group">
+                  <input type="text" id="pinterestFeedUrl" class="form-control form-control-sm font-monospace" readonly placeholder="https://yourdomain.com/rss.xml">
+                  <button type="button" class="btn btn-primary btn-sm" id="pinterestCopyFeedBtn" title="Copy URL">Copy URL</button>
+                </div>
+              </div>
+            </div>
+            <div class="pinterest-setup-step card border-0 bg-light mb-3">
+              <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <span class="badge bg-primary rounded-circle p-2" style="width:28px;height:28px;font-size:0.7rem;line-height:1;">2</span>
+                  <h6 class="mb-0">Boards (per-board RSS)</h6>
+                </div>
+                <p class="small text-muted mb-3">Each board has its own RSS URL. Add a board manually or generate names by AI (no duplicates).</p>
+                <div id="pinterestBoardsList" class="pinterest-boards-list mb-3"></div>
+                <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+                  <input type="text" id="pinterestNewBoardName" class="form-control form-control-sm" style="max-width:220px" placeholder="e.g. Desserts, Chicken, Drinks">
+                  <button type="button" class="btn btn-sm btn-primary" id="pinterestAddBoardBtn">+ Add board</button>
+                </div>
+                <div class="border rounded p-2 bg-white">
+                  <button type="button" class="btn btn-sm btn-outline-secondary mb-2" id="pinterestAiBoardsToggle" aria-expanded="false" data-bs-toggle="collapse" data-bs-target="#pinterestAiBoardsCollapse">✨ Add boards by AI</button>
+                  <div class="collapse" id="pinterestAiBoardsCollapse">
+                    <div class="d-flex align-items-end gap-2 flex-wrap">
+                      <div>
+                        <label class="form-label small mb-0">Number of boards</label>
+                        <input type="number" id="pinterestAiBoardCount" class="form-control form-control-sm" min="1" max="30" value="5" style="width:70px;">
+                      </div>
+                      <div class="flex-grow-1" style="min-width:140px;">
+                        <label class="form-label small mb-0">Category / theme (optional)</label>
+                        <input type="text" id="pinterestAiBoardContext" class="form-control form-control-sm" placeholder="e.g. recipes, food, desserts" value="recipes, food">
+                      </div>
+                      <button type="button" class="btn btn-sm btn-primary" id="pinterestAiBoardsGenerateBtn">
+                        <span class="btn-ai-text">Generate</span>
+                        <span class="btn-ai-loading d-none">Generating…</span>
+                      </button>
+                    </div>
+                    <p class="small text-muted mt-1 mb-0">AI will suggest names that do not duplicate your existing boards.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="pinterest-setup-step card border-0 bg-light mb-3">
+              <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <span class="badge bg-primary rounded-circle p-2" style="width:28px;height:28px;font-size:0.7rem;line-height:1;">3</span>
+                  <h6 class="mb-0">Claim your website</h6>
+                </div>
+                <p class="small text-muted mb-2">In Pinterest: <strong>Settings → Claim website → Add HTML tag</strong>. Copy the <code>content</code> value and paste it below. We inject it on all pages.</p>
+                <input type="text" id="pinterestVerifyInput" class="form-control form-control-sm font-monospace" placeholder="Paste meta content value (e.g. 2631e27b9e6ff01f...)">
+                <div id="pinterestVerifyStatus" class="small mt-2" style="display:none;"></div>
+              </div>
+            </div>
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <a href="https://www.pinterest.com/settings/claim" target="_blank" rel="noopener" class="btn btn-sm btn-outline-danger">Open Pinterest settings</a>
+            </div>
+          </div>
+          <div class="modal-footer border-0 pt-0">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-danger" id="pinterestVerifySaveBtn">Save boards &amp; verify tag</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <style>
+    .pinterest-setup-modal .modal-header {{ padding: 1rem 1.25rem; }}
+    .pinterest-setup-modal .modal-body {{ padding: 0 1.25rem 1rem; }}
+    .pinterest-setup-modal .modal-footer {{ padding: 0 1.25rem 1.25rem; }}
+    .pinterest-setup-icon {{ font-size: 1.75rem; }}
+    .pinterest-setup-step .card-body {{ padding: 1rem 1.25rem; }}
+    .pinterest-boards-list {{ min-height: 0; }}
+    .pinterest-board-row {{ display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 0.5rem 0.75rem; background: #fff; border-radius: 0.375rem; border: 1px solid #dee2e6; margin-bottom: 0.5rem; }}
+    .pinterest-board-row .pinterest-board-name {{ width: 120px; }}
+    .pinterest-board-row .pinterest-board-slug {{ width: 90px; font-size: 0.8rem; }}
+    .pinterest-board-row .pinterest-board-rss {{ flex: 1; min-width: 120px; font-size: 0.75rem; }}
+    .pinterest-board-row .btn {{ flex-shrink: 0; }}
+    </style>
+    <div id="deployCfModal" class="modal fade" tabindex="-1">
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header py-2">
-            <h5 class="modal-title">Pinterest RSS — <span id="pinterestSetupDomainName"></span></h5>
+            <h5 class="modal-title">Deploy to Cloudflare — <span id="deployCfDomainName"></span></h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <input type="hidden" id="pinterestSetupDomainId">
-            <p class="small text-muted mb-2">Connect this RSS feed in Pinterest. New articles are pinned automatically on Pinterest&apos;s schedule.</p>
-            <div class="mb-3">
-              <label class="form-label small fw-bold">RSS feed URL</label>
-              <div class="input-group input-group-sm">
-                <input type="text" id="pinterestFeedUrl" class="form-control" readonly>
-                <button type="button" class="btn btn-outline-secondary" id="pinterestCopyFeedBtn" title="Copy">Copy</button>
-              </div>
-              <div class="form-text small">Pinterest: Settings → Create Pins in bulk → Auto-publish → Connect RSS feed. (App must be deployed so the URL is reachable.)</div>
+            <p class="small text-muted mb-2">Deploy runs in the background. Progress is shown below.</p>
+            <div class="progress mb-2" style="height:1.5rem;">
+              <div id="deployCfProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width:0%">0%</div>
             </div>
-            <a href="https://www.pinterest.com" target="_blank" rel="noopener" class="btn btn-sm btn-outline-danger">Open Pinterest</a>
+            <div id="deployCfMessage" class="small text-muted">Starting…</div>
+            <div id="deployCfResult" class="mt-2" style="display:none;"></div>
           </div>
           <div class="modal-footer py-2">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-secondary" id="deployCfCloseBtn" data-bs-dismiss="modal">Close</button>
           </div>
         </div>
       </div>
@@ -14089,41 +14904,129 @@ def admin_domains():
           .finally(function() {{ btn.disabled = false; btn.textContent = 'Save'; }});
       }});
       
-      document.querySelectorAll('.deploy-cf-btn').forEach(function(btn) {{
-        btn.addEventListener('click', function() {{
-          var domainId = this.getAttribute('data-domain-id');
-          if (!domainId) return;
-          var orig = this.innerHTML;
-          this.disabled = true;
-          this.innerHTML = '...';
-          if (typeof showGlobalLoading === 'function') showGlobalLoading();
-          fetch('/api/domains/' + domainId + '/deploy-cloudflare', {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }} }})
-            .then(function(r) {{
-              return r.text().then(function(text) {{
-                try {{ return JSON.parse(text); }} catch(e) {{ return {{ success: false, error: text && text.indexOf('<') >= 0 ? 'Server error (check console)' : text || 'Unknown error' }}; }}
-              }});
-            }})
-            .then(function(data) {{
-              if (data && data.success) {{
-                if (data.url) {{
-                  window.open(data.url, '_blank');
-                  alert('Deployed! Live at: ' + data.url);
-                }} else {{
-                  alert('Deployed successfully.');
-                }}
+      document.addEventListener('click', function(e) {{
+        var btn = e.target.closest('.running-task-view-deploy');
+        if (!btn) return;
+        var did = btn.getAttribute('data-domain-id');
+        var url = btn.getAttribute('data-domain-url') || '';
+        if (typeof openDeployCfModalForDomain === 'function' && did) {{ e.preventDefault(); openDeployCfModalForDomain(did, url); }}
+      }});
+      var deployCfModal = document.getElementById('deployCfModal');
+      var deployCfBsModal = deployCfModal ? new bootstrap.Modal(deployCfModal) : null;
+      window.openDeployCfModalForDomain = function(domainId, domainName) {{
+        if (!deployCfBsModal || !domainId) return;
+        document.getElementById('deployCfDomainName').textContent = domainName || 'Domain ' + domainId;
+        document.getElementById('deployCfProgressBar').style.width = '0%';
+        document.getElementById('deployCfProgressBar').textContent = '0%';
+        document.getElementById('deployCfProgressBar').className = 'progress-bar progress-bar-striped progress-bar-animated';
+        document.getElementById('deployCfMessage').textContent = 'Loading…';
+        document.getElementById('deployCfResult').style.display = 'none';
+        document.getElementById('deployCfResult').innerHTML = '';
+        deployCfBsModal.show();
+        var poll = function() {{
+          fetch('/api/domains/' + domainId + '/deploy-cloudflare/status').then(function(res) {{ return res.json(); }}).then(function(s) {{
+            var pct = s.percent || 0;
+            document.getElementById('deployCfProgressBar').style.width = pct + '%';
+            document.getElementById('deployCfProgressBar').textContent = pct + '%';
+            document.getElementById('deployCfMessage').textContent = s.message || '';
+            if (s.done) {{
+              document.getElementById('deployCfProgressBar').classList.remove('progress-bar-animated');
+              if (s.status === 'success') {{
+                document.getElementById('deployCfProgressBar').classList.add('bg-success');
+                var res = s.result || {{}};
+                var url = res.url || '';
+                document.getElementById('deployCfResult').innerHTML = '<div class="alert alert-success py-2 mb-0">Deployed successfully.' + (url ? ' <a href="'+url+'" target="_blank" rel="noopener">'+url+'</a>' : '') + '</div>';
               }} else {{
-                var errMsg = data && data.error ? data.error : 'Unknown error';
-                if (data && data.traceback) console.error('Deploy traceback:', data.traceback);
-                alert('Deploy failed: ' + errMsg);
+                document.getElementById('deployCfProgressBar').classList.add('bg-danger');
+                document.getElementById('deployCfResult').innerHTML = '<div class="alert alert-danger py-2 mb-0">'+ (s.error || s.message || 'Failed').replace(/</g,'&lt;') + '</div>';
+              }}
+              document.getElementById('deployCfResult').style.display = 'block';
+              return;
+            }}
+            setTimeout(poll, 1500);
+          }});
+        }};
+        poll();
+      }};
+      (document.querySelector('.domains-table') || document).addEventListener('click', function(e) {{
+        var btn = e.target.closest('.deploy-cf-btn');
+        if (!btn) return;
+        e.preventDefault();
+        var domainId = btn.getAttribute('data-domain-id');
+        var domainName = btn.closest('.domains-row') ? (btn.closest('.domains-row').querySelector('.domain-url-link') || {{}}).textContent || 'Domain ' + domainId : 'Domain ' + domainId;
+        if (!domainId) return;
+          document.getElementById('deployCfDomainName').textContent = domainName;
+          document.getElementById('deployCfProgressBar').style.width = '0%';
+          document.getElementById('deployCfProgressBar').textContent = '0%';
+          document.getElementById('deployCfProgressBar').className = 'progress-bar progress-bar-striped progress-bar-animated';
+          document.getElementById('deployCfMessage').textContent = 'Starting…';
+          document.getElementById('deployCfMessage').className = 'small text-muted';
+          document.getElementById('deployCfResult').style.display = 'none';
+          document.getElementById('deployCfResult').innerHTML = '';
+          if (deployCfBsModal) deployCfBsModal.show();
+          var orig = btn.innerHTML;
+          btn.disabled = true;
+          btn.innerHTML = '...';
+          fetch('/api/domains/' + domainId + '/deploy-cloudflare', {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }} }})
+            .then(function(r) {{ return r.json().then(function(data) {{ return {{ status: r.status, data: data }}; }}); }})
+            .then(function(o) {{
+              var data = o.data;
+              if (data && data.success && o.status === 202) {{
+                var poll = function() {{
+                  fetch('/api/domains/' + domainId + '/deploy-cloudflare/status')
+                    .then(function(res) {{ return res.json(); }})
+                    .then(function(s) {{
+                      var pct = s.percent || 0;
+                      document.getElementById('deployCfProgressBar').style.width = pct + '%';
+                      document.getElementById('deployCfProgressBar').textContent = pct + '%';
+                      document.getElementById('deployCfMessage').textContent = s.message || '';
+                      if (s.done) {{
+                        document.getElementById('deployCfProgressBar').classList.remove('progress-bar-animated');
+                        if (s.status === 'success') {{
+                          document.getElementById('deployCfProgressBar').classList.add('bg-success');
+                          var res = s.result || {{}};
+                          var url = res.url || '';
+                          var html = '<div class="alert alert-success py-2 mb-0">Deployed successfully.';
+                          if (url) html += ' <a href="'+url+'" target="_blank" rel="noopener">'+url+'</a>';
+                          html += '</div>';
+                          document.getElementById('deployCfResult').innerHTML = html;
+                          document.getElementById('deployCfResult').style.display = 'block';
+                          if (url) window.open(url, '_blank');
+                        }} else {{
+                          document.getElementById('deployCfProgressBar').classList.add('bg-danger');
+                          document.getElementById('deployCfResult').innerHTML = '<div class="alert alert-danger py-2 mb-0">'+ (s.error || s.message || 'Failed').replace(/</g,'&lt;') + '</div>';
+                          document.getElementById('deployCfResult').style.display = 'block';
+                        }}
+                        return;
+                      }}
+                      setTimeout(poll, 1500);
+                    }})
+                    .catch(function() {{ document.getElementById('deployCfMessage').textContent = 'Could not fetch status'; setTimeout(poll, 2000); }});
+                }};
+                poll();
+              }} else if (data && data.error) {{
+                document.getElementById('deployCfMessage').textContent = data.error;
+                document.getElementById('deployCfProgressBar').classList.remove('progress-bar-animated');
+                document.getElementById('deployCfProgressBar').classList.add('bg-danger');
+                document.getElementById('deployCfResult').innerHTML = '<div class="alert alert-danger py-2 mb-0">'+ (data.error || '').replace(/</g,'&lt;') + '</div>';
+                document.getElementById('deployCfResult').style.display = 'block';
+              }} else {{
+                if (deployCfBsModal) deployCfBsModal.hide();
+                alert(data && data.error ? data.error : 'Deploy failed');
               }}
             }})
-            .catch(function(err) {{ alert('Deploy failed: ' + (err.message || 'Network error')); }})
+            .catch(function(err) {{
+              document.getElementById('deployCfMessage').textContent = err.message || 'Network error';
+              document.getElementById('deployCfProgressBar').classList.remove('progress-bar-animated');
+              document.getElementById('deployCfProgressBar').classList.add('bg-danger');
+              document.getElementById('deployCfResult').innerHTML = '<div class="alert alert-danger py-2 mb-0">'+ (err.message || 'Network error').replace(/</g,'&lt;') + '</div>';
+              document.getElementById('deployCfResult').style.display = 'block';
+            }})
             .finally(function() {{
-              this.disabled = false;
-              this.innerHTML = orig;
+              btn.disabled = false;
+              btn.innerHTML = orig;
               if (typeof hideGlobalLoading === 'function') hideGlobalLoading();
-            }}.bind(this));
-        }});
+            }});
       }});
       var cfDnsModal = document.getElementById('cloudflareDnsModal');
       var cfDnsBsModal = cfDnsModal ? new bootstrap.Modal(cfDnsModal) : null;
@@ -14148,9 +15051,10 @@ def admin_domains():
         var statusEl = document.getElementById('cfDnsStatus');
         statusEl.innerHTML = '<div class="alert alert-info py-2 small mb-0"><b>Step 1/3</b> — Creating Cloudflare zone...</div>';
         fetch('/api/domains/' + cfDnsDomainId + '/cloudflare-setup-dns', {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }} }})
-          .then(function(r) {{ return r.json(); }})
-          .then(function(data) {{
-            if (data.success) {{
+          .then(function(r) {{ return r.json().then(function(d) {{ return {{ status: r.status, data: d }}; }}); }})
+          .then(function(o) {{
+            var data = o.data;
+            function renderResult(data) {{
               var lines = [];
               lines.push('<b>✅ Zone:</b> ' + (data.zone_id || '').replace(/</g,'&lt;'));
               var dnsOk = data.dns_records_added && data.dns_records_added.length;
@@ -14179,7 +15083,24 @@ def admin_domains():
                   navigator.clipboard.writeText(this.getAttribute('data-ns')).then(function() {{ b.textContent = 'Copied!'; setTimeout(function() {{ b.textContent = 'Copy'; }}, 800); }});
                 }});
               }});
-            }} else {{
+            }}
+            if (o.status === 202 && data && data.background) {{
+              function pollDns() {{
+                fetch('/api/domains/' + cfDnsDomainId + '/cloudflare-setup-dns/status').then(function(res) {{ return res.json(); }})
+                  .then(function(s) {{
+                    statusEl.innerHTML = '<div class="alert alert-info py-2 small mb-0">' + (s.message || 'Working...') + ' (' + (s.percent||0) + '%)</div>';
+                    if (s.done) {{
+                      if (s.result) renderResult(s.result);
+                      else if (s.error) statusEl.innerHTML = '<div class="alert alert-danger py-2 small">' + (s.error || 'Unknown error').replace(/</g,'&lt;') + '</div>';
+                      return;
+                    }}
+                    setTimeout(pollDns, 1500);
+                  }}).catch(function() {{ setTimeout(pollDns, 2000); }});
+              }}
+              pollDns();
+            }} else if (data && data.success) {{
+              renderResult(data);
+            }} else if (data && !data.success) {{
               statusEl.innerHTML = '<div class="alert alert-danger py-2 small">' + (data.error || 'Unknown error').replace(/</g,'&lt;') + '</div>';
             }}
           }})
@@ -14300,33 +15221,83 @@ def admin_domains():
       // ────────────────────────────────────────────────────────────────────
       var cfInfoModal = document.getElementById('cloudflareInfoModal');
       var cfInfoBsModal = cfInfoModal ? new bootstrap.Modal(cfInfoModal) : null;
+      function renderCloudflareCell(id, cf, dnsUrl) {{
+        var status = (cf && cf.status) || '';
+        var raw = JSON.stringify(cf || {{}});
+        var esc = function(s) {{ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }};
+        var checks = (cf && cf.check_details) || [];
+        var pagesUp = checks.some(function(c) {{ return c.up && (c.url||'').indexOf('.pages.dev') >= 0; }});
+        var customUp = checks.some(function(c) {{ return c.up && (c.url||'').indexOf('.pages.dev') < 0; }});
+        var cls, label;
+        if (checks.length) {{
+          if (pagesUp && customUp)   {{ cls = 'success'; label = 'up'; }}
+          else if (pagesUp)          {{ cls = 'warning'; label = '↑pages'; }}
+          else if (status === 'up')  {{ cls = 'success'; label = 'up'; }}
+          else                       {{ cls = 'danger';  label = 'down'; }}
+        }} else {{
+          if (status === 'project_missing') {{ cls = 'warning'; label = 'deploy'; }}
+          else {{ cls = status === 'up' ? 'success' : (status === 'down' || status === 'error' ? 'danger' : 'secondary'); label = status || '—'; }}
+        }}
+        var siteBadge = '<span class="badge bg-' + cls + ' cf-info-badge" data-domain-id="' + id + '" data-cf-json="' + esc(raw) + '" title="Site: ' + label + ' — Click to view details" style="cursor:pointer">Site ' + label + '</span>';
+        var dnsSetup = !!(cf && cf.dns_setup);
+        var dnsBadge = '<span class="badge bg-' + (dnsSetup ? 'success' : 'secondary') + '" title="DNS in your Cloudflare: ' + (dnsSetup ? 'configured' : 'not configured') + '">DNS' + (dnsSetup ? '✓' : '✗') + '</span>';
+        var deploys = (cf && cf.deployments) || [];
+        var deployBadge = '<span class="text-muted small">—</span>';
+        if (deploys[0] && deploys[0].created_on) {{
+          var co = deploys[0].created_on;
+          var d = new Date(co.replace('Z',''));
+          var now = new Date();
+          var diffMs = now - d;
+          var days = Math.floor(diffMs / 86400000);
+          var lab = days === 0 ? (Math.floor(diffMs/3600000) + 'h') : (days === 1 ? '1d' : (days < 30 ? days + 'd' : co.substring(0,10)));
+          deployBadge = '<span class="badge bg-light text-dark" title="Last deploy: ' + esc(co) + '">' + lab + '</span>';
+        }}
+        var deployBtn = '<button type="button" class="btn btn-sm btn-info deploy-cf-btn" data-domain-id="' + id + '" title="Deploy to Cloudflare">☁️</button>';
+        var dnsBtn = '<button type="button" class="btn btn-sm btn-outline-primary cf-dns-btn" data-domain-id="' + id + '" data-domain-url="' + esc(dnsUrl || '') + '" title="Setup DNS">DNS</button>';
+        var verBtn = '<button type="button" class="btn btn-sm btn-outline-secondary cf-versions-btn" data-domain-id="' + id + '" data-domain-url="' + esc(dnsUrl || '') + '" title="Manage versions">🕓</button>';
+        var fetchBtn = '<button type="button" class="btn btn-sm btn-outline-secondary cf-fetch-btn" data-domain-id="' + id + '" title="Refresh status">↻</button>';
+        var statusRow = '<div class="d-flex flex-wrap align-items-center gap-1" style="font-size:0.65rem;line-height:1.2"><span>' + dnsBadge + '</span><span>' + siteBadge + '</span><span>' + deployBadge + '</span></div>';
+        return '<div class="cloudflare-cell d-flex flex-column gap-1"><div class="d-flex align-items-center gap-1">' + deployBtn + dnsBtn + verBtn + fetchBtn + '</div>' + statusRow + '</div>';
+      }}
       document.querySelectorAll('.cf-fetch-btn').forEach(function(btn) {{
         btn.addEventListener('click', function() {{
           var domainId = this.getAttribute('data-domain-id');
           if (!domainId) return;
+          var tr = this.closest('tr');
+          var dnsUrl = tr ? (tr.querySelector('.domain-url-link') || {{}}).textContent || '' : '';
           var currentBtn = this;
           var orig = this.innerHTML;
           this.disabled = true;
           this.innerHTML = '...';
           if (typeof showGlobalLoading === 'function') showGlobalLoading();
           fetch('/api/domains/' + domainId + '/cloudflare-info', {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }} }})
-            .then(function(r) {{ return r.json(); }})
-            .then(function(data) {{
-              if (data && data.success) {{
-                currentBtn.innerHTML = '✓';
-                currentBtn.classList.remove('btn-outline-secondary', 'btn-outline-warning', 'btn-outline-danger');
-                currentBtn.classList.add('btn-success');
-                orig = '✓';
-              }} else {{
-                alert('Fetch failed: ' + (data && data.error ? data.error : 'Unknown error'));
+            .then(function(r) {{ return r.json().then(function(data) {{ return {{ status: r.status, data: data }}; }}); }})
+            .then(function(o) {{
+              var data = o.data;
+              if (o.status === 202 && data && data.background) {{
+                var poll = function() {{
+                  fetch('/api/domains/' + domainId + '/cloudflare-info/status').then(function(res) {{ return res.json(); }})
+                    .then(function(s) {{
+                      if (s.done) {{
+                        var td = currentBtn.closest('.cloudflare-td');
+                        if (td && s.cloudflare_info) td.innerHTML = renderCloudflareCell(domainId, s.cloudflare_info, dnsUrl);
+                        return;
+                      }}
+                      setTimeout(poll, 1500);
+                    }}).catch(function() {{ setTimeout(poll, 2000); }});
+                }};
+                poll();
+              }} else if (data && data.success && data.cloudflare_info) {{
+                var td = currentBtn.closest('.cloudflare-td');
+                if (td) td.innerHTML = renderCloudflareCell(domainId, data.cloudflare_info, dnsUrl);
+              }} else if (data && !data.success) {{
+                alert('Fetch failed: ' + (data.error || 'Unknown error'));
               }}
             }})
             .catch(function(err) {{ alert('Fetch failed: ' + (err.message || 'Network error')); }})
             .finally(function() {{
-              this.disabled = false;
-              this.innerHTML = orig;
               if (typeof hideGlobalLoading === 'function') hideGlobalLoading();
-            }}.bind(this));
+            }});
         }});
       }});
       document.querySelector('.domains-table') && document.querySelector('.domains-table').addEventListener('click', function(e) {{
@@ -14348,7 +15319,7 @@ def admin_domains():
           var el = err.toLowerCase();
           if (el.indexOf('not configured') >= 0 || el.indexOf('cloudflare') >= 0 && el.indexOf('config') >= 0)
             hint = 'Add Cloudflare Account ID and API Token in your Profile — go to Profile, fill in the Cloudflare section, and Save.';
-          else if (el.indexOf('404') >= 0 || el.indexOf('not found') >= 0 || el.indexOf('does not exist') >= 0 || (!obj.project && status === 'error'))
+          else if (el.indexOf('404') >= 0 || el.indexOf('not found') >= 0 || el.indexOf('does not exist') >= 0 || status === 'project_missing' || (!obj.project && status === 'error'))
             hint = 'Deploy the site first — click the cloud (☁️) button to deploy to Cloudflare Pages';
           else if (el.indexOf('401') >= 0 || el.indexOf('unauthorized') >= 0)
             hint = 'Check CLOUDFLARE_API_TOKEN in .env — token may be invalid or expired';
@@ -14356,14 +15327,17 @@ def admin_domains():
             hint = 'Check Cloudflare account permissions — token needs Workers and Pages access';
           else
             hint = 'See the error above; check Cloudflare dashboard and .env config';
+        }} else if (status === 'project_missing') {{
+          hint = 'Deploy the site first — click the cloud (☁️) button to deploy to Cloudflare Pages';
         }} else if (status === 'down') {{
           var dr = obj.down_reason || '';
           if (dr) hint = 'Check failed: ' + dr + '. If the site loads in your browser, it may be Cloudflare blocking automated checks.';
           else hint = 'Site may be building or DNS not yet propagated. Check Cloudflare Pages dashboard.';
         }}
         var esc2 = function(s) {{ return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }};
-        var statusCls = status === 'up' ? 'success' : (status === 'down' || status === 'error' ? 'danger' : 'secondary');
-        var html = '<div class="d-flex align-items-center gap-2 mb-2"><span class="badge bg-' + statusCls + ' px-2 py-1">' + (status || 'unknown') + '</span>' + (obj.project_name ? '<code class="small">' + esc2(obj.project_name) + '</code>' : '') + '</div>';
+        var statusCls = status === 'up' ? 'success' : (status === 'project_missing' ? 'warning' : (status === 'down' || status === 'error' ? 'danger' : 'secondary'));
+        var statusLabel = (status === 'project_missing') ? 'deploy' : (status || 'unknown');
+        var html = '<div class="d-flex align-items-center gap-2 mb-2"><span class="badge bg-' + statusCls + ' px-2 py-1">' + statusLabel + '</span>' + (obj.project_name ? '<code class="small">' + esc2(obj.project_name) + '</code>' : '') + '</div>';
         if (err) html += '<div class="alert alert-danger py-2 mb-2 small"><strong>Error:</strong> ' + esc2(err).substring(0, 500) + '</div>';
         if (obj.check_details && obj.check_details.length) {{
           html += '<table class="table table-sm table-bordered mb-2 small"><thead><tr><th>URL</th><th style="width:90px">Status</th></tr></thead><tbody>';
@@ -14379,67 +15353,70 @@ def admin_domains():
         sum.innerHTML = html;
         if (cfInfoBsModal) cfInfoBsModal.show();
       }});
-      (function cfAutoRefreshAll() {{
-        var btns = document.querySelectorAll('.cf-fetch-btn');
-        if (btns.length === 0) return;
-        var ids = [];
-        btns.forEach(function(b) {{ var id = b.getAttribute('data-domain-id'); if (id) ids.push(id); }});
-        if (ids.length === 0) return;
-        var bar = document.getElementById('cfRefreshStatus');
-        var txt = document.getElementById('cfRefreshStatusText');
-        if (bar) bar.style.display = '';
-        var done = 0;
-        var concurrency = 3;
-        function renderCfCell(id, cf) {{
-          var status = (cf && cf.status) || '';
-          var raw = JSON.stringify(cf || {{}});
-          var esc = function(s) {{ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }};
-          var checks = (cf && cf.check_details) || [];
-          var pagesUp = checks.some(function(c) {{ return c.up && (c.url||'').indexOf('.pages.dev') >= 0; }});
-          var customUp = checks.some(function(c) {{ return c.up && (c.url||'').indexOf('.pages.dev') < 0; }});
-          var cls, label;
-          if (checks.length) {{
-            if (pagesUp && customUp)   {{ cls = 'success'; label = 'up'; }}
-            else if (pagesUp)          {{ cls = 'warning'; label = '↑ pages / ↓ domain'; }}
-            else if (status === 'up')  {{ cls = 'success'; label = 'up'; }}
-            else                       {{ cls = 'danger';  label = 'down'; }}
-          }} else {{
-            cls   = status === 'up' ? 'success' : (status === 'down' || status === 'error' ? 'danger' : 'secondary');
-            label = status || '—';
+      fetch('/api/profile-ai-defaults').then(function(r) {{ return r.json(); }}).then(function(profile) {{
+        if (profile && profile.skip_cf_status_check) return;
+        (function cfAutoRefreshAll() {{
+          var btns = document.querySelectorAll('.cf-fetch-btn');
+          if (btns.length === 0) return;
+          var ids = [];
+          btns.forEach(function(b) {{ var id = b.getAttribute('data-domain-id'); if (id) ids.push(id); }});
+          if (ids.length === 0) return;
+          var bar = document.getElementById('cfRefreshStatus');
+          var txt = document.getElementById('cfRefreshStatusText');
+          if (bar) bar.style.display = '';
+          var done = 0;
+          var concurrency = 3;
+          function fetchOne(id) {{
+            return fetch('/api/domains/' + id + '/cloudflare-info', {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }} }})
+              .then(function(r) {{ return r.json().then(function(d) {{ return {{ status: r.status, data: d }}; }}); }})
+              .then(function(o) {{
+                if (o.status === 202 && o.data && o.data.background) {{
+                  return new Promise(function(resolve) {{
+                    function pollUntilDone() {{
+                      fetch('/api/domains/' + id + '/cloudflare-info/status').then(function(res) {{ return res.json(); }})
+                        .then(function(s) {{
+                          if (txt) txt.textContent = 'Updating Cloudflare status... (' + done + '/' + ids.length + ')';
+                          if (s.done) {{
+                            done++;
+                            var btn = document.querySelector('.cf-fetch-btn[data-domain-id="' + id + '"]');
+                            if (btn) {{
+                              var td = btn.closest('.cloudflare-td');
+                              var tr = btn.closest('tr');
+                              var dnsUrl = tr ? (tr.querySelector('.domain-url-link') || {{}}).textContent || '' : '';
+                              if (td && s.cloudflare_info) td.innerHTML = renderCloudflareCell(id, s.cloudflare_info, dnsUrl || (s.cloudflare_info.domain_url || ''));
+                            }}
+                            resolve();
+                          }} else {{ setTimeout(pollUntilDone, 1500); }}
+                        }}).catch(function() {{ done++; resolve(); }});
+                    }}
+                    pollUntilDone();
+                  }});
+                }}
+                done++;
+                if (o.data && o.data.cloudflare_info) {{
+                  var btn = document.querySelector('.cf-fetch-btn[data-domain-id="' + id + '"]');
+                  if (btn) {{
+                    var td = btn.closest('.cloudflare-td');
+                    var tr = btn.closest('tr');
+                    var dnsUrl = tr ? (tr.querySelector('.domain-url-link') || {{}}).textContent || '' : '';
+                    if (td) td.innerHTML = renderCloudflareCell(id, o.data.cloudflare_info, dnsUrl || (o.data.cloudflare_info.domain_url || ''));
+                  }}
+                }}
+              }})
+              .catch(function() {{ done++; }});
           }}
-          var badge = '<span class="badge bg-' + cls + ' cf-info-badge" data-domain-id="' + id + '" data-cf-json="' + esc(raw) + '" title="Click to view">' + label + '</span>';
-          var dnsSetup = !!(cf && cf.dns_setup);
-          var dnsBadge = '<span class="badge bg-' + (dnsSetup ? 'success' : 'secondary') + '" title="DNS zone: ' + (dnsSetup ? 'yes' : 'no') + '">DNS' + (dnsSetup ? '✓' : '✗') + '</span>';
-          var dnsUrl = (cf && cf.domain_url) || '';
-          var dnsBtn = '<button type="button" class="btn btn-sm btn-outline-primary cf-dns-btn" data-domain-id="' + id + '" data-domain-url="' + esc(dnsUrl) + '" title="Setup DNS">DNS</button>';
-          var verBtn = '<button type="button" class="btn btn-sm btn-outline-secondary cf-versions-btn" data-domain-id="' + id + '" data-domain-url="' + esc(dnsUrl) + '" title="Manage deployment versions">🕓</button>';
-          return '<div class="cloudflare-cell d-flex align-items-center gap-1">' + dnsBtn + verBtn + dnsBadge + badge + '</div>';
-        }}
-        function fetchOne(id) {{
-          return fetch('/api/domains/' + id + '/cloudflare-info', {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }} }})
-            .then(function(r) {{ return r.json(); }})
-            .then(function(data) {{
-              done++;
-              if (txt) txt.textContent = 'Updating Cloudflare status... (' + done + '/' + ids.length + ')';
-              var btn = document.querySelector('.cf-fetch-btn[data-domain-id="' + id + '"]');
-              if (btn) {{
-                var td = btn.closest('.cloudflare-td');
-                if (td && data && data.cloudflare_info) td.innerHTML = renderCfCell(id, data.cloudflare_info);
-              }}
-            }})
-            .catch(function() {{ done++; }});
-        }}
-        function runBatch(start) {{
-          var batch = ids.slice(start, start + concurrency);
-          if (batch.length === 0) return Promise.resolve();
-          return Promise.all(batch.map(fetchOne)).then(function() {{
-            if (done < ids.length) return runBatch(done);
+          function runBatch(start) {{
+            var batch = ids.slice(start, start + concurrency);
+            if (batch.length === 0) return Promise.resolve();
+            return Promise.all(batch.map(fetchOne)).then(function() {{
+              if (done < ids.length) return runBatch(done);
+            }});
+          }}
+          runBatch(0).then(function() {{
+            if (bar) bar.style.display = 'none';
           }});
-        }}
-        runBatch(0).then(function() {{
-          if (bar) bar.style.display = 'none';
-        }});
-      }})();
+        }})();
+      }}).catch(function() {{}});
       var articleModal = document.getElementById('articleEditorModal');
       var articleBsModal = articleModal ? new bootstrap.Modal(articleModal) : null;
       function openArticleEditor(domainId) {{
@@ -15156,23 +16133,184 @@ def admin_domains():
       }});
       var pinterestSetupModal = document.getElementById('pinterestSetupModal');
       var pinterestSetupBsModal = pinterestSetupModal ? new bootstrap.Modal(pinterestSetupModal) : null;
-      document.querySelectorAll('.pinterest-setup-btn').forEach(function(btn) {{
-        btn.addEventListener('click', function() {{
-          var domainId = this.getAttribute('data-domain-id');
-          var domainName = this.getAttribute('data-domain-name') || ('Domain ' + domainId);
+      function slugFromBoardName(name) {{
+        var s = (name || '').trim().toLowerCase().replace(/\\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '');
+        return s ? s.substring(0, 64) : 'board';
+      }}
+      function buildBoardRssUrl(domainId, domainUrl, slug) {{
+        var base = (domainUrl || '').trim().replace(/\\/$/, '');
+        if (base && !/^https?:\\/\\//.test(base)) base = 'https://' + base;
+        var s = (slug || 'board');
+        return base ? base + '/rss/' + s + '.xml' : (window.location.origin + '/rss/domain/' + domainId + '/board/' + s);
+      }}
+      function renderPinterestBoards(boards, domainId, domainUrl) {{
+        var list = document.getElementById('pinterestBoardsList');
+        if (!list) return;
+        list.innerHTML = '';
+        var arr = boards || [];
+        if (arr.length === 0) {{
+          list.innerHTML = '<p class="small text-muted mb-0 py-2">No boards yet. Add one below to get a per-board RSS URL.</p>';
+          return;
+        }}
+        arr.forEach(function(b) {{
+          var name = (b.name || '').trim() || 'Board';
+          var slug = (b.slug || slugFromBoardName(name)).trim() || slugFromBoardName(name);
+          var rssUrl = b.rss_url || buildBoardRssUrl(domainId, domainUrl, slug);
+          var row = document.createElement('div');
+          row.className = 'd-flex align-items-center gap-2 flex-wrap pinterest-board-row';
+          row.dataset.name = name;
+          row.dataset.slug = slug;
+          row.innerHTML = '<input type="text" class="form-control form-control-sm pinterest-board-name" value="' + (name.replace(/"/g, '&quot;')) + '" placeholder="Name" title="Board name">' +
+            '<input type="text" class="form-control form-control-sm font-monospace pinterest-board-slug" value="' + (slug.replace(/"/g, '&quot;')) + '" placeholder="slug" title="URL slug">' +
+            '<input type="text" class="form-control form-control-sm pinterest-board-rss" readonly value="' + (rssUrl.replace(/"/g, '&quot;')) + '" title="RSS URL">' +
+            '<button type="button" class="btn btn-sm btn-outline-primary pinterest-board-copy" title="Copy RSS URL">Copy</button>' +
+            '<button type="button" class="btn btn-sm btn-outline-danger pinterest-board-remove" title="Remove board" aria-label="Remove">×</button>';
+          list.appendChild(row);
+        }});
+      }}
+      function collectPinterestBoards(domainId, domainUrl) {{
+        var list = document.getElementById('pinterestBoardsList');
+        if (!list) return [];
+        var boards = [];
+        list.querySelectorAll('.d-flex[data-name]').forEach(function(row) {{
+          var name = (row.querySelector('.pinterest-board-name') && row.querySelector('.pinterest-board-name').value) || row.dataset.name || '';
+          var slug = (row.querySelector('.pinterest-board-slug') && row.querySelector('.pinterest-board-slug').value) || row.dataset.slug || slugFromBoardName(name);
+          name = name.trim() || 'Board';
+          slug = (slug || slugFromBoardName(name)).trim().toLowerCase().replace(/\\s+/g, '-').substring(0, 64);
+          if (slug) boards.push({{ name: name, slug: slug }});
+        }});
+        return boards;
+      }}
+      (document.querySelector('.domains-table') || document).addEventListener('click', function(e) {{
+        var copyBtn = e.target.closest('.board-copy-rss');
+        if (copyBtn) {{
+          var url = copyBtn.getAttribute('data-rss-url');
+          if (url) {{
+            var orig = copyBtn.textContent;
+            navigator.clipboard.writeText(url).then(function() {{
+              copyBtn.textContent = 'Copied!';
+              setTimeout(function() {{ copyBtn.textContent = orig; }}, 1500);
+            }}).catch(function() {{}});
+          }}
+          return;
+        }}
+        var btn = e.target.closest('.pinterest-setup-btn');
+        if (btn) {{
+          var domainId = btn.getAttribute('data-domain-id');
+          var domainName = btn.getAttribute('data-domain-name') || ('Domain ' + domainId);
           if (!domainId) return;
           document.getElementById('pinterestSetupDomainId').value = domainId;
           document.getElementById('pinterestSetupDomainName').textContent = domainName;
+          document.getElementById('pinterestVerifyInput').value = '';
+          document.getElementById('pinterestVerifyStatus').style.display = 'none';
+          document.getElementById('pinterestNewBoardName').value = '';
           if (typeof showGlobalLoading === 'function') showGlobalLoading();
           fetch('/api/domains/' + domainId).then(function(r) {{ return r.json(); }}).then(function(d) {{
-            var feedUrl = (d.pinterest_rss_feed_url || '').trim() || (window.location.origin + '/rss/domain/' + domainId);
+            var feedUrl = (d.pinterest_rss_feed_url || '').trim();
+            if (!feedUrl && d.domain_url) {{
+              var base = (d.domain_url || '').trim().replace(/\/$/, '');
+              feedUrl = base ? base + '/rss.xml' : (window.location.origin + '/rss/domain/' + domainId);
+            }} else if (!feedUrl) feedUrl = window.location.origin + '/rss/domain/' + domainId;
             document.getElementById('pinterestFeedUrl').value = feedUrl;
+            document.getElementById('pinterestVerifyInput').value = (d.pinterest_domain_verify || '').trim();
+            var domainUrl = (d.domain_url || '').trim();
+            renderPinterestBoards(d.pinterest_boards || [], domainId, domainUrl);
             if (pinterestSetupBsModal) pinterestSetupBsModal.show();
           }}).catch(function() {{
-            document.getElementById('pinterestFeedUrl').value = window.location.origin + '/rss/domain/' + domainId;
+            var base = (domainName || '').replace(/^https?:\/\//, '').replace(/\/$/, '').trim();
+            document.getElementById('pinterestFeedUrl').value = base ? 'https://' + base + '/rss.xml' : (window.location.origin + '/rss/domain/' + domainId);
+            renderPinterestBoards([], domainId, '');
             if (pinterestSetupBsModal) pinterestSetupBsModal.show();
           }}).finally(function() {{ if (typeof hideGlobalLoading === 'function') hideGlobalLoading(); }});
-        }});
+        }}
+      }});
+      document.getElementById('pinterestAddBoardBtn').addEventListener('click', function() {{
+        var nameInput = document.getElementById('pinterestNewBoardName');
+        var name = (nameInput && nameInput.value || '').trim() || 'Board';
+        var domainId = document.getElementById('pinterestSetupDomainId').value;
+        var domainUrl = (document.getElementById('pinterestFeedUrl').value || '').replace(/\/rss.*$/, '').trim();
+        var slug = slugFromBoardName(name);
+        var list = document.getElementById('pinterestBoardsList');
+        if (!list) return;
+        var boards = collectPinterestBoards(domainId, domainUrl);
+        if (boards.some(function(b) {{ return b.slug === slug; }})) return;
+        boards.push({{ name: name, slug: slug }});
+        renderPinterestBoards(boards, domainId, domainUrl);
+        if (nameInput) nameInput.value = '';
+      }});
+      document.getElementById('pinterestAiBoardsGenerateBtn').addEventListener('click', function() {{
+        var btn = this;
+        var domainId = document.getElementById('pinterestSetupDomainId').value;
+        var domainUrl = (document.getElementById('pinterestFeedUrl').value || '').replace(/\/rss.*$/, '').trim();
+        var countEl = document.getElementById('pinterestAiBoardCount');
+        var contextEl = document.getElementById('pinterestAiBoardContext');
+        var count = Math.max(1, Math.min(30, parseInt(countEl && countEl.value, 10) || 5));
+        var context = (contextEl && contextEl.value || '').trim() || 'recipes, food';
+        var current = collectPinterestBoards(domainId, domainUrl);
+        var existing = [];
+        current.forEach(function(b) {{ existing.push(b.name); existing.push(b.slug); }});
+        var textEl = btn.querySelector('.btn-ai-text');
+        var loadingEl = btn.querySelector('.btn-ai-loading');
+        if (loadingEl && loadingEl.classList.contains('d-none') === false) return;
+        if (textEl) textEl.classList.add('d-none');
+        if (loadingEl) loadingEl.classList.remove('d-none');
+        btn.disabled = true;
+        fetch('/api/pinterest-suggest-boards', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ count: count, context: context, existing: existing }})
+        }})
+          .then(function(r) {{ return r.json(); }})
+          .then(function(d) {{
+            if (d.success && d.names && d.names.length) {{
+              var seen = {{}};
+              current.forEach(function(b) {{ seen[b.slug] = true; }});
+              d.names.forEach(function(name) {{
+                var slug = slugFromBoardName(name);
+                if (slug && !seen[slug]) {{ seen[slug] = true; current.push({{ name: (name || '').trim() || 'Board', slug: slug }}); }}
+              }});
+              renderPinterestBoards(current, domainId, domainUrl);
+            }} else if (!d.success) alert(d.error || 'Failed to generate names');
+          }})
+          .catch(function(e) {{ alert('Error: ' + (e.message || e)); }})
+          .finally(function() {{
+            if (textEl) textEl.classList.remove('d-none');
+            if (loadingEl) loadingEl.classList.add('d-none');
+            btn.disabled = false;
+          }});
+      }});
+      document.getElementById('pinterestBoardsList').addEventListener('input', function(e) {{
+        var row = e.target && e.target.closest('.d-flex[data-name]');
+        if (!row) return;
+        var slugInp = row.querySelector('.pinterest-board-slug');
+        var rssInp = row.querySelector('.pinterest-board-rss');
+        if (!slugInp || !rssInp) return;
+        var domainId = document.getElementById('pinterestSetupDomainId').value;
+        var domainUrl = (document.getElementById('pinterestFeedUrl').value || '').replace(/\/rss.*$/, '').trim();
+        if (e.target.classList.contains('pinterest-board-name')) {{
+          var slug = slugFromBoardName(e.target.value) || slugInp.value || 'board';
+          slugInp.value = slug;
+          rssInp.value = buildBoardRssUrl(domainId, domainUrl, slug);
+        }} else if (e.target.classList.contains('pinterest-board-slug')) {{
+          var slug = (e.target.value || '').trim().toLowerCase().replace(/\\s+/g, '-').replace(/[^a-z0-9-]/g, '').substring(0, 64) || 'board';
+          rssInp.value = buildBoardRssUrl(domainId, domainUrl, slug);
+        }}
+      }});
+      document.getElementById('pinterestBoardsList').addEventListener('click', function(e) {{
+        var domainId = document.getElementById('pinterestSetupDomainId').value;
+        var domainUrl = (document.getElementById('pinterestFeedUrl').value || '').replace(/\/rss.*$/, '').trim();
+        if (e.target && e.target.classList.contains('pinterest-board-copy')) {{
+          var rss = e.target.closest('.d-flex').querySelector('.pinterest-board-rss');
+          if (rss && rss.value) {{
+            rss.select();
+            try {{ navigator.clipboard.writeText(rss.value); e.target.textContent = 'Copied!'; setTimeout(function() {{ e.target.textContent = 'Copy'; }}, 2000); }} catch (err) {{}}
+          }}
+        }} else if (e.target && e.target.classList.contains('pinterest-board-remove')) {{
+          var row = e.target.closest('.d-flex[data-name]');
+          if (row) {{
+            row.remove();
+          }}
+        }}
       }});
       document.getElementById('pinterestCopyFeedBtn').addEventListener('click', function() {{
         var input = document.getElementById('pinterestFeedUrl');
@@ -15185,6 +16323,43 @@ def admin_domains():
             setTimeout(function() {{ t.textContent = 'Copy'; }}, 2000);
           }} catch (e) {{}}
         }}
+      }});
+      document.getElementById('pinterestVerifySaveBtn').addEventListener('click', function() {{
+        var domainId = document.getElementById('pinterestSetupDomainId').value;
+        var domainUrl = (document.getElementById('pinterestFeedUrl').value || '').replace(/\/rss.*$/, '').trim();
+        var val = document.getElementById('pinterestVerifyInput').value.trim();
+        var boards = collectPinterestBoards(domainId, domainUrl);
+        var status = document.getElementById('pinterestVerifyStatus');
+        var saveBtn = this;
+        var domainName = document.getElementById('pinterestSetupDomainName').textContent || 'Domain ' + domainId;
+        status.style.display = 'none';
+        saveBtn.disabled = true;
+        if (typeof showGlobalLoading === 'function') showGlobalLoading();
+        fetch('/api/domains/' + domainId + '/pinterest', {{
+          method: 'PUT',
+          headers: {{'Content-Type': 'application/json'}},
+          body: JSON.stringify({{pinterest_domain_verify: val, pinterest_boards: boards}})
+        }})
+          .then(function(r) {{ return r.json(); }})
+          .then(function(d) {{
+            if (d.success) {{
+              if (pinterestSetupBsModal) pinterestSetupBsModal.hide();
+              if (typeof refreshDomainsTable === 'function') refreshDomainsTable();
+            }} else {{
+              status.className = 'small mt-2 text-danger';
+              status.textContent = d.error || 'Failed to save';
+              status.style.display = 'block';
+            }}
+          }})
+          .catch(function(e) {{
+            status.className = 'small mt-2 text-danger';
+            status.textContent = 'Error: ' + String(e);
+            status.style.display = 'block';
+          }})
+          .finally(function() {{
+            saveBtn.disabled = false;
+            if (typeof hideGlobalLoading === 'function') hideGlobalLoading();
+          }});
       }});
       document.getElementById('colorsRandomBtn').addEventListener('click', function() {{
         var btn = this;
@@ -17209,7 +18384,7 @@ def api_bulk_deploy_job_status(job_id):
 def admin_domain_templates(pk):
     """Manage pin templates for a domain: list + add (paste JSON from Pin Editor)."""
     with get_connection() as conn:
-        cur = db_execute(conn, "SELECT id, domain_url, domain_name FROM domains WHERE id = ?", (pk,))
+        cur = db_execute(conn, "SELECT id, domain_url, domain_name, pinterest_domain_verify FROM domains WHERE id = ?", (pk,))
         d = dict_row(cur.fetchone())
     if not d:
         return redirect(url_for("admin_domains"))
@@ -17228,6 +18403,7 @@ def admin_domain_templates(pk):
             dr["name"] = name
             templates.append(dr)
     pin_editor_url = "/pin-editor?domain_id=" + str(pk)
+    pinterest_verify_val = html.escape(str(d.get("pinterest_domain_verify") or ""))
     rows = "".join(
         f'<tr><td>{t["id"]}</td><td>{html.escape(t.get("name") or "")}</td><td>{html.escape(str(t.get("sort_order") or 0))}</td>'
         f'<td><button type="button" class="btn btn-sm btn-outline-secondary" onclick="editTemplate({t["id"]})">Edit</button> '
@@ -17236,6 +18412,22 @@ def admin_domain_templates(pk):
     )
     content = f"""
     <h2>Pin templates — {html.escape(d.get("domain_url") or "")}</h2>
+    <div class="card mb-3">
+      <div class="card-header">Pinterest domain verification</div>
+      <div class="card-body">
+        <p class="small text-muted">To claim your site on Pinterest, add the meta tag. Get it from Pinterest → Settings → Claim your website → Add HTML tag. Paste the <code>content</code> value below.</p>
+        <div class="row g-2 align-items-end">
+          <div class="col-md-8">
+            <label class="form-label">Pinterest domain verify (content value only)</label>
+            <input type="text" id="pinterestDomainVerify" class="form-control font-monospace" placeholder="2631e27b9e6ff01f33fc4d683f86207e" value="{pinterest_verify_val}">
+          </div>
+          <div class="col-md-4">
+            <button type="button" class="btn btn-outline-primary" onclick="savePinterestVerify()">Save</button>
+          </div>
+        </div>
+        <div class="form-text">Adds: <code>&lt;meta name="p:domain_verify" content="YOUR_VALUE"/&gt;</code> to every page head.</div>
+      </div>
+    </div>
     <p><a href="{pin_editor_url}" target="_blank" class="btn btn-outline-primary">Open Pin Editor (edit &amp; preview)</a> — Create or edit a template in the editor, then use &quot;Save to domain&quot; there or paste the JSON below.</p>
     <div class="card mb-3">
       <div class="card-header">Add template</div>
@@ -17281,6 +18473,13 @@ def admin_domain_templates(pk):
     function deleteTemplate(id) {{
       if (!confirm('Delete this template?')) return;
       fetch('/api/domain-templates/' + id, {{ method: 'DELETE' }}).then(r => r.json()).then(d => {{ if (d.success) location.reload(); else alert(d.error || 'Error'); }}).catch(e => alert(e));
+    }}
+    function savePinterestVerify() {{
+      const val = document.getElementById('pinterestDomainVerify').value.trim();
+      fetch('/api/domains/' + domainId + '/pinterest', {{
+        method: 'PUT', headers: {{ 'Content-Type': 'application/json' }},
+        body: JSON.stringify({{ pinterest_domain_verify: val || null }})
+      }}).then(r => r.json()).then(d => {{ alert(d.success ? 'Saved' : (d.error || 'Error')); if (d.success) location.reload(); }}).catch(e => alert(e));
     }}
     </script>
     """
@@ -18440,7 +19639,7 @@ def _get_domain_website_context(domain_id):
         cur = db_execute(conn, """SELECT d.id, d.domain_url, d.domain_name, d.header_template, d.footer_template,
             d.category_page_template, d.side_article_template, d.writer_template, d.index_template, d.article_template_config, d.categories_list, d.domain_colors, d.domain_fonts, d.article_card_template,
             d.domain_page_about_us, d.domain_page_terms_of_use, d.domain_page_privacy_policy, d.domain_page_gdpr_policy,
-            d.domain_page_cookie_policy, d.domain_page_copyright_policy, d.domain_page_disclaimer, d.domain_page_contact_us
+            d.domain_page_cookie_policy, d.domain_page_copyright_policy, d.domain_page_disclaimer, d.domain_page_contact_us, d.pinterest_domain_verify
             FROM domains d WHERE d.id = ?""", (domain_id,))
         row = dict_row(cur.fetchone())
         if not row:
@@ -18752,13 +19951,18 @@ def _render_preview_page(domain_id, main_html, main_css, page_title, ctx, includ
     # Apply saved visual customizations
     customizations_script = _get_customizations_script(domain_id)
     
+    pinterest_meta = ""
+    pv = (d.get("pinterest_domain_verify") or "").strip()
+    if pv:
+        pinterest_meta = f'\n<meta name="p:domain_verify" content="{html.escape(pv)}"/>'
+    
     return f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{html.escape(page_title)}</title>
 <script src="/static/js/tailwindcss.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600" rel="stylesheet">
 <style>{full_css}
-{pagination_css}</style></head>
+{pagination_css}</style>{pinterest_meta}</head>
 <body>{header_html}
 {content_body}
 {footer_html}{nav_script}{customizations_script}{editor_html}</body></html>"""
@@ -18899,6 +20103,58 @@ def preview_website_index(domain_id, page=1):
 def preview_website_recipes(domain_id, page=1):
     """Redirect /recipes to index."""
     return redirect(url_for("preview_website_index", domain_id=domain_id, page=page), code=302)
+
+
+@app.route("/preview-website/<int:domain_id>/rss/<slug>")
+def preview_website_rss_board(domain_id, slug):
+    """Preview per-board RSS feed before deploy. Same content as deployed rss/<slug>.xml, with article links pointing to preview-website."""
+    slug = (slug or "").strip().lower()
+    if not slug:
+        return "Board slug required", 400
+    with get_connection() as conn:
+        cur = db_execute(conn, "SELECT id, domain_url, domain_name FROM domains WHERE id = ?", (domain_id,))
+        row = dict_row(cur.fetchone())
+        if not row:
+            return "Domain not found", 404
+        domain_name = (row.get("domain_name") or row.get("domain_url") or ("Domain %s" % domain_id))[:200]
+        cur = db_execute(conn, """
+            SELECT t.id AS title_id, t.title,
+                   ac.pin_image, ac.pinterest_title, ac.recipe_title_pin
+            FROM titles t
+            JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
+            WHERE t.domain_id = ?
+              AND ac.pin_image IS NOT NULL AND TRIM(ac.pin_image) != ''
+              AND TRIM(COALESCE(ac.pinterest_board_slug,'')) = ?
+            ORDER BY t.id DESC
+            LIMIT 100
+        """, (domain_id, slug))
+        rows = [dict_row(r) for r in cur.fetchall()]
+    base_url = (request.url_root or "").rstrip("/") + "/preview-website/" + str(domain_id)
+    feed_title = html.escape(domain_name) + " — " + html.escape(slug)
+    out = io.StringIO()
+    out.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+    out.write('<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">\n')
+    out.write("  <channel>\n")
+    out.write("    <title>%s</title>\n" % feed_title)
+    out.write("    <link>%s</link>\n" % html.escape(base_url))
+    out.write("    <description>Preview: board %s (same as deployed rss/%s.xml)</description>\n" % (html.escape(slug), html.escape(slug)))
+    for r in rows:
+        title_id = r.get("title_id")
+        title = (r.get("title") or "").strip() or "Article %s" % title_id
+        desc = (r.get("pinterest_title") or r.get("recipe_title_pin") or title or "")[:500]
+        link = base_url + "/article/" + str(title_id)
+        pin_img = (r.get("pin_image") or "").strip()
+        out.write("    <item>\n")
+        out.write("      <title>%s</title>\n" % html.escape(title))
+        out.write("      <link>%s</link>\n" % html.escape(link))
+        out.write("      <description>%s</description>\n" % html.escape(desc))
+        if pin_img and pin_img.startswith("http"):
+            out.write('      <enclosure url="%s" type="image/jpeg" />\n' % html.escape(pin_img))
+        out.write("    </item>\n")
+    out.write("  </channel>\n</rss>\n")
+    resp = make_response(out.getvalue())
+    resp.headers["Content-Type"] = "application/rss+xml; charset=utf-8"
+    return resp
 
 
 @app.route("/preview-website/<int:domain_id>/about")
@@ -19167,25 +20423,63 @@ def _build_static_page_html(domain_id, ctx_static, page_type, **kwargs):
     full_css = header_css + "\n" + footer_css + "\n" + main_css + "\n" + sidebar_css + "\n" + writer_css_injected + "\n" + layout_css
     pagination_css = ".pagination-nav{display:flex;align-items:center;justify-content:center;gap:1rem;flex-wrap:wrap;margin:2rem 0;}.pagination-nav a,.pagination-nav .page-current{padding:.5rem 1rem;}.pagination-nav a{color:var(--primary,#6C8AE4);text-decoration:none;}.pagination-nav .page-current{font-weight:bold;}"
     nav_script = "<script>document.querySelector('.nav-toggle')?.addEventListener('click',function(){document.querySelector('.main-nav')?.classList.toggle('is-open');});</script>"
+    pinterest_meta = ""
+    pv = (d.get("pinterest_domain_verify") or "").strip()
+    if pv:
+        pinterest_meta = f'\n<meta name="p:domain_verify" content="{html.escape(pv)}"/>'
     return f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{html.escape(page_title)}</title>
 <script src="/static/js/tailwindcss.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600" rel="stylesheet">
-<style>{full_css}{pagination_css}</style></head>
+<style>{full_css}{pagination_css}</style>{pinterest_meta}</head>
 <body>{header_html}
 {content_body}
 {footer_html}{nav_script}</body></html>"""
 
 
 def _write_static_file(out_dir, rel_path, content):
-    """Write content to out_dir/rel_path, creating parent dirs as needed."""
+    """Write content to out_dir/rel_path. Skip write if content is unchanged (keeps mtime, helps incremental deploy)."""
     full = os.path.join(out_dir, rel_path.replace("/", os.sep))
+    if os.path.isfile(full):
+        try:
+            with open(full, "r", encoding="utf-8") as f:
+                if f.read() == content:
+                    return
+        except Exception:
+            pass
     parent = os.path.dirname(full)
     if parent:
         os.makedirs(parent, exist_ok=True)
     with open(full, "w", encoding="utf-8") as f:
         f.write(content)
+
+
+def _content_hash(s):
+    """Return short hash of string for manifest comparison."""
+    return hashlib.sha256((s or "").encode("utf-8", errors="replace")).hexdigest()[:16]
+
+
+def _load_deploy_manifest(domain_id):
+    """Load incremental deploy manifest from STATIC_PROJECT_OUTPUT_DIR/.manifests/{domain_id}.json"""
+    manifest_dir = os.path.join(STATIC_PROJECT_OUTPUT_DIR, ".manifests")
+    path = os.path.join(manifest_dir, f"{domain_id}.json")
+    if not os.path.isfile(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def _save_deploy_manifest(domain_id, manifest):
+    """Save deploy manifest."""
+    manifest_dir = os.path.join(STATIC_PROJECT_OUTPUT_DIR, ".manifests")
+    os.makedirs(manifest_dir, exist_ok=True)
+    path = os.path.join(manifest_dir, f"{domain_id}.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=0)
 
 
 @app.route("/api/domains/<int:domain_id>/generate-static-project", methods=["GET", "POST"])
@@ -19198,6 +20492,23 @@ def api_generate_static_project(domain_id):
     if not output_path:
         output_path = os.path.join(STATIC_PROJECT_OUTPUT_DIR, str(domain_id))
     output_path = os.path.normpath(os.path.abspath(output_path))
+    manifest = _load_deploy_manifest(domain_id)
+    with get_connection() as conn:
+        categories = _get_categories_with_counts(conn, domain_id)
+        articles_all, _ = _get_domain_articles(conn, domain_id, 0, 1000, None)
+    domain_cfg_str = json.dumps({
+        "colors": ctx.get("config", {}).get("colors"),
+        "domain_name": ctx.get("config", {}).get("domain_name"),
+        "header": (ctx.get("domain") or {}).get("header_template"),
+        "footer": (ctx.get("domain") or {}).get("footer_template"),
+        "index_tpl": (ctx.get("domain") or {}).get("index_template"),
+        "cat_tpl": (ctx.get("domain") or {}).get("category_page_template"),
+        "pinterest_domain_verify": (ctx.get("domain") or {}).get("pinterest_domain_verify") or "",
+        "categories": [(c.get("name"), c.get("slug"), c.get("count")) for c in categories],
+        "article_ids": sorted([a.get("title_id") for a in articles_all]),
+    }, sort_keys=True)
+    domain_hash = _content_hash(domain_cfg_str)
+    force_full = manifest.get("domain_hash") != domain_hash
     ctx_static = dict(ctx)
     ctx_static["base_url"] = "."
     ctx_static["config"] = dict(ctx["config"])
@@ -19205,9 +20516,6 @@ def api_generate_static_project(domain_id):
     base = "."
     name_safe = re.sub(r"[^a-zA-Z0-9-]", "-", (ctx["config"].get("domain_name") or "site")[:50]).strip("-") or "site"
     os.makedirs(output_path, exist_ok=True)
-    with get_connection() as conn:
-        categories = _get_categories_with_counts(conn, domain_id)
-        articles_all, _ = _get_domain_articles(conn, domain_id, 0, 1000, None)
     arts = [{"title": a["title"], "url": f"article/{a['title_id']}.html", "image": a.get("image", ""), "main_image": a.get("image", "")} for a in articles_all[:8]]
     cats = [{"name": c["name"], "url": f"category/{c['slug']}/", "count": c["count"]} for c in categories]
     name = ctx["config"].get("domain_name", "Recipe Blog")
@@ -19228,21 +20536,22 @@ def api_generate_static_project(domain_id):
     idx_cfg["current_page"] = 1
     idx_cfg["per_page"] = 12
     idx_data = None
-    if static_page_theme:
-        idx_data = _fetch_themed_part_internal(static_page_theme, "index", idx_cfg)
-    if not idx_data and idx_tpl:
-        idx_data = _fetch_site_part_internal("index", idx_tpl, idx_cfg)
-    if idx_data and idx_data.get("html"):
-        index_main = idx_data["html"].replace('<div class="index-pagination-slot"></div>', "")
-        index_css = idx_data.get("css", "")
-        index_html = _build_static_page_html(domain_id, ctx_static, "index", main_html=index_main, main_css=index_css, page_title=f"{name} | Home", sidebar_categories=cats_index)
-        _write_static_file(output_path, "index.html", index_html)
-        cfg_recipes = dict(ctx_static["config"])
-        cfg_recipes["domain_url"] = ".."
-        _write_static_file(output_path, "recipes/index.html", _build_static_page_html(domain_id, dict(ctx_static, config=cfg_recipes), "recipes", main_html=index_main, main_css=index_css, page_title=f"{name} | Recipes", sidebar_categories=cats_sub))
-    else:
-        idx_tpl = ""
-    if not idx_tpl:
+    if force_full:
+        if static_page_theme:
+            idx_data = _fetch_themed_part_internal(static_page_theme, "index", idx_cfg)
+        if not idx_data and idx_tpl:
+            idx_data = _fetch_site_part_internal("index", idx_tpl, idx_cfg)
+        if idx_data and idx_data.get("html"):
+            index_main = idx_data["html"].replace('<div class="index-pagination-slot"></div>', "")
+            index_css = idx_data.get("css", "")
+            index_html = _build_static_page_html(domain_id, ctx_static, "index", main_html=index_main, main_css=index_css, page_title=f"{name} | Home", sidebar_categories=cats_index)
+            _write_static_file(output_path, "index.html", index_html)
+            cfg_recipes = dict(ctx_static["config"])
+            cfg_recipes["domain_url"] = ".."
+            _write_static_file(output_path, "recipes/index.html", _build_static_page_html(domain_id, dict(ctx_static, config=cfg_recipes), "recipes", main_html=index_main, main_css=index_css, page_title=f"{name} | Recipes", sidebar_categories=cats_sub))
+        else:
+            idx_tpl = ""
+    if force_full and not idx_tpl:
         index_main = f"""<main class="preview-index" style="max-width:1200px;margin:0 auto;padding:2rem;">
   <section class="hero" style="text-align:center;padding:3rem 0;background:linear-gradient(135deg,rgba(108,138,228,.08) 0%,rgba(156,106,222,.08) 100%);border-radius:12px;margin-bottom:2rem;">
     <h1 style="font-family:Playfair Display,serif;font-size:2.5rem;color:{primary};">{html.escape(name)}</h1>
@@ -19261,87 +20570,89 @@ def api_generate_static_project(domain_id):
         index_main += "</div></section></main>"
         index_html = _build_static_page_html(domain_id, ctx_static, "index", main_html=index_main, main_css="", page_title=f"{name} | Home", sidebar_categories=cats_index)
         _write_static_file(output_path, "index.html", index_html)
-    if not idx_tpl:
+    if force_full and not idx_tpl:
         cfg_recipes = dict(ctx_static["config"])
         cfg_recipes["domain_url"] = ".."
         _write_static_file(output_path, "recipes/index.html", _build_static_page_html(domain_id, dict(ctx_static, config=cfg_recipes), "recipes", main_html=index_main, main_css="", page_title=f"{name} | Recipes", sidebar_categories=cats_sub))
-    cats_main = f'<main style="max-width:800px;margin:0 auto;padding:2rem;"><h1 style="font-size:2rem;margin-bottom:1.5rem;color:{primary};">Categories</h1><div style="display:flex;flex-direction:column;gap:.75rem;">'
-    for c in categories:
-        cats_main += f'<a href="category/{html.escape(c["slug"])}/" style="display:flex;justify-content:space-between;padding:1rem;background:#fff;border:1px solid #eee;border-radius:8px;text-decoration:none;color:#2D2D2D;"><span>{html.escape(c["name"])}</span><span style="color:#5A5A5A;">{c["count"]}</span></a>'
-    cats_main += "</div></main>"
-    cfg_cats = dict(ctx_static["config"])
-    cfg_cats["domain_url"] = ".."
-    _write_static_file(output_path, "categories/index.html", _build_static_page_html(domain_id, dict(ctx_static, config=cfg_cats), "categories", main_html=cats_main, main_css="", page_title=f"{name} | Categories", sidebar_categories=cats_sub))
-    about_main = f'<main style="max-width:600px;margin:0 auto;padding:2rem;"><h1>About {html.escape(name)}</h1><p>Welcome! We share delicious recipes for every occasion.</p><p><a href="../">Back to Home</a></p></main>'
-    _write_static_file(output_path, "about/index.html", _build_static_page_html(domain_id, dict(ctx_static, config=cfg_cats), "about", main_html=about_main, main_css="", page_title=f"{name} | About", sidebar_categories=cats_sub))
-    per_page = 12
-    for c in categories:
-        slug = c["slug"]
-        filter_by = None if slug == "all" else c["name"]
-        with get_connection() as conn2:
-            if slug == "all":
-                arts_all_cat, total_cat = _get_domain_articles(conn2, domain_id, 0, 10000, None)
-            else:
-                arts_all_cat, total_cat = _get_domain_articles(conn2, domain_id, 0, 10000, filter_by)
-        cat_name = c["name"]
-        cat_tpl = (ctx_static["domain"].get("category_page_template") or "category_1").strip() or "category_1"
-        total_pages_cat = max(1, (total_cat + per_page - 1) // per_page)
+    if force_full:
+        cats_main = f'<main style="max-width:800px;margin:0 auto;padding:2rem;"><h1 style="font-size:2rem;margin-bottom:1.5rem;color:{primary};">Categories</h1><div style="display:flex;flex-direction:column;gap:.75rem;">'
+        for c in categories:
+            cats_main += f'<a href="category/{html.escape(c["slug"])}/" style="display:flex;justify-content:space-between;padding:1rem;background:#fff;border:1px solid #eee;border-radius:8px;text-decoration:none;color:#2D2D2D;"><span>{html.escape(c["name"])}</span><span style="color:#5A5A5A;">{c["count"]}</span></a>'
+        cats_main += "</div></main>"
+        cfg_cats = dict(ctx_static["config"])
+        cfg_cats["domain_url"] = ".."
+        _write_static_file(output_path, "categories/index.html", _build_static_page_html(domain_id, dict(ctx_static, config=cfg_cats), "categories", main_html=cats_main, main_css="", page_title=f"{name} | Categories", sidebar_categories=cats_sub))
+        about_main = f'<main style="max-width:600px;margin:0 auto;padding:2rem;"><h1>About {html.escape(name)}</h1><p>Welcome! We share delicious recipes for every occasion.</p><p><a href="../">Back to Home</a></p></main>'
+        _write_static_file(output_path, "about/index.html", _build_static_page_html(domain_id, dict(ctx_static, config=cfg_cats), "about", main_html=about_main, main_css="", page_title=f"{name} | About", sidebar_categories=cats_sub))
+        per_page = 12
+        for c in categories:
+            slug = c["slug"]
+            filter_by = None if slug == "all" else c["name"]
+            with get_connection() as conn2:
+                if slug == "all":
+                    arts_all_cat, total_cat = _get_domain_articles(conn2, domain_id, 0, 10000, None)
+                else:
+                    arts_all_cat, total_cat = _get_domain_articles(conn2, domain_id, 0, 10000, filter_by)
+            cat_name = c["name"]
+            cat_tpl = (ctx_static["domain"].get("category_page_template") or "category_1").strip() or "category_1"
+            total_pages_cat = max(1, (total_cat + per_page - 1) // per_page)
 
-        def _art_to_dict(a, base_url):
-            img = a.get("main_image") or a.get("image", "")
-            return {"title": a["title"], "url": base_url, "image": img, "main_image": img, "excerpt": a.get("excerpt", ""), "title_id": a.get("title_id")}
+            def _art_to_dict(a, base_url):
+                img = a.get("main_image") or a.get("image", "")
+                return {"title": a["title"], "url": base_url, "image": img, "main_image": img, "excerpt": a.get("excerpt", ""), "title_id": a.get("title_id")}
 
-        for page_num in range(1, total_pages_cat + 1):
-            offset = (page_num - 1) * per_page
-            arts_page = arts_all_cat[offset:offset + per_page]
-            depth = "../../" if page_num == 1 else "../../../"
-            arts_list = [_art_to_dict(a, f"../../article/{a['title_id']}.html") for a in arts_page]
+            for page_num in range(1, total_pages_cat + 1):
+                offset = (page_num - 1) * per_page
+                arts_page = arts_all_cat[offset:offset + per_page]
+                depth = "../../" if page_num == 1 else "../../../"
+                arts_list = [_art_to_dict(a, f"../../article/{a['title_id']}.html") for a in arts_page]
 
-            cat_cfg = dict(ctx_static["config"])
-            cat_cfg["domain_url"] = "../.."
-            cat_cfg["category_name"] = cat_name
-            cat_cfg["articles"] = arts_list
-            cat_cfg["total"] = total_cat
-            cat_cfg["total_pages"] = total_pages_cat
-            cat_cfg["current_page"] = page_num
-            cat_cfg["per_page"] = per_page
-            cat_data = None
-            if static_page_theme:
-                cat_data = _fetch_themed_part_internal(static_page_theme, "category", cat_cfg)
-            if not cat_data:
-                cat_data = _fetch_site_part_internal("category", cat_tpl, cat_cfg)
+                cat_cfg = dict(ctx_static["config"])
+                cat_cfg["domain_url"] = "../.."
+                cat_cfg["category_name"] = cat_name
+                cat_cfg["articles"] = arts_list
+                cat_cfg["total"] = total_cat
+                cat_cfg["total_pages"] = total_pages_cat
+                cat_cfg["current_page"] = page_num
+                cat_cfg["per_page"] = per_page
+                cat_data = None
+                if static_page_theme:
+                    cat_data = _fetch_themed_part_internal(static_page_theme, "category", cat_cfg)
+                if not cat_data:
+                    cat_data = _fetch_site_part_internal("category", cat_tpl, cat_cfg)
 
-            if cat_data:
-                prev_url = f"../" if page_num == 2 else f"../page/{page_num - 1}/" if page_num > 2 else None
-                next_url = f"../page/{page_num + 1}/" if page_num < total_pages_cat else None
-                pag_parts = []
-                if prev_url:
-                    pag_parts.append(f'<a href="{prev_url}" class="page-prev">&laquo; Prev</a> ')
-                pag_parts.append('<span class="page-numbers">')
-                for i in range(1, total_pages_cat + 1):
-                    if i == page_num:
-                        pag_parts.append(f'<span class="page-current">{i}</span> ')
-                    else:
-                        u = "../" if i == 1 else f"../page/{i}/"
-                        pag_parts.append(f'<a href="{u}" class="page-link">{i}</a> ')
-                pag_parts.append('</span>')
-                if next_url:
-                    pag_parts.append(f' <a href="{next_url}" class="page-next">Next &raquo;</a>')
-                pag_html = f'<nav class="pagination-nav">{"".join(pag_parts)}</nav>'
-                cat_main = cat_data["html"].replace("</main>", pag_html + "\n</main>")
-                cat_html = _build_static_page_html(domain_id, dict(ctx_static, config=cat_cfg), "category", main_html=cat_main, main_css=cat_data.get("css", ""), page_title=f"{name} | {cat_name}" + (f" (Page {page_num})" if page_num > 1 else ""), include_sidebar=False)
-            else:
-                def _fallback_card(a):
-                    img = (a.get("main_image") or a.get("image") or "").strip()
-                    img_tag = f'<img src="{img}" alt="" style="width:100%;height:180px;object-fit:cover;">' if img and img.startswith("http") else '<div style="width:100%;height:180px;background:#eee;"></div>'
-                    return f'<article><a href="../../article/{a["title_id"]}.html">{img_tag}<h3>{html.escape(a["title"])}</h3></a></article>'
-                cat_main = f'<main><h1>{html.escape(cat_name)}</h1><p>{total_cat} recipes</p><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.5rem;">' + "".join(_fallback_card(a) for a in arts_page) + "</div></main>"
-                cat_html = _build_static_page_html(domain_id, ctx_static, "category", main_html=cat_main, main_css="", page_title=f"{name} | {cat_name}", include_sidebar=False)
+                if cat_data:
+                    prev_url = f"../" if page_num == 2 else f"../page/{page_num - 1}/" if page_num > 2 else None
+                    next_url = f"../page/{page_num + 1}/" if page_num < total_pages_cat else None
+                    pag_parts = []
+                    if prev_url:
+                        pag_parts.append(f'<a href="{prev_url}" class="page-prev">&laquo; Prev</a> ')
+                    pag_parts.append('<span class="page-numbers">')
+                    for i in range(1, total_pages_cat + 1):
+                        if i == page_num:
+                            pag_parts.append(f'<span class="page-current">{i}</span> ')
+                        else:
+                            u = "../" if i == 1 else f"../page/{i}/"
+                            pag_parts.append(f'<a href="{u}" class="page-link">{i}</a> ')
+                    pag_parts.append('</span>')
+                    if next_url:
+                        pag_parts.append(f' <a href="{next_url}" class="page-next">Next &raquo;</a>')
+                    pag_html = f'<nav class="pagination-nav">{"".join(pag_parts)}</nav>'
+                    cat_main = cat_data["html"].replace("</main>", pag_html + "\n</main>")
+                    cat_html = _build_static_page_html(domain_id, dict(ctx_static, config=cat_cfg), "category", main_html=cat_main, main_css=cat_data.get("css", ""), page_title=f"{name} | {cat_name}" + (f" (Page {page_num})" if page_num > 1 else ""), include_sidebar=False)
+                else:
+                    def _fallback_card(a):
+                        img = (a.get("main_image") or a.get("image") or "").strip()
+                        img_tag = f'<img src="{img}" alt="" style="width:100%;height:180px;object-fit:cover;">' if img and img.startswith("http") else '<div style="width:100%;height:180px;background:#eee;"></div>'
+                        return f'<article><a href="../../article/{a["title_id"]}.html">{img_tag}<h3>{html.escape(a["title"])}</h3></a></article>'
+                    cat_main = f'<main><h1>{html.escape(cat_name)}</h1><p>{total_cat} recipes</p><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.5rem;">' + "".join(_fallback_card(a) for a in arts_page) + "</div></main>"
+                    cat_html = _build_static_page_html(domain_id, ctx_static, "category", main_html=cat_main, main_css="", page_title=f"{name} | {cat_name}", include_sidebar=False)
 
-            if page_num == 1:
-                _write_static_file(output_path, f"category/{slug}/index.html", cat_html)
-            else:
-                _write_static_file(output_path, f"category/{slug}/page/{page_num}/index.html", cat_html)
+                if page_num == 1:
+                    _write_static_file(output_path, f"category/{slug}/index.html", cat_html)
+                else:
+                    _write_static_file(output_path, f"category/{slug}/page/{page_num}/index.html", cat_html)
+    art_hashes = {}
     with get_connection() as conn:
         for a in articles_all:
             tid = a["title_id"]
@@ -19352,7 +20663,13 @@ def api_generate_static_project(domain_id):
             art_pin_img = (ac.get("pin_image") or "").strip()
             writer_json = ac.get("writer")
             writer_avatar = ac.get("writer_avatar")
-
+            content_key = json.dumps([art_html[:50000], art_css[:10000], art_pin_img, a.get("title", ""), str(writer_json)[:2000], str(writer_avatar)[:500]], sort_keys=True)
+            content_hash = _content_hash(content_key)
+            art_hashes[str(tid)] = content_hash
+            if not force_full and manifest.get("articles", {}).get(str(tid)) == content_hash:
+                art_path = os.path.join(output_path, f"article/{tid}.html".replace("/", os.sep))
+                if os.path.isfile(art_path):
+                    continue
             writer_data = None
             if writer_json:
                 try:
@@ -19361,7 +20678,6 @@ def api_generate_static_project(domain_id):
                         writer_data["avatar"] = writer_avatar
                 except:
                     pass
-
             title_text = a.get("title", "")
             art_pin_attr = f' data-pin-image="{art_pin_img}"' if art_pin_img else ""
             art_main = f'<main class="preview-article"><article class="article-content"{art_pin_attr}>{art_html or "<p>No content yet.</p>"}</article></main>'
@@ -19370,26 +20686,263 @@ def api_generate_static_project(domain_id):
             depth = "../../"
             art_full = _build_static_page_html(domain_id, dict(ctx_static, config=art_cfg), "article", main_html=art_main, main_css=f".article-content{{line-height:1.7}}{art_css}", page_title=f"{title_text} | {name}", include_sidebar=True, sidebar_articles=[{"title": x["title"], "url": f"{depth}article/{x['title_id']}.html", "image": x.get("image", ""), "main_image": x.get("image", "")} for x in articles_all[:6] if x["title_id"] != tid], sidebar_categories=[{"name": cx["name"], "url": f"{depth}category/{cx['slug']}/", "count": cx["count"]} for cx in categories], writer=writer_data)
             _write_static_file(output_path, f"article/{tid}.html", art_full)
+    # Generate static rss.xml for deployed site (https://domain.com/rss.xml)
+    domain_url = (ctx_static.get("domain") or {}).get("domain_url") or ctx_static.get("config", {}).get("domain_url") or ""
+    domain_url = (domain_url or "").strip()
+    if domain_url and ("://" in domain_url or "/" in domain_url):
+        domain_url = re.sub(r"^https?://", "", domain_url).split("/")[0].split("?")[0]
+    feed_base = ("https://" + domain_url) if domain_url else ""
+    with get_connection() as conn:
+        cur = db_execute(conn, """
+            SELECT t.id AS title_id, t.title,
+                   ac.pin_image, ac.pinterest_title, ac.recipe_title_pin
+            FROM titles t
+            JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
+            WHERE t.domain_id = ?
+              AND ac.pin_image IS NOT NULL AND TRIM(ac.pin_image) != ''
+            ORDER BY t.id DESC
+            LIMIT 100
+        """, (domain_id,))
+        rss_rows = [dict_row(r) for r in cur.fetchall()]
+    feed_title = html.escape(name)
+    feed_link = feed_base.rstrip("/") if feed_base else ""
+    rss_out = io.StringIO()
+    rss_out.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+    rss_out.write('<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">\n')
+    rss_out.write("  <channel>\n")
+    rss_out.write("    <title>%s</title>\n" % feed_title)
+    rss_out.write("    <link>%s</link>\n" % (html.escape(feed_link) if feed_link else html.escape(feed_title)))
+    rss_out.write("    <description>Articles for %s</description>\n" % feed_title)
+    for r in rss_rows:
+        title_id = r.get("title_id")
+        title = (r.get("title") or "").strip() or "Article %s" % title_id
+        desc = (r.get("pinterest_title") or r.get("recipe_title_pin") or title or "")[:500]
+        link = pinterest_build_article_url(domain_url, title_id) if domain_url else (feed_base + f"/article/{title_id}.html" if feed_base else "")
+        pin_img = (r.get("pin_image") or "").strip()
+        rss_out.write("    <item>\n")
+        rss_out.write("      <title>%s</title>\n" % html.escape(title))
+        rss_out.write("      <link>%s</link>\n" % html.escape(link))
+        rss_out.write("      <description>%s</description>\n" % html.escape(desc))
+        if pin_img and pin_img.startswith("http"):
+            rss_out.write('      <enclosure url="%s" type="image/jpeg" />\n' % html.escape(pin_img))
+        rss_out.write("    </item>\n")
+    rss_out.write("  </channel>\n</rss>\n")
+    _write_static_file(output_path, "rss.xml", rss_out.getvalue())
+    # Per-board RSS feeds for Pinterest (each board gets https://domain.com/rss/<slug>.xml on deploy)
+    with get_connection() as conn:
+        cur = db_execute(conn, "SELECT pinterest_boards FROM domains WHERE id = ?", (domain_id,))
+        row = dict_row(cur.fetchone())
+        raw_boards = (row.get("pinterest_boards") or "").strip() if row else ""
+    pinterest_boards = []
+    if raw_boards:
+        try:
+            pinterest_boards = json.loads(raw_boards) if isinstance(raw_boards, str) else raw_boards
+            if not isinstance(pinterest_boards, list):
+                pinterest_boards = []
+        except (json.JSONDecodeError, TypeError):
+            pass
+    for b in pinterest_boards:
+        if not isinstance(b, dict) or not b.get("slug"):
+            continue
+        slug = (b.get("slug") or "").strip().lower().replace("/", "-").replace("\\", "-")[:64] or "board"
+        with get_connection() as conn:
+            cur = db_execute(conn, """
+                SELECT t.id AS title_id, t.title,
+                       ac.pin_image, ac.pinterest_title, ac.recipe_title_pin
+                FROM titles t
+                JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
+                WHERE t.domain_id = ?
+                  AND ac.pin_image IS NOT NULL AND TRIM(ac.pin_image) != ''
+                  AND TRIM(COALESCE(ac.pinterest_board_slug,'')) = ?
+                ORDER BY t.id DESC
+                LIMIT 100
+            """, (domain_id, slug))
+            board_rows = [dict_row(r) for r in cur.fetchall()]
+        feed_title = html.escape(name) + " — " + html.escape(b.get("name") or slug)
+        feed_link = feed_base.rstrip("/") if feed_base else ""
+        board_rss = io.StringIO()
+        board_rss.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+        board_rss.write('<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">\n')
+        board_rss.write("  <channel>\n")
+        board_rss.write("    <title>%s</title>\n" % feed_title)
+        board_rss.write("    <link>%s</link>\n" % (html.escape(feed_link) if feed_link else feed_title))
+        board_rss.write("    <description>Board: %s</description>\n" % html.escape(b.get("name") or slug))
+        for r in board_rows:
+            title_id = r.get("title_id")
+            title = (r.get("title") or "").strip() or "Article %s" % title_id
+            desc = (r.get("pinterest_title") or r.get("recipe_title_pin") or title or "")[:500]
+            link = (feed_base + "/article/" + str(title_id) + ".html") if feed_base else ""
+            pin_img = (r.get("pin_image") or "").strip()
+            board_rss.write("    <item>\n")
+            board_rss.write("      <title>%s</title>\n" % html.escape(title))
+            board_rss.write("      <link>%s</link>\n" % html.escape(link))
+            board_rss.write("      <description>%s</description>\n" % html.escape(desc))
+            if pin_img and pin_img.startswith("http"):
+                board_rss.write('      <enclosure url="%s" type="image/jpeg" />\n' % html.escape(pin_img))
+            board_rss.write("    </item>\n")
+        board_rss.write("  </channel>\n</rss>\n")
+        _write_static_file(output_path, "rss/" + slug + ".xml", board_rss.getvalue())
+    # So /rss/chicken works on deploy: redirect to /rss/chicken.xml (Cloudflare Pages _redirects)
+    if pinterest_boards:
+        redirects_path = os.path.join(output_path, "_redirects")
+        existing = ""
+        if os.path.isfile(redirects_path):
+            try:
+                with open(redirects_path, "r", encoding="utf-8") as f:
+                    existing = f.read()
+            except Exception:
+                pass
+        lines = ["# Per-board RSS: /rss/<slug> -> /rss/<slug>.xml"]
+        for b in pinterest_boards:
+            if isinstance(b, dict) and b.get("slug"):
+                s = (b.get("slug") or "").strip().lower().replace("/", "-").replace("\\", "-")[:64] or "board"
+                lines.append("/rss/%s /rss/%s.xml 302" % (s, s))
+        new_block = "\n".join(lines) + "\n"
+        _write_static_file(output_path, "_redirects", (new_block + existing) if existing.strip() else new_block.strip())
+    current_tids = {str(a["title_id"]) for a in articles_all}
+    for old_tid in list(manifest.get("articles", {}).keys()):
+        if old_tid not in current_tids:
+            stale = os.path.join(output_path, f"article/{old_tid}.html".replace("/", os.sep))
+            if os.path.isfile(stale):
+                try:
+                    os.remove(stale)
+                except OSError:
+                    pass
+    manifest["domain_hash"] = domain_hash
+    manifest["articles"] = art_hashes
+    _save_deploy_manifest(domain_id, manifest)
     return jsonify({"success": True, "output_path": output_path})
 
 
 @app.route("/api/domains/<int:domain_id>/deploy-cloudflare", methods=["POST"])
 @login_required
 def api_deploy_cloudflare(domain_id):
-    """Generate static project and deploy to Cloudflare Pages via Wrangler (direct upload, no GitHub)."""
+    """Generate static project and deploy to Cloudflare Pages. Runs in background; use status endpoint for progress."""
     try:
         user = get_current_user()
         user_id = user["id"] if user else None
-        return _do_deploy_cloudflare(domain_id, user_id)
+        with DEPLOY_CF_PROGRESS_LOCK:
+            if domain_id in DEPLOY_CF_PROGRESS and not DEPLOY_CF_PROGRESS[domain_id].get("done"):
+                return jsonify({"success": False, "error": "Deploy already in progress for this domain"}), 409
+            DEPLOY_CF_PROGRESS[domain_id] = {"step": "starting", "percent": 0, "message": "Starting deploy…", "done": False, "result": None, "error": None}
+        def run():
+            with app.app_context():
+                try:
+                    ret = _do_deploy_cloudflare(domain_id, user_id, progress_domain_id=domain_id)
+                    resp = ret[0] if isinstance(ret, tuple) else ret
+                    with DEPLOY_CF_PROGRESS_LOCK:
+                        data = resp.get_json() if resp and hasattr(resp, "get_json") else {}
+                        DEPLOY_CF_PROGRESS[domain_id] = {"step": "complete", "percent": 100, "message": "Done", "done": True, "result": data, "error": None if data.get("success") else data.get("error", "Unknown error")}
+                except Exception as e:
+                    log.exception("[deploy-cloudflare] Background error")
+                    with DEPLOY_CF_PROGRESS_LOCK:
+                        DEPLOY_CF_PROGRESS[domain_id] = {"step": "error", "percent": 0, "message": str(e), "done": True, "result": None, "error": str(e)}
+        threading.Thread(target=run, daemon=True).start()
+        return jsonify({"success": True, "message": "Deploy started in background", "domain_id": domain_id}), 202
     except Exception as e:
         log.exception("[deploy-cloudflare] Unexpected error")
-        tb = traceback.format_exc()
-        return jsonify({"success": False, "error": str(e), "traceback": tb}), 500
+        return jsonify({"success": False, "error": str(e), "traceback": traceback.format_exc()}), 500
 
 
-def _do_deploy_cloudflare(domain_id, user_id=None):
+@app.route("/api/running-tasks", methods=["GET"])
+@login_required
+def api_running_tasks():
+    """Return all running background tasks (single-domain deploy, bulk deploy, bulk run)."""
+    tasks = []
+    # Cloudflare DNS setup (background)
+    with CF_DNS_PROGRESS_LOCK:
+        for domain_id, p in list(CF_DNS_PROGRESS.items()):
+            if not p.get("done"):
+                domain_url = p.get("domain_url") or f"Domain {domain_id}"
+                tasks.append({"type": "cloudflare_dns", "domain_id": domain_id, "domain_url": domain_url, "percent": p.get("percent", 0), "message": p.get("message", ""), "status": "running"})
+    # Cloudflare info fetch (background)
+    with CF_INFO_PROGRESS_LOCK:
+        for domain_id, p in list(CF_INFO_PROGRESS.items()):
+            if not p.get("done"):
+                domain_url = p.get("domain_url") or f"Domain {domain_id}"
+                tasks.append({"type": "cloudflare_info", "domain_id": domain_id, "domain_url": domain_url, "percent": p.get("percent", 0), "message": p.get("message", ""), "status": "running"})
+    # Single-domain Cloudflare deploys (running only)
+    with DEPLOY_CF_PROGRESS_LOCK:
+        for domain_id, p in list(DEPLOY_CF_PROGRESS.items()):
+            if not p.get("done"):
+                with get_connection() as conn:
+                    cur = db_execute(conn, "SELECT domain_url, domain_name FROM domains WHERE id = ?", (domain_id,))
+                    row = dict_row(cur.fetchone())
+                domain_url = (row.get("domain_url") or row.get("domain_name") or "").strip() or f"Domain {domain_id}"
+                tasks.append({"type": "deploy_cf", "domain_id": domain_id, "domain_url": domain_url, "percent": p.get("percent", 0), "message": p.get("message", ""), "status": "running"})
+    # Bulk deploy jobs – include running, done, error, cancelled until user clears
+    with BULK_DEPLOY_JOBS_LOCK:
+        for jid, j in list(BULK_DEPLOY_JOBS.items()):
+            total = j.get("total", 0)
+            done = j.get("done", 0)
+            cancelled = j.get("_cancelled", False)
+            errors = j.get("errors", {})
+            status = "cancelled" if cancelled else ("running" if total > 0 and done < total else ("error" if errors else "done"))
+            pct = int(100 * done / total) if total else 100
+            msg = f"{done}/{total} domains" + (" (cancelled)" if cancelled else "") + (f" — {len(errors)} error(s)" if errors else "")
+            tasks.append({"type": "bulk_deploy", "job_id": jid, "percent": pct, "message": msg, "current": j.get("current"), "status": status})
+    # Bulk run jobs + writers_pool – include running, done, error, cancelled until user clears
+    seen_job_ids = {t.get("job_id") for t in tasks if t.get("job_id")}
+    for jid, p in list(_bulk_progress.items()):
+        status = p.get("status", "running")
+        total = p.get("total_rows") or p.get("total", 0)
+        done = p.get("done") or p.get("processed_count", 0)
+        pct = int(100 * done / total) if total else (100 if status != "running" else 0)
+        msg = p.get("message", "Running")
+        if status == "error" and p.get("error_detail"):
+            msg = p.get("error_detail", msg)
+        task_type = p.get("type", "bulk_run")
+        tasks.append({
+            "type": task_type, "job_id": jid, "percent": pct, "message": msg,
+            "status": status, "action": p.get("action", p.get("type", "")),
+            "error_detail": p.get("error_detail"),
+        })
+        seen_job_ids.add(jid)
+    # Include persisted history so completed tasks stay visible until user clicks Clear (survives refresh/restart)
+    for jid, p in list(_bulk_history.items()):
+        if jid in seen_job_ids or not isinstance(p, dict):
+            continue
+        task_type = p.get("type", "bulk_run")
+        if task_type not in ("bulk_run", "group", "all", "single", "affect_rss", "writers_pool"):
+            continue
+        status = p.get("status", "done")
+        total = p.get("total_rows") or p.get("total", 0)
+        done = p.get("done") or p.get("processed_count", 0)
+        pct = int(100 * done / total) if total else (100 if status != "running" else 0)
+        msg = p.get("message", "Running")
+        if status == "error" and p.get("error_detail"):
+            msg = p.get("error_detail", msg)
+        tasks.append({
+            "type": task_type, "job_id": jid, "percent": pct, "message": msg,
+            "status": status, "action": p.get("action", p.get("type", "")),
+            "error_detail": p.get("error_detail"),
+        })
+        seen_job_ids.add(jid)
+    return jsonify({"tasks": tasks})
+
+
+@app.route("/api/domains/<int:domain_id>/deploy-cloudflare/status", methods=["GET"])
+@login_required
+def api_deploy_cloudflare_status(domain_id):
+    """Get progress of background Cloudflare deploy."""
+    with DEPLOY_CF_PROGRESS_LOCK:
+        p = DEPLOY_CF_PROGRESS.get(domain_id)
+    if not p:
+        return jsonify({"status": "idle", "percent": 0, "message": "No deploy in progress", "done": False})
+    return jsonify({"status": "deploy" if not p.get("done") else ("success" if not p.get("error") else "error"), "step": p.get("step"), "percent": p.get("percent", 0), "message": p.get("message"), "done": p.get("done", False), "result": p.get("result"), "error": p.get("error")})
+
+
+def _update_deploy_progress(domain_id, step, percent, message):
+    if domain_id is None:
+        return
+    with DEPLOY_CF_PROGRESS_LOCK:
+        if domain_id in DEPLOY_CF_PROGRESS:
+            DEPLOY_CF_PROGRESS[domain_id].update({"step": step, "percent": percent, "message": message})
+
+
+def _do_deploy_cloudflare(domain_id, user_id=None, progress_domain_id=None):
     """Inner deploy logic; raises on error."""
-    
+    pid = progress_domain_id
     # Try to get user config first
     cf_account_id = CLOUDFLARE_ACCOUNT_ID
     cf_api_token = CLOUDFLARE_API_TOKEN
@@ -19406,13 +20959,26 @@ def _do_deploy_cloudflare(domain_id, user_id=None):
             "success": False,
             "error": "Cloudflare not configured. Please add Cloudflare API keys to your Profile settings."
         }), 400
-        
-    with app.test_request_context(path=f"/api/domains/{domain_id}/generate-static-project", method="POST"):
+    _update_deploy_progress(pid, "generate", 5, "Generating static site…")
+    # Use request_context with manual environ to avoid test_request_context/EnvironBuilder circular import in background thread
+    environ = {
+        "REQUEST_METHOD": "POST",
+        "PATH_INFO": f"/api/domains/{domain_id}/generate-static-project",
+        "SERVER_NAME": "localhost",
+        "SERVER_PORT": "5000",
+        "wsgi.version": (1, 0),
+        "wsgi.url_scheme": "http",
+        "wsgi.input": io.BytesIO(b"{}"),
+        "CONTENT_TYPE": "application/json",
+        "CONTENT_LENGTH": "2",
+    }
+    with app.request_context(environ):
         resp = api_generate_static_project(domain_id)
         gen_data = resp.get_json() if resp else None
     if not gen_data or not gen_data.get("success"):
         return jsonify({"success": False, "error": gen_data.get("error", "Generation failed")}), 500
     output_path = gen_data["output_path"]
+    _update_deploy_progress(pid, "generated", 20, "Static site generated")
     if not os.path.isdir(output_path) or not os.path.isfile(os.path.join(output_path, "index.html")):
         return jsonify({"success": False, "error": "Generated project has no index.html"}), 500
     with get_connection() as conn:
@@ -19427,6 +20993,7 @@ def _do_deploy_cloudflare(domain_id, user_id=None):
     env = os.environ.copy()
     env["CLOUDFLARE_ACCOUNT_ID"] = cf_account_id
     env["CLOUDFLARE_API_TOKEN"] = cf_api_token
+    _update_deploy_progress(pid, "create_project", 30, "Creating Cloudflare Pages project…")
     npx_cmd = "npx.cmd" if os.name == "nt" else "npx"
     # Create project via Cloudflare API if it doesn't exist
     create_body = json.dumps({"name": project_name, "production_branch": "main"}).encode("utf-8")
@@ -19445,6 +21012,9 @@ def _do_deploy_cloudflare(domain_id, user_id=None):
             pass
         else:
             log.warning("[deploy-cloudflare] create project HTTP %s: %s", e.code, body[:400])
+    # Run wrangler from the output directory so it can keep cache (.wrangler) there for delta uploads
+    # (only changed files are uploaded on subsequent deploys, like git push)
+    _update_deploy_progress(pid, "wrangler", 40, "Uploading to Cloudflare (only changed files after first time)…")
     fd_out, path_out = tempfile.mkstemp(suffix=".txt", text=True)
     fd_err, path_err = tempfile.mkstemp(suffix=".txt", text=True)
     try:
@@ -19452,18 +21022,19 @@ def _do_deploy_cloudflare(domain_id, user_id=None):
             with os.fdopen(fd_out, "w") as f_out:
                 with os.fdopen(fd_err, "w") as f_err:
                     result = subprocess.run(
-                        [npx_cmd, "wrangler", "pages", "deploy", output_path, "--project-name", project_name],
+                        [npx_cmd, "wrangler", "pages", "deploy", ".", "--project-name", project_name],
                         stdout=f_out,
                         stderr=f_err,
                         text=True,
-                        timeout=600,
+                        timeout=1800,
                         env=env,
                         shell=False,
+                        cwd=output_path,
                     )
         except FileNotFoundError:
             return jsonify({"success": False, "error": "npx not found. Install Node.js to use Wrangler."}), 500
         except subprocess.TimeoutExpired:
-            return jsonify({"success": False, "error": "Deploy timed out after 10 minutes. Try again; first deploy can be slow."}), 500
+            return jsonify({"success": False, "error": "Deploy timed out after 30 minutes. First deploy can be slow; later ones upload only changes."}), 500
         with open(path_out, "r", encoding="utf-8", errors="replace") as f:
             result_stdout = f.read()
         with open(path_err, "r", encoding="utf-8", errors="replace") as f:
@@ -19477,6 +21048,7 @@ def _do_deploy_cloudflare(domain_id, user_id=None):
             os.unlink(path_err)
         except OSError:
             pass
+    _update_deploy_progress(pid, "wrangler_done", 85, "Upload complete, adding custom domains…")
     if result.returncode != 0:
         err = (result_stderr or result_stdout or "Unknown error").strip()[-600:]
         if "8000007" in err or "Project not found" in err:
@@ -19549,85 +21121,89 @@ def _check_url_up(url, timeout=10):
     return False, last_err or "unknown"
 
 
-@app.route("/api/domains/<int:domain_id>/cloudflare-info", methods=["POST", "GET"])
-@login_required
-def api_domain_cloudflare_info(domain_id):
-    """POST: fetch Cloudflare Pages project info, save to cloudflare_info, return JSON. GET: return saved info."""
-    user = get_current_user()
-    user_config = get_user_config_for_api(user["id"])
+def _update_cf_info_progress(domain_id, percent, message):
+    with CF_INFO_PROGRESS_LOCK:
+        if domain_id in CF_INFO_PROGRESS:
+            CF_INFO_PROGRESS[domain_id].update({"percent": percent, "message": message})
+
+
+def _do_cloudflare_info_fetch(domain_id, user_id, domain_url_display):
+    """Fetch Cloudflare info for domain, save to DB. Updates CF_INFO_PROGRESS."""
+    user_config = get_user_config_for_api(user_id)
     cf_account_id = user_config.get("cloudflare_account_id") or CLOUDFLARE_ACCOUNT_ID
     cf_api_token = user_config.get("cloudflare_api_token") or CLOUDFLARE_API_TOKEN
-    
     with get_connection() as conn:
-        cur = db_execute(conn, "SELECT domain_url, domain_name, cloudflare_info FROM domains WHERE id = ?", (domain_id,))
+        cur = db_execute(conn, "SELECT domain_url, domain_name FROM domains WHERE id = ?", (domain_id,))
         row = dict_row(cur.fetchone())
     if not row:
-        return jsonify({"success": False, "error": "Domain not found"}), 404
-    if request.method == "GET":
-        raw = (row.get("cloudflare_info") or "").strip()
-        info = {}
-        if raw:
-            try:
-                info = json.loads(raw) if isinstance(raw, str) else raw
-            except json.JSONDecodeError:
-                pass
-        return jsonify({"success": True, "cloudflare_info": info})
-    if not cf_account_id or not cf_api_token:
-        return jsonify({"success": False, "error": "Cloudflare not configured. Please add Cloudflare API keys to your Profile settings."}), 400
+        with CF_INFO_PROGRESS_LOCK:
+            CF_INFO_PROGRESS[domain_id] = {"percent": 100, "message": "Domain not found", "done": True, "result": None, "error": "Domain not found", "domain_url": domain_url_display}
+        return
     project_name = _domain_to_project_name(row.get("domain_url"), row.get("domain_name"), domain_id)
     domain_url = (row.get("domain_url") or "").strip()
-    hostname = None
-    if domain_url:
-        hostname = re.sub(r"^https?://", "", domain_url).split("/")[0].split("?")[0].lower()
+    hostname = re.sub(r"^https?://", "", domain_url).split("/")[0].split("?")[0].lower() if domain_url else None
     result = {"domain_url": domain_url or hostname, "project_name": project_name, "fetched_at": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()), "status": "unknown", "up": False, "urls_checked": [], "project": None, "deployments": [], "domains": [], "dns_setup": False}
+    project_found = False
     try:
-        req = urllib.request.Request(
-            f"https://api.cloudflare.com/client/v4/accounts/{cf_account_id}/pages/projects/{project_name}",
-            method="GET",
-            headers={"Authorization": f"Bearer {cf_api_token}"},
-        )
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            data = json.loads(resp.read().decode())
-            proj = data.get("result")
-            if proj:
-                result["project"] = {
-                    "name": proj.get("name"),
-                    "subdomain": proj.get("subdomain"),
-                    "domains": proj.get("domains") or [],
-                    "canonical_deployment": (proj.get("canonical_deployment") or {}).get("url") if proj.get("canonical_deployment") else None,
-                }
-                result["domains"] = proj.get("domains") or []
-                _sub = (proj.get("subdomain") or "").strip().rstrip("/")
-                if _sub.endswith(".pages.dev"):
-                    pages_url = f"https://{_sub}" if _sub else None
-                else:
-                    pages_url = f"https://{_sub}.pages.dev" if _sub else None
-                if pages_url:
-                    result["urls_checked"].append(pages_url)
-                    up, reason = _check_url_up(pages_url)
-                    result["check_details"] = result.get("check_details") or []
-                    result["check_details"].append({"url": pages_url, "up": up, "reason": reason})
-                    if up:
-                        result["up"] = True
-                        result["status"] = "up"
+        _update_cf_info_progress(domain_id, 15, "Fetching Pages project…")
+        try:
+            req = urllib.request.Request(
+                f"https://api.cloudflare.com/client/v4/accounts/{cf_account_id}/pages/projects/{project_name}",
+                method="GET",
+                headers={"Authorization": f"Bearer {cf_api_token}"},
+            )
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                data = json.loads(resp.read().decode())
+                proj = data.get("result")
+                if proj:
+                    project_found = True
+                    result["project"] = {
+                        "name": proj.get("name"),
+                        "subdomain": proj.get("subdomain"),
+                        "domains": proj.get("domains") or [],
+                        "canonical_deployment": (proj.get("canonical_deployment") or {}).get("url") if proj.get("canonical_deployment") else None,
+                    }
+                    result["domains"] = proj.get("domains") or []
+                    _sub = (proj.get("subdomain") or "").strip().rstrip("/")
+                    if _sub.endswith(".pages.dev"):
+                        pages_url = f"https://{_sub}" if _sub else None
                     else:
-                        result["status"] = "down"
-                        result["down_reason"] = reason
-        req2 = urllib.request.Request(
-            f"https://api.cloudflare.com/client/v4/accounts/{cf_account_id}/pages/projects/{project_name}/deployments",
-            method="GET",
-            headers={"Authorization": f"Bearer {cf_api_token}"},
-        )
-        with urllib.request.urlopen(req2, timeout=15) as resp2:
-            data2 = json.loads(resp2.read().decode())
-            deploys = data2.get("result") or []
-            for d in deploys[:5]:
-                result["deployments"].append({
-                    "id": d.get("id"),
-                    "url": d.get("url"),
-                    "status": d.get("latest_stage", {}).get("status") if d.get("latest_stage") else d.get("status"),
-                    "created_on": d.get("created_on"),
-                })
+                        pages_url = f"https://{_sub}.pages.dev" if _sub else None
+                    if pages_url:
+                        result["urls_checked"].append(pages_url)
+                        up, reason = _check_url_up(pages_url)
+                        result["check_details"] = result.get("check_details") or []
+                        result["check_details"].append({"url": pages_url, "up": up, "reason": reason})
+                        if up:
+                            result["up"] = True
+                            result["status"] = "up"
+                        else:
+                            result["status"] = "down"
+                            result["down_reason"] = reason
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                result["status"] = "project_missing"
+                result["error"] = "Project not found. Deploy first to create the Pages project."
+            else:
+                raise
+        _update_cf_info_progress(domain_id, 40, "Checking deployments…" if project_found else "Checking zone…")
+        if project_found:
+            req2 = urllib.request.Request(
+                f"https://api.cloudflare.com/client/v4/accounts/{cf_account_id}/pages/projects/{project_name}/deployments",
+                method="GET",
+                headers={"Authorization": f"Bearer {cf_api_token}"},
+            )
+            with urllib.request.urlopen(req2, timeout=15) as resp2:
+                data2 = json.loads(resp2.read().decode())
+                deploys = data2.get("result") or []
+                for d in deploys[:5]:
+                    result["deployments"].append({
+                        "id": d.get("id"),
+                        "url": d.get("url"),
+                        "status": d.get("latest_stage", {}).get("status") if d.get("latest_stage") else d.get("status"),
+                        "created_on": d.get("created_on"),
+                    })
+        _update_cf_info_progress(domain_id, 60, "Checking custom domain…")
         if hostname:
             result["check_details"] = result.get("check_details") or []
             for scheme in ("https://", "http://"):
@@ -19667,6 +21243,7 @@ def api_domain_cloudflare_info(domain_id):
                 in_pages = apex in proj_domains or www in proj_domains
                 custom_up = bool(result.get("custom_domain_up"))
                 result["dns_setup"] = in_pages or custom_up
+        _update_cf_info_progress(domain_id, 90, "Saving…")
     except urllib.error.HTTPError as e:
         body = (e.read().decode("utf-8", errors="replace") if e.fp else "") or ""
         result["error"] = f"HTTP {e.code}: {body[:300]}"
@@ -19677,7 +21254,72 @@ def api_domain_cloudflare_info(domain_id):
     info_json = json.dumps(result, ensure_ascii=False)
     with get_connection() as conn:
         db_execute(conn, "UPDATE domains SET cloudflare_info = ? WHERE id = ?", (info_json, domain_id))
-    return jsonify({"success": True, "cloudflare_info": result})
+    with CF_INFO_PROGRESS_LOCK:
+        CF_INFO_PROGRESS[domain_id] = {
+            "percent": 100, "message": "Done" if not result.get("error") else "Error",
+            "done": True, "result": result, "error": result.get("error"), "domain_url": domain_url_display
+        }
+
+
+@app.route("/api/domains/<int:domain_id>/cloudflare-info/status", methods=["GET"])
+@login_required
+def api_domain_cloudflare_info_status(domain_id):
+    """Get progress of background Cloudflare info fetch."""
+    with CF_INFO_PROGRESS_LOCK:
+        p = CF_INFO_PROGRESS.get(domain_id)
+    if not p:
+        return jsonify({"status": "idle", "percent": 0, "message": "No fetch in progress", "done": False})
+    return jsonify({
+        "status": "success" if p.get("done") and not p.get("error") else ("error" if p.get("error") else "running"),
+        "percent": p.get("percent", 0), "message": p.get("message", ""), "done": p.get("done", False),
+        "cloudflare_info": p.get("result"), "error": p.get("error")
+    })
+
+
+@app.route("/api/domains/<int:domain_id>/cloudflare-info", methods=["POST", "GET"])
+@login_required
+def api_domain_cloudflare_info(domain_id):
+    """POST: start background fetch of Cloudflare info, return 202. GET: return saved info. /status: return progress."""
+    user = get_current_user()
+    user_config = get_user_config_for_api(user["id"])
+    cf_account_id = user_config.get("cloudflare_account_id") or CLOUDFLARE_ACCOUNT_ID
+    cf_api_token = user_config.get("cloudflare_api_token") or CLOUDFLARE_API_TOKEN
+
+    with get_connection() as conn:
+        cur = db_execute(conn, "SELECT domain_url, domain_name, cloudflare_info FROM domains WHERE id = ?", (domain_id,))
+        row = dict_row(cur.fetchone())
+    if not row:
+        return jsonify({"success": False, "error": "Domain not found"}), 404
+    domain_url_display = (row.get("domain_url") or row.get("domain_name") or "").strip() or f"Domain {domain_id}"
+
+    if request.method == "GET":
+        raw = (row.get("cloudflare_info") or "").strip()
+        info = {}
+        if raw:
+            try:
+                info = json.loads(raw) if isinstance(raw, str) else raw
+            except json.JSONDecodeError:
+                pass
+        return jsonify({"success": True, "cloudflare_info": info})
+
+    if not cf_account_id or not cf_api_token:
+        return jsonify({"success": False, "error": "Cloudflare not configured. Please add Cloudflare API keys to your Profile settings."}), 400
+
+    with CF_INFO_PROGRESS_LOCK:
+        if domain_id in CF_INFO_PROGRESS and not CF_INFO_PROGRESS[domain_id].get("done"):
+            return jsonify({"success": True, "background": True, "message": "Fetch already in progress", "domain_id": domain_id}), 202
+        CF_INFO_PROGRESS[domain_id] = {"percent": 0, "message": "Starting…", "done": False, "result": None, "error": None, "domain_url": domain_url_display}
+
+    def run_fetch():
+        try:
+            _do_cloudflare_info_fetch(domain_id, user["id"], domain_url_display)
+        except Exception as e:
+            log.exception("[cloudflare-info] Background fetch failed")
+            with CF_INFO_PROGRESS_LOCK:
+                CF_INFO_PROGRESS[domain_id] = {"percent": 100, "message": "Failed", "done": True, "result": None, "error": str(e), "domain_url": domain_url_display}
+
+    threading.Thread(target=run_fetch, daemon=True).start()
+    return jsonify({"success": True, "background": True, "message": "Fetching Cloudflare info in background", "domain_id": domain_id}), 202
 
 
 @app.route("/api/domains/<int:domain_id>/cloudflare-deployments", methods=["GET"])
@@ -19773,6 +21415,120 @@ def api_domain_cloudflare_rollback(domain_id, deployment_id):
         return jsonify({"success": False, "error": str(ex)}), 500
 
 
+def _update_cf_dns_progress(domain_id, percent, message):
+    with CF_DNS_PROGRESS_LOCK:
+        if domain_id in CF_DNS_PROGRESS:
+            CF_DNS_PROGRESS[domain_id].update({"percent": percent, "message": message})
+
+
+def _do_cloudflare_setup_dns_background(domain_id, user_id, domain_url_display):
+    """Run cloudflare DNS setup in background. Updates CF_DNS_PROGRESS when done."""
+    user_config = get_user_config_for_api(user_id)
+    cf_account_id = user_config.get("cloudflare_account_id") or CLOUDFLARE_ACCOUNT_ID
+    cf_api_token = user_config.get("cloudflare_api_token") or CLOUDFLARE_API_TOKEN
+    with get_connection() as conn:
+        cur = db_execute(conn, "SELECT domain_url, domain_name FROM domains WHERE id = ?", (domain_id,))
+        row = dict_row(cur.fetchone())
+    if not row:
+        with CF_DNS_PROGRESS_LOCK:
+            CF_DNS_PROGRESS[domain_id] = {"percent": 100, "message": "Domain not found", "done": True, "result": None, "error": "Domain not found", "domain_url": domain_url_display}
+        return
+    hostname = _domain_to_hostname(row.get("domain_url"), row.get("domain_name"))
+    if not hostname:
+        with CF_DNS_PROGRESS_LOCK:
+            CF_DNS_PROGRESS[domain_id] = {"percent": 100, "message": "Invalid domain", "done": True, "result": None, "error": "Invalid domain URL", "domain_url": domain_url_display}
+        return
+    project_name = _domain_to_project_name(row.get("domain_url"), row.get("domain_name"), domain_id)
+    headers = {"Authorization": f"Bearer {cf_api_token}", "Content-Type": "application/json"}
+    zone_id = None
+    name_servers = []
+    try:
+        _update_cf_dns_progress(domain_id, 10, "Creating Cloudflare zone…")
+        create_req = urllib.request.Request(
+            "https://api.cloudflare.com/client/v4/zones",
+            data=json.dumps({"name": hostname, "account": {"id": cf_account_id}, "jump_start": True}).encode(),
+            method="POST", headers=headers,
+        )
+        for attempt in range(3):
+            try:
+                with urllib.request.urlopen(create_req, timeout=120) as resp:
+                    data = json.loads(resp.read().decode())
+                    z = data.get("result")
+                    if z:
+                        zone_id = z.get("id")
+                        name_servers = z.get("name_servers") or []
+                break
+            except urllib.error.HTTPError as e:
+                body = (e.read().decode("utf-8", errors="replace") if e.fp else "") or ""
+                if 500 <= e.code < 600 and attempt < 2:
+                    time.sleep(5)
+                    continue
+                if e.code == 409 or "already" in body.lower() or "exists" in body.lower():
+                    try:
+                        list_req = urllib.request.Request(
+                            f"https://api.cloudflare.com/client/v4/zones?name={hostname}", method="GET", headers=headers,
+                        )
+                        with urllib.request.urlopen(list_req, timeout=90) as r2:
+                            d2 = json.loads(r2.read().decode())
+                            zones = d2.get("result") or []
+                            if zones:
+                                zone_id = zones[0].get("id")
+                                name_servers = zones[0].get("name_servers") or []
+                    except Exception as ex2:
+                        raise Exception(f"Zone exists but could not fetch: {ex2}") from ex2
+                    break
+                raise Exception(f"HTTP {e.code}: {body[:400]}")
+            except Exception as ex:
+                if attempt < 2 and ("timed out" in str(ex).lower() or "timeout" in str(ex).lower()):
+                    time.sleep(5)
+                    continue
+                raise
+        if not name_servers:
+            raise Exception("Could not get nameservers from Cloudflare")
+        _update_cf_dns_progress(domain_id, 40, "Adding DNS records…")
+        pages_target = f"{project_name}.pages.dev"
+        records_added = []
+        dns_errors = []
+        if zone_id:
+            time.sleep(2)
+            for rec_name, rec_content in [("@", pages_target), ("www", pages_target)]:
+                try:
+                    rec_body = json.dumps({"type": "CNAME", "name": rec_name, "content": rec_content, "ttl": 1, "proxied": True}).encode()
+                    rec_req = urllib.request.Request(f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records", data=rec_body, method="POST", headers=headers)
+                    with urllib.request.urlopen(rec_req, timeout=45):
+                        records_added.append(f"{rec_name} -> {rec_content}")
+                except urllib.error.HTTPError as er:
+                    eb = (er.read().decode("utf-8", errors="replace") if er.fp else "") or ""
+                    if "already" in eb.lower() or "exists" in eb.lower() or er.code in (409, 422):
+                        records_added.append(f"{rec_name} (exists)")
+                    else:
+                        dns_errors.append(f"{rec_name}: HTTP {er.code} — {eb[:200]}")
+                except Exception as exr:
+                    dns_errors.append(f"{rec_name}: {exr}")
+        _update_cf_dns_progress(domain_id, 70, "Adding Pages domains…")
+        domains_added = []
+        for dom in [hostname, f"www.{hostname}"]:
+            try:
+                add_req = urllib.request.Request(
+                    f"https://api.cloudflare.com/client/v4/accounts/{cf_account_id}/pages/projects/{project_name}/domains",
+                    data=json.dumps({"name": dom}).encode(), method="POST", headers=headers,
+                )
+                with urllib.request.urlopen(add_req, timeout=45):
+                    domains_added.append(dom)
+            except urllib.error.HTTPError as ea:
+                b = (ea.read().decode("utf-8", errors="replace") if ea.fp else "") or ""
+                if "already" in b.lower() or "exists" in b.lower() or ea.code in (409, 422):
+                    domains_added.append(dom)
+            except Exception:
+                pass
+        result = {"success": True, "hostname": hostname, "name_servers": name_servers, "zone_id": zone_id, "pages_project": project_name, "domains_added": domains_added, "dns_records_added": records_added, "dns_errors": dns_errors}
+        with CF_DNS_PROGRESS_LOCK:
+            CF_DNS_PROGRESS[domain_id] = {"percent": 100, "message": "Done", "done": True, "result": result, "error": None, "domain_url": domain_url_display}
+    except Exception as ex:
+        with CF_DNS_PROGRESS_LOCK:
+            CF_DNS_PROGRESS[domain_id] = {"percent": 100, "message": "Failed", "done": True, "result": None, "error": str(ex), "domain_url": domain_url_display}
+
+
 def _normalize_domain(value):
     """Strip protocol and www, return bare domain (e.g. 'example.com')."""
     v = (value or "").strip()
@@ -19799,15 +21555,30 @@ def _domain_to_hostname(domain_url, domain_name):
     return raw if raw and "." in raw else None
 
 
+@app.route("/api/domains/<int:domain_id>/cloudflare-setup-dns/status", methods=["GET"])
+@login_required
+def api_domain_cloudflare_setup_dns_status(domain_id):
+    """Get progress of background DNS setup."""
+    with CF_DNS_PROGRESS_LOCK:
+        p = CF_DNS_PROGRESS.get(domain_id)
+    if not p:
+        return jsonify({"status": "idle", "percent": 0, "message": "No DNS setup in progress", "done": False})
+    return jsonify({
+        "status": "success" if p.get("done") and not p.get("error") else ("error" if p.get("error") else "running"),
+        "percent": p.get("percent", 0), "message": p.get("message", ""), "done": p.get("done", False),
+        "result": p.get("result"), "error": p.get("error")
+    })
+
+
 @app.route("/api/domains/<int:domain_id>/cloudflare-setup-dns", methods=["POST"])
 @login_required
 def api_domain_cloudflare_setup_dns(domain_id):
-    """Add domain to Cloudflare Zone, get nameservers, add custom domain to Pages project."""
+    """Add domain to Cloudflare Zone (background). Returns 202 immediately."""
     user = get_current_user()
     user_config = get_user_config_for_api(user["id"])
     cf_account_id = user_config.get("cloudflare_account_id") or CLOUDFLARE_ACCOUNT_ID
     cf_api_token = user_config.get("cloudflare_api_token") or CLOUDFLARE_API_TOKEN
-    
+
     if not cf_account_id or not cf_api_token:
         return jsonify({"success": False, "error": "Cloudflare not configured. Please add Cloudflare API keys to your Profile settings."}), 400
     with get_connection() as conn:
@@ -19818,115 +21589,23 @@ def api_domain_cloudflare_setup_dns(domain_id):
     hostname = _domain_to_hostname(row.get("domain_url"), row.get("domain_name"))
     if not hostname:
         return jsonify({"success": False, "error": "Invalid domain URL. Use format https://example.com"}), 400
-    project_name = _domain_to_project_name(row.get("domain_url"), row.get("domain_name"), domain_id)
-    headers = {"Authorization": f"Bearer {cf_api_token}", "Content-Type": "application/json"}
-    zone_id = None
-    name_servers = []
-    # 1. Create zone or get existing
-    try:
-        create_req = urllib.request.Request(
-            "https://api.cloudflare.com/client/v4/zones",
-            data=json.dumps({"name": hostname, "account": {"id": cf_account_id}, "jump_start": True}).encode(),
-            method="POST",
-            headers=headers,
-        )
-        with urllib.request.urlopen(create_req, timeout=20) as resp:
-            data = json.loads(resp.read().decode())
-            z = data.get("result")
-            if z:
-                zone_id = z.get("id")
-                name_servers = z.get("name_servers") or []
-    except urllib.error.HTTPError as e:
-        body = (e.read().decode("utf-8", errors="replace") if e.fp else "") or ""
-        if e.code == 409 or "already" in body.lower() or "exists" in body.lower():
-            # Zone exists in this account, fetch it
-            try:
-                list_req = urllib.request.Request(
-                    f"https://api.cloudflare.com/client/v4/zones?name={hostname}",
-                    method="GET",
-                    headers=headers,
-                )
-                with urllib.request.urlopen(list_req, timeout=15) as r2:
-                    d2 = json.loads(r2.read().decode())
-                    zones = d2.get("result") or []
-                    if zones:
-                        zone_id = zones[0].get("id")
-                        name_servers = zones[0].get("name_servers") or []
-            except Exception as ex2:
-                return jsonify({"success": False, "error": f"Zone exists but could not fetch: {ex2}"}), 500
-        else:
-            return jsonify({"success": False, "error": f"HTTP {e.code}: {body[:400]}"}), 400
-    except Exception as ex:
-        return jsonify({"success": False, "error": str(ex)}), 500
-    if not name_servers:
-        return jsonify({"success": False, "error": "Could not get nameservers from Cloudflare"}), 500
-    # 2. Add DNS records (CNAME @ and www -> Pages) - brief wait if zone was just created
-    pages_target = f"{project_name}.pages.dev"
-    records_added = []
-    dns_errors = []
-    if zone_id:
-        time.sleep(2)
-        for rec_name, rec_content in [("@", pages_target), ("www", pages_target)]:
-            try:
-                rec_body = json.dumps({
-                    "type": "CNAME",
-                    "name": rec_name,
-                    "content": rec_content,
-                    "ttl": 1,
-                    "proxied": True,
-                }).encode()
-                rec_req = urllib.request.Request(
-                    f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records",
-                    data=rec_body,
-                    method="POST",
-                    headers=headers,
-                )
-                with urllib.request.urlopen(rec_req, timeout=15) as _:
-                    records_added.append(f"{rec_name} -> {rec_content}")
-                    log.info("[cloudflare-setup-dns] Added DNS record: %s CNAME %s", rec_name, rec_content)
-            except urllib.error.HTTPError as er:
-                eb = (er.read().decode("utf-8", errors="replace") if er.fp else "") or ""
-                if "already" in eb.lower() or "exists" in eb.lower() or er.code in (409, 422):
-                    records_added.append(f"{rec_name} (exists)")
-                else:
-                    msg = f"{rec_name}: HTTP {er.code} — {eb[:200]}"
-                    dns_errors.append(msg)
-                    log.warning("[cloudflare-setup-dns] Add DNS %s: HTTP %s %s", rec_name, er.code, eb[:150])
-            except Exception as exr:
-                msg = f"{rec_name}: {exr}"
-                dns_errors.append(msg)
-                log.warning("[cloudflare-setup-dns] Add DNS %s failed: %s", rec_name, exr)
-    # 3. Add custom domain + www to Pages project (project must exist - deploy first)
-    domains_added = []
-    for dom in [hostname, f"www.{hostname}"]:
+    domain_url_display = (row.get("domain_url") or row.get("domain_name") or "").strip() or hostname
+
+    with CF_DNS_PROGRESS_LOCK:
+        if domain_id in CF_DNS_PROGRESS and not CF_DNS_PROGRESS[domain_id].get("done"):
+            return jsonify({"success": True, "background": True, "message": "DNS setup already in progress", "domain_id": domain_id}), 202
+        CF_DNS_PROGRESS[domain_id] = {"percent": 0, "message": "Starting…", "done": False, "result": None, "error": None, "domain_url": domain_url_display}
+
+    def run_setup():
         try:
-            add_req = urllib.request.Request(
-                f"https://api.cloudflare.com/client/v4/accounts/{cf_account_id}/pages/projects/{project_name}/domains",
-                data=json.dumps({"name": dom}).encode(),
-                method="POST",
-                headers=headers,
-            )
-            with urllib.request.urlopen(add_req, timeout=15) as _:
-                domains_added.append(dom)
-                log.info("[cloudflare-setup-dns] Added Pages domain: %s", dom)
-        except urllib.error.HTTPError as ea:
-            b = (ea.read().decode("utf-8", errors="replace") if ea.fp else "") or ""
-            if "already" in b.lower() or "exists" in b.lower() or ea.code in (409, 422):
-                domains_added.append(dom)
-            else:
-                log.warning("[cloudflare-setup-dns] Add domain %s: HTTP %s %s", dom, ea.code, b[:150])
-        except Exception as exa:
-            log.warning("[cloudflare-setup-dns] Add domain %s failed: %s", dom, exa)
-    return jsonify({
-        "success": True,
-        "hostname": hostname,
-        "name_servers": name_servers,
-        "zone_id": zone_id,
-        "pages_project": project_name,
-        "domains_added": domains_added,
-        "dns_records_added": records_added,
-        "dns_errors": dns_errors,
-    })
+            _do_cloudflare_setup_dns_background(domain_id, user["id"], domain_url_display)
+        except Exception as e:
+            log.exception("[cloudflare-setup-dns] Background failed")
+            with CF_DNS_PROGRESS_LOCK:
+                CF_DNS_PROGRESS[domain_id] = {"percent": 100, "message": "Failed", "done": True, "result": None, "error": str(e), "domain_url": domain_url_display}
+
+    threading.Thread(target=run_setup, daemon=True).start()
+    return jsonify({"success": True, "background": True, "message": "DNS setup running in background", "domain_id": domain_id}), 202
 
 
 @app.route("/api/domains/<int:domain_id>/cloudflare-add-dns-records", methods=["POST"])
@@ -20456,7 +22135,6 @@ def admin_domains_delete(pk):
         if title_ids:
             placeholders = ",".join(["?"] * len(title_ids))
             db_execute(conn, f"DELETE FROM article_content WHERE title_id IN ({placeholders})", tuple(title_ids))
-            db_execute(conn, f"DELETE FROM pinterest_schedule WHERE title_id IN ({placeholders})", tuple(title_ids))
             db_execute(conn, f"DELETE FROM titles WHERE id IN ({placeholders})", tuple(title_ids))
         db_execute(conn, "DELETE FROM domain_template_assignments WHERE domain_id = ?", (pk,))
         db_execute(conn, "DELETE FROM domain_templates WHERE domain_id = ?", (pk,))
@@ -22093,6 +23771,8 @@ def profile(target_user_id=None):
                 "default_categories": request.form.get("default_categories", "").strip() or None,
                 "bulk_max_concurrency": _parse_bulk_max_concurrency(request.form.get("bulk_max_concurrency")),
                 "image_request_delay_sec": max(0, min(120, int(request.form.get("image_request_delay_sec") or 15))),
+                "rss_base_url": ((request.form.get("rss_base_url") or "").strip().rstrip("/") or None),
+                "skip_cf_status_check": 1 if request.form.get("skip_cf_status_check") in ("on", "1", "true") else 0,
             }
             
             if exists:
@@ -22187,6 +23867,35 @@ def profile(target_user_id=None):
             
     title_text = f"Edit Profile: {html.escape(display_user['username'])}" if target_user_id else "User Profile"
     back_button = '<a href="/admin/users" class="btn btn-outline-secondary mb-3">← Back to Users</a>' if target_user_id else ''
+    
+    # Pinterest RSS: build base URL and list of domain feed URLs for this user
+    rss_base = (keys.get("rss_base_url") or "").strip().rstrip("/") or (request.url_root or "").rstrip("/")
+    with get_connection() as conn:
+        cur = db_execute(conn, """
+            SELECT d.id, d.domain_url, d.domain_name FROM domains d
+            JOIN user_domains ud ON ud.domain_id = d.id AND ud.user_id = ?
+            ORDER BY d.id
+        """, (user_id,))
+        user_domains = [dict_row(r) for r in cur.fetchall()]
+    rss_rows = []
+    for d in user_domains:
+        did = d.get("id")
+        name = html.escape((d.get("domain_name") or d.get("domain_url") or f"Domain {did}")[:60])
+        feed_url = (rss_base + f"/rss/domain/{did}") if rss_base else f"(set base URL above)/rss/domain/{did}"
+        feed_esc = html.escape(feed_url).replace("'", "&#39;")
+        rss_rows.append(f'<tr><td>{name}</td><td><code class="small">{html.escape(feed_url)}</code></td><td><button type="button" class="btn btn-sm btn-outline-secondary py-0" data-feed-url="{feed_esc}" onclick="var b=this;navigator.clipboard.writeText(b.getAttribute(\'data-feed-url\'));b.textContent=\'Copied!\';setTimeout(function(){{b.textContent=\'Copy\';}},1500)">Copy</button></td></tr>')
+    _pinterest_rss_domain_urls = ""
+    if rss_rows:
+        _pinterest_rss_domain_urls = f'''
+          <div class="mb-3">
+            <label class="form-label">Your RSS feed URLs (paste in Pinterest → Settings → Create Pins in bulk → Auto-publish → Connect RSS feed)</label>
+            <div class="table-responsive">
+              <table class="table table-sm table-bordered">
+                <thead><tr><th>Domain</th><th>Feed URL</th><th></th></tr></thead>
+                <tbody>{"".join(rss_rows)}</tbody>
+              </table>
+            </div>
+          </div>'''
     _profile_ai_provider = (keys.get("ai_provider") or "openai").strip().lower()
     if _profile_ai_provider not in ("openai", "openrouter", "local", "llamacpp"):
         _profile_ai_provider = "openai"
@@ -22285,6 +23994,30 @@ def profile(target_user_id=None):
           <h5 class="mb-3 mt-4">Image request delay (seconds) <span class="badge bg-secondary">Optional</span></h5>
           {field("image_request_delay_sec", "Delay between images (any image generation request)", "15", "number")}
           <div class="form-text">Pause (seconds) between each image request (main, ingredient, etc.) to avoid Midjourney rate limits (0–120). Default 15.</div>
+          
+          <h5 class="mb-3 mt-4">Domains page <span class="badge bg-secondary">Optional</span></h5>
+          <div class="mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="skip_cf_status_check" id="skipCfStatusCheck" value="1" {('checked' if keys.get('skip_cf_status_check') else '')}>
+              <label class="form-check-label" for="skipCfStatusCheck">Ignore DNS / Cloudflare status check when loading Domains page</label>
+            </div>
+            <div class="form-text">When checked, the Domains page will not automatically fetch Cloudflare/DNS status for each domain on load or refresh. You can still click ↻ on a domain to refresh manually.</div>
+          </div>
+          
+          <hr class="my-4">
+          <h5 class="mb-3">📌 Pinterest RSS Feed (Auto-publish) <span class="badge bg-secondary">Optional</span></h5>
+          <div class="mb-3">
+            <label class="form-label">Public base URL</label>
+            <input type="url" name="rss_base_url" class="form-control" placeholder="https://your-subdomain.ngrok-free.app" value="{html.escape(str(keys.get('rss_base_url') or ''))}">
+            <div class="form-text">Pinterest needs a <strong>public</strong> URL to fetch your RSS feed. localhost does not work. Use one of these:</div>
+            <ol class="small mt-2 mb-1">
+              <li><strong>ngrok</strong> (free, local dev): Run <code>ngrok http 5001</code>, copy the https URL (e.g. https://abc123.ngrok-free.app) and paste above. Keep ngrok running while Pinterest checks the feed.</li>
+              <li><strong>Deployed app</strong>: If multi-domain-clean runs on a server (VPS, Railway, etc.), use that URL (e.g. https://mdc.yoursite.com).</li>
+              <li><strong>Cloudflare Tunnel</strong>: Use your tunnel URL.</li>
+            </ol>
+            <p class="small text-muted mb-0">Leave empty to use the URL you use to open this page (only works if that URL is public).</p>
+          </div>
+          {_pinterest_rss_domain_urls}
           
           {admin_apply_html}
           

@@ -27,7 +27,8 @@ def generate(config: dict) -> dict:
         {"name": "Home", "url": base_url},
         {"name": "Recipes", "url": f"{base_url}recipes/"},
     ]
-    for cat in categories[:3]:
+    cats_with_recipes = [cat for cat in categories if int(cat.get("count", 0) or 0) > 0]
+    for cat in cats_with_recipes[:3]:
         nav_links.append({
             "name": html_module.escape(cat.get("name", "")),
             "url": html_module.escape(cat.get("url", "#")),
