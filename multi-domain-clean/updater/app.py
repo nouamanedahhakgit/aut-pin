@@ -46,20 +46,50 @@ def local_created(repo_tag):
     return out if ok and out else None
 
 
+def _parse_iso(ts):
+    """Parse ISO-ish timestamp to sortable format. Docker uses 2024-01-15T10:30:00.123Z."""
+    if not ts:
+        return None
+    try:
+        return ts[:19].replace("T", " ") if len(ts) >= 19 else ts
+    except Exception:
+        return ts
+
+
 @app.route("/check")
 def check():
     updates = []
+    installed = []
+    newest_local = None
     for img in IMAGES:
         try:
             hub_ts = hub_updated(img)
             local_ts = local_created(img)
+            local_display = _parse_iso(local_ts) if local_ts else None
+            hub_display = _parse_iso(hub_ts) if hub_ts else None
+            installed.append({
+                "image": img,
+                "local_created": local_display,
+                "hub_updated": hub_display,
+                "has_update": False,
+            })
             if not local_ts:
                 updates.append(img)
+                installed[-1]["has_update"] = True
             elif hub_ts and local_ts and hub_ts > local_ts:
                 updates.append(img)
+                installed[-1]["has_update"] = True
+            if local_ts and (newest_local is None or local_ts > newest_local):
+                newest_local = local_ts
         except Exception:
             updates.append(img)
-    return jsonify(updates_available=len(updates) > 0, images=updates)
+            installed.append({"image": img, "local_created": None, "hub_updated": None, "has_update": True})
+    return jsonify(
+        updates_available=len(updates) > 0,
+        images=updates,
+        installed=installed,
+        newest_local=_parse_iso(newest_local),
+    )
 
 
 @app.route("/update", methods=["POST"])

@@ -3975,40 +3975,63 @@ def admin_updates():
     if not session.get("is_admin"):
         return redirect(url_for("admin_domains"))
     content = """
-    <div class="card mb-4" style="max-width:600px">
-      <div class="card-header">🔄 Container Updates ...aak</div>
+    <div class="card mb-4" style="max-width:700px">
+      <div class="card-header">🔄 Container Updates</div>
       <div class="card-body">
-        <p class="text-muted mb-3">Check if new images are available on Docker Hub and update containers.</p>
-        <div id="updatesStatus" class="mb-3"></div>
-        <button type="button" class="btn btn-outline-primary" id="updatesCheckBtn">Check for updates</button>
-        <button type="button" class="btn btn-primary d-none" id="updatesApplyBtn">Update now</button>
-        <div id="updatesLog" class="mt-3 small font-monospace text-muted" style="max-height:200px;overflow-y:auto"></div>
+        <div id="updatesStatus" class="mb-3"><span class="text-muted">Checking...</span></div>
+        <div id="updatesInfo" class="mb-3 small text-muted"></div>
+        <div id="updatesActions" class="mb-3">
+          <button type="button" class="btn btn-primary d-none" id="updatesApplyBtn">Update now</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="updatesRefreshBtn">Refresh</button>
+        </div>
+        <div id="updatesTable" class="small mb-3" style="max-height:220px;overflow-y:auto"></div>
+        <div id="updatesLog" class="small font-monospace text-muted" style="max-height:120px;overflow-y:auto"></div>
       </div>
     </div>
     <script>
     (function(){
       var statusEl = document.getElementById('updatesStatus');
-      var checkBtn = document.getElementById('updatesCheckBtn');
+      var infoEl = document.getElementById('updatesInfo');
+      var tableEl = document.getElementById('updatesTable');
       var applyBtn = document.getElementById('updatesApplyBtn');
+      var refreshBtn = document.getElementById('updatesRefreshBtn');
       var logEl = document.getElementById('updatesLog');
       function log(msg){ logEl.innerHTML += (new Date().toLocaleTimeString() + ' ' + msg + '\\n'); logEl.scrollTop = logEl.scrollHeight; }
-      checkBtn.onclick = function(){
-        checkBtn.disabled = true; statusEl.innerHTML = '<span class="text-muted">Checking...</span>'; applyBtn.classList.add('d-none');
+      function doCheck(){
+        statusEl.innerHTML = '<span class="text-muted">Checking...</span>';
+        infoEl.innerHTML = '';
+        tableEl.innerHTML = '';
+        applyBtn.classList.add('d-none');
         fetch('/api/updates/check').then(r=>r.json()).then(function(d){
-          checkBtn.disabled = false;
-          if(d.error && !d.updates_available){ statusEl.innerHTML = '<span class="text-warning">' + (d.error || 'Updater not available') + '</span>'; return; }
-          if(d.updates_available){
-            statusEl.innerHTML = '<span class="text-success fw-bold">New update available!</span> ' + (d.images && d.images.length ? d.images.join(', ') : '');
-            applyBtn.classList.remove('d-none');
-          } else {
-            statusEl.innerHTML = '<span class="text-success">Up to date</span>';
+          if(d.error && d.updates_available === undefined){
+            statusEl.innerHTML = '<span class="text-warning">' + (d.error || 'Updater not available') + '</span>';
+            return;
           }
-        }).catch(function(e){ checkBtn.disabled = false; statusEl.innerHTML = '<span class="text-danger">' + e + '</span>'; });
-      };
+          if(d.updates_available){
+            statusEl.innerHTML = '<span class="text-warning fw-bold">New updates available</span>';
+            applyBtn.classList.remove('d-none');
+            if(d.images && d.images.length) infoEl.innerHTML = d.images.map(function(x){ return x.replace('boarddash31/',''); }).join(', ');
+          } else {
+            statusEl.innerHTML = '<span class="text-success fw-bold">Up to date</span>';
+            if(d.newest_local) infoEl.innerHTML = 'Current version: last pulled ' + d.newest_local;
+          }
+          if(d.installed && d.installed.length){
+            var rows = d.installed.map(function(i){
+              var name = (i.image||'').replace('boarddash31/','');
+              var local = i.local_created || '—';
+              var badge = i.has_update ? '<span class="badge bg-warning text-dark">update</span>' : '<span class="badge bg-success">ok</span>';
+              return '<tr><td>'+name+'</td><td>'+local+'</td><td>'+badge+'</td></tr>';
+            });
+            tableEl.innerHTML = '<table class="table table-sm table-bordered"><thead><tr><th>Image</th><th>Local (pulled)</th><th></th></tr></thead><tbody>'+rows.join('')+'</tbody></table>';
+          }
+        }).catch(function(e){ statusEl.innerHTML = '<span class="text-danger">' + e + '</span>'; });
+      }
+      doCheck();
+      refreshBtn.onclick = doCheck;
       applyBtn.onclick = function(){
         applyBtn.disabled = true; log('Updating...');
         fetch('/api/updates/apply', {method:'POST'}).then(r=>r.json()).then(function(d){
-          if(d.success){ log('Done. Containers will restart.'); statusEl.innerHTML = '<span class="text-success">Updated! Page may refresh.</span>'; applyBtn.classList.add('d-none'); setTimeout(function(){ location.reload(); }, 3000); }
+          if(d.success){ log('Done. Containers will restart.'); statusEl.innerHTML = '<span class="text-success">Updated! Refreshing...</span>'; applyBtn.classList.add('d-none'); setTimeout(function(){ location.reload(); }, 4000); }
           else { log('Error: ' + (d.error||'unknown')); statusEl.innerHTML = '<span class="text-danger">' + (d.error||'') + '</span>'; applyBtn.disabled = false; }
         }).catch(function(e){ log('Error: ' + e); applyBtn.disabled = false; });
       };
