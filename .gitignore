@@ -1,4 +1,4 @@
-﻿# Archives
+# Archives
 _archive/
 
 # Python
@@ -16,6 +16,7 @@ env
 .env.*
 !.env.example
 !.env.example.docker
+.dockerhub.env
 
 # Output, logs, state
 output/

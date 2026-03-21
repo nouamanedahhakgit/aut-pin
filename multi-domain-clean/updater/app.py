@@ -97,6 +97,21 @@ def update():
     try:
         os.environ["COMPOSE_PROJECT_NAME"] = PROJECT_NAME
         compose_cmd = ["docker", "compose", "-p", PROJECT_NAME, "-f", COMPOSE_FILE]
+        # Docker login before pull (avoids rate limit when /root/.docker missing or expired)
+        token = os.getenv("DOCKERHUB_TOKEN", "").strip()
+        username = os.getenv("DOCKERHUB_USERNAME", NAMESPACE)
+        if token:
+            r0 = subprocess.run(
+                ["docker", "login", "-u", username, "--password-stdin"],
+                input=token,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                cwd=PROJECT_DIR,
+            )
+            if r0.returncode != 0:
+                err = (r0.stderr or r0.stdout or "").strip()[:300]
+                return jsonify(success=False, error=f"Docker login failed: {err}"), 500
         # Stop orphaned "work" project if it exists (from old cwd-based naming)
         subprocess.run(
             ["docker", "compose", "-p", "work", "-f", COMPOSE_FILE, "down"],
