@@ -1,5 +1,6 @@
 # Aut-Pin Docker Hub Deployment
 # Pre-built images from Docker Hub with orchestrator setup wizard.
+name: aut-pin
 #
 # Quick start:
 #   docker compose -f docker-compose.hub.yml up orchestrator
