@@ -3963,7 +3963,7 @@ def admin_updates():
         return redirect(url_for("admin_domains"))
     content = """
     <div class="card mb-4" style="max-width:600px">
-      <div class="card-header">🔄 Container Updates .</div>
+      <div class="card-header">🔄 Container Updatess ..</div>
       <div class="card-body">
         <p class="text-muted mb-3">Check if new images are available on Docker Hub and update containers.</p>
         <div id="updatesStatus" class="mb-3"></div>
