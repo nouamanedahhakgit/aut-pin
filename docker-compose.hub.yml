@@ -98,9 +98,6 @@ services:
       - llamacpp_data:/app/llamacpp_manager/data
 
   updater:
-    build:
-      context: ./multi-domain-clean/updater
-      dockerfile: Dockerfile
     image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-updater:latest
     container_name: aut-pin-updater
     volumes:

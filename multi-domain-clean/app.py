@@ -26160,3 +26160,7 @@ def api_users_clone_profile():
             db_execute(conn, f"INSERT INTO user_api_keys (user_id, {','.join(cols)}) VALUES (?, {','.join(['?']*len(cols))})", (tgt,) + tuple(r.values()))
     return jsonify({"success": True})
 
+
+if __name__ == "__main__":
+    init_db()
+    app.run(host="0.0.0.0", port=5001)
