@@ -274,6 +274,19 @@ RANDOM_COLOR_PALETTES = [
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY") or "dev-secret-key-change-in-production"
+
+
+@app.after_request
+def _no_cache_html(response):
+    """Prevent HTML caching so redeploys show updates immediately."""
+    ct = response.headers.get("Content-Type", "")
+    if "text/html" in ct:
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
+
 _bulk_progress = {}  # job_id -> { status, message, error_detail?, current_title, ok, failed, type, group_id?, mode, created_at }
 BULK_ERROR_DETAIL_MAX = 2000  # max chars for error_detail so user can copy and send to support
 _BULK_HISTORY_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bulk_jobs_history.json")
