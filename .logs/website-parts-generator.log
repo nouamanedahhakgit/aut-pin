@@ -32170,3 +32170,11 @@ INFO:     Started server process [40908]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [19908]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+INFO:     127.0.0.1:61241 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56892 - "GET /templates HTTP/1.1" 200 OK

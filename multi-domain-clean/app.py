@@ -14888,6 +14888,7 @@ def admin_domains():
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                   </div>
                   <form method="post" action="/admin/groups/add">
+                    <input type="hidden" name="return_to" value="domains">
                     <div class="modal-body">
                       <div class="mb-3">
                         <label class="form-label">Group Name</label>
@@ -25068,7 +25069,9 @@ def admin_groups_add():
     parent_group_id = request.form.get("parent_group_id", "").strip()
     parent_group_id = int(parent_group_id) if parent_group_id and parent_group_id.isdigit() else None
     parent_id_return = request.form.get("parent_id", "").strip()
+    return_to = request.form.get("return_to", "").strip()
     
+    new_group_id = None
     if name:
         with get_connection() as conn:
             # Insert group
@@ -25092,6 +25095,9 @@ def admin_groups_add():
                 except Exception as e:
                     log.debug(f"[admin_groups_add] Parent group {parent_group_id} already assigned to user {user_id}")
     
+    # Redirect: from domains → enter new group; from groups page → groups list
+    if return_to == "domains" and new_group_id:
+        return redirect(url_for("admin_domains", group_id=new_group_id))
     return_url = f"/admin/groups?parent_id={parent_id_return}" if parent_id_return and parent_id_return.isdigit() else "/admin/groups"
     return redirect(return_url)
 
