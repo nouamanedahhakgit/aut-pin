@@ -105,6 +105,21 @@ def init_db():
         _init_supabase()
     else:
         _init_mysql()
+    _ensure_default_admin()
+
+
+def _ensure_default_admin():
+    """Create default admin user (admin/123456) if no users exist. Change password after first login."""
+    import hashlib
+    default_hash = hashlib.sha256(b"123456").hexdigest()
+    with get_connection() as conn:
+        cur = execute(conn, "SELECT id FROM users LIMIT 1")
+        if cur.fetchone():
+            return
+        execute(conn, """
+            INSERT INTO users (username, password_hash, email, is_admin, is_active)
+            VALUES (?, ?, ?, 1, 1)
+        """, ("admin", default_hash, "admin@example.com"))
 
 
 def _init_mysql():
