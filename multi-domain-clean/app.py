@@ -25991,4 +25991,172 @@ Complete these required fields: {labels_html}.<br>
         cur = db_execute(conn, """
             SELECT d.id, d.domain_url, d.domain_name FROM domains d
             JOIN user_domains ud ON ud.domain_id = d.id AND ud.user_id = ?
-            ORD
+            ORDER BY d.id
+        """, (user_id,))
+        user_domains = [dict_row(r) for r in cur.fetchall()]
+    rss_rows = []
+    for d in user_domains:
+        did = d.get("id")
+        name = html.escape((d.get("domain_name") or d.get("domain_url") or f"Domain {did}")[:60])
+        feed_url = (rss_base + f"/rss/domain/{did}") if rss_base else f"/rss/domain/{did}"
+        feed_esc = html.escape(feed_url).replace("'", "&#39;")
+        rss_rows.append(f'<tr><td>{name}</td><td><code class="small">{html.escape(feed_url)}</code></td><td><button type="button" class="btn btn-sm btn-outline-secondary py-0" data-feed-url="{feed_esc}" onclick="var b=this;navigator.clipboard.writeText(b.getAttribute(\'data-feed-url\'));b.textContent=\'Copied!\';setTimeout(function(){{b.textContent=\'Copy\';}},1500)">Copy</button></td></tr>')
+    _pinterest_rss_domain_urls = ""
+    if rss_rows:
+        _pinterest_rss_domain_urls = f'<div class="mb-3"><label class="form-label">RSS feed URLs</label><div class="table-responsive"><table class="table table-sm"><thead><tr><th>Domain</th><th>Feed URL</th><th></th></tr></thead><tbody>{"".join(rss_rows)}</tbody></table></div></div>'
+    _profile_ai_provider = (keys.get("ai_provider") or "openai").strip().lower() or "openai"
+    _profile_pin_generator = (keys.get("pin_generator_type") or "python").strip().lower() or "python"
+    _is_self = target_user_id is None
+    _pw_html = '<div class="mb-3"><label class="form-label">Current password</label><input type="password" name="current_password" class="form-control" placeholder="Required"></div>' if _is_self else '<p class="text-muted small">Admin: set new password. Leave blank to keep current.</p>'
+    _password_section = f'<div class="card mb-4" style="max-width:800px"><div class="card-header">Change Password</div><div class="card-body"><form method="post">{_pw_html}<div class="mb-3"><label class="form-label">New password</label><input type="password" name="new_password" class="form-control" placeholder="Min 4 chars"></div><div class="mb-3"><label class="form-label">Confirm</label><input type="password" name="new_password_confirm" class="form-control"></div><button type="submit" name="action" value="password_only" class="btn btn-outline-primary">Change password</button></form></div></div>'
+    content = f"""
+    {back_button}
+    <h2>{title_text}</h2>
+    <p><strong>Username:</strong> {html.escape(display_user["username"])}</p>
+    <p><strong>Email:</strong> {html.escape(display_user.get("email") or "-")}</p>
+    {_password_section}
+    {incomplete_warning}
+    <div class="card mb-4" style="max-width:800px"><div class="card-header">API Keys</div><div class="card-body">{error_msg}{saved_msg}<form method="post">
+    <h5 class="mb-3">Default</h5><div class="mb-3"><label class="form-label">Default Categories</label><textarea name="default_categories" class="form-control" rows="6">{default_cats_value}</textarea></div>
+    <h5 class="mb-3">OpenAI</h5>{field("openai_api_key","API Key","sk-")}{field("openai_model","Model","gpt-4o-mini")}
+    <h5 class="mb-3">Midjourney</h5>{field("midjourney_api_token","API Token","")}<div class="mb-3"><label class="form-label">Channel IDs</label><textarea name="midjourney_channel_id" class="form-control" rows="2">{html.escape(str(keys.get("midjourney_channel_id") or ""))}</textarea></div>
+    <h5 class="mb-3">Cloudflare</h5>{field("cloudflare_account_id","Account ID","")}{field("cloudflare_api_token","API Token","",type_="password")}
+    <h5 class="mb-3">R2</h5>{field("r2_account_id","Account ID","")}{field("r2_access_key_id","Access Key","")}{field("r2_secret_access_key","Secret","",type_="password")}{field("r2_bucket_name","Bucket","")}{field("r2_public_url","Public URL","")}
+    <h5 class="mb-3">Optional</h5><div class="mb-3"><label class="form-label">AI provider</label><select name="ai_provider" class="form-select"><option value="openai"{" selected" if _profile_ai_provider=="openai" else ""}>OpenAI</option><option value="openrouter"{" selected" if _profile_ai_provider=="openrouter" else ""}>OpenRouter</option><option value="local"{" selected" if _profile_ai_provider=="local" else ""}>Local</option><option value="llamacpp"{" selected" if _profile_ai_provider=="llamacpp" else ""}>llama.cpp</option></select></div>
+    {field("openrouter_api_key","OpenRouter Key","")}{field("openrouter_model","Model","")}{field("local_api_url","Local API URL","")}{field("llamacpp_manager_url","llama.cpp URL","")}
+    <h5 class="mb-3">RSS</h5><div class="mb-3"><label class="form-label">Base URL</label><input type="url" name="rss_base_url" class="form-control" value="{html.escape(str(keys.get("rss_base_url") or ""))}"></div>{_pinterest_rss_domain_urls}
+    {admin_apply_html}
+    <button type="submit" class="btn btn-primary mt-3">Save</button></form></div></div>
+    <script>function loadProfileOllamaModels(){fetch("/api/ollama-models").then(r=>r.json()).then(d=>{var s=document.getElementById("profileLocalModel");if(s){s.innerHTML="";(d.models||[]).forEach(m=>{var o=document.createElement("option");o.value=m;o.textContent=m;s.appendChild(o)})}})}</script>
+    {"" if target_user_id else '<a href="/logout" class="btn btn-outline-secondary">Logout</a>'}
+    """
+    return base_layout(content, title_text)
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+        email = request.form.get("email", "").strip()
+        if not username or not password:
+            return _render_register_page("Username and password required")
+        password_hash = hashlib.sha256(password.encode()).hexdigest()
+        with get_connection() as conn:
+            cur = db_execute(conn, "SELECT id FROM users WHERE username = ?", (username,))
+            if cur.fetchone():
+                return _render_register_page("Username already exists")
+            db_execute(conn, "INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)", (username, password_hash, email))
+        return redirect(url_for("login"))
+    return _render_register_page()
+
+
+def _render_register_page(error=None):
+    err = f'<div class="alert alert-danger">{html.escape(error)}</div>' if error else ""
+    c = f'<div class="container" style="max-width:400px;margin-top:100px"><div class="card"><div class="card-body"><h3 class="card-title text-center mb-4">Register</h3>{err}<form method="post"><div class="mb-3"><label class="form-label">Username</label><input type="text" name="username" class="form-control" required></div><div class="mb-3"><label class="form-label">Email (optional)</label><input type="email" name="email" class="form-control"></div><div class="mb-3"><label class="form-label">Password</label><input type="password" name="password" class="form-control" required></div><button type="submit" class="btn btn-primary w-100">Register</button></form><div class="text-center mt-3"><a href="/login" class="text-muted small">Login</a></div></div></div></div>'
+    return base_layout(c, "Register")
+
+
+@app.route("/api/users/<int:user_id>/domains", methods=["GET", "POST"])
+@login_required
+def api_user_domains(user_id):
+    u = get_current_user()
+    if not u.get("is_admin"):
+        return jsonify({"success": False, "error": "Admin required"}), 403
+    if request.method == "GET":
+        with get_connection() as conn:
+            cur = db_execute(conn, "SELECT d.id, d.domain_url, d.domain_name FROM user_domains ud JOIN domains d ON d.id=ud.domain_id WHERE ud.user_id=? ORDER BY d.domain_name", (user_id,))
+            domains = [dict_row(r) for r in cur.fetchall()]
+        return jsonify({"success": True, "domains": domains})
+    data = request.get_json() or {}
+    did = data.get("domain_id")
+    if not did:
+        return jsonify({"success": False, "error": "domain_id required"}), 400
+    with get_connection() as conn:
+        try:
+            db_execute(conn, "INSERT INTO user_domains (user_id, domain_id) VALUES (?, ?)", (user_id, did))
+            return jsonify({"success": True})
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)}), 400
+
+
+@app.route("/api/users/<int:user_id>/domains/<int:domain_id>", methods=["DELETE"])
+@login_required
+def api_user_domain_remove(user_id, domain_id):
+    if not get_current_user().get("is_admin"):
+        return jsonify({"success": False, "error": "Admin required"}), 403
+    with get_connection() as conn:
+        db_execute(conn, "DELETE FROM user_domains WHERE user_id=? AND domain_id=?", (user_id, domain_id))
+    return jsonify({"success": True})
+
+
+@app.route("/api/users/<int:user_id>/status", methods=["POST"])
+@login_required
+def api_user_status(user_id):
+    if not get_current_user().get("is_admin"):
+        return jsonify({"success": False, "error": "Admin required"}), 403
+    data = request.get_json() or {}
+    is_active = 1 if data.get("is_active") else 0
+    with get_connection() as conn:
+        db_execute(conn, "UPDATE users SET is_active = ? WHERE id = ?", (is_active, user_id))
+    return jsonify({"success": True})
+
+
+@app.route("/api/users/create", methods=["POST"])
+@login_required
+def api_users_create():
+    if not get_current_user().get("is_admin"):
+        return jsonify({"success": False, "error": "Admin required"}), 403
+    data = request.get_json() or {}
+    username = (data.get("username") or "").strip()
+    password = (data.get("password") or "").strip()
+    email = (data.get("email") or "").strip() or None
+    clone_from = data.get("clone_from_user_id")
+    if not username or not password:
+        return jsonify({"success": False, "error": "Username and password required"}), 400
+    password_hash = hashlib.sha256(password.encode()).hexdigest()
+    with get_connection() as conn:
+        cur = db_execute(conn, "SELECT id FROM users WHERE username = ?", (username,))
+        if cur.fetchone():
+            return jsonify({"success": False, "error": "Username exists"}), 400
+        cur = db_execute(conn, "INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)", (username, password_hash, email))
+        new_id = last_insert_id(cur)
+        if clone_from and new_id:
+            cur2 = db_execute(conn, "SELECT * FROM user_api_keys WHERE user_id = ?", (clone_from,))
+            row = cur2.fetchone()
+            if row:
+                r = dict_row(row)
+                r.pop("id"); r.pop("user_id"); r.pop("created_at"); r.pop("updated_at", None)
+                cols = ["user_id"] + [k for k in r.keys() if r[k] is not None]
+                vals = [new_id] + [r[k] for k in cols if k != "user_id"]
+                db_execute(conn, f"INSERT INTO user_api_keys ({','.join(cols)}) VALUES ({','.join(['?']*len(vals))})", vals)
+    return jsonify({"success": True})
+
+
+@app.route("/api/users/clone-profile", methods=["POST"])
+@login_required
+def api_users_clone_profile():
+    if not get_current_user().get("is_admin"):
+        return jsonify({"success": False, "error": "Admin required"}), 403
+    data = request.get_json() or {}
+    src = data.get("source_user_id")
+    tgt = data.get("target_user_id")
+    if not src or not tgt:
+        return jsonify({"success": False, "error": "source_user_id and target_user_id required"}), 400
+    with get_connection() as conn:
+        cur = db_execute(conn, "SELECT * FROM user_api_keys WHERE user_id = ?", (src,))
+        row = cur.fetchone()
+        if not row:
+            return jsonify({"success": False, "error": "Source has no profile"}), 400
+        r = dict_row(row)
+        for k in ("id", "user_id", "created_at", "updated_at", "cloned_from_user_id", "cloned_at"):
+            r.pop(k, None)
+        cols = list(r.keys())
+        cur2 = db_execute(conn, "SELECT id FROM user_api_keys WHERE user_id = ?", (tgt,))
+        if cur2.fetchone():
+            set_clause = ", ".join(f"{k}=?" for k in cols)
+            db_execute(conn, f"UPDATE user_api_keys SET {set_clause} WHERE user_id = ?", tuple(r.values()) + (tgt,))
+        else:
+            db_execute(conn, f"INSERT INTO user_api_keys (user_id, {','.join(cols)}) VALUES (?, {','.join(['?']*len(cols))})", (tgt,) + tuple(r.values()))
+    return jsonify({"success": True})
+
