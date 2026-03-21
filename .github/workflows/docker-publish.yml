@@ -48,6 +48,11 @@ jobs:
             context: .
             dockerfile: ./llamacpp_manager/Dockerfile
 
+          - service: updater
+            image: aut-pin-updater
+            context: ./multi-domain-clean/updater
+            dockerfile: ./multi-domain-clean/updater/Dockerfile
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
