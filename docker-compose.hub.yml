@@ -7,11 +7,14 @@
 #   docker compose -f docker-compose.hub.yml up -d
 #
 # All services communicate via Docker network (service names as hostnames).
+# Labels enable Watchtower auto-update (see deploy-to-server-docker-hub.md).
 
 services:
   # ─── Orchestrator Setup Wizard (starts first) ────────────────────
   orchestrator:
     image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-orchestrator:latest
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     ports:
       - "6005:5005"
     volumes:
@@ -22,6 +25,8 @@ services:
   # ─── Main Admin UI & Controller ──────────────────────────────────
   multi-domain-clean:
     image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-multi-domain-clean:latest
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     ports:
       - "6001:5001"
     environment:
@@ -48,6 +53,8 @@ services:
   # ─── Pin Generator ──────────────────────────────────────────────
   pin_generator:
     image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-pin_generator:latest
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     ports:
       - "6000:5000"
     volumes:
@@ -60,6 +67,8 @@ services:
   # ─── Articles & Website Generator ───────────────────────────────
   articles-website-generator:
     image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-articles-website-generator:latest
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     ports:
       - "6002:5002"
     environment:
@@ -76,6 +85,8 @@ services:
   # ─── Website Parts Generator ────────────────────────────────────
   website-parts-generator:
     image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-website-parts-generator:latest
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     ports:
       - "6003:5003"
     volumes:
@@ -87,6 +98,8 @@ services:
   # ─── LlamaCpp Manager ──────────────────────────────────────────
   llamacpp_manager:
     image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-llamacpp_manager:latest
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     ports:
       - "6004:5004"
     environment:
