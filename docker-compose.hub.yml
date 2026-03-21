@@ -7,14 +7,11 @@
 #   docker compose -f docker-compose.hub.yml up -d
 #
 # All services communicate via Docker network (service names as hostnames).
-# Labels enable Watchtower auto-update (see deploy-to-server-docker-hub.md).
 
 services:
   # ─── Orchestrator Setup Wizard (starts first) ────────────────────
   orchestrator:
     image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-orchestrator:latest
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
     ports:
       - "6005:5005"
     volumes:
@@ -25,8 +22,6 @@ services:
   # ─── Main Admin UI & Controller ──────────────────────────────────
   multi-domain-clean:
     image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-multi-domain-clean:latest
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
     ports:
       - "6001:5001"
     environment:
@@ -34,6 +29,7 @@ services:
       - WEBSITE_PARTS_API_URL=http://website-parts-generator:5003
       - PIN_API_URL=http://pin_generator:5000
       - LLAMACPP_MANAGER_URL=http://llamacpp_manager:5004
+      - UPDATER_URL=http://updater:6006
       - PIN_EDITOR_URL=http://llamacpp_manager:5004
       - ARTICLE_GENERATORS_DIR=/app/shared/generators
       - STATIC_PROJECT_OUTPUT_DIR=/app/output/static-projects
@@ -53,8 +49,6 @@ services:
   # ─── Pin Generator ──────────────────────────────────────────────
   pin_generator:
     image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-pin_generator:latest
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
     ports:
       - "6000:5000"
     volumes:
@@ -67,8 +61,6 @@ services:
   # ─── Articles & Website Generator ───────────────────────────────
   articles-website-generator:
     image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-articles-website-generator:latest
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
     ports:
       - "6002:5002"
     environment:
@@ -85,8 +77,6 @@ services:
   # ─── Website Parts Generator ────────────────────────────────────
   website-parts-generator:
     image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-website-parts-generator:latest
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
     ports:
       - "6003:5003"
     volumes:
@@ -98,8 +88,6 @@ services:
   # ─── LlamaCpp Manager ──────────────────────────────────────────
   llamacpp_manager:
     image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-llamacpp_manager:latest
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
     ports:
       - "6004:5004"
     environment:
@@ -108,6 +96,20 @@ services:
     volumes:
       - llamacpp_models:/app/llamacpp_manager/models
       - llamacpp_data:/app/llamacpp_manager/data
+
+  updater:
+    build:
+      context: ./multi-domain-clean/updater
+      dockerfile: Dockerfile
+    image: ${DOCKERHUB_USERNAME:-boarddash31}/aut-pin-updater:latest
+    container_name: aut-pin-updater
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/work
+    environment:
+      - COMPOSE_FILE=/work/docker-compose.hub.yml
+      - PROJECT_DIR=/work
+      - DOCKERHUB_USERNAME=${DOCKERHUB_USERNAME:-boarddash31}
 
 volumes:
   env-config:

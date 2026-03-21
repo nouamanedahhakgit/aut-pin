@@ -27,7 +27,7 @@ from flask import Flask, request, redirect, url_for, jsonify, send_from_director
 import requests as requests_lib
 from db import get_connection, init_db, dict_row, execute as db_execute, last_insert_id, get_fk_children
 from rewrite import rewrite, generate_article_content_for_a, generate_image_prompts_for_title
-from config import GENERATE_ARTICLE_API_URL, PIN_EDITOR_URL, PIN_API_URL, ARTICLE_GENERATORS_DIR, OPENAI_API_KEY, OPENAI_MODEL, WEBSITE_PARTS_API_URL, STATIC_PROJECT_OUTPUT_DIR, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, get_ai_config, LLAMACPP_MANAGER_URL
+from config import GENERATE_ARTICLE_API_URL, PIN_EDITOR_URL, PIN_API_URL, ARTICLE_GENERATORS_DIR, OPENAI_API_KEY, OPENAI_MODEL, WEBSITE_PARTS_API_URL, STATIC_PROJECT_OUTPUT_DIR, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, get_ai_config, LLAMACPP_MANAGER_URL, UPDATER_URL
 import imagine
 import r2_upload
 import openai
@@ -697,6 +697,7 @@ def base_layout(content, title, nav_extra=None):
       <a class="nav-link" href="/admin/writers">Writers</a>
       <a class="nav-link" href="/admin/ai-models">AI Models</a>
       <a class="nav-link" href="/admin/logs">📋 Logs</a>
+      {f'<a class="nav-link" href="/admin/updates">🔄 Updates</a>' if session.get('is_admin') else ''}
       {f'<a class="nav-link" href="/admin/users">👥 Users</a>' if session.get('is_admin') else ''}
       <a class="nav-link" href="/profile">👤 {session.get('username', 'Profile')}</a>
       <a class="nav-link" href="/logout">Logout</a>
@@ -3925,6 +3926,83 @@ def admin_logs():
     user = get_current_user()
     content = _render_logs_dashboard()
     return base_layout(content, "Logs Dashboard", nav_extra="")
+
+
+@app.route("/api/updates/check")
+@login_required
+def api_updates_check():
+    """Proxy to updater: check if new images available."""
+    if not session.get("is_admin"):
+        return jsonify({"error": "Admin only"}), 403
+    try:
+        r = requests_lib.get(f"{UPDATER_URL.rstrip('/')}/check", timeout=15)
+        return jsonify(r.json() if r.ok else {"error": r.text or str(r.status_code)})
+    except Exception as e:
+        return jsonify({"error": str(e), "updates_available": False})
+
+
+@app.route("/api/updates/apply", methods=["POST"])
+@login_required
+def api_updates_apply():
+    """Proxy to updater: pull and restart containers."""
+    if not session.get("is_admin"):
+        return jsonify({"error": "Admin only"}), 403
+    try:
+        r = requests_lib.post(f"{UPDATER_URL.rstrip('/')}/update", timeout=360)
+        data = r.json() if r.ok else {"success": False, "error": r.text or str(r.status_code)}
+        return jsonify(data), 200 if data.get("success") else 500
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/admin/updates")
+@login_required
+def admin_updates():
+    """Admin page: check for Docker image updates and apply."""
+    if not session.get("is_admin"):
+        return redirect(url_for("admin_domains"))
+    content = """
+    <div class="card mb-4" style="max-width:600px">
+      <div class="card-header">🔄 Container Updates</div>
+      <div class="card-body">
+        <p class="text-muted mb-3">Check if new images are available on Docker Hub and update containers.</p>
+        <div id="updatesStatus" class="mb-3"></div>
+        <button type="button" class="btn btn-outline-primary" id="updatesCheckBtn">Check for updates</button>
+        <button type="button" class="btn btn-primary d-none" id="updatesApplyBtn">Update now</button>
+        <div id="updatesLog" class="mt-3 small font-monospace text-muted" style="max-height:200px;overflow-y:auto"></div>
+      </div>
+    </div>
+    <script>
+    (function(){
+      var statusEl = document.getElementById('updatesStatus');
+      var checkBtn = document.getElementById('updatesCheckBtn');
+      var applyBtn = document.getElementById('updatesApplyBtn');
+      var logEl = document.getElementById('updatesLog');
+      function log(msg){ logEl.innerHTML += (new Date().toLocaleTimeString() + ' ' + msg + '\\n'); logEl.scrollTop = logEl.scrollHeight; }
+      checkBtn.onclick = function(){
+        checkBtn.disabled = true; statusEl.innerHTML = '<span class="text-muted">Checking...</span>'; applyBtn.classList.add('d-none');
+        fetch('/api/updates/check').then(r=>r.json()).then(function(d){
+          checkBtn.disabled = false;
+          if(d.error && !d.updates_available){ statusEl.innerHTML = '<span class="text-warning">' + (d.error || 'Updater not available') + '</span>'; return; }
+          if(d.updates_available){
+            statusEl.innerHTML = '<span class="text-success fw-bold">New update available!</span> ' + (d.images && d.images.length ? d.images.join(', ') : '');
+            applyBtn.classList.remove('d-none');
+          } else {
+            statusEl.innerHTML = '<span class="text-success">Up to date</span>';
+          }
+        }).catch(function(e){ checkBtn.disabled = false; statusEl.innerHTML = '<span class="text-danger">' + e + '</span>'; });
+      };
+      applyBtn.onclick = function(){
+        applyBtn.disabled = true; log('Updating...');
+        fetch('/api/updates/apply', {method:'POST'}).then(r=>r.json()).then(function(d){
+          if(d.success){ log('Done. Containers will restart.'); statusEl.innerHTML = '<span class="text-success">Updated! Page may refresh.</span>'; applyBtn.classList.add('d-none'); setTimeout(function(){ location.reload(); }, 3000); }
+          else { log('Error: ' + (d.error||'unknown')); statusEl.innerHTML = '<span class="text-danger">' + (d.error||'') + '</span>'; applyBtn.disabled = false; }
+        }).catch(function(e){ log('Error: ' + e); applyBtn.disabled = false; });
+      };
+    })();
+    </script>
+    """
+    return base_layout(content, "Updates", nav_extra="")
 
 
 def _render_logs_dashboard():

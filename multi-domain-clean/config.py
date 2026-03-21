@@ -77,3 +77,6 @@ R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME", "")
 R2_PUBLIC_URL = os.getenv("R2_PUBLIC_URL", "")
 
 # Pinterest: uses simple "Pin it" URL (no API key). No config needed.
+
+# Updater (in-app check/update Docker images)
+UPDATER_URL = os.getenv("UPDATER_URL", "http://localhost:6006")
