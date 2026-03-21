@@ -355,34 +355,41 @@ def _parse_int_or_none(value):
     except (TypeError, ValueError):
         return None
 
+PROFILE_REQUIRED_FIELDS = [
+    'openai_api_key', 'openai_model', 'midjourney_api_token', 'midjourney_channel_id',
+    'r2_account_id', 'r2_access_key_id', 'r2_secret_access_key', 'r2_bucket_name', 'r2_public_url',
+    'cloudflare_account_id', 'cloudflare_api_token', 'default_categories'
+]
+PROFILE_FIELD_LABELS = {
+    'openai_api_key': 'OpenAI API Key',
+    'openai_model': 'OpenAI Model',
+    'midjourney_api_token': 'Midjourney API Token',
+    'midjourney_channel_id': 'Midjourney Channel IDs',
+    'r2_account_id': 'R2 Account ID',
+    'r2_access_key_id': 'R2 Access Key ID',
+    'r2_secret_access_key': 'R2 Secret Access Key',
+    'r2_bucket_name': 'R2 Bucket Name',
+    'r2_public_url': 'R2 Public URL',
+    'cloudflare_account_id': 'Cloudflare Account ID',
+    'cloudflare_api_token': 'Cloudflare API Token',
+    'default_categories': 'Default Categories',
+}
+
+
+def get_missing_profile_fields(user_id):
+    """Return list of (field_name, label) for required fields that are empty."""
+    keys = get_user_api_keys(user_id) or {}
+    missing = []
+    for f in PROFILE_REQUIRED_FIELDS:
+        val = keys.get(f)
+        if not val or not str(val).strip():
+            missing.append((f, PROFILE_FIELD_LABELS.get(f, f)))
+    return missing
+
+
 def is_profile_complete(user_id):
     """Check if user has completed required profile fields."""
-    keys = get_user_api_keys(user_id)
-    if not keys:
-        return False
-    
-    # Required fields (OpenRouter and Local are optional)
-    required_fields = [
-        'openai_api_key',
-        'openai_model',
-        'midjourney_api_token',
-        'midjourney_channel_id',
-        'r2_account_id',
-        'r2_access_key_id',
-        'r2_secret_access_key',
-        'r2_bucket_name',
-        'r2_public_url',
-        'cloudflare_account_id',
-        'cloudflare_api_token',
-        'default_categories'
-    ]
-    
-    for field in required_fields:
-        value = keys.get(field)
-        if not value or not str(value).strip():
-            return False
-    
-    return True
+    return len(get_missing_profile_fields(user_id)) == 0
 
 def get_user_domain_ids(user_id, is_admin=False):
     """Get list of domain IDs accessible by user."""
@@ -25804,17 +25811,33 @@ def profile(target_user_id=None):
     saved_msg = '<div class="alert alert-success">API keys saved successfully!</div>' if request.args.get("saved") else ""
     error_msg = f'<div class="alert alert-danger">{html.escape(request.args.get("error"))}</div>' if request.args.get("error") else ""
     
-    # Check if profile is complete
-    profile_complete = is_profile_complete(user_id)
-    incomplete_warning = "" if profile_complete else '<div class="alert alert-warning"><strong>⚠️ Profile Incomplete!</strong><br>You must complete all required fields below before you can add domains. OpenRouter and Local (Ollama/LM Studio) settings are optional.</div>'
+    # Check if profile is complete and which fields are missing
+    missing_fields = get_missing_profile_fields(user_id)
+    missing_names = {m[0] for m in missing_fields}
+    missing_labels = [m[1] for m in missing_fields]
+    profile_complete = len(missing_fields) == 0
+    
+    if profile_complete:
+        incomplete_warning = ""
+    else:
+        first_missing = missing_fields[0][0] if missing_fields else ""
+        labels_html = ", ".join(f'<strong>{html.escape(l)}</strong>' for l in missing_labels)
+        incomplete_warning = f'''<div class="alert alert-warning profile-incomplete-alert" role="button" tabindex="0" style="cursor:pointer" onclick="var el=document.getElementById('field-{first_missing}'); if(el){{el.scrollIntoView({{behavior:'smooth',block:'center'}}); var inp=el.querySelector('input,textarea'); if(inp) inp.focus();}}" onkeydown="if(event.key==='Enter'||event.key===' '){{event.preventDefault();this.click();}}">
+<strong>⚠️ Profile Incomplete!</strong><br>
+Complete these required fields: {labels_html}.<br>
+<em class="small">Click here to scroll to the first missing field.</em><br>
+<span class="small text-muted">OpenRouter and Local (Ollama/LM Studio) settings are optional.</span>
+</div>'''
     
     def field(name, label, placeholder="", type_="text"):
         val = html.escape(str(keys.get(name) or ""))
         placeholder_attr = f'placeholder="{html.escape(placeholder)}"' if placeholder else ''
+        is_missing = name in missing_names
+        extra_class = " border-danger border-2" if is_missing else ""
         return f'''
-        <div class="mb-3">
-          <label class="form-label">{label}</label>
-          <input type="{type_}" name="{name}" class="form-control" {placeholder_attr} value="{val}">
+        <div class="mb-3" id="field-{name}">
+          <label class="form-label{" text-danger fw-bold" if is_missing else ""}">{label}{" (required)" if is_missing else ""}</label>
+          <input type="{type_}" name="{name}" class="form-control{extra_class}" {placeholder_attr} value="{val}">
         </div>
         '''
     
@@ -25904,9 +25927,9 @@ def profile(target_user_id=None):
         <p class="text-muted small mb-4">Configure your API keys below. These keys are stored securely and used only for your operations. <strong>All fields are required except OpenRouter and Local settings.</strong></p>
         <form method="post">
           <h5 class="mb-3">Default Settings <span class="badge bg-danger">Required</span></h5>
-          <div class="mb-3">
-            <label class="form-label">Default Categories (one per line)</label>
-            <textarea name="default_categories" class="form-control" rows="8" placeholder="Appetizers&#10;Main Courses&#10;Desserts&#10;Beverages&#10;Salads&#10;Soups&#10;Snacks&#10;Breakfast">{default_cats_value}</textarea>
+          <div class="mb-3" id="field-default_categories">
+            <label class="form-label{" text-danger fw-bold" if "default_categories" in missing_names else ""}">Default Categories (one per line){" (required)" if "default_categories" in missing_names else ""}</label>
+            <textarea name="default_categories" class="form-control{" border-danger border-2" if "default_categories" in missing_names else ""}" rows="8" placeholder="Appetizers&#10;Main Courses&#10;Desserts&#10;Beverages&#10;Salads&#10;Soups&#10;Snacks&#10;Breakfast">{default_cats_value}</textarea>
             <div class="form-text">These categories will be automatically assigned to new domains</div>
           </div>
           
@@ -25916,9 +25939,9 @@ def profile(target_user_id=None):
           
           <h5 class="mb-3 mt-4">Midjourney <span class="badge bg-danger">Required</span></h5>
           {field("midjourney_api_token", "API Token", "user:xxxx-xxxxxxxxxxxxxxx")}
-          <div class="mb-3">
-            <label class="form-label">Channel IDs <span class="badge bg-info text-dark">multi-channel</span></label>
-            <textarea name="midjourney_channel_id" class="form-control" rows="4" placeholder="1464695640058495123&#10;1464695640058495124&#10;1464695640058495125">{html.escape(str(keys.get('midjourney_channel_id') or ''))}</textarea>
+          <div class="mb-3" id="field-midjourney_channel_id">
+            <label class="form-label{" text-danger fw-bold" if "midjourney_channel_id" in missing_names else ""}">Channel IDs <span class="badge bg-info text-dark">multi-channel</span>{" (required)" if "midjourney_channel_id" in missing_names else ""}</label>
+            <textarea name="midjourney_channel_id" class="form-control{" border-danger border-2" if "midjourney_channel_id" in missing_names else ""}" rows="4" placeholder="1464695640058495123&#10;1464695640058495124&#10;1464695640058495125">{html.escape(str(keys.get('midjourney_channel_id') or ''))}</textarea>
             <div class="form-text">One channel ID per line. During image generation, channels rotate automatically. If a channel errors, it is skipped for 3 rounds of other channels before being retried.</div>
           </div>
           
