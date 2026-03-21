@@ -7,6 +7,7 @@ from flask import Flask, jsonify
 app = Flask(__name__)
 COMPOSE_FILE = os.getenv("COMPOSE_FILE", "/work/docker-compose.hub.yml")
 PROJECT_DIR = os.getenv("PROJECT_DIR", "/work")
+PROJECT_NAME = os.getenv("PROJECT_NAME", "aut-pin")
 NAMESPACE = os.getenv("DOCKERHUB_USERNAME", "boarddash31")
 IMAGES = [
     f"{NAMESPACE}/aut-pin-orchestrator:latest",
@@ -64,7 +65,15 @@ def check():
 @app.route("/update", methods=["POST"])
 def update():
     try:
-        compose_cmd = ["docker", "compose", "-p", "aut-pin", "-f", COMPOSE_FILE]
+        os.environ["COMPOSE_PROJECT_NAME"] = PROJECT_NAME
+        compose_cmd = ["docker", "compose", "-p", PROJECT_NAME, "-f", COMPOSE_FILE]
+        # Stop orphaned "work" project if it exists (from old cwd-based naming)
+        subprocess.run(
+            ["docker", "compose", "-p", "work", "-f", COMPOSE_FILE, "down"],
+            cwd=PROJECT_DIR,
+            timeout=60,
+            capture_output=True,
+        )
         r = subprocess.run(
             compose_cmd + ["pull", "--ignore-pull-failures"],
             cwd=PROJECT_DIR,

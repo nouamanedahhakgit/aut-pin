@@ -107,6 +107,7 @@ services:
     environment:
       - COMPOSE_FILE=/work/docker-compose.hub.yml
       - PROJECT_DIR=/work
+      - PROJECT_NAME=aut-pin
       - DOCKERHUB_USERNAME=${DOCKERHUB_USERNAME:-boarddash31}
 
 volumes:
