@@ -110,6 +110,8 @@ services:
 
 volumes:
   env-config:
+    name: aut-pin_env-config
+    external: true
   pin_output:
   llamacpp_models:
   llamacpp_data:

@@ -64,21 +64,26 @@ def check():
 @app.route("/update", methods=["POST"])
 def update():
     try:
-        subprocess.run(
-            ["docker", "compose", "-f", COMPOSE_FILE, "pull"],
+        r = subprocess.run(
+            ["docker", "compose", "-f", COMPOSE_FILE, "pull", "--ignore-pull-failures"],
             cwd=PROJECT_DIR,
             timeout=300,
-            check=True,
+            capture_output=True,
+            text=True,
         )
-        subprocess.run(
+        r2 = subprocess.run(
             ["docker", "compose", "-f", COMPOSE_FILE, "up", "-d"],
             cwd=PROJECT_DIR,
             timeout=120,
-            check=True,
+            capture_output=True,
+            text=True,
         )
+        if r2.returncode != 0:
+            err = (r2.stderr or r2.stdout or str(r2.returncode)).strip()[:500]
+            return jsonify(success=False, error=f"compose up failed: {err}"), 500
         return jsonify(success=True)
-    except subprocess.CalledProcessError as e:
-        return jsonify(success=False, error=str(e)), 500
+    except subprocess.TimeoutExpired as e:
+        return jsonify(success=False, error=f"Timeout: {e}"), 500
     except Exception as e:
         return jsonify(success=False, error=str(e)), 500
 
