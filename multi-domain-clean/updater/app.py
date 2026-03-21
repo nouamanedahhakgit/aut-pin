@@ -64,8 +64,9 @@ def check():
 @app.route("/update", methods=["POST"])
 def update():
     try:
+        compose_cmd = ["docker", "compose", "-p", "aut-pin", "-f", COMPOSE_FILE]
         r = subprocess.run(
-            ["docker", "compose", "-f", COMPOSE_FILE, "pull", "--ignore-pull-failures"],
+            compose_cmd + ["pull", "--ignore-pull-failures"],
             cwd=PROJECT_DIR,
             timeout=300,
             capture_output=True,
@@ -73,7 +74,7 @@ def update():
         )
         # Exclude updater - it cannot replace itself while running
         r2 = subprocess.run(
-            ["docker", "compose", "-f", COMPOSE_FILE, "up", "-d",
+            compose_cmd + ["up", "-d",
              "orchestrator", "multi-domain-clean", "pin_generator",
              "articles-website-generator", "website-parts-generator", "llamacpp_manager"],
             cwd=PROJECT_DIR,
