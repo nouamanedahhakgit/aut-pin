@@ -26027,7 +26027,7 @@ Complete these required fields: {labels_html}.<br>
     <h5 class="mb-3">RSS</h5><div class="mb-3"><label class="form-label">Base URL</label><input type="url" name="rss_base_url" class="form-control" value="{html.escape(str(keys.get("rss_base_url") or ""))}"></div>{_pinterest_rss_domain_urls}
     {admin_apply_html}
     <button type="submit" class="btn btn-primary mt-3">Save</button></form></div></div>
-    <script>function loadProfileOllamaModels(){fetch("/api/ollama-models").then(r=>r.json()).then(d=>{var s=document.getElementById("profileLocalModel");if(s){s.innerHTML="";(d.models||[]).forEach(m=>{var o=document.createElement("option");o.value=m;o.textContent=m;s.appendChild(o)})}})}</script>
+    <script></script>
     {"" if target_user_id else '<a href="/logout" class="btn btn-outline-secondary">Logout</a>'}
     """
     return base_layout(content, title_text)
