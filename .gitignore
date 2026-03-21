@@ -41,3 +41,4 @@ llamacpp_manager/data/*.db
 llamacpp_manager/bin/
 pin_generator/prompts/generate_pin_template.txt
 website-parts-generator/prompts/
+llamacpp_manager/llama.cpp/
