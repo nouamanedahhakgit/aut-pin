@@ -10,6 +10,10 @@ URL="${URL:-$DEFAULT_URL}"
 
 mkdir -p ~/aut-pin && cd ~/aut-pin
 curl -sSLo docker-compose.hub.yml "$GITHUB_RAW/docker-compose.hub.yml"
+# Use Docker Hub login if token provided (avoids rate limit; updater uses /root/.docker)
+if [ -n "$DOCKERHUB_TOKEN" ]; then
+  echo "$DOCKERHUB_TOKEN" | docker login -u "${DOCKERHUB_USERNAME:-boarddash31}" --password-stdin 2>/dev/null || true
+fi
 mkdir -p output/static-projects articles-website-generator/generators
 docker volume create aut-pin_env-config 2>/dev/null || true
 

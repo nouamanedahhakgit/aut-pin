@@ -104,6 +104,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - .:/work
+      - /root/.docker:/root/.docker:ro
     environment:
       - COMPOSE_FILE=/work/docker-compose.hub.yml
       - PROJECT_DIR=/work
