@@ -71,8 +71,11 @@ def update():
             capture_output=True,
             text=True,
         )
+        # Exclude updater - it cannot replace itself while running
         r2 = subprocess.run(
-            ["docker", "compose", "-f", COMPOSE_FILE, "up", "-d"],
+            ["docker", "compose", "-f", COMPOSE_FILE, "up", "-d",
+             "orchestrator", "multi-domain-clean", "pin_generator",
+             "articles-website-generator", "website-parts-generator", "llamacpp_manager"],
             cwd=PROJECT_DIR,
             timeout=120,
             capture_output=True,
