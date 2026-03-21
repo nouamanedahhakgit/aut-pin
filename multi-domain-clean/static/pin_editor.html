@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pin Editor — Multi-Domain</title>
-  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <link href="/static/css/bootstrap.min.css" rel="stylesheet">
   <style>
     :root {
       --bg: #0f0f12;
@@ -312,35 +312,36 @@
 
     #previewBox {
       overflow: hidden;
+      width: 100%;
+      height: min(520px, calc(100vh - 180px));
       max-width: 100%;
-      max-height: min(500px, calc(100vh - 180px));
+      max-height: min(520px, calc(100vh - 180px));
       display: flex;
       align-items: center;
       justify-content: center;
       flex-direction: column;
+      min-height: 0;
     }
 
-    /* Pin content is 600x1067 – scale to fit without scroll */
+    /* Pin canvas 736x1308 – scale to fit inside #previewBox, no scroll */
     .preview-iframe-wrap {
-      width: 240px;
-      height: 427px;
-      max-width: 100%;
-      max-height: min(427px, calc(100vh - 220px));
       overflow: hidden;
       position: relative;
       margin: 0 auto;
       border-radius: 8px;
       border: 1px solid var(--border);
       background: #000;
+      max-width: 100%;
+      max-height: 100%;
+      flex-shrink: 0;
     }
 
     .preview-iframe {
       position: absolute;
       left: 0;
       top: 0;
-      width: 600px;
-      height: 1067px;
-      transform: scale(0.4);
+      width: 736px;
+      height: 1308px;
       transform-origin: 0 0;
       border: none;
       background: #000;
@@ -348,7 +349,7 @@
 
     .preview-img {
       max-width: 100%;
-      max-height: min(427px, calc(100vh - 200px));
+      max-height: 100%;
       width: auto;
       height: auto;
       object-fit: contain;
@@ -357,11 +358,10 @@
     }
 
     .preview-placeholder {
-      width: 240px;
-      height: 427px;
       max-width: 100%;
-      max-height: min(427px, calc(100vh - 220px));
+      max-height: 100%;
       margin: 0 auto;
+      padding: 1rem;
       background: var(--bg);
       border-radius: 8px;
       display: flex;
@@ -369,6 +369,7 @@
       justify-content: center;
       color: var(--muted);
       font-size: 0.85rem;
+      text-align: center;
     }
 
     #generatedImageUrl {
@@ -502,22 +503,27 @@
     body.embed-mode #previewBox {
       flex: 1;
       min-height: 0;
+      height: auto;
+      max-height: none;
       padding: 0;
       margin: 0;
       display: flex;
       align-items: center;
       justify-content: center;
+      overflow: hidden;
     }
 
     body.embed-mode .preview-iframe-wrap {
       overflow: hidden;
       position: relative;
       margin: 0 auto;
+      max-width: 100%;
+      max-height: 100%;
     }
 
     body.embed-mode .preview-iframe {
-      width: 600px;
-      height: 1067px;
+      width: 736px;
+      height: 1308px;
       transform-origin: 0 0;
       border: none;
     }
@@ -699,12 +705,15 @@
       <div class="panel settings-panel">
         <div class="pin-editor-header">
           <h1 class="pin-editor-title">Pin Editor</h1>
-          <div id="saveToDomainWrap" class="pin-editor-save-wrap" style="display:none;">
-            <input type="text" id="templateNameForDomain" placeholder="Template name"
-              title="Template name (for this domain)">
-            <button type="button" class="btn btn-secondary" id="btnApplyDomainColors"
-              title="Re-apply domain colors and fonts to current template">Domain Colors</button>
-            <button type="button" class="btn btn-success" id="btnSaveToDomain">Save</button>
+          <div class="pin-editor-save-wrap d-flex gap-2 flex-wrap align-items-center">
+            <button type="button" class="btn btn-primary" id="btnGenerateWithAi" title="Generate badge/title with AI (same concept as Run group)">
+              Generate with AI
+            </button>
+            <div id="saveToDomainWrap" style="display:none;" class="d-flex gap-2 align-items-center">
+              <input type="text" id="templateNameForDomain" placeholder="Template name" title="Template name (for this domain)">
+              <button type="button" class="btn btn-secondary" id="btnApplyDomainColors" title="Re-apply domain colors and fonts">Domain Colors</button>
+              <button type="button" class="btn btn-success" id="btnSaveToDomain">Save</button>
+            </div>
           </div>
         </div>
         <div class="mb1">
@@ -716,6 +725,17 @@
             <input type="text" id="templateSearch" placeholder="Search templates...">
           </div>
           <div id="pinPickerGrid" class="pin-picker-grid"></div>
+        </div>
+        <div id="testWithArticleWrap" class="mb1" style="display:none;">
+          <h2>Test with website article</h2>
+          <p class="status mb1 small text-muted">Load the first article of this domain into the form (title, domain, images). You can then edit image URLs below.</p>
+          <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+            <button type="button" class="btn btn-outline-primary btn-sm" id="btnTestWithFirstArticle">Test with first article</button>
+            <label class="d-flex align-items-center gap-1 small mb-0">
+              <input type="checkbox" id="chkSiblingFlipped" title="Use sibling domain images (A↔B, C↔D) flipped horizontal">
+              Use sibling flipped images
+            </label>
+          </div>
         </div>
         <div id="formContainer"></div>
         <div class="mt1">
@@ -749,13 +769,129 @@
     </div>
   </div>
 
+  <div id="generateWithAiModal" class="modal fade" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content" style="background:var(--surface);border:1px solid var(--border);color:var(--text);">
+        <div class="modal-header border-secondary">
+          <h5 class="modal-title">Generate with AI</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <div class="btn-group btn-group-sm w-100" role="group">
+              <input type="radio" class="btn-check" name="genMode" id="genModeCreate" value="create" checked>
+              <label class="btn btn-outline-primary" for="genModeCreate">Create NEW template</label>
+              <input type="radio" class="btn-check" name="genMode" id="genModeFromImages" value="from_images">
+              <label class="btn btn-outline-primary" for="genModeFromImages">From reference images</label>
+              <input type="radio" class="btn-check" name="genMode" id="genModeFill" value="fill">
+              <label class="btn btn-outline-primary" for="genModeFill">Fill existing template</label>
+            </div>
+          </div>
+          <div id="genFromImagesWrap" style="display:none">
+            <p class="small text-muted mb-2">Upload 1–10 Pinterest-style pin images. AI will analyze them and generate a template that matches their layout, colors, and style.</p>
+            <div class="mb-3">
+              <label class="form-label small fw-medium">Reference images</label>
+              <input type="file" id="genRefImagesInput" class="form-control form-control-sm" accept="image/*" multiple>
+              <div id="genRefImagesPreview" class="d-flex flex-wrap gap-1 mt-2" style="max-height:120px;overflow:auto"></div>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-medium">Save to</label>
+              <select id="genFromImagesSaveTo" class="form-select form-select-sm" style="max-width:200px">
+                <option value="pool">Template pool (global)</option>
+                <option value="domain">Domain templates</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-medium">Template name <span class="text-muted">(optional)</span></label>
+              <input type="text" id="genFromImagesTemplateName" class="form-control form-control-sm" placeholder="Auto-generated if empty" style="max-width:260px;background:var(--bg);color:var(--text);">
+            </div>
+            <p class="small text-warning">Uses OpenAI or OpenRouter with a vision model (e.g. GPT-4o).</p>
+          </div>
+          <div id="genCreateWrap">
+            <p class="small text-muted mb-2">AI designs a completely new pin template from scratch — creative layout, colors, elements. No base template needed.</p>
+            <div class="mb-3">
+              <label class="form-label small fw-medium">Creative direction <span class="text-muted">(optional)</span></label>
+              <textarea id="genCreativePrompt" class="form-control form-control-sm" rows="2" placeholder="e.g. Dark moody with gold accents, minimalist, bold geometric..." style="font-size:0.8rem;background:var(--bg);color:var(--text);"></textarea>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-medium">Save to</label>
+              <select id="genSaveTo" class="form-select form-select-sm" style="max-width:200px">
+                <option value="pool">Template pool (global)</option>
+                <option value="domain">Domain templates</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-medium">Template name <span class="text-muted">(optional)</span></label>
+              <input type="text" id="genNewTemplateName" class="form-control form-control-sm" placeholder="Auto-generated if empty" style="max-width:260px;background:var(--bg);color:var(--text);">
+            </div>
+          </div>
+          <div id="genFillWrap" style="display:none">
+            <p class="small text-muted mb-2">Pick an existing template layout; AI fills badge/title text. Uses prompts from pin_generation_prompts.json.</p>
+            <div class="mb-3">
+              <label class="form-label small fw-medium">Base template</label>
+              <select id="genModalBaseTemplate" class="form-select form-select-sm" style="max-width:220px">
+                <option value="">— Select base template —</option>
+              </select>
+            </div>
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="genRunInBackground" title="Run in background and show in Running tasks">
+              <label class="form-check-label small" for="genRunInBackground">Run in background (saves as new domain template)</label>
+            </div>
+            <details class="mb-3 mt-2">
+              <summary class="small text-muted" style="cursor:pointer">Edit prompts (external file)</summary>
+              <div class="mt-2">
+                <label class="form-label small">Prompt</label>
+                <textarea id="genPromptEdit" class="form-control form-control-sm font-monospace" rows="3" style="font-size:0.75rem;background:var(--bg);color:var(--text);"></textarea>
+                <label class="form-label small mt-2">Field prompts (JSON)</label>
+                <textarea id="genFieldPromptsEdit" class="form-control form-control-sm font-monospace" rows="4" style="font-size:0.75rem;background:var(--bg);color:var(--text);"></textarea>
+                <button type="button" class="btn btn-outline-secondary btn-sm mt-2" id="genSavePromptsBtn">Save prompts</button>
+              </div>
+            </details>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-medium">AI provider</label>
+            <select id="genAiProvider" class="form-select form-select-sm" style="max-width:220px">
+              <option value="openrouter">OpenRouter</option>
+              <option value="openai">OpenAI</option>
+              <option value="local">Local (Ollama)</option>
+              <option value="llamacpp">llama.cpp</option>
+            </select>
+          </div>
+          <div id="genOpenAIWrap" class="mb-3" style="display:none">
+            <label class="form-label small">OpenAI model</label>
+            <select id="genOpenAIModel" class="form-select form-select-sm"></select>
+          </div>
+          <div id="genOpenRouterWrap" class="mb-3" style="display:none">
+            <label class="form-label small">OpenRouter model</label>
+            <select id="genOpenRouterModel" class="form-select form-select-sm"></select>
+          </div>
+          <div id="genLocalWrap" class="mb-3" style="display:none">
+            <label class="form-label small">Local model</label>
+            <select id="genLocalModel" class="form-select form-select-sm"></select>
+          </div>
+          <div id="genLlamaCppWrap" class="mb-3" style="display:none">
+            <label class="form-label small">llama.cpp model</label>
+            <select id="genLlamaCppModel" class="form-select form-select-sm"></select>
+          </div>
+          <div class="d-flex gap-2 justify-content-end mt-3">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="genAiConfirmBtn">Generate</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/bootstrap.bundle.min.js"></script>
   <script>
     let templates = [];
+    let domainTemplates = [];
     let currentTemplateName = '';
     let templateId = '';
     let templateData = null;
     let domainId = null;
     let domainTemplateId = null;
+    let currentDomainTemplateId = null;
     let domainForWebsite = null;
     let domainColors = null;
     let domainFonts = null;
@@ -775,7 +911,7 @@
       if (params.get('embed') === '1') document.body.classList.add('embed-mode');
     })();
 
-    const PIN_W = 600, PIN_H = 1067;
+    const PIN_W = 736, PIN_H = 1308;
     function fitPreviewToContainer() {
       const box = document.getElementById('previewBox');
       const wrap = document.getElementById('previewIframeWrap');
@@ -783,21 +919,24 @@
       const img = document.getElementById('previewImg');
       const ph = document.getElementById('previewPlaceholder');
       if (!box || !wrap) return;
-      const isEmbed = document.body.classList.contains('embed-mode');
-      const w = Math.max(box.clientWidth || 340, 100);
-      const h = Math.max(box.clientHeight || 500, 200);
-      const scale = Math.min(0.4, w / PIN_W, h / PIN_H);
+      const w = Math.max(box.clientWidth || 280, 100);
+      const h = Math.max(box.clientHeight || 400, 200);
+      const scale = Math.min(1, w / PIN_W, h / PIN_H);
       const sw = Math.round(PIN_W * scale);
       const sh = Math.round(PIN_H * scale);
       wrap.style.width = sw + 'px';
       wrap.style.height = sh + 'px';
+      wrap.style.maxWidth = w + 'px';
+      wrap.style.maxHeight = h + 'px';
       if (iframe) iframe.style.transform = 'scale(' + scale + ')';
-      if (ph && isEmbed) { ph.style.width = sw + 'px'; ph.style.height = sh + 'px'; }
-      if (img && isEmbed) { img.style.maxWidth = sw + 'px'; img.style.maxHeight = sh + 'px'; }
+      if (ph) { ph.style.width = sw + 'px'; ph.style.height = sh + 'px'; ph.style.maxWidth = w + 'px'; ph.style.maxHeight = h + 'px'; }
+      if (img) { img.style.maxWidth = w + 'px'; img.style.maxHeight = h + 'px'; }
     }
 
     if (domainId) {
       document.getElementById('saveToDomainWrap').style.display = 'block';
+      const tw = document.getElementById('testWithArticleWrap');
+      if (tw) tw.style.display = 'block';
     }
 
     async function loadDomainForWebsite() {
@@ -850,9 +989,20 @@
         return;
       }
       const raw = data.templates || [];
-      templates = raw; // Now an array of objects {name, has_preview, preview_url}
+      templates = raw;
+      domainTemplates = [];
+      if (domainId) {
+        try {
+          const dt = await api('/api/domain-templates?domain_id=' + domainId);
+          domainTemplates = (dt.templates || []).map(t => ({ id: t.id, name: t.name || ('Template ' + t.id), preview_image_url: t.preview_image_url || '' }));
+        } catch (e) { domainTemplates = []; }
+      }
       const sel = document.getElementById('templateSelect');
-      sel.innerHTML = '<option value="">— Select template —</option>' + templates.map(t => '<option value="' + escapeAttr(t.name) + '">' + escapeAttr(t.name) + '</option>').join('');
+      let opts = '<option value="">— Select template —</option>' + templates.map(t => '<option value="' + escapeAttr(t.name) + '">' + escapeAttr(t.name) + '</option>').join('');
+      if (domainTemplates.length) {
+        opts += '<optgroup label="— Domain templates —">' + domainTemplates.map(d => '<option value="domain:' + d.id + '">' + escapeAttr(d.name) + '</option>').join('') + '</optgroup>';
+      }
+      sel.innerHTML = opts;
 
       renderGrid();
 
@@ -868,18 +1018,22 @@
 
     function renderGrid(filter = '') {
       const grid = document.getElementById('pinPickerGrid');
-      const filtered = templates.filter(t => t.name.toLowerCase().includes(filter.toLowerCase()));
-
-      grid.innerHTML = filtered.map(t => {
+      const selVal = (document.getElementById('templateSelect') || {}).value || '';
+      const poolList = templates.filter(t => t.name.toLowerCase().includes(filter.toLowerCase()));
+      const domainList = domainTemplates.filter(d => (d.name || '').toLowerCase().includes(filter.toLowerCase()));
+      const poolCards = poolList.map(t => {
         const preview = t.preview_url || '/static/placeholder-pin.png';
-        const isActive = t.name === (document.getElementById('templateSelect').value);
-        return `
-          <div class="pin-picker-card text-center ${isActive ? 'active' : ''}" data-template-name="${escapeAttr(t.name)}">
-            <img src="${preview}" alt="${escapeAttr(t.name)}" onerror="this.src='/static/placeholder-pin.png'">
-            <div class="template-name" title="${escapeAttr(t.name)}">${escapeAttr(t.name)}</div>
-          </div>
-        `;
+        const isActive = t.name === selVal;
+        return '<div class="pin-picker-card text-center ' + (isActive ? 'active' : '') + '" data-template-name="' + escapeAttr(t.name) + '"><img src="' + escapeAttr(preview) + '" alt="' + escapeAttr(t.name) + '" onerror="this.src=\'/static/placeholder-pin.png\'"><div class="template-name" title="' + escapeAttr(t.name) + '">' + escapeAttr(t.name) + '</div></div>';
       }).join('');
+      const domainCards = domainList.map(d => {
+        const val = 'domain:' + d.id;
+        const isActive = val === selVal;
+        const preview = (d.preview_image_url || '').trim() || '/static/placeholder-pin.png';
+        const label = (d.name || 'Template ' + d.id);
+        return '<div class="pin-picker-card text-center ' + (isActive ? 'active' : '') + '" data-template-name="' + escapeAttr(val) + '"><img src="' + escapeAttr(preview) + '" alt="' + escapeAttr(label) + '" onerror="this.src=\'/static/placeholder-pin.png\'"><div class="template-name" title="' + escapeAttr(label) + '">' + escapeAttr(label) + '</div><div class="small text-muted" style="font-size:0.6rem">Domain</div></div>';
+      }).join('');
+      grid.innerHTML = poolCards + (domainCards ? '<div class="w-100 mt-2 small text-muted">Domain templates</div>' + domainCards : '');
 
       grid.querySelectorAll('.pin-picker-card').forEach(card => {
         card.onclick = () => {
@@ -916,11 +1070,18 @@
         const templateName = (typeof rawName === 'string' ? rawName : 'template_1').trim().toLowerCase().replace(/-/g, '_') || 'template_1';
         const savedData = parsed.template_data || parsed;
         if (!templates.length) await loadTemplates();
-        if (templates.indexOf(templateName) === -1) {
+        const sel = document.getElementById('templateSelect');
+        const domainOpt = 'domain:' + domainTemplateId;
+        if (domainTemplates.some(d => Number(d.id) === Number(domainTemplateId))) {
+          sel.value = domainOpt;
+        } else if (templates.some(t => ((t.name || t) + '').toLowerCase().replace(/-/g, '_') === templateName)) {
+          sel.value = templateName;
+        } else {
           setStatus('Saved template uses "' + templateName + '" which is not available from Pin API.', true);
           return;
         }
-        document.getElementById('templateSelect').value = templateName;
+        renderGrid();
+        currentDomainTemplateId = domainTemplateId;
         if (domainId) await loadDomainForWebsite();
         const base = await api('/api/pin-template/' + encodeURIComponent(templateName));
         if (!base.success) throw new Error(base.error);
@@ -1507,8 +1668,13 @@
         setStatus('Select a template and fill the form.', true);
         return;
       }
+      payload = Object.assign({}, payload);
+      // Same concept as other generators: pass variables for AI text generation (badge, title from recipe)
+      const recipeTitle = (articleData && (articleData.recipe_title_pin || articleData.title)) ||
+        (payload.elements && payload.elements.title && payload.elements.title.text) || 'Preview Delight';
+      const domain = domainForWebsite || 'example.com';
+      payload.variables = { title: recipeTitle, domain: domain };
       if (domainId && (domainColors || domainFonts)) {
-        payload = Object.assign({}, payload);
         if (domainColors) payload.domain_colors = domainColors;
         if (domainFonts) payload.domain_fonts = domainFonts;
       }
@@ -1521,7 +1687,10 @@
       if (urlLine) { urlLine.style.display = 'none'; urlLine.textContent = ''; }
       img.style.display = 'none';
       try {
-        const res = await fetch('/api/pin-generate?name=' + encodeURIComponent(currentTemplateName) + '&template_only=1', {
+        const sel = document.getElementById('templateSelect');
+        const isPool = sel && sel.value && !String(sel.value).startsWith('domain:');
+        const nameForApi = isPool && templateId ? templateId : currentTemplateName;
+        const res = await fetch('/api/pin-generate?name=' + encodeURIComponent(nameForApi) + '&template_only=1', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -1663,7 +1832,7 @@
     }
 
     document.getElementById('btnApplyDomainColors').addEventListener('click', async function () {
-      if (!domainId) return;
+      if (!domainId) { setStatus('Open the Pin Editor from a domain (Domains → domain → Edit template) to use Domain Colors.', true); return; }
       if (!domainColors && !domainFonts) {
         await loadDomainForWebsite();
       }
@@ -1675,8 +1844,490 @@
       setStatus('Domain colors and fonts applied.');
     });
 
+    document.getElementById('btnTestWithFirstArticle').addEventListener('click', async function () {
+      if (!domainId) { setStatus('Open Pin Editor from a domain to use Test with first article.', true); return; }
+      const useSibling = document.getElementById('chkSiblingFlipped') && document.getElementById('chkSiblingFlipped').checked;
+      setStatus('Loading first article…');
+      try {
+        const q = useSibling ? '?sibling_flip=1' : '';
+        const d = await api('/api/domains/' + domainId + '/first-article' + q);
+        if (d.error && !d.title && !d.main_image) {
+          setStatus(d.error || 'No article data', true);
+          return;
+        }
+        domainForWebsite = d.domain || domainForWebsite || 'example.com';
+        articleData = {
+          title: d.title || '',
+          recipe_title_pin: d.recipe_title_pin || d.title || '',
+          main_image: (d.sibling_flipped && d.sibling_flipped.main_image) || d.main_image || '',
+          top_image: (d.sibling_flipped && d.sibling_flipped.top_image) || d.top_image || d.main_image || '',
+          bottom_image: (d.sibling_flipped && d.sibling_flipped.bottom_image) || d.bottom_image || '',
+          ingredient_image: d.ingredient_image || '',
+        };
+        if (d.sibling_flipped_error) setStatus('First article loaded; sibling flip had an error: ' + d.sibling_flipped_error, true);
+        else setStatus('First article loaded. Edit image URLs below if needed, then preview updates.');
+        if (templateData) {
+          buildForm();
+          await updatePreview();
+        } else {
+          setStatus('Select a template to see the preview with this article.', true);
+        }
+      } catch (e) {
+        setStatus('Failed to load first article: ' + (e.message || e), true);
+      }
+    });
+
+    document.getElementById('btnGenerateWithAi').addEventListener('click', async function () {
+      if (typeof bootstrap === 'undefined') {
+        setStatus('Bootstrap JS failed to load. Check /static/js/bootstrap.bundle.min.js.', true);
+        alert('Page assets failed to load. Refresh the page or open Pin Editor from the app menu.');
+        return;
+      }
+      const modalEl = document.getElementById('generateWithAiModal');
+      if (!modalEl) { setStatus('Generate modal not found.', true); return; }
+      if (!templates.length) await loadTemplates();
+      const genBaseSel = document.getElementById('genModalBaseTemplate');
+      if (genBaseSel) {
+        genBaseSel.innerHTML = '<option value="">— Select base template —</option>' + (templates.map(t => '<option value="' + escapeAttr(t.name) + '">' + escapeAttr(t.name) + '</option>').join(''));
+        genBaseSel.value = currentTemplateName || (templates[0] && templates[0].name) || '';
+      }
+      const modal = new bootstrap.Modal(modalEl);
+      modal.show();
+      await loadGenAiModalOptions();
+      try {
+        const p = await api('/api/pin-generation-prompts');
+        const pe = document.getElementById('genPromptEdit');
+        const fe = document.getElementById('genFieldPromptsEdit');
+        if (pe && p.prompt) pe.value = p.prompt;
+        if (fe && p.field_prompts) fe.value = typeof p.field_prompts === 'string' ? p.field_prompts : JSON.stringify(p.field_prompts, null, 2);
+      } catch (e) {}
+    });
+
+    function updateGenAiProviderUI() {
+      const p = (document.getElementById('genAiProvider') || {}).value || 'openrouter';
+      ['genOpenAIWrap','genOpenRouterWrap','genLocalWrap','genLlamaCppWrap'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const show = (id === 'genOpenAIWrap' && p === 'openai') || (id === 'genOpenRouterWrap' && p === 'openrouter')
+          || (id === 'genLocalWrap' && p === 'local') || (id === 'genLlamaCppWrap' && p === 'llamacpp');
+        el.style.display = show ? 'block' : 'none';
+      });
+    }
+
+    function buildModelOptions(data) {
+      const modelOptions = data.model_options || [];
+      const models = data.models || modelOptions.map(m => typeof m === 'string' ? m : (m && m.id));
+      const list = (modelOptions.length ? modelOptions : models).slice(0, 100);
+      return list.map(m => {
+        const id = typeof m === 'object' ? (m && (m.id || m)) : m;
+        const label = typeof m === 'object' ? (m && (m.label || m.name || m.id)) : m;
+        return `<option value="${(id||'').replace(/"/g,'&quot;')}">${(label||id||'').replace(/</g,'&lt;')}</option>`;
+      }).join('');
+    }
+
+    async function loadGenAiModalOptions() {
+      try {
+        let profile = {};
+        try {
+          profile = await api('/api/profile-ai-defaults') || {};
+        } catch (e) { /* not logged in or profile failed */ }
+        const sel = document.getElementById('genAiProvider');
+        if (sel && profile.ai_provider) sel.value = profile.ai_provider;
+        updateGenAiProviderUI();
+
+        if (!window._genOrModelsLoaded) {
+          window._genOrModelsLoaded = true;
+          try {
+            const data = await api('/api/openrouter-models');
+            const opts = buildModelOptions(data);
+            const selM = document.getElementById('genOpenRouterModel');
+            if (selM) {
+              selM.innerHTML = opts || '<option value="">— No models —</option>';
+              if (selM.options.length) {
+                if (profile.openrouter_model) selM.value = profile.openrouter_model;
+                if (!selM.value) selM.selectedIndex = 0;
+              }
+            }
+          } catch (e) { console.warn('OpenRouter models:', e); }
+        }
+        if (!window._genOpenAIModelsLoaded) {
+          window._genOpenAIModelsLoaded = true;
+          try {
+            const data = await api('/api/openai-models');
+            const opts = buildModelOptions(data);
+            const selM = document.getElementById('genOpenAIModel');
+            if (selM) {
+              selM.innerHTML = opts || '<option value="">— No models —</option>';
+              if (selM.options.length) {
+                if (profile.openai_model) selM.value = profile.openai_model;
+                if (!selM.value) selM.selectedIndex = 0;
+              }
+            }
+          } catch (e) { console.warn('OpenAI models:', e); }
+        }
+        if (window._genLlamaModelsLoaded !== true) {
+          window._genLlamaModelsLoaded = true;
+          const d = await api('/api/llamacpp-models');
+          const models = d.models || d.model_options || [];
+          const opts = models.map(m => {
+            const id = String(typeof m === 'object' ? (m.id != null ? m.id : m) : m);
+            const label = typeof m === 'object' ? (m.label || m.name || id) : m;
+            return `<option value="${id}">${(label||id).replace(/</g,'&lt;')}</option>`;
+          });
+          const selM = document.getElementById('genLlamaCppModel');
+          if (selM) { selM.innerHTML = opts.join(''); }
+        }
+        if (window._genLocalModelsLoaded !== true) {
+          window._genLocalModelsLoaded = true;
+          try {
+            const d = await api('/api/ollama-models');
+            const models = d.models || d.model_options || [];
+            const opts = models.map(m => {
+              const id = String(typeof m === 'object' ? (m.id != null ? m.id : m) : m);
+              const label = typeof m === 'object' ? (m.label || m.name || id) : m;
+              return `<option value="${(id||'').replace(/"/g,'&quot;')}">${(label||id).replace(/</g,'&lt;')}</option>`;
+            });
+            const selM = document.getElementById('genLocalModel');
+            if (selM) {
+              selM.innerHTML = opts.length ? opts.join('') : '<option value="">— No Ollama models —</option>';
+              if (profile.local_model) selM.value = profile.local_model;
+              if (!selM.value && selM.options.length) selM.selectedIndex = 0;
+            }
+          } catch (e) { console.warn('Ollama models:', e); }
+        }
+      } catch (e) { console.warn('Gen AI options:', e); }
+    }
+
+    document.getElementById('genAiProvider').addEventListener('change', updateGenAiProviderUI);
+
+    function updateGenModeUI() {
+      const mode = document.querySelector('input[name="genMode"]:checked');
+      const val = mode ? mode.value : 'create';
+      const createWrap = document.getElementById('genCreateWrap');
+      const fromImagesWrap = document.getElementById('genFromImagesWrap');
+      const fillWrap = document.getElementById('genFillWrap');
+      if (createWrap) createWrap.style.display = val === 'create' ? 'block' : 'none';
+      if (fromImagesWrap) fromImagesWrap.style.display = val === 'from_images' ? 'block' : 'none';
+      if (fillWrap) fillWrap.style.display = val === 'fill' ? 'block' : 'none';
+      const saveToSel = document.getElementById('genSaveTo');
+      if (saveToSel && !domainId) {
+        for (const opt of saveToSel.options) {
+          if (opt.value === 'domain') opt.disabled = true;
+        }
+        saveToSel.value = 'pool';
+      }
+      const fromImagesSaveTo = document.getElementById('genFromImagesSaveTo');
+      if (fromImagesSaveTo && !domainId) {
+        for (const opt of fromImagesSaveTo.options) {
+          if (opt.value === 'domain') opt.disabled = true;
+        }
+        fromImagesSaveTo.value = 'pool';
+      }
+    }
+    document.querySelectorAll('input[name="genMode"]').forEach(r => r.addEventListener('change', updateGenModeUI));
+    document.getElementById('genRefImagesInput').addEventListener('change', function () {
+      const preview = document.getElementById('genRefImagesPreview');
+      if (!preview) return;
+      preview.innerHTML = '';
+      const files = Array.from(this.files || []).slice(0, 10);
+      files.forEach(f => {
+        if (!f.type || !f.type.startsWith('image/')) return;
+        const img = document.createElement('img');
+        img.style.width = '60px'; img.style.height = '60px'; img.style.objectFit = 'cover'; img.style.borderRadius = '4px';
+        img.alt = f.name;
+        img.src = URL.createObjectURL(f);
+        preview.appendChild(img);
+      });
+    });
+
+    document.getElementById('genSavePromptsBtn').addEventListener('click', async function () {
+      const pe = document.getElementById('genPromptEdit');
+      const fe = document.getElementById('genFieldPromptsEdit');
+      const prompt = (pe && pe.value || '').trim();
+      let field_prompts = null;
+      try {
+        if (fe && fe.value.trim()) field_prompts = JSON.parse(fe.value.trim());
+      } catch (e) {
+        alert('Invalid JSON in field prompts');
+        return;
+      }
+      try {
+        const res = await fetch('/api/pin-generation-prompts', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: prompt || null, field_prompts: field_prompts }),
+        });
+        const d = await res.json();
+        if (d.success !== false) setStatus('Prompts saved.');
+        else setStatus('Error: ' + (d.error || 'Unknown'), true);
+      } catch (e) {
+        setStatus('Error: ' + e.message, true);
+      }
+    });
+
+    function _getGenAiProviderPayload() {
+      const prov = (document.getElementById('genAiProvider') || {}).value || 'openrouter';
+      const out = { ai_provider: prov };
+      if (prov === 'openrouter') {
+        const m = document.getElementById('genOpenRouterModel');
+        if (m && m.value) out.openrouter_model = out.model = m.value;
+      } else if (prov === 'openai') {
+        const m = document.getElementById('genOpenAIModel');
+        if (m && m.value) out.openai_model = out.model = m.value;
+      } else if (prov === 'local') {
+        const m = document.getElementById('genLocalModel');
+        if (m && m.value) out.local_model = out.model = m.value;
+      } else if (prov === 'llamacpp') {
+        const m = document.getElementById('genLlamaCppModel');
+        if (m && m.value) out.llamacpp_model_id = parseInt(m.value, 10);
+      }
+      return out;
+    }
+
+    async function _pollAiJob(jobId, onDone) {
+      const maxPoll = 150;
+      for (let i = 0; i < maxPoll; i++) {
+        await new Promise(r => setTimeout(r, 2000));
+        try {
+          const sr = await fetch('/api/bulk-run-status?job_id=' + encodeURIComponent(jobId));
+          const s = await sr.json();
+          if (s.status === 'done') {
+            setStatus('Done! Loading…');
+            await loadTemplates();
+            if (s.domain_template_id) {
+              const sel = document.getElementById('templateSelect');
+              const val = 'domain:' + s.domain_template_id;
+              if (sel) { sel.value = val; sel.dispatchEvent(new Event('change')); }
+            } else if (s.pool_template_name) {
+              const sel = document.getElementById('templateSelect');
+              if (sel) { sel.value = s.pool_template_name; sel.dispatchEvent(new Event('change')); }
+            }
+            if (s.index_html) {
+              const iframe = document.getElementById('previewIframe');
+              if (iframe) {
+                iframe.srcdoc = s.index_html;
+                iframe.onload = () => { if (typeof fitPreviewToContainer === 'function') fitPreviewToContainer(); };
+                document.getElementById('previewIframeWrap').style.display = 'block';
+                document.getElementById('previewPlaceholder').style.display = 'none';
+                hasPreviewInIframe = true;
+              }
+            }
+            hidePreviewLoading();
+            setStatus('New template "' + (s.template_name || 'AI') + '" created and selected.');
+            if (window.opener && typeof window.opener.refreshRunningTasks === 'function') window.opener.refreshRunningTasks();
+            if (onDone) onDone(s);
+            return;
+          }
+          if (s.status === 'error' || s.status === 'cancelled') {
+            setStatus('Job ' + s.status + ': ' + (s.message || ''), true);
+            hidePreviewLoading();
+            return;
+          }
+          setStatus('AI working… (' + Math.round((i + 1) * 2) + 's)');
+        } catch (e) { /* keep polling */ }
+      }
+      setStatus('Job is still running. Check Running tasks on the main app.', true);
+      hidePreviewLoading();
+    }
+
+    document.getElementById('genAiConfirmBtn').addEventListener('click', async function () {
+      const modalEl = document.getElementById('generateWithAiModal');
+      bootstrap.Modal.getInstance(modalEl).hide();
+
+      const genMode = (document.querySelector('input[name="genMode"]:checked') || {}).value || 'create';
+
+      if (genMode === 'create') {
+        const provPayload = _getGenAiProviderPayload();
+        const creativePrompt = (document.getElementById('genCreativePrompt') || {}).value || '';
+        const saveTo = (document.getElementById('genSaveTo') || {}).value || 'pool';
+        const customName = (document.getElementById('genNewTemplateName') || {}).value || '';
+        const body = Object.assign({
+          creative_prompt: creativePrompt.trim() || undefined,
+          save_to: saveTo,
+          template_name: customName.trim() || undefined,
+        }, provPayload);
+        if (domainId && saveTo === 'domain') body.domain_id = domainId;
+        setStatus('AI is designing a new template…');
+        showPreviewLoading();
+        try {
+          const res = await fetch('/api/pin-create-template-ai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          const data = await res.json();
+          if (!data.success) throw new Error(data.error || 'Failed to start');
+          if (window.opener && typeof window.opener.refreshRunningTasks === 'function') window.opener.refreshRunningTasks();
+          setStatus('AI is designing a new template… waiting for result.');
+          await _pollAiJob(data.job_id);
+        } catch (e) {
+          setStatus('Error: ' + (e.message || e), true);
+          hidePreviewLoading();
+        }
+        return;
+      }
+
+      if (genMode === 'from_images') {
+        const inputEl = document.getElementById('genRefImagesInput');
+        const files = (inputEl && inputEl.files) ? Array.from(inputEl.files) : [];
+        if (files.length === 0) {
+          setStatus('Select 1–10 reference pin images first.', true);
+          alert('Choose "From reference images", then add images using the file input.');
+          return;
+        }
+        const provPayload = _getGenAiProviderPayload();
+        if (provPayload.ai_provider && !['openrouter', 'openai'].includes(provPayload.ai_provider)) {
+          setStatus('Reference images require OpenAI or OpenRouter (vision model).', true);
+          alert('Switch AI provider to OpenAI or OpenRouter for "From reference images".');
+          return;
+        }
+        setStatus('Reading images…');
+        showPreviewLoading();
+        const dataUrls = [];
+        for (let i = 0; i < Math.min(files.length, 10); i++) {
+          const f = files[i];
+          if (!f.type || !f.type.startsWith('image/')) continue;
+          try {
+            const url = await new Promise((resolve, reject) => {
+              const r = new FileReader();
+              r.onload = () => resolve(r.result);
+              r.onerror = reject;
+              r.readAsDataURL(f);
+            });
+            dataUrls.push(url);
+          } catch (e) { /* skip */ }
+        }
+        if (dataUrls.length === 0) {
+          setStatus('No valid image files could be read.', true);
+          hidePreviewLoading();
+          return;
+        }
+        const saveTo = (document.getElementById('genFromImagesSaveTo') || {}).value || 'pool';
+        const customName = (document.getElementById('genFromImagesTemplateName') || {}).value || '';
+        const body = Object.assign({
+          images: dataUrls,
+          save_to: saveTo,
+          template_name: customName.trim() || undefined,
+        }, provPayload);
+        if (domainId && saveTo === 'domain') body.domain_id = domainId;
+        try {
+          const res = await fetch('/api/pin-create-template-from-images', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          const data = await res.json();
+          if (!data.success) throw new Error(data.error || 'Failed to start');
+          if (window.opener && typeof window.opener.refreshRunningTasks === 'function') window.opener.refreshRunningTasks();
+          setStatus('AI is analyzing your images…');
+          await _pollAiJob(data.job_id);
+        } catch (e) {
+          setStatus('Error: ' + (e.message || e), true);
+          hidePreviewLoading();
+        }
+        return;
+      }
+
+      const genBaseSel = document.getElementById('genModalBaseTemplate');
+      const templateName = (genBaseSel && genBaseSel.value || currentTemplateName || (templates[0] && templates[0].name) || '').trim();
+      if (!templateName) {
+        setStatus('Select a base template in the modal, or sync pin templates / start the Pin API first.', true);
+        alert('Select a base template in the Generate with AI modal (the layout to use), then click Generate.');
+        return;
+      }
+      const runInBackground = document.getElementById('genRunInBackground') && document.getElementById('genRunInBackground').checked;
+      if (!runInBackground && currentTemplateName !== templateName) {
+        try {
+          const base = await api('/api/pin-template/' + encodeURIComponent(templateName));
+          if (!base.success) throw new Error(base.error || 'Failed to load template');
+          currentTemplateName = base.template_name;
+          templateId = base.template_id;
+          templateData = base.template_data || {};
+          currentStyleSlots = base.style_slots || {};
+          currentFontSlots = base.font_slots || {};
+          const sel = document.getElementById('templateSelect');
+          if (sel) sel.value = currentTemplateName;
+          renderGrid();
+        } catch (e) {
+          setStatus('Could not load base template: ' + (e.message || e), true);
+          return;
+        }
+      }
+      let payload = collectFormIntoData() || {};
+      payload = Object.assign({}, payload);
+      const recipeTitle = (articleData && (articleData.recipe_title_pin || articleData.title))
+        || (payload.elements && payload.elements.title && payload.elements.title.text) || 'Preview Delight';
+      const domain = domainForWebsite || 'example.com';
+      payload.variables = { title: recipeTitle, domain };
+      const provPayload = _getGenAiProviderPayload();
+      Object.assign(payload, provPayload);
+      if (domainColors) payload.domain_colors = domainColors;
+      if (domainFonts) payload.domain_fonts = domainFonts;
+
+      if (runInBackground) {
+        const asyncBody = Object.assign({ name: templateName }, payload);
+        if (domainId) {
+          asyncBody.domain_id = domainId;
+          asyncBody.save_as_template = true;
+          const nameInput = document.getElementById('templateNameForDomain');
+          if (nameInput && nameInput.value.trim()) asyncBody.template_name_for_domain = nameInput.value.trim();
+        }
+        setStatus('Starting background job…');
+        showPreviewLoading();
+        try {
+          const res = await fetch('/api/pin-generate-async', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(asyncBody),
+          });
+          const data = await res.json();
+          if (!data.success) throw new Error(data.error || 'Failed to start job');
+          if (window.opener && typeof window.opener.refreshRunningTasks === 'function') window.opener.refreshRunningTasks();
+          setStatus('Generating in background… waiting for result.');
+          await _pollAiJob(data.job_id);
+        } catch (e) {
+          setStatus('Error: ' + (e.message || e), true);
+          hidePreviewLoading();
+        }
+        return;
+      }
+
+      showPreviewLoading();
+      setStatus('Generating with AI…');
+      try {
+        const sel = document.getElementById('templateSelect');
+        const isPool = sel && sel.value && !String(sel.value).startsWith('domain:');
+        const nameForApi = (isPool && templateId) ? templateId : templateName;
+        const res = await fetch('/api/pin-generate?name=' + encodeURIComponent(nameForApi) + '&template_only=1', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Generate failed');
+        if (data.template_data) {
+          templateData = deepMerge(templateData || {}, data.template_data);
+          buildForm();
+          updateJsonOut();
+        }
+        if (data.index_html) {
+          const iframe = document.getElementById('previewIframe');
+          iframe.srcdoc = data.index_html;
+          iframe.onload = () => { if (typeof fitPreviewToContainer === 'function') fitPreviewToContainer(); };
+          document.getElementById('previewIframeWrap').style.display = 'block';
+          document.getElementById('previewPlaceholder').style.display = 'none';
+          hasPreviewInIframe = true;
+          setStatus('Preview updated with AI-generated content.');
+        }
+      } catch (e) {
+        setStatus('Error: ' + (e.message || e), true);
+      } finally {
+        hidePreviewLoading();
+      }
+    });
+
     document.getElementById('btnSaveToDomain').addEventListener('click', function () {
-      if (!domainId) return;
+      if (!domainId) { setStatus('Open the Pin Editor from a domain (Domains → domain → Edit template) to save here.', true); return; }
       const btn = this;
       const name = document.getElementById('templateNameForDomain').value.trim() || 'Unnamed';
       const raw = document.getElementById('jsonOut').textContent.trim();
@@ -1709,7 +2360,11 @@
             if (!isUpdate && d.id) domainTemplateId = d.id;
             setStatus('Saved. Preview image uploaded to Cloudflare.');
             alert(isUpdate ? 'Template updated.' : 'Saved to domain.');
-            if (window.opener) window.opener.location && window.opener.location.reload();
+            if (window.opener && typeof window.opener.refreshDomainTemplatesList === 'function') {
+              window.opener.refreshDomainTemplatesList();
+            } else if (window.opener && window.opener.location) {
+              window.opener.location.reload();
+            }
           } else {
             setStatus('Error: ' + (d.error || 'Unknown'), true);
             alert('Error: ' + (d.error || 'Unknown'));
@@ -1728,7 +2383,6 @@
     document.getElementById('templateSelect').addEventListener('change', async () => {
       const name = document.getElementById('templateSelect').value;
 
-      // Update grid active state
       document.querySelectorAll('.pin-picker-card').forEach(card => {
         card.classList.toggle('active', card.getAttribute('data-template-name') === name);
       });
@@ -1737,6 +2391,7 @@
         currentTemplateName = '';
         templateId = '';
         templateData = null;
+        currentDomainTemplateId = null;
         hasPreviewInIframe = false;
         buildForm();
         document.getElementById('previewPlaceholder').style.display = 'block';
@@ -1748,7 +2403,35 @@
         document.getElementById('jsonOut').textContent = '{}';
         return;
       }
+      if (name.startsWith('domain:')) {
+        const id = name.slice(7);
+        try {
+          if (domainId) await loadDomainForWebsite();
+          const saved = await api('/api/domain-templates/' + id);
+          const raw = (saved.template_json || '').trim();
+          if (!raw) throw new Error('Empty template');
+          const parsed = typeof saved.template_json === 'object' ? saved.template_json : JSON.parse(raw);
+          currentDomainTemplateId = parseInt(id, 10);
+          domainTemplateId = currentDomainTemplateId;
+          currentTemplateName = (parsed.template_name || parsed.template_id || 'template_1').toString().toLowerCase().replace(/-/g, '_');
+          templateId = parsed.template_id || currentTemplateName;
+          templateData = parsed.template_data || parsed;
+          currentStyleSlots = parsed.style_slots || {};
+          currentFontSlots = parsed.font_slots || {};
+          buildForm();
+          if (domainId && (domainColors || domainFonts)) applyDomainColors();
+          updateJsonOut();
+          setStatus('Domain template loaded.');
+          setStatus('Loading preview…');
+          await updatePreview();
+        } catch (e) {
+          setStatus('Failed to load domain template: ' + (e.message || e), true);
+        }
+        return;
+      }
       try {
+        currentDomainTemplateId = null;
+        domainTemplateId = null;
         if (domainId) await loadDomainForWebsite();
         const templateName = typeof name === 'string' ? name : String(name || 'template_1');
         if (templateName === '[object Object]') return;

@@ -86,6 +86,15 @@ def flip_image_vertical_and_upload(image_url: str, key_prefix: str = "bottom_ima
     return _r2_put(flipped, key_prefix, user_config=user_config)
 
 
+def flip_image_horizontal_and_upload(image_url: str, key_prefix: str = "sibling_image", user_config: dict = None) -> str:
+    """Download image from URL, flip horizontally (mirror left-right), upload to R2. Returns public URL. Use for sibling-domain pin images."""
+    if not Image:
+        raise RuntimeError("Pillow required for flip_image_horizontal_and_upload")
+    img = download_image(image_url)
+    flipped = img.transpose(Image.FLIP_LEFT_RIGHT)
+    return _r2_put(flipped, key_prefix, user_config=user_config)
+
+
 def _append_ar(prompt: str, ar: str = "1:1") -> str:
     suffix = f" --ar {ar.strip()}"
     return prompt if suffix in prompt else (prompt + suffix)

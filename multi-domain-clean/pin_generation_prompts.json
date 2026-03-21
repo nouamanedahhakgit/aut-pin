@@ -1,0 +1,7 @@
+{
+  "prompt": "Generate text for each field based on the recipe title provided. Use the field_prompts JSON below: for each key, generate content using the corresponding prompt (replace {{title}} with the user's recipe title). Your response MUST be a single JSON object only. Do not include 'website' or 'domain' in your output.",
+  "field_prompts": {
+    "badge": "Generate content for badge for recipe {{title}}. Format: 2–3 words, title case. Output ONLY the replacement text for badge.",
+    "title": "Generate content for title for recipe {{title}}. One short recipe title, title case, 3–8 words. Output ONLY the replacement text for title."
+  }
+}

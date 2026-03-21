@@ -21,6 +21,7 @@ from db import get_connection, execute as db_execute
 # Initial data (matches app.py OPENROUTER_MODELS, OPENAI_MODELS, LOCAL_MODELS)
 INIT_OPENROUTER = [
     {"id": "google/gemini-2.5-pro", "label": "Gemini 2.5 Pro — $1.25in/$5out /1M  [Best SEO, 2M ctx]", "free": False},
+    {"id": "anthropic/claude-opus-4.6", "label": "Claude Opus 4.6 — $15in/$75out /1M  [Best Quality, Creative]", "free": False},
     {"id": "anthropic/claude-3.7-sonnet", "label": "Claude 3.7 Sonnet — $3in/$15out /1M  [Top Writing Quality]", "free": False},
     {"id": "openai/gpt-4o", "label": "GPT-4o — $2.50in/$10out /1M  [Reliable, Great SEO]", "free": False},
     {"id": "deepseek/deepseek-v3.2", "label": "DeepSeek V3.2 — $0.14in/$0.28out /1M  [Best Value, Trending]", "free": False},
@@ -30,6 +31,7 @@ INIT_OPENROUTER = [
     {"id": "deepseek/deepseek-r1", "label": "DeepSeek R1 — $0.55in/$2.19out /1M  [Reasoning, Detailed]", "free": False},
     {"id": "meta-llama/llama-3.3-70b-instruct", "label": "Llama 3.3 70B — $0.12in/$0.30out /1M  [Open Source]", "free": False},
     {"id": "mistralai/mistral-large-2411", "label": "Mistral Large — $2in/$6out /1M  [EU Alternative]", "free": False},
+    {"id": "minimax/minimax-m2.5", "label": "MiniMax M2.5", "free": False},
     {"id": "google/gemini-2.0-flash-exp:free", "label": "[FREE] Gemini 2.0 Flash Exp — $0  [Best Free]", "free": True},
     {"id": "deepseek/deepseek-r1:free", "label": "[FREE] DeepSeek R1 — $0  [Free Reasoning]", "free": True},
     {"id": "deepseek/deepseek-v3:free", "label": "[FREE] DeepSeek V3 — $0  [Free, Rate Limited]", "free": True},

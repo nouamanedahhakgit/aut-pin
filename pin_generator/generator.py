@@ -86,6 +86,45 @@ def _apply_variables(obj, variables):
                 _apply_variables(v, variables)
 
 
+def _truncate_to_limit(text, limit):
+    """Trim text to <= limit chars, preferring whole words."""
+    s = str(text or "").strip()
+    if limit <= 0 or len(s) <= limit:
+        return s
+    cut = s[:limit].rstrip()
+    sp = cut.rfind(" ")
+    if sp >= int(limit * 0.6):
+        cut = cut[:sp].rstrip()
+    return cut + "..."
+
+
+def _estimate_text_limit(el):
+    """
+    Estimate safe max chars from element box and font size.
+    Helps keep generated text within pin layout bounds.
+    """
+    if not isinstance(el, dict):
+        return 80
+    width = int(el.get("width") or 320)
+    height = int(el.get("height") or 60)
+    fz = int(el.get("font_size") or 24)
+    # Rough typography heuristic for latin text.
+    chars_per_line = max(4, int(width / max(1.0, fz * 0.58)))
+    line_h = max(1.0, fz * 1.2)
+    lines = max(1, int(height / line_h))
+    return max(8, min(160, chars_per_line * lines))
+
+
+def _fit_generated_texts(generated, elements):
+    """Apply per-element max-char limits to generated texts."""
+    out = {}
+    for key, val in (generated or {}).items():
+        el = (elements or {}).get(key) if isinstance(elements, dict) else None
+        limit = _estimate_text_limit(el)
+        out[key] = _truncate_to_limit(val, limit)
+    return out
+
+
 def _generate_texts_via_openai(title, prompt, field_prompts, config=None):
     """
     Call OpenAI to generate text for each field based on recipe title.
@@ -136,17 +175,22 @@ def _generate_texts_via_openai(title, prompt, field_prompts, config=None):
         resolved = {k: v.replace("{{title}}", title) for k, v in field_prompts.items()}
         user_content = (
             f"{prompt}\n\n"
-            f"Recipe title: {title}\n\n"
+            f"Recipe/ARTICLE title (you MUST use this — do not invent a different recipe): {title}\n\n"
             f"Field prompts (generate one value per key; output only the JSON object):\n"
             f"{json.dumps(resolved, indent=2)}"
+        )
+        system_content = (
+            "You return only a single valid JSON object. No markdown, no code fence, no explanation. "
+            "Keys are field names, values are the generated text strings. "
+            "CRITICAL: All generated text must be ABOUT THE GIVEN RECIPE/ARTICLE TITLE ONLY. Do not invent a different dish or generic text; the badge and title must relate directly to the recipe title provided."
         )
         resp = client.chat.completions.create(
             model=model,
             messages=[
-                {"role": "system", "content": "You return only a single valid JSON object. No markdown, no code fence, no explanation. Keys are field names, values are the generated text strings."},
+                {"role": "system", "content": system_content},
                 {"role": "user", "content": user_content},
             ],
-            temperature=0.7,
+            temperature=0.5,
         )
         text = (resp.choices[0].message.content or "").strip()
         # Strip markdown code fence if present
@@ -475,6 +519,97 @@ def run_server(available_templates, host="0.0.0.0", port=5000):
 
         return jsonify({"error": f"Preview for '{n}' not found at {path}"}), 404
 
+    @app.route("/merge-template", methods=["POST"])
+    def merge_template():
+        """
+        Merge payload into template_data (e.g. from DB) and optionally run OpenAI for text fields.
+        Body: { "template_data": {...}, "variables": {...}, "elements": {...}, "title", "domain", "domain_colors", "domain_fonts", ... }
+        Returns: { "success": True, "template_data": merged }. Used by JavaScript pin path (multi-domain-clean).
+        """
+        from generators._base import template_from_data, apply_overrides, apply_domain_style
+        body = request.get_json(silent=True) or {}
+        tpl_data = body.get("template_data") or body
+        if not isinstance(tpl_data, dict):
+            return jsonify({"success": False, "error": "Missing or invalid template_data"}), 400
+        merged = copy.deepcopy(tpl_data)
+        # Normalize to template shape
+        tpl = template_from_data(merged)
+        merged = copy.deepcopy(tpl)
+        # Domain style
+        dc = body.get("domain_colors")
+        df = body.get("domain_fonts")
+        if dc or df:
+            style_slots = body.get("style_slots") or {}
+            font_slots = body.get("font_slots") or {}
+            try:
+                apply_domain_style(merged, style_slots, font_slots, dc, df)
+            except Exception as e:
+                log.warning("merge_template domain_style: %s", e)
+        _deep_merge(merged, {k: v for k, v in body.items() if k not in ("template_data", "style_slots", "font_slots") and v is not None})
+        if body.get("variables"):
+            _apply_variables(merged, body["variables"])
+        # Apply layout/position/domain overrides BEFORE AI, so AI-generated text is not overwritten (same as Python /generate)
+        apply_overrides(merged, body)
+        # OpenAI text for fields with field_prompts — runs after apply_overrides so generated text wins
+        ai_config = {k: body[k] for k in ("openai_api_key", "openrouter_api_key", "ai_provider", "openai_model", "openrouter_model") if k in body}
+        title = (body.get("variables") or {}).get("title") or body.get("title") or body.get("name")
+        if title and isinstance(title, str):
+            elements = merged.get("elements") or {}
+            field_prompts = merged.get("field_prompts") or {}
+            if not field_prompts:
+                for ek, ev in elements.items():
+                    if isinstance(ev, dict) and ev.get("type") == "text" and ev.get("text_prompt"):
+                        field_prompts[ek] = ev["text_prompt"]
+            prompt = merged.get("prompt") or "Generate text for each field. Replace {{title}} with the recipe title; output a JSON object with one key per field."
+            if field_prompts and prompt:
+                try:
+                    generated = _generate_texts_via_openai(title, prompt, field_prompts, config=ai_config)
+                    if generated:
+                        generated = _fit_generated_texts(generated, merged.get("elements") or {})
+                        for fn, text in generated.items():
+                            if fn in merged.get("elements", {}):
+                                merged["elements"][fn]["text"] = text
+                except OpenAIServiceError as e:
+                    log.warning("merge_template OpenAI: %s", e)
+        return jsonify({"success": True, "template_data": merged})
+
+    @app.route("/generate-from-html", methods=["POST"])
+    def generate_from_html():
+        """
+        Generate a pin image from raw HTML (e.g. from JavaScript renderer).
+        Body (JSON): { "html": "<!DOCTYPE html>...", "width": 600, "height": 1067 }
+        Returns: same shape as /generate (screenshot_base64, image_url).
+        """
+        try:
+            body = request.get_json(silent=True) or {}
+            if not isinstance(body, dict):
+                return jsonify({"success": False, "error": "Body must be a JSON object"}), 400
+            html = (body.get("html") or "").strip()
+            if not html:
+                return jsonify({"success": False, "error": "Missing or empty body.html"}), 400
+            try:
+                w = int(body.get("width") or 600)
+                h = int(body.get("height") or 1067)
+            except (TypeError, ValueError):
+                w, h = 600, 1067
+            log.info("POST /generate-from-html | %dx%d | html_len=%d", w, h, len(html))
+            screenshot_bytes = _html_to_screenshot_bytes(html, width=w, height=h)
+            if not screenshot_bytes:
+                return jsonify({
+                    "success": False,
+                    "error": "Screenshot failed (install playwright + chromium: pip install playwright && playwright install chromium)",
+                }), 500
+            image_url = _upload_png_to_r2(screenshot_bytes)
+            payload = {"success": True}
+            if image_url:
+                payload["image_url"] = image_url
+            else:
+                payload["screenshot_base64"] = "data:image/png;base64," + base64.b64encode(screenshot_bytes).decode("utf-8")
+            return jsonify(payload)
+        except Exception as e:
+            log.exception("generate-from-html failed: %s", e)
+            return jsonify({"success": False, "error": str(e)}), 500
+
     @app.route("/generate", methods=["POST"])
     def generate():
         """
@@ -555,6 +690,7 @@ def run_server(available_templates, host="0.0.0.0", port=5000):
                             "code": "openai_error",
                         }), 503
                     if generated:
+                        generated = _fit_generated_texts(generated, elements)
                         body.setdefault("elements", {})
                         for field_name, text in generated.items():
                             body["elements"].setdefault(field_name, {})["text"] = text
@@ -617,7 +753,11 @@ def run_server(available_templates, host="0.0.0.0", port=5000):
                     log.info("Response | template_only=1 | no screenshot")
                     payload["template_data"] = copy.deepcopy(merged)
                     return jsonify(payload)
-                w, h = (300, 534) if preview_small else (600, 1067)
+                # Use template canvas dimensions so the full pin is captured (no cropping).
+                # Previously used fixed 600x1067 which cropped templates with 736x1308 canvas.
+                canvas = merged.get("canvas") or {}
+                w = int(canvas.get("width") or 600)
+                h = int(canvas.get("height") or 1067)
                 if body.get("preview_width") and body.get("preview_height"):
                     try:
                         w, h = int(body["preview_width"]), int(body["preview_height"])

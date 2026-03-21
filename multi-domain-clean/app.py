@@ -98,6 +98,7 @@ FONT_FAMILY_OPTIONS = ["Inter", "Playfair Display", "Lora", "Merriweather", "Sou
 OPENROUTER_MODELS = [
     # Paid models — ordered by best SEO/article quality
     {"id": "google/gemini-2.5-pro",                  "label": "Gemini 2.5 Pro — $1.25in/$5out /1M  [Best SEO, 2M ctx]",       "free": False},
+    {"id": "anthropic/claude-opus-4.6",                "label": "Claude Opus 4.6 — $15in/$75out /1M  [Best Quality, Creative]", "free": False},
     {"id": "anthropic/claude-3.7-sonnet",             "label": "Claude 3.7 Sonnet — $3in/$15out /1M  [Top Writing Quality]",   "free": False},
     {"id": "openai/gpt-4o",                           "label": "GPT-4o — $2.50in/$10out /1M  [Reliable, Great SEO]",           "free": False},
     {"id": "deepseek/deepseek-v3.2",                  "label": "DeepSeek V3.2 — $0.14in/$0.28out /1M  [Best Value, Trending]", "free": False},
@@ -107,6 +108,7 @@ OPENROUTER_MODELS = [
     {"id": "deepseek/deepseek-r1",                    "label": "DeepSeek R1 — $0.55in/$2.19out /1M  [Reasoning, Detailed]",    "free": False},
     {"id": "meta-llama/llama-3.3-70b-instruct",       "label": "Llama 3.3 70B — $0.12in/$0.30out /1M  [Open Source]",         "free": False},
     {"id": "mistralai/mistral-large-2411",             "label": "Mistral Large — $2in/$6out /1M  [EU Alternative]",             "free": False},
+    {"id": "minimax/minimax-m2.5",                     "label": "MiniMax M2.5",                                                  "free": False},
     # Free models — rate-limited, good for testing / zero cost
     {"id": "google/gemini-2.0-flash-exp:free",        "label": "[FREE] Gemini 2.0 Flash Exp — $0  [Best Free, Rate Limited]",  "free": True},
     {"id": "deepseek/deepseek-r1:free",               "label": "[FREE] DeepSeek R1 — $0  [Free Reasoning, Rate Limited]",      "free": True},
@@ -1912,6 +1914,9 @@ function renderProgressBody(s, body) {{
     }}
     actionBtns += '</div>';
   }}
+  if ((s.action||'').indexOf('Pin generate') >= 0 && s.domain_id && (st === 'done' || st === 'error')) {{
+    actionBtns = '<div class="mt-3"><a href="/admin/domains/' + s.domain_id + '/templates" class="btn btn-sm btn-primary" target="_blank">View domain templates</a><span class="ms-2 small text-muted">Template saved for this domain. Refresh the page if you already had it open.</span></div>';
+  }}
   
   window._currentProgressData = s;
   var errorDetailText = s.error_detail || (st === 'error' ? (s.message || '') : '') || '';
@@ -1932,7 +1937,8 @@ function renderProgressBody(s, body) {{
     'Rows: ' + (s.total_rows != null ? s.total_rows : '-') + '  Done: ' + (s.done != null ? s.done : '-') + '  OK: ' + (s.ok != null ? s.ok : '-') + '  Failed: ' + (s.failed != null ? s.failed : '-'),
     s.concurrency_n != null ? 'Concurrency: ' + s.concurrency_n : '',
     createdStr ? 'Created: ' + createdStr : '',
-    s.request_url ? 'Request URL: ' + s.request_url : ''
+    s.request_url ? 'Request URL: ' + s.request_url : '',
+    (s.domain_id && (s.domain_template_id != null || (s.action||'').indexOf('Pin generate')>=0)) ? 'Template saved: /admin/domains/' + s.domain_id + '/templates' : ''
   ].filter(function(x){{ return x; }});
   var debugHtml = '<div class="progress-workflow-section mt-2" style="background:#f0f4ff;border:1px solid #c7d8f5"><div class="d-flex justify-content-between align-items-center gap-1 mb-1 flex-wrap"><span class="workflow-label mb-0" style="color:#0d6efd">Debug info</span><div class="d-flex gap-1"><button type="button" class="btn btn-primary btn-sm py-0 px-2" style="font-size:0.65rem" onclick="_copyProgressDebugReport()">Copy report</button><button type="button" class="btn btn-success btn-sm py-0 px-2" style="font-size:0.65rem;background:#25D366;border-color:#25D366" onclick="_sendDebugToWhatsApp()">&#128232; WhatsApp dev</button></div></div><div class="small font-monospace" style="font-size:0.65rem;white-space:pre-wrap;word-break:break-word;line-height:1.6">' + debugInfoParts.map(function(x){{ return x.replace(/</g,'&lt;').replace(/>/g,'&gt;'); }}).join('\\n') + '</div></div>';
   
@@ -1984,6 +1990,13 @@ function _copyProgressDebugReport() {{
   lines.push('Concurrency: ' + (s.concurrency_n != null ? s.concurrency_n : '-'));
   lines.push('Created:     ' + (s.created_at ? new Date(s.created_at * 1000).toISOString() : '-'));
   lines.push('Request URL: ' + (s.request_url || '-'));
+  if (s.domain_id != null && (s.domain_template_id != null || (s.action||'').indexOf('Pin generate') >= 0)) {{
+    lines.push('');
+    lines.push('--- Template created ---');
+    lines.push('View domain templates: /admin/domains/' + s.domain_id + '/templates');
+    if (s.template_name) lines.push('Template name: ' + s.template_name);
+    if (s.domain_template_id != null) lines.push('Template ID: ' + s.domain_template_id);
+  }}
   if (s.error_detail) {{
     lines.push('');
     lines.push('--- Error Detail ---');
@@ -2157,8 +2170,16 @@ function refreshRunningTasks() {{
     html += '</select></div>';
     html += '<div class="d-flex align-items-center gap-2"><span class="text-muted small">Click row to view progress</span>';
     html += '<button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearBulkJobs(); return false;" title="Clear done/error/cancelled tasks">Clear all</button></div></div>';
-    html += '<div class="card-body py-2"><ul class="list-unstyled mb-0 small">';
-    jobs.slice(0,25).forEach(function(j){{
+    html += '<div class="card-body py-2">';
+    var perPage = 5;
+    var totalJobs = jobs.length;
+    var totalPages = Math.max(1, Math.ceil(totalJobs / perPage));
+    var page = typeof window._runTasksCurrentPage === 'number' ? window._runTasksCurrentPage : 1;
+    page = Math.max(1, Math.min(page, totalPages));
+    window._runTasksCurrentPage = page;
+    var pageJobs = jobs.slice((page - 1) * perPage, page * perPage);
+    html += '<ul class="list-unstyled mb-0 small">';
+    pageJobs.forEach(function(j){{
       var jidEsc = (j.job_id||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       var jidShort = (j.job_id||'').substring(0,8);
       var action = (j.action||'').toLowerCase();
@@ -2185,6 +2206,7 @@ function refreshRunningTasks() {{
         var did = j.domain_id || '';
         if(did) btns += '<a href="/admin/domains?domain_id=' + did + '" class="btn btn-outline-secondary btn-sm flex-shrink-0 me-1 py-0 px-1" style="font-size:0.7rem">View</a>';
       }} else {{
+        if((j.action||'').indexOf('Pin generate')>=0 && j.domain_id && (j.status==='done'||j.status==='error')) btns += '<a href="/admin/domains/' + j.domain_id + '/templates" class="btn btn-outline-primary btn-sm flex-shrink-0 me-1 py-0 px-1" style="font-size:0.7rem" target="_blank" onclick="event.stopPropagation()">View templates</a>';
         btns += '<button type="button" class="btn btn-outline-secondary btn-sm flex-shrink-0 me-1 run-task-view-btn py-0 px-1" data-job-id="' + jidEsc + '" title="View details &amp; copy debug report" style="font-size:0.7rem">' + (j.status==='running' ? 'View' : 'Details') + '</button>';
         if(j.status==='running') btns += '<button type="button" class="btn btn-outline-danger btn-sm flex-shrink-0 run-task-stop py-0 px-1" data-job-id="' + jidEsc + '" style="font-size:0.7rem">Stop</button>';
         if(j.title_id && (j.status==='done'||j.status==='error') && typeof viewContent==='function') btns += '<button type="button" class="btn btn-outline-success btn-sm flex-shrink-0 me-1 run-task-view-article py-0 px-1" data-title-id="' + j.title_id + '" title="View article" style="font-size:0.7rem">View</button>';
@@ -2195,8 +2217,17 @@ function refreshRunningTasks() {{
       html += '<li class="d-flex justify-content-between align-items-start gap-2 mb-1 py-1 border-bottom run-task-row" style="' + clickable + '" data-job-id="' + jidEsc + '"><div class="flex-grow-1"><span class="fw-medium">' + typeLabel + modeLabel + (badges ? ' ' + badges : '') + '</span><br><span class="' + statusClass + '">' + (j.status||'') + '</span>: ' + (j.message||'').replace(/</g,'&lt;') + activeLine + stepsLine + '</div>';
       html += '<span class="d-flex flex-wrap align-items-center gap-1">' + btns + '</span></li>';
     }});
-    if(jobs.length===0) html += '<li class="text-muted small py-2">No tasks match your filters.</li>';
-    html += '</ul></div></div>';
+    if(pageJobs.length===0) html += '<li class="text-muted small py-2">No tasks match your filters.</li>';
+    html += '</ul>';
+    if(totalPages > 1) {{
+      html += '<div class="d-flex align-items-center justify-content-between mt-2 pt-2 border-top small">';
+      html += '<span class="text-muted">' + totalJobs + ' task(s) — page ' + page + ' of ' + totalPages + '</span>';
+      html += '<div class="btn-group btn-group-sm">';
+      html += '<button type="button" class="btn btn-outline-secondary" onclick="window._runTasksCurrentPage=' + (page-1) + '; refreshRunningTasks();" ' + (page<=1 ? ' disabled' : '') + '>Prev</button>';
+      html += '<button type="button" class="btn btn-outline-secondary" onclick="window._runTasksCurrentPage=' + (page+1) + '; refreshRunningTasks();" ' + (page>=totalPages ? ' disabled' : '') + '>Next</button>';
+      html += '</div></div>';
+    }}
+    html += '</div></div>';
     el.innerHTML = html;
     fetch('/api/domains').then(r=>r.json()).then(function(dm){{
       var sel = document.getElementById('runTasksDomainFilter');
@@ -2922,11 +2953,12 @@ function _stopStatsPoll() {{
 // Hook: start polling whenever a progress poll starts (task is running)
 var _origRefreshAfterRun = typeof refreshAfterRun === 'function' ? refreshAfterRun : null;
 if (window.location.pathname.indexOf('/admin/domains') >= 0) {{
-  // Also refresh stats on completion
+  // Also refresh stats and domain articles modal (if open) on completion
   refreshAfterRun = function() {{
     if (_origRefreshAfterRun) _origRefreshAfterRun();
     refreshDomainStats();
     _stopStatsPoll();
+    if (typeof window.refreshDomainArticlesModalIfOpen === 'function') window.refreshDomainArticlesModalIfOpen();
   }};
   // Watch for _progressPollInterval being set (task started)
   setInterval(function() {{
@@ -4587,11 +4619,22 @@ def _get_ai_provider_models_from_db(provider):
 
 @app.route("/api/openrouter-models", methods=["GET"])
 def api_openrouter_models():
-    """Return list of OpenRouter model ids for content generation (rotation or select). Uses DB if populated, else code fallback."""
+    """Return list of OpenRouter model ids for content generation (rotation or select). Merges DB + code constants so new code entries always appear."""
     db_models = _get_ai_provider_models_from_db("openrouter")
     if db_models:
-        models = [m["id"] for m in db_models]
-        return jsonify({"models": models, "model_options": db_models})
+        db_ids = {m["id"] for m in db_models}
+        merged = list(db_models)
+        for cm in OPENROUTER_MODELS:
+            if cm["id"] not in db_ids:
+                merged.append({"id": cm["id"], "label": cm["label"], "free": cm.get("free", False)})
+                try:
+                    with get_connection() as conn:
+                        db_execute(conn, "INSERT INTO ai_provider_models (provider, model_id, label, is_free, sort_order) VALUES (?, ?, ?, ?, ?)",
+                                   ("openrouter", cm["id"], cm["label"], 1 if cm.get("free") else 0, 0))
+                except Exception:
+                    pass
+        models = [m["id"] for m in merged]
+        return jsonify({"models": models, "model_options": merged})
     return jsonify({"models": [m["id"] for m in OPENROUTER_MODELS], "model_options": OPENROUTER_MODELS})
 
 
@@ -4631,6 +4674,7 @@ def api_profile_ai_defaults():
         "llamacpp_model_id": config.get("llamacpp_model_id"),
         "bulk_max_concurrency": bulk_max,
         "skip_cf_status_check": bool(skip_cf),
+        "pin_generator_type": (config.get("pin_generator_type") or "python").strip().lower() or "python",
     })
 
 
@@ -8368,6 +8412,165 @@ def api_generate_ingredient_image():
     return jsonify({"success": True, "message": "Ingredient images generated"})
 
 
+def _merge_pool_template_locally(base_tpl, payload, style_slots, font_slots):
+    """Merge payload into base template locally: deep merge, variable substitution, domain_colors/fonts. No Pin API call."""
+    import copy
+    merged = copy.deepcopy(base_tpl)
+    if payload.get("template_data") and isinstance(payload["template_data"], dict):
+        merged = _deep_merge_dict(merged, payload["template_data"])
+    variables = payload.get("variables") or {}
+    title = str(variables.get("title") or "").strip() or "Preview Delight"
+    domain = str(variables.get("domain") or "").strip() or "example.com"
+    domain_colors = payload.get("domain_colors") or {}
+    domain_fonts = payload.get("domain_fonts") or {}
+    color_map = {
+        "primary": domain_colors.get("primary") or "#1a1a1a",
+        "secondary": domain_colors.get("secondary") or "#6b7280",
+        "on_primary": "#ffffff",
+        "on_surface": domain_colors.get("text_primary") or "#000000",
+        "on_surface_muted": domain_colors.get("text_secondary") or "#333333",
+        "on_light": domain_colors.get("text_primary") or "#000000",
+        "on_dark": "#ffffff",
+        "surface": "#ffffff",
+    }
+    font_map = {
+        "heading": domain_fonts.get("heading_family") or "Arial Black, sans-serif",
+        "body": domain_fonts.get("body_family") or "Arial, sans-serif",
+        "accent": "Dancing Script, Great Vibes, cursive",
+        "script": "Dancing Script, Great Vibes, cursive",
+        "display": "Arial Black, Impact, sans-serif",
+    }
+    elements = merged.get("elements") or {}
+    for ek, ev in elements.items():
+        if not isinstance(ev, dict):
+            continue
+        txt = ev.get("text")
+        if isinstance(txt, str):
+            ev["text"] = txt.replace("{{title}}", title).replace("{{domain}}", domain)
+        slot_style = (style_slots or {}).get(ek) or {}
+        slot_font = (font_slots or {}).get(ek)
+        if isinstance(slot_style, dict):
+            for sk, sv in slot_style.items():
+                if not isinstance(sv, str) or sv.startswith("#") or "rgba" in sv:
+                    continue
+                hex_val = color_map.get(sv, sv)
+                if sk == "background_color":
+                    ev["background_color"] = hex_val
+                elif sk == "color":
+                    ev["color"] = hex_val
+                elif sk == "border_color":
+                    if ev.get("border") and isinstance(ev["border"], dict):
+                        ev["border"] = dict(ev["border"], color=hex_val)
+                    else:
+                        ev["border_color"] = hex_val
+        if slot_font and font_map.get(slot_font):
+            ev["font_family"] = (font_map[slot_font] + ", " + (ev.get("font_family") or "sans-serif")).strip()
+    field_prompts = merged.get("field_prompts") or {}
+    for fk, fv in field_prompts.items():
+        if isinstance(fv, str):
+            field_prompts[fk] = fv.replace("{{title}}", title)
+    merged["field_prompts"] = field_prompts
+    return merged
+
+
+def _render_pool_template_to_html(template_name, payload=None, pin_api_base=None, return_merged=False):
+    """Render a pool (DB) template to HTML via local merge + Node. Returns (html, width, height) or (html, w, h, merged_tpl) if return_merged.
+    Uses local merge only (no Pin API merge-template) so all pool templates including listicle_50_super_simple work."""
+    payload = payload or {}
+    name_norm = (template_name or "").strip().lower().replace("-", "_")
+    if name_norm == "template_39":
+        _seed_template_39_if_missing()
+    with get_connection() as conn:
+        cur = db_execute(conn, "SELECT template_json FROM pin_template_pool WHERE name = ?", (name_norm,))
+        pool_row = dict_row(cur.fetchone())
+    if not pool_row or not (pool_row.get("template_json") or "").strip():
+        raise ValueError(f"Template '{template_name}' not in Pin Template Pool")
+    pool_parsed = json.loads(pool_row["template_json"])
+    base_tpl = pool_parsed.get("template_data") if isinstance(pool_parsed.get("template_data"), dict) else pool_parsed
+    if not isinstance(base_tpl, dict):
+        raise ValueError("Pin template pool entry has no template_data")
+    style_slots = pool_parsed.get("style_slots") or {}
+    font_slots = pool_parsed.get("font_slots") or {}
+    merged_tpl = _merge_pool_template_locally(base_tpl, payload, style_slots, font_slots)
+    image_urls = {k: payload[k] for k in ("background", "main_image", "top_image", "bottom_image", "avatar_image", "top_left", "top_right", "bottom_left", "bottom_right") if payload.get(k)}
+    if not image_urls.get("background") and payload.get("main_image"):
+        image_urls["background"] = payload["main_image"]
+    tpl_img_keys = list((merged_tpl.get("images") or {}).keys())
+    main_img = payload.get("main_image") or payload.get("background") or ""
+    for ik in tpl_img_keys:
+        if ik not in image_urls and main_img:
+            image_urls[ik] = main_img
+    renderer_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pin_renderer", "render_pin.js")
+    if not os.path.isfile(renderer_script):
+        raise ValueError("pin_renderer/render_pin.js not found")
+    import subprocess
+    node_input = json.dumps({"template_data": merged_tpl, "image_urls": image_urls})
+    proc = subprocess.run(
+        ["node", renderer_script],
+        input=node_input,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=30,
+        cwd=os.path.dirname(os.path.abspath(__file__)),
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    if proc.returncode != 0:
+        raise ValueError("Pin JS renderer failed: " + (proc.stderr or proc.stdout or "").strip())
+    html = (proc.stdout or "").strip()
+    canvas = merged_tpl.get("canvas") or {}
+    w = int(canvas.get("width") or 600)
+    h = int(canvas.get("height") or 1067)
+    if return_merged:
+        return html, w, h, merged_tpl
+    return html, w, h
+
+
+def _render_pool_template_to_html_only(template_name, payload=None, pin_api_base=None):
+    """Same as _render_pool_template_to_html but returns only HTML (for backward compatibility)."""
+    html, _, _ = _render_pool_template_to_html(template_name, payload, pin_api_base)
+    return html
+
+
+TEMPLATE_39_JSON = {
+    "template_id": "template_39",
+    "template_name": "template_39",
+    "style_slots": {"overlay_band": {"background_color": "primary"}, "badge": {"color": "on_primary", "border": "border_accent"}, "title": {"color": "on_primary"}, "stars": {"color": "secondary"}, "website": {"color": "on_dark"}},
+    "font_slots": {"badge": "body", "title": "heading", "website": "body"},
+    "template_data": {
+        "name": "Recipe Pin",
+        "canvas": {"width": 736, "height": 1308, "aspect_ratio": "9:16"},
+        "prompt": "Generate text for each field based on the recipe title provided. Use the field_prompts JSON below: for each key, generate content using the corresponding prompt (replace {{title}} with the user's recipe title). Your response MUST be a single JSON object only. Do not include 'website' or 'domain' in your output.",
+        "field_prompts": {
+            "badge": "Generate content for badge for recipe {{title}}. Format: 2–3 words, title case. Output ONLY the replacement text for badge.",
+            "title": "Generate content for title for recipe {{title}}. One short recipe title, title case, 3–8 words. Output ONLY the replacement text for title."
+        },
+        "images": {"background": {"description_prompt": "Appetizing food photography", "position": {"top": 0, "left": 0}, "width": 736, "height": 1308, "layer_order": 1}},
+        "elements": {
+            "overlay_band": {"type": "div", "position": {"top": 520, "left": 0}, "width": 736, "height": 280, "background_color": "#1A1A1A", "z_index": 10},
+            "badge": {"type": "text", "text": "Must Try", "text_prompt": "Generate content for badge for recipe {{title}}. Format: 2–3 words, title case.", "position": {"top": 538, "left": 188}, "width": 360, "height": 48, "font_family": "Georgia, serif", "font_size": 26, "font_weight": "bold", "color": "#FFFFFF", "text_align": "center", "background": "transparent", "border": "2px solid #D4AF37", "border_radius": 24, "padding": "10px 24px", "z_index": 20},
+            "stars": {"type": "stars", "count": 5, "position": {"top": 604, "left": 278}, "star_size": 28, "color": "#FFD700", "z_index": 20},
+            "title": {"type": "text", "text": "Your Recipe Title Here", "text_prompt": "Generate content for title for recipe {{title}}. One short recipe title, 3–8 words.", "position": {"top": 652, "left": 40}, "width": 656, "height": 96, "font_family": "Georgia, serif", "font_size": 42, "font_weight": "bold", "color": "#FFFFFF", "text_align": "center", "line_height": 1.2, "z_index": 20},
+            "website": {"type": "text", "text": "{{domain}}", "position": {"top": 1228, "left": 0}, "width": 736, "height": 48, "font_family": "Arial, sans-serif", "font_size": 21, "font_weight": "bold", "color": "#FFFFFF", "text_align": "center", "text_shadow": "0 0 12px rgba(0,0,0,0.5)", "z_index": 20}
+        }
+    }
+}
+
+
+def _seed_template_39_if_missing():
+    """Ensure template_39 exists in pin_template_pool. Logic stored in DB only (no file)."""
+    try:
+        with get_connection() as conn:
+            cur = db_execute(conn, "SELECT id FROM pin_template_pool WHERE name = ?", ("template_39",))
+            if cur.fetchone():
+                return
+            db_execute(conn, "INSERT INTO pin_template_pool (name, template_json, preview_image_url) VALUES (?, ?, '')", ("template_39", json.dumps(TEMPLATE_39_JSON), ""))
+        log.info("Seeded template_39 into pin_template_pool (DB only)")
+    except Exception as e:
+        log.warning("Seed template_39: %s", e)
+
+
 def _do_generate_pin_image(title_id, domain_template_id=None, user_id=None):
     """Generate pin image for this title: use its domain's template and article_content, call Pin API, save to this title's article_content only.
     If domain_template_id is given, use that specific template; otherwise auto-rotate.
@@ -8402,17 +8605,18 @@ def _do_generate_pin_image(title_id, domain_template_id=None, user_id=None):
         if not template_json_str:
             raise ValueError("Template JSON is empty")
         # Article content for title_id (domain A)
-        cur = db_execute(conn, """SELECT main_image, ingredient_image, top_image, bottom_image, recipe_title_pin FROM article_content WHERE title_id = ? AND language_code = 'en'""", (title_id,))
+        cur = db_execute(conn, """SELECT main_image, ingredient_image, top_image, bottom_image FROM article_content WHERE title_id = ? AND language_code = 'en'""", (title_id,))
         ac = dict_row(cur.fetchone()) or {}
         cur = db_execute(conn, "SELECT title FROM titles WHERE id = ?", (title_id,))
         title_row = dict_row(cur.fetchone())
         title_text = (title_row.get("title") or "").strip() if title_row else ""
-        article_title = (ac.get("recipe_title_pin") or "").strip() or title_text
+        # Pin text generation should be anchored to the canonical title row, not pinterest_title/recipe_title_pin.
+        article_title = title_text
         main_img = (ac.get("main_image") or "").strip()
         ing_img = (ac.get("ingredient_image") or "").strip()
         top_img = (ac.get("top_image") or "").strip() or main_img
         bottom_img = (ac.get("bottom_image") or "").strip() or ing_img or main_img
-        cur = db_execute(conn, "SELECT domain_url, domain_name, domain_colors, domain_fonts FROM domains WHERE id = ?", (domain_id,))
+        cur = db_execute(conn, "SELECT domain_url, domain_name, domain_colors, domain_fonts, group_id, domain_index FROM domains WHERE id = ?", (domain_id,))
         dom_row = dict_row(cur.fetchone()) or {}
         domain_display = (dom_row.get("domain_url") or "").strip() or (dom_row.get("domain_name") or "").strip()
         if domain_display and "://" in domain_display:
@@ -8450,23 +8654,58 @@ def _do_generate_pin_image(title_id, domain_template_id=None, user_id=None):
             raise ValueError("Template JSON must include template_name or template_id (e.g. template_5). Save from Pin Editor with a selected template.")
         if not isinstance(payload, dict):
             payload = {}
-        # Ensure template image slots use article images: inject URLs so 5000 uses main_image, top_image, bottom_image, etc.
-        if main_img:
-            payload["main_image"] = main_img
-            payload["background"] = main_img  # template_1 and others use "background" for full-screen main
-        if top_img:
-            payload["top_image"] = top_img
-        if bottom_img:
-            payload["bottom_image"] = bottom_img
+        # Ensure template image slots: first slot = main_image (normal), any second+ slot = sibling's main_image flipped (A<->B, C<->D)
         if main_img or ing_img:
             payload["avatar_image"] = main_img or ing_img
+        tpl_img_keys = list((payload.get("images") or {}).keys())
+        flipped_sibling_main = None
+        sibling_idx = _sibling_domain_index(dom_row.get("domain_index"))
+        if sibling_idx is not None and dom_row.get("group_id"):
+            with get_connection() as conn:
+                cur = db_execute(conn, "SELECT id FROM domains WHERE group_id = ? AND domain_index = ?", (dom_row["group_id"], sibling_idx))
+                srow = cur.fetchone()
+                if srow:
+                    sibling_domain_id = dict_row(srow)["id"]
+                    # Try same title first (A/B or C/D same recipe), else first article from sibling domain
+                    stitle = None
+                    if title_text:
+                        cur = db_execute(conn, "SELECT t.id FROM titles t WHERE t.domain_id = ? AND TRIM(t.title) = ? ORDER BY t.id LIMIT 1", (sibling_domain_id, title_text))
+                        stitle = cur.fetchone()
+                    if not stitle:
+                        cur = db_execute(conn, "SELECT t.id FROM titles t WHERE t.domain_id = ? ORDER BY t.id LIMIT 1", (sibling_domain_id,))
+                        stitle = cur.fetchone()
+                    if stitle:
+                        sibling_title_id = dict_row(stitle)["id"]
+                        cur = db_execute(conn, "SELECT main_image FROM article_content WHERE title_id = ? AND language_code = 'en'", (sibling_title_id,))
+                        sac = dict_row(cur.fetchone()) or {}
+                        smain = (sac.get("main_image") or "").strip()
+                        if smain:
+                            try:
+                                from imagine import flip_image_horizontal_and_upload
+                                ucfg = get_user_config_for_api(user_id) or {}
+                                flipped_sibling_main = flip_image_horizontal_and_upload(smain, "pin_sibling_main", ucfg)
+                            except Exception as e:
+                                log.warning("Sibling flipped main for pin: %s", e)
+        avail_imgs = [u for u in [main_img, top_img, bottom_img, ing_img] if u]
+        for i, slot in enumerate(tpl_img_keys):
+            if i == 0:
+                payload[slot] = main_img or (avail_imgs[0] if avail_imgs else "")
+            else:
+                # Second+ slot: sibling's main_image flipped (A<->B, C<->D). Never use ingredient_image.
+                payload[slot] = (flipped_sibling_main if flipped_sibling_main else main_img) or ""
+        if main_img:
+            payload["main_image"] = main_img
+            payload["background"] = main_img
+        if top_img and "top_image" not in payload:
+            payload["top_image"] = top_img
+        if bottom_img and "bottom_image" not in payload:
+            payload["bottom_image"] = bottom_img
         # Pass article title so 5000 injects it into prompts and calls OpenAI for text elements (except website)
         payload["variables"] = {"title": article_title, "domain": domain_display}
         payload["domain"] = domain_display
         # Pass API keys from user Profile so Pin API can use them (avoids 401 when .env has no keys)
-        user_config = {}
-        if user_id:
-            user_config = get_user_config_for_api(user_id)
+        user_config = get_user_config_for_api(user_id) if user_id else {}
+        if user_config:
             if user_config.get("openai_api_key"):
                 payload["openai_api_key"] = user_config["openai_api_key"]
                 payload["openai_model"] = user_config.get("openai_model") or "gpt-4o-mini"
@@ -8488,18 +8727,85 @@ def _do_generate_pin_image(title_id, domain_template_id=None, user_id=None):
                 payload["domain_fonts"] = json.loads(raw_fonts) if isinstance(raw_fonts, str) else raw_fonts
             except (json.JSONDecodeError, TypeError):
                 pass
-        # Kimi_Agent_Pin (Pin API) generates the image and uploads to Cloudflare R2; it returns image_url.
         pin_api_base = (PIN_API_URL or "http://localhost:5000").rstrip("/")
-        api_url = pin_api_base + "/generate?name=" + str(template_name).strip().lower().replace("-", "_")
+        template_name_normalized = template_name.strip().lower().replace("-", "_")
+        # Domain templates (always loaded from domain_templates here) are not on the Pin API by name.
+        # Use merge-template + Node render + generate-from-html so any domain template (t_48, AI Generated, etc.) works.
+        base_tpl = body.get("template_data") if isinstance(body.get("template_data"), dict) else body
+        if not isinstance(base_tpl, dict):
+            raise ValueError("Template JSON has no template_data")
+        merge_payload = dict(payload)
+        merge_payload["template_data"] = base_tpl
+        merge_payload.setdefault("style_slots", body.get("style_slots") or {})
+        merge_payload.setdefault("font_slots", body.get("font_slots") or {})
         try:
-            r = requests_lib.post(api_url, json=payload, timeout=90)
+            r = requests_lib.post(pin_api_base + "/merge-template", json=merge_payload, timeout=90)
             r.raise_for_status()
-            data = r.json()
+            merge_data = r.json()
         except requests_lib.RequestException as e:
-            raise ValueError("Pin API error: " + str(e))
+            raise ValueError("Pin API error (merge): " + str(e))
+        if not merge_data.get("success"):
+            raise ValueError(merge_data.get("error") or "Pin API merge-template returned failure")
+        merged_tpl = merge_data.get("template_data") or {}
+        # Build image_urls from our slot logic: first = main_image (current), second+ = sibling flipped (A<->B, C<->D)
+        image_urls = {}
+        tpl_img_keys = list((merged_tpl.get("images") or {}).keys())
+        for i, ik in enumerate(tpl_img_keys):
+            if i == 0:
+                image_urls[ik] = main_img or (avail_imgs[0] if avail_imgs else "")
+            else:
+                # Second+ slot: sibling's main_image flipped (A<->B, C<->D). Never use ingredient_image.
+                image_urls[ik] = (flipped_sibling_main if flipped_sibling_main else main_img) or ""
+        if main_img and "background" not in image_urls:
+            image_urls["background"] = main_img
+        for ik in (merged_tpl.get("images") or {}).keys():
+            if ik not in image_urls:
+                image_urls[ik] = main_img or ""
+        import subprocess
+        renderer_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pin_renderer", "render_pin.js")
+        if not os.path.isfile(renderer_script):
+            raise ValueError("JavaScript pin renderer not found: pin_renderer/render_pin.js.")
+        node_input = json.dumps({"template_data": merged_tpl, "image_urls": image_urls})
+        try:
+            proc = subprocess.run(
+                ["node", renderer_script],
+                input=node_input,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=30,
+                cwd=os.path.dirname(os.path.abspath(__file__)),
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+            )
+        except FileNotFoundError:
+            raise ValueError("Node.js not found. Install Node.js to use pin image generation.")
+        if proc.returncode != 0:
+            raise ValueError("Pin JS renderer failed: " + (proc.stderr or proc.stdout or "unknown error").strip())
+        index_html = (proc.stdout or "").strip()
+        if not index_html:
+            raise ValueError("Pin JS renderer produced no HTML.")
+        canvas = merged_tpl.get("canvas") or {}
+        w = int(canvas.get("width") or 736)
+        h = int(canvas.get("height") or 1308)
+        try:
+            r2 = requests_lib.post(pin_api_base + "/generate-from-html", json={"html": index_html, "width": w, "height": h}, timeout=90)
+            r2.raise_for_status()
+            data = r2.json()
+        except requests_lib.RequestException as e:
+            err_msg = str(e)
+            try:
+                if hasattr(e, "response") and e.response is not None and e.response.text:
+                    j = e.response.json()
+                    if isinstance(j, dict) and j.get("error"):
+                        err_msg = j.get("error")
+            except Exception:
+                pass
+            raise ValueError("Pin API generate-from-html error: " + err_msg)
         if not data.get("success"):
-            raise ValueError(data.get("error") or "Pin API returned failure")
+            raise ValueError(data.get("error") or "generate-from-html failed")
         pin_url = data.get("image_url")
+
         if not pin_url:
             # Fallback: if Pin API returned a base64 screenshot (R2 not configured on pin side),
             # upload it to R2 using the logged-in user's profile R2 credentials.
@@ -8773,31 +9079,103 @@ def _pin_api_url():
     return (PIN_API_URL or "http://localhost:5000").rstrip("/")
 
 
+def _pool_only_template_names():
+    """Template names that exist only in pin_template_pool (no Python file). Used for Pin Editor list and JS path."""
+    _seed_template_39_if_missing()
+    with get_connection() as conn:
+        cur = db_execute(conn, "SELECT name FROM pin_template_pool ORDER BY name")
+        return [dict_row(r).get("name") for r in cur.fetchall() if dict_row(r).get("name")]
+
+
 @app.route("/api/pin-templates", methods=["GET"])
 def api_pin_templates():
-    """Proxy to Kimi_Agent_Pin /templates for the in-app editor. Pin API must be running (e.g. python generator.py --serve on port 5000)."""
+    """List templates for Pin Editor: from Pin API (Python) + from DB (pin_template_pool, e.g. template_39). Logic for pins is in DB."""
     try:
-        r = requests_lib.get(_pin_api_url() + "/templates", timeout=15)
-        r.raise_for_status()
-        return jsonify(r.json())
+        api_data = requests_lib.get(_pin_api_url() + "/templates", timeout=15).json()
     except Exception as e:
-        return jsonify({"templates": [], "error": str(e)})
+        api_data = {"templates": [], "error": str(e)}
+    api_names = _parse_pin_api_template_names(api_data)
+    pool_names = _pool_only_template_names()
+    # Merge: API list (objects) + pool-only names as objects so editor shows them
+    templates = list(api_data.get("templates") or [])
+    if isinstance(templates, dict):
+        templates = [{"name": k, "has_preview": False, "preview_url": None} for k in templates]
+    for n in pool_names:
+        if n and not any((t.get("name") if isinstance(t, dict) else t) == n for t in templates):
+            templates.append({"name": n, "has_preview": True, "preview_url": f"/api/pin-template-preview-img?template={n}"})
+    return jsonify({"templates": templates, "error": api_data.get("error")})
+
+
+def _load_pin_template_from_pin_generator(name_norm):
+    """Load template from repo pin_generator when Pin API is down or template not in API list. Returns dict or None."""
+    try:
+        _app_dir = os.path.dirname(os.path.abspath(__file__))
+        _repo_root = os.path.dirname(_app_dir)
+        _pin_gen_root = os.path.join(_repo_root, "pin_generator")
+        if not os.path.isdir(_pin_gen_root):
+            log.debug("pin_generator fallback: no pin_generator dir at %s", _pin_gen_root)
+            return None
+        if _repo_root not in sys.path:
+            sys.path.insert(0, _repo_root)
+        from pin_generator.generators import load_generator, list_generators
+        names = list_generators()
+        if name_norm not in names:
+            log.debug("pin_generator fallback: %s not in list (have %s)", name_norm, names[:5])
+            return None
+        mod = load_generator(name_norm)
+        if not mod or not getattr(mod, "TEMPLATE_DATA", None):
+            log.warning("pin_generator fallback: load_generator(%s) returned no TEMPLATE_DATA", name_norm)
+            return None
+        import copy as _copy
+        tpl = getattr(mod, "TEMPLATE_DATA")
+        template_id = getattr(mod, "TEMPLATE_ID", name_norm)
+        style_slots = getattr(mod, "STYLE_SLOTS", None) or getattr(tpl, "style_slots", None) or {}
+        font_slots = getattr(mod, "FONT_SLOTS", None) or getattr(tpl, "font_slots", None) or {}
+        return {
+            "success": True,
+            "template_id": template_id,
+            "template_name": name_norm,
+            "template_data": _copy.deepcopy(tpl),
+            "style_slots": style_slots,
+            "font_slots": font_slots,
+        }
+    except Exception as e:
+        log.warning("pin_generator fallback failed for %s: %s", name_norm, e)
+        return None
 
 
 @app.route("/api/pin-template/<path:name>", methods=["GET"])
 def api_pin_template(name):
-    """Proxy to Kimi_Agent_Pin /template/<name> for the in-app editor."""
+    """Load template for editor: from Pin API or from DB (pin_template_pool) or from repo pin_generator."""
+    name_norm = (name or "").strip().lower().replace("-", "_")
+    r = None
     try:
-        r = requests_lib.get(_pin_api_url() + "/template/" + name, timeout=15)
-        if r.status_code != 200:
-            try:
-                body = r.json()
-            except Exception:
-                body = {"raw": r.text[:500]}
-            return jsonify({"success": False, "error": f"Pin API returned {r.status_code}", "pin_api_response": body}), 502
-        return jsonify(r.json())
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 502
+        r = requests_lib.get(_pin_api_url() + "/template/" + name_norm, timeout=15)
+        if r.status_code == 200:
+            return jsonify(r.json())
+    except Exception:
+        pass
+    # Fallback 1: load from pin_template_pool (e.g. template_39) — logic stored in DB
+    if name_norm == "template_39":
+        _seed_template_39_if_missing()
+    with get_connection() as conn:
+        cur = db_execute(conn, "SELECT template_json FROM pin_template_pool WHERE name = ?", (name_norm,))
+        row = dict_row(cur.fetchone())
+    if row and (row.get("template_json") or "").strip():
+        try:
+            data = json.loads(row["template_json"])
+            return jsonify({"success": True, "template_id": data.get("template_id", name_norm), "template_name": data.get("template_name", name_norm), "template_data": data.get("template_data", data), "style_slots": data.get("style_slots", {}), "font_slots": data.get("font_slots", {})})
+        except json.JSONDecodeError:
+            pass
+    # Fallback 2: load from repo pin_generator (e.g. template_49 when Pin API not running or not restarted)
+    local = _load_pin_template_from_pin_generator(name_norm)
+    if local:
+        return jsonify(local)
+    try:
+        body = r.json() if r else {}
+    except Exception:
+        body = {"raw": (r.text[:500] if r else "Template not in Pin API or pool")}
+    return jsonify({"success": False, "error": f"Template {name} not found (Pin API or pool)", "pin_api_response": body}), 502 if not row else 404
 @app.route("/preview/<path:name>", methods=["GET"])
 def api_pin_preview(name):
     """Proxy to Kimi_Agent_Pin /preview/<name> for the in-app editor."""
@@ -8816,15 +9194,105 @@ def api_pin_preview(name):
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 502
 
+@app.route("/api/pin-template-preview-img", methods=["GET"])
+def api_pin_template_preview_img():
+    """Return PNG image for a template preview (pool templates). Pin editor uses this for img src."""
+    name = (request.args.get("template") or request.args.get("name") or "").strip().lower().replace("-", "_")
+    if not name:
+        return "Missing template", 400
+    if name == "template_39":
+        _seed_template_39_if_missing()
+    with get_connection() as conn:
+        cur = db_execute(conn, "SELECT id FROM pin_template_pool WHERE name = ?", (name,))
+        if cur.fetchone() is None:
+            return "Template not in pool", 404
+    try:
+        # Use appetizing food test image (same as Pin API templates) for preview
+        test_img = POOL_TEMPLATE_TEST_IMAGE
+        html, w, h = _render_pool_template_to_html(name, {
+            "variables": {"title": "Preview Delight", "domain": "example.com"},
+            "background": test_img,
+            "main_image": test_img,
+        })
+        pin_base = _pin_api_url().rstrip("/")
+        r = requests_lib.post(pin_base + "/generate-from-html", json={"html": html, "width": w, "height": h}, timeout=60)
+        r.raise_for_status()
+        data = r.json()
+        if data.get("image_url"):
+            return redirect(data["image_url"])
+        b64 = (data.get("screenshot_base64") or "").split(",", 1)[-1]
+        if b64:
+            import base64 as _b64
+            png_bytes = _b64.b64decode(b64)
+            resp = make_response(png_bytes)
+            resp.headers["Content-Type"] = "image/png"
+            return resp
+    except Exception as e:
+        log.warning("pin-template-preview-img %s: %s", name, e)
+    return send_from_directory(os.path.join(os.path.dirname(os.path.abspath(__file__)), "static"), "placeholder-pin.png")
+
+
+PIN_GENERATION_PROMPTS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pin_generation_prompts.json")
+
+
+def _load_pin_generation_prompts():
+    """Load external prompts for pin text generation. Editable via pin_generation_prompts.json."""
+    if not os.path.isfile(PIN_GENERATION_PROMPTS_PATH):
+        return None
+    try:
+        with open(PIN_GENERATION_PROMPTS_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+@app.route("/api/pin-generation-prompts", methods=["GET", "PUT"])
+def api_pin_generation_prompts():
+    """GET: return external prompts (prompt, field_prompts) for pin AI generation. PUT: update (login required)."""
+    if request.method == "PUT":
+        if not get_current_user():
+            return jsonify({"error": "Unauthorized"}), 401
+        data = request.get_json(silent=True)
+        if not data or not isinstance(data, dict):
+            return jsonify({"error": "JSON body with prompt and/or field_prompts required"}), 400
+        try:
+            existing = _load_pin_generation_prompts() or {}
+            existing.update({k: v for k, v in data.items() if k in ("prompt", "field_prompts")})
+            with open(PIN_GENERATION_PROMPTS_PATH, "w", encoding="utf-8") as f:
+                json.dump(existing, f, indent=2)
+            return jsonify({"success": True, "prompt": existing.get("prompt"), "field_prompts": existing.get("field_prompts")})
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)}), 500
+    prompts = _load_pin_generation_prompts()
+    return jsonify(prompts or {"prompt": None, "field_prompts": None})
+
+
 @app.route("/api/pin-template-example-raw", methods=["GET"])
 def api_pin_template_example_raw():
-    """Returns the index_html of a pin template for preview iframes."""
+    """Returns the index_html of a pin template for preview iframes. Pool templates (e.g. template_39) rendered via JS from DB."""
     name = (request.args.get("template") or request.args.get("name") or "").strip()
     if not name:
         return "Missing template name", 400
+    name_norm = name.strip().lower().replace("-", "_")
+    if name_norm == "template_39":
+        _seed_template_39_if_missing()
+    # Pool-only (JS) templates: render from DB
+    with get_connection() as conn:
+        cur = db_execute(conn, "SELECT id FROM pin_template_pool WHERE name = ?", (name_norm,))
+        in_pool = cur.fetchone() is not None
+    if in_pool:
+        try:
+            test_img = POOL_TEMPLATE_TEST_IMAGE
+            html, _, _ = _render_pool_template_to_html(name_norm, {
+                "variables": {"title": "Preview Delight", "domain": "example.com"},
+                "background": test_img,
+                "main_image": test_img,
+            })
+            return html if html else "No HTML returned", 200
+        except Exception as e:
+            return f"Error: {e}", 502
     try:
-        # We call /generate with template_only=1 to get the HTML without screenshotting
-        url = _pin_api_url() + "/generate?name=" + str(name) + "&template_only=1"
+        url = _pin_api_url() + "/generate?name=" + str(name_norm) + "&template_only=1"
         r = requests_lib.post(url, json={}, timeout=15)
         if r.status_code != 200:
             return f"Pin API error: {r.status_code}", 502
@@ -8833,15 +9301,69 @@ def api_pin_template_example_raw():
         return f"Error: {e}", 502
 
 
+def _do_pin_generate_pool(name_norm, body, user_id, template_only, pin_base=None):
+    """Run pool-template pin generate. Returns (success, out_dict). out_dict has index_html, template_data on success; error on failure."""
+    pin_base = (pin_base or _pin_api_url()).rstrip("/")
+    user_config = get_user_config_for_api(user_id)
+    if user_config.get("openai_api_key"):
+        body.setdefault("openai_api_key", user_config["openai_api_key"])
+        body.setdefault("openai_model", user_config.get("openai_model") or "gpt-4o-mini")
+    if user_config.get("openrouter_api_key"):
+        body.setdefault("openrouter_api_key", user_config["openrouter_api_key"])
+        body.setdefault("openrouter_model", user_config.get("openrouter_model") or "openai/gpt-oss-120b")
+    body.setdefault("ai_provider", user_config.get("ai_provider") or "openrouter")
+    body_copy = dict(body)
+    ext = _load_pin_generation_prompts()
+    if ext and isinstance(ext, dict):
+        body_copy.setdefault("template_data", {})
+        td = body_copy["template_data"]
+        if not isinstance(td, dict):
+            td = {}
+            body_copy["template_data"] = td
+        if ext.get("prompt"):
+            td["prompt"] = ext["prompt"]
+        if ext.get("field_prompts") and isinstance(ext["field_prompts"], dict):
+            td["field_prompts"] = ext["field_prompts"]
+    vars_in = body_copy.get("variables") or {}
+    if not isinstance(vars_in, dict):
+        vars_in = {}
+    title = vars_in.get("title") or body_copy.get("title") or body_copy.get("name")
+    if not title and isinstance(body_copy.get("elements"), dict):
+        t_el = body_copy["elements"].get("title", {})
+        if isinstance(t_el, dict) and t_el.get("text"):
+            title = t_el["text"]
+    if not title or not isinstance(title, str):
+        title = "Preview Delight"
+    domain = vars_in.get("domain") or body_copy.get("domain") or "example.com"
+    body_copy["variables"] = {"title": title, "domain": domain}
+    if not (body_copy.get("background") or body_copy.get("main_image")):
+        body_copy["background"] = body_copy["main_image"] = POOL_TEMPLATE_TEST_IMAGE
+    res = _render_pool_template_to_html(name_norm, body_copy, pin_api_base=pin_base, return_merged=template_only)
+    # Unpack (html, w, h[, merged_tpl]) without ever indexing past len(res)
+    res_list = list(res) if res is not None else []
+    n = len(res_list)
+    html = res_list[0] if n > 0 else ""
+    w = int(res_list[1]) if n > 1 else 600
+    h = int(res_list[2]) if n > 2 else 1067
+    merged_tpl = res_list[3] if n > 3 else None
+    if template_only:
+        out = {"success": True, "template_id": name_norm, "index_html": html}
+        if merged_tpl:
+            out["template_data"] = merged_tpl
+        return True, out
+    r2 = requests_lib.post(pin_base + "/generate-from-html", json={"html": html, "width": w, "height": h}, timeout=90)
+    r2.raise_for_status()
+    return True, r2.json()
+
+
 @app.route("/api/pin-generate", methods=["POST"])
 @login_required
 def api_pin_generate():
     """
-    Proxy to Kimi_Agent_Pin /generate.
-    - With template_only=1 (editor preview): returns JSON + index_html only, no screenshot, no R2 upload.
-    - Without template_only (Generate image): full generate, screenshot, upload to R2, returns image_url.
-    Injects user Profile API keys so Pin API can generate text without .env keys.
-    Query: name=, template_only=1 (optional).
+    Generate pin: from Pin API (Python) or from DB + JS (pool templates e.g. template_39).
+    - With template_only=1 (editor preview): returns JSON + index_html only.
+    - Without template_only: full generate, screenshot, upload to R2, returns image_url.
+    Injects user Profile API keys for OpenAI/merge-template.
     """
     user = get_current_user()
     user_id = user["id"]
@@ -8851,19 +9373,61 @@ def api_pin_generate():
     body = request.get_json(silent=True)
     if not body:
         return jsonify({"success": False, "error": "JSON body required"}), 400
-    # Inject API keys from Profile for pin text generation (OpenAI/OpenRouter)
+    if not isinstance(body, dict):
+        body = {}
+    template_only = str(request.args.get("template_only", "")).strip().lower() in ("1", "true", "yes")
+    name_norm = (name or "").strip().lower().replace("-", "_")
+    pin_base = _pin_api_url().rstrip("/")
+    # Resolve pool name: exact match, then strip trailing _, then try base (e.g. listicle_50_super_simple -> listicle_50)
+    pool_name = None
+    with get_connection() as conn:
+        cur = db_execute(conn, "SELECT name FROM pin_template_pool")
+        rows = cur.fetchall() or []
+        pool_names = set()
+        for r in rows:
+            row_dict = dict_row(r) if r is not None else None
+            if isinstance(row_dict, dict):
+                n = row_dict.get("name")
+                if n and isinstance(n, str):
+                    pool_names.add(n)
+    if name_norm == "template_39":
+        _seed_template_39_if_missing()
+        pool_names = pool_names | {"template_39"}
+    if name_norm in pool_names:
+        pool_name = name_norm
+    else:
+        candidate = name_norm.rstrip("_")
+        if candidate in pool_names:
+            pool_name = candidate
+        else:
+            while "_" in candidate:
+                candidate = candidate.rsplit("_", 1)[0]
+                if candidate in pool_names:
+                    pool_name = candidate
+                    break
+    is_pool = pool_name is not None
+    if is_pool:
+        try:
+            ok, out = _do_pin_generate_pool(pool_name, body, user_id, template_only, pin_base)
+            if ok and template_only:
+                return jsonify(out)
+            if ok:
+                return jsonify(out)
+        except Exception as e:
+            import traceback
+            tb = traceback.format_exc()
+            log.exception("api_pin_generate pool path failed for name=%s pool_name=%s", name_norm, pool_name)
+            return jsonify({"success": False, "error": str(e), "traceback": tb}), 502
     user_config = get_user_config_for_api(user_id)
     if user_config.get("openai_api_key"):
-        body["openai_api_key"] = user_config["openai_api_key"]
-        body["openai_model"] = user_config.get("openai_model") or "gpt-4o-mini"
+        body.setdefault("openai_api_key", user_config["openai_api_key"])
+        body.setdefault("openai_model", user_config.get("openai_model") or "gpt-4o-mini")
     if user_config.get("openrouter_api_key"):
-        body["openrouter_api_key"] = user_config["openrouter_api_key"]
-        body["openrouter_model"] = user_config.get("openrouter_model") or "openai/gpt-oss-120b"
-    if user_config.get("ai_provider"):
-        body["ai_provider"] = user_config["ai_provider"]
-    template_only = request.args.get("template_only", "")
-    url = _pin_api_url() + "/generate?name=" + str(name)
-    if str(template_only).strip().lower() in ("1", "true", "yes"):
+        body.setdefault("openrouter_api_key", user_config["openrouter_api_key"])
+        body.setdefault("openrouter_model", user_config.get("openrouter_model") or "openai/gpt-oss-120b")
+    body.setdefault("ai_provider", user_config.get("ai_provider") or "openrouter")
+    url = pin_base + "/generate?name=" + str(name_norm)
+    if template_only:
         url += "&template_only=1"
     try:
         r = requests_lib.post(url, json=body, timeout=90)
@@ -8871,6 +9435,1272 @@ def api_pin_generate():
         return jsonify(r.json())
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 502
+
+
+_AI_TEMPLATE_CREATION_SYSTEM_PROMPT = """You design professional Pinterest food-recipe pin templates as JSON. Canvas: 736x1308 pixels.
+
+IMAGE SLOTS (use these exact keys in "images"):
+- "background": full-canvas food photo (736x1308, layer_order:1)
+- "top_image": upper food photo for split layouts (736x~600, layer_order:1)
+- "bottom_image": lower food photo for split layouts (736x~600, layer_order:1)
+
+LAYOUT TYPES (pick one):
+A) FULL BACKGROUND: one "background" image + overlay band + text on top. Like a magazine cover.
+B) TOP+BOTTOM SPLIT: "top_image" in upper half + "bottom_image" in lower half + text band in middle. Two photos of the same recipe.
+C) FULL BACKGROUND + AVATAR: "background" image + centered circular avatar image + text block.
+
+ELEMENT TYPES: "div" (overlay shapes), "text" (text with placeholder), "stars" (5-star rating).
+
+RULES:
+1. Every "text" element MUST have non-empty "text" (placeholder like "Must Try", "Delicious Recipe Here").
+2. "website" text MUST have text "{{domain}}" exactly.
+3. Text elements need: font_family, font_size (24-52 for titles, 20-28 for badges, 18-22 for website), font_weight, color, text_align.
+4. Include: at least one overlay div, badge text, title text, website text, stars.
+5. z_index: images=1, overlay divs=10, text/stars=20.
+6. Title font_size should be 36-52px (large, readable). Badge font_size 20-28px.
+7. Overlay bands should use semi-transparent dark colors: rgba(0,0,0,0.7) or rgba(26,26,26,0.85).
+8. Use text_shadow on text over images: "2px 2px 8px rgba(0,0,0,0.8)".
+
+Return ONLY valid JSON object. No markdown, no code fences, no explanation text.
+
+EXAMPLE A (full background + bottom overlay band):
+{"name":"Dark Elegant","canvas":{"width":736,"height":1308,"aspect_ratio":"9:16"},"prompt":"Generate text for each field based on recipe title. Return JSON only.","field_prompts":{"badge":"Generate 2-3 word badge for recipe {{title}}.","title":"Generate short title for {{title}}. 3-8 words."},"images":{"background":{"description_prompt":"Appetizing food photography","position":{"top":0,"left":0},"width":736,"height":1308,"layer_order":1}},"elements":{"overlay_band":{"type":"div","position":{"top":520,"left":0},"width":736,"height":280,"background_color":"rgba(26,26,26,0.85)","z_index":10},"badge":{"type":"text","text":"Must Try","text_prompt":"Badge for {{title}}.","position":{"top":540,"left":188},"width":360,"height":48,"font_family":"Georgia, serif","font_size":26,"font_weight":"bold","color":"#FFFFFF","text_align":"center","border":"2px solid #D4AF37","border_radius":24,"padding":"10px 24px","z_index":20},"stars":{"type":"stars","count":5,"position":{"top":604,"left":278},"star_size":28,"color":"#FFD700","z_index":20},"title":{"type":"text","text":"Delicious Recipe Title","text_prompt":"Title for {{title}}.","position":{"top":648,"left":40},"width":656,"height":100,"font_family":"Georgia, serif","font_size":42,"font_weight":"bold","color":"#FFFFFF","text_align":"center","line_height":1.2,"z_index":20},"website":{"type":"text","text":"{{domain}}","position":{"top":1240,"left":0},"width":736,"height":48,"font_family":"Arial, sans-serif","font_size":21,"font_weight":"bold","color":"#FFFFFF","text_align":"center","text_shadow":"0 0 12px rgba(0,0,0,0.5)","z_index":20}}}
+
+EXAMPLE B (top+bottom split images with middle text band):
+{"name":"Split Photo","canvas":{"width":736,"height":1308,"aspect_ratio":"9:16"},"prompt":"Generate text for each field. Return JSON only.","field_prompts":{"badge":"Badge for {{title}}.","title":"Title for {{title}}. 3-8 words."},"images":{"top_image":{"description_prompt":"Food photo top","position":{"top":0,"left":0},"width":736,"height":580,"layer_order":1},"bottom_image":{"description_prompt":"Food photo bottom","position":{"top":728,"left":0},"width":736,"height":580,"layer_order":1}},"elements":{"middle_band":{"type":"div","position":{"top":540,"left":0},"width":736,"height":228,"background_color":"#2D1B4E","z_index":10},"badge":{"type":"text","text":"Sneak Peek","text_prompt":"Badge for {{title}}.","position":{"top":558,"left":100},"width":536,"height":40,"font_family":"Montserrat, sans-serif","font_size":22,"font_weight":"bold","color":"#E8D5B7","text_align":"center","z_index":20},"title":{"type":"text","text":"Preview Delight","text_prompt":"Title for {{title}}.","position":{"top":610,"left":40},"width":656,"height":80,"font_family":"Playfair Display, serif","font_size":40,"font_weight":"bold","color":"#FFFFFF","text_align":"center","z_index":20},"website":{"type":"text","text":"{{domain}}","position":{"top":700,"left":100},"width":536,"height":36,"font_family":"Arial, sans-serif","font_size":18,"font_weight":"bold","color":"#CCCCCC","text_align":"center","z_index":20}}}
+
+EXAMPLE C (full background + large bold text, no box overlays, modern minimal):
+{"name":"Bold Minimal","canvas":{"width":736,"height":1308,"aspect_ratio":"9:16"},"prompt":"Generate text. JSON only.","field_prompts":{"title":"Title for {{title}}. 2-4 bold words.","subtitle":"Subtitle for {{title}}."},"images":{"background":{"description_prompt":"Moody food shot","position":{"top":0,"left":0},"width":736,"height":1308,"layer_order":1}},"elements":{"gradient_overlay":{"type":"div","position":{"top":0,"left":0},"width":736,"height":1308,"background_color":"linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.8) 100%)","z_index":5},"title":{"type":"text","text":"PREVIEW DELIGHT","text_prompt":"Title for {{title}}.","position":{"top":580,"left":50},"width":636,"height":200,"font_family":"Impact, sans-serif","font_size":64,"font_weight":"900","color":"#FFFFFF","text_align":"left","line_height":1.0,"text_shadow":"3px 3px 12px rgba(0,0,0,0.9)","z_index":20},"accent_line":{"type":"div","position":{"top":820,"left":50},"width":120,"height":5,"background_color":"#FF6B35","z_index":20},"subtitle":{"type":"text","text":"Handcrafted","text_prompt":"Subtitle for {{title}}.","position":{"top":845,"left":50},"width":400,"height":40,"font_family":"Arial, sans-serif","font_size":20,"font_weight":"bold","color":"#FF6B35","text_align":"left","z_index":20},"stars":{"type":"stars","count":5,"position":{"top":1170,"left":50},"star_size":24,"color":"#FFD700","z_index":20},"website":{"type":"text","text":"{{domain}}","position":{"top":1240,"left":0},"width":736,"height":48,"font_family":"Arial, sans-serif","font_size":20,"font_weight":"bold","color":"#FFFFFF","text_align":"center","text_shadow":"0 0 10px rgba(0,0,0,0.5)","z_index":20}}}
+
+Design a NEW template different from these examples. Be creative with colors, fonts, element positions, overlay styles."""
+
+
+def _call_ai_chat_generic(messages, provider, config, model_override=None, timeout=120):
+    """Call any configured AI provider with chat messages. Returns the text response or raises."""
+    provider = (provider or "openrouter").strip().lower()
+
+    if provider == "llamacpp":
+        mgr_url = (config.get("llamacpp_manager_url") or "http://localhost:5004").rstrip("/")
+        mid = model_override or config.get("llamacpp_model_id")
+        if not mid:
+            r = requests_lib.get(f"{mgr_url}/api/models", timeout=10)
+            models = (r.json() or {}).get("models") or []
+            if not models:
+                raise ValueError("No llama.cpp model available")
+            mid = models[0].get("id") if isinstance(models[0], dict) else models[0]
+        r = requests_lib.post(f"{mgr_url}/api/chat", json={"model_id": mid, "messages": messages}, timeout=timeout)
+        data = r.json() or {}
+        raw = (data.get("message") or data.get("content") or "").strip()
+        if not raw:
+            raise ValueError("Empty response from llama.cpp")
+        return raw
+
+    from openai import OpenAI
+    if provider == "openrouter":
+        api_key = (config.get("openrouter_api_key") or "").strip()
+        model = model_override or config.get("openrouter_model") or "openai/gpt-oss-120b"
+        if not api_key:
+            raise ValueError("OpenRouter API key not configured")
+        client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key)
+    elif provider == "local":
+        url = (config.get("local_api_url") or "http://localhost:11434").rstrip("/")
+        if "/v1" not in url and "/api" not in url:
+            url = url + "/v1"
+        client = OpenAI(base_url=url, api_key="ollama")
+        model = model_override or (config.get("local_models") or "qwen3:8b").split(",")[0].strip()
+    else:
+        api_key = (config.get("openai_api_key") or "").strip()
+        model = model_override or config.get("openai_model") or "gpt-4o-mini"
+        if not api_key:
+            if config.get("openrouter_api_key"):
+                api_key = config["openrouter_api_key"]
+                model = config.get("openrouter_model") or "openai/gpt-oss-120b"
+                client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key)
+            else:
+                raise ValueError("No AI API key configured. Add OpenAI, OpenRouter, or Local in your profile.")
+        else:
+            client = OpenAI(api_key=api_key)
+
+    resp = client.chat.completions.create(model=model, messages=messages, temperature=0.9)
+    text = (resp.choices[0].message.content or "").strip()
+    if not text:
+        raise ValueError("Empty AI response")
+    return text
+
+
+# Layout types that match blueprint _layout keys (for vision → template mapping)
+_VISION_LAYOUT_NAMES = [
+    "top_full_band_2bottom", "2top_band_bottom", "grid_2x2_center_band", "grid_2x2_white_card",
+    "split_bold_band", "split_bordered_band", "split_accent_line", "full_bg_gradient_title",
+    "top_full_white_2bottom", "grid_2x2_bottom_band", "top_full_2bottom_card", "full_bg_dual_bands",
+    "top_band_2bottom", "side_by_side_band", "three_row_clean",
+]
+
+
+def _call_ai_vision(messages_with_images, config, provider, model_override=None, timeout=120, max_tokens=1024):
+    """Call a vision-capable AI with messages that can include image content. Uses OpenAI/OpenRouter only."""
+    provider = (provider or "openrouter").strip().lower()
+    if provider not in ("openrouter", "openai"):
+        raise ValueError("Reference-image analysis requires OpenAI or OpenRouter (vision models). Switch AI provider.")
+    from openai import OpenAI
+    api_key = (config.get("openai_api_key") or "").strip()
+    if provider == "openrouter" or not api_key:
+        api_key = (config.get("openrouter_api_key") or "").strip()
+        if not api_key:
+            raise ValueError("OpenRouter API key required for image analysis")
+        client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key)
+        model = model_override or config.get("openrouter_model") or "openai/gpt-4o"
+        if not model or "gpt-4" not in model.lower():
+            model = "openai/gpt-4o"
+    else:
+        client = OpenAI(api_key=api_key)
+        model = model_override or config.get("openai_model") or "gpt-4o"
+        if "gpt-4o" not in model and "gpt-4-vision" not in model.lower():
+            model = "gpt-4o"
+    resp = client.chat.completions.create(model=model, messages=messages_with_images, temperature=0.2, max_tokens=max_tokens)
+    text = (resp.choices[0].message.content or "").strip()
+    if not text:
+        raise ValueError("Empty AI vision response")
+    return text
+
+
+_REFERENCE_CLONE_SYSTEM = """You are a precise Pinterest pin template encoder. The user will send one or more reference pin images. Your job is to output a SINGLE JSON template that would reproduce the design EXACTLY: same layout, same positions, same colors, same font sizes, same shapes. Only the photo images and the text content will be replaced later; everything else must be identical.
+
+CANVAS: Always 736px width, 1308px height. Coordinates: 0-736 horizontal, 0-1308 vertical (top-left origin).
+
+MEASUREMENT: From the reference, identify: (1) Each photo region → one entry in "images" with exact top, left, width, height in pixels. (2) Each overlay (dark band, white card, etc.) → one "div" element with same. (3) Each text line → one "text" element with position, width, height, font_size, color, font_weight, text_align. One text must be "{{domain}}" for the URL at the bottom. Every visible region in the reference must have a corresponding slot or element; otherwise the result will not match.
+
+IMAGE SLOT NAMES: Use standard names where possible: "background" (full canvas), "top_image" (single top photo), "bottom_image" (single full-width bottom), "bottom_left" and "bottom_right" (two side-by-side bottom photos), "top_left" and "top_right" (two top photos). Use "layer_order" 1 for background, 2 for foreground images.
+
+EXAMPLE (follow this structure; copy positions/sizes from YOUR reference):
+{
+  "name": "Reference Clone",
+  "canvas": {"width": 736, "height": 1308, "aspect_ratio": "9:16"},
+  "images": {
+    "top_image": {"position": {"top": 0, "left": 0}, "width": 736, "height": 520, "layer_order": 1},
+    "bottom_left": {"position": {"top": 800, "left": 0}, "width": 368, "height": 368, "layer_order": 2},
+    "bottom_right": {"position": {"top": 800, "left": 368}, "width": 368, "height": 368, "layer_order": 2}
+  },
+  "elements": {
+    "band": {"type": "div", "position": {"top": 520, "left": 0}, "width": 736, "height": 280, "background_color": "rgba(26,26,26,0.9)", "z_index": 5},
+    "badge": {"type": "text", "position": {"top": 540, "left": 188}, "width": 360, "height": 48, "font_size": 22, "font_family": "Arial, sans-serif", "font_weight": "bold", "color": "#FFFFFF", "text_align": "center", "text": "MUST TRY", "z_index": 20},
+    "title": {"type": "text", "position": {"top": 600, "left": 40}, "width": 656, "height": 80, "font_size": 36, "font_family": "Georgia, serif", "font_weight": "bold", "color": "#FFFFFF", "text_align": "center", "text": "Recipe Title Here", "z_index": 21},
+    "website": {"type": "text", "position": {"top": 1240, "left": 0}, "width": 736, "height": 48, "font_size": 18, "font_family": "Arial, sans-serif", "font_weight": "bold", "color": "#FFFFFF", "text_align": "center", "text": "{{domain}}", "z_index": 25}
+  },
+  "prompt": "Generate text for each field. Return JSON only.",
+  "field_prompts": {"badge": "2-3 word uppercase badge for {{title}}", "title": "Short recipe title for {{title}}, 3-8 words"}
+}
+
+RULES:
+1. Output must follow the structure above. Copy positions and sizes from the reference in pixels (0-736 horizontal, 0-1308 vertical).
+2. Every visible overlay must be a "div" with exact top, left, width, height, background_color.
+3. Every text line must be a "text" element with same position, font_size, color, font_weight, text_align. Use placeholder text; we replace with AI-generated text.
+4. One element must have "text": "{{domain}}" for the website URL.
+5. Use distinct z_index: overlay divs 5 or 10, badge 20, title 21, subtitle 22, website 25, stars 30.
+6. Return ONLY valid JSON. No markdown, no code fence, no explanation."""
+
+
+def _create_template_from_reference_images(image_data_urls, config, provider, model_override=None):
+    """Vision AI analyzes reference pin image(s) and returns a full template JSON that replicates the design exactly. Only images and text will be replaced when generating pins."""
+    if not image_data_urls or len(image_data_urls) > 10:
+        raise ValueError("Provide 1–10 reference images (data URLs or base64).")
+    content_parts = [
+        {"type": "text", "text": "Look at this/these Pinterest pin image(s). Output a single JSON template that reproduces the design EXACTLY: same layout, same positions (in pixels for 736x1308 canvas), same colors (hex), same font sizes and alignment. Use the schema you were given. Return ONLY the JSON object, no other text."},
+    ]
+    for url in image_data_urls[:5]:
+        u = (url or "").strip()
+        if u.startswith("data:"):
+            content_parts.append({"type": "image_url", "image_url": {"url": u}})
+        elif u.startswith("http"):
+            content_parts.append({"type": "image_url", "image_url": {"url": u}})
+        else:
+            if "," in u:
+                content_parts.append({"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + u.split(",", 1)[-1]}})
+            else:
+                content_parts.append({"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + u}})
+    messages = [
+        {"role": "system", "content": _REFERENCE_CLONE_SYSTEM},
+        {"role": "user", "content": content_parts},
+    ]
+    raw = _call_ai_vision(messages, config, provider, model_override=model_override, timeout=120, max_tokens=4096)
+    if "```" in raw:
+        raw = re.sub(r"^.*?```(?:json)?\s*", "", raw, flags=re.DOTALL)
+        raw = re.sub(r"\s*```.*$", "", raw, flags=re.DOTALL)
+    raw = raw.strip()
+    start = raw.find("{")
+    end = raw.rfind("}")
+    if start >= 0 and end > start:
+        raw = raw[start:end + 1]
+    try:
+        tpl = json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise ValueError("Vision AI did not return valid JSON. Try again or use a different image. " + str(e))
+    if not isinstance(tpl, dict):
+        raise ValueError("Template must be a JSON object")
+    tpl.setdefault("canvas", {"width": 736, "height": 1308, "aspect_ratio": "9:16"})
+    tpl["canvas"]["width"] = 736
+    tpl["canvas"]["height"] = 1308
+    tpl.setdefault("images", {})
+    tpl.setdefault("elements", {})
+    tpl["source"] = "reference_clone"
+    tpl = _fixup_ai_template(tpl)
+    tpl["name"] = tpl.get("name") or "Reference Clone"
+    elements = tpl.get("elements", {})
+    fp = tpl.get("field_prompts") or {}
+    for ek, ev in elements.items():
+        if not isinstance(ev, dict):
+            continue
+        if ev.get("type") == "text" and ev.get("text") != "{{domain}}":
+            if ek not in fp:
+                if "badge" in ek:
+                    fp[ek] = "Generate a 2-3 word uppercase badge for recipe {{title}}."
+                elif "title" in ek:
+                    fp[ek] = "Generate a short recipe title for {{title}}. 3-8 words, title case."
+                else:
+                    fp[ek] = "Generate short text for {{title}}."
+            ev["text_prompt"] = fp[ek]
+        if ev.get("type") == "text" and (ev.get("text") or "").strip() == "":
+            ev["text"] = "Title" if "title" in ek else "Badge" if "badge" in ek else "Text"
+    tpl["field_prompts"] = fp
+    if not tpl.get("prompt"):
+        tpl["prompt"] = "Generate text for each field based on recipe title. Return a JSON object only."
+    tpl.setdefault("style_slots", {})
+    tpl.setdefault("font_slots", {})
+    return tpl
+
+
+def _fixup_ai_template(tpl):
+    """Validate and fix common AI generation issues in a template dict."""
+    if not isinstance(tpl, dict):
+        raise ValueError("AI did not return a JSON object")
+    if "elements" not in tpl or not isinstance(tpl.get("elements"), dict):
+        raise ValueError("AI template missing 'elements'")
+
+    tpl.setdefault("canvas", {"width": 736, "height": 1308, "aspect_ratio": "9:16"})
+    canvas = tpl["canvas"]
+    canvas.setdefault("width", 736)
+    canvas.setdefault("height", 1308)
+    cw, ch = int(canvas["width"]), int(canvas["height"])
+
+    images = tpl.get("images") or {}
+    if not images:
+        tpl["images"] = {"background": {"description_prompt": "Appetizing food photography", "position": {"top": 0, "left": 0}, "width": cw, "height": ch, "layer_order": 1}}
+    else:
+        for ik, idata in images.items():
+            if not isinstance(idata, dict):
+                continue
+            idata.setdefault("position", {"top": 0, "left": 0})
+            idata.setdefault("layer_order", 1)
+            if ik == "background":
+                idata.setdefault("width", cw)
+                idata.setdefault("height", ch)
+            elif ik == "top_image":
+                idata.setdefault("width", cw)
+                idata.setdefault("height", ch // 2 + 50)
+            elif ik == "bottom_image":
+                idata.setdefault("width", cw)
+                idata.setdefault("height", ch // 2 + 50)
+                if "position" in idata and isinstance(idata["position"], dict):
+                    idata["position"].setdefault("top", ch - idata["height"])
+        tpl["images"] = images
+
+    elements = tpl["elements"]
+    is_reference_clone = tpl.get("source") == "reference_clone"
+    text_defaults = {
+        "font_family": "Georgia, serif",
+        "font_weight": "bold",
+        "color": "#FFFFFF",
+        "text_align": "center",
+    }
+    badge_placeholders = ["Must Try", "Top Pick", "Editor's Choice", "Trending", "New Recipe", "Best Ever", "Family Fav"]
+    title_placeholders = ["Your Recipe Title Here", "Delicious Homemade Delight", "A Culinary Masterpiece"]
+
+    for ek, ev in list(elements.items()):
+        if not isinstance(ev, dict):
+            continue
+        etype = (ev.get("type") or "div").lower()
+        pos = ev.get("position") or {}
+        if not is_reference_clone:
+            if isinstance(pos.get("top"), (int, float)) and pos["top"] > ch:
+                pos["top"] = ch - 80
+            if isinstance(pos.get("left"), (int, float)) and pos["left"] > cw:
+                pos["left"] = 0
+        ev.setdefault("position", {"top": 0, "left": 0})
+        ev.setdefault("z_index", 20 if etype == "text" else 10)
+
+        if etype in ("text", "shape_text"):
+            for dk, dv in text_defaults.items():
+                ev.setdefault(dk, dv)
+            if not is_reference_clone and (not ev.get("font_size") or (isinstance(ev.get("font_size"), (int, float)) and ev["font_size"] < 14)):
+                ev["font_size"] = 24
+            txt = (ev.get("text") or "").strip()
+            if not txt or txt in ("", "...", "null", "undefined"):
+                import random as _rnd
+                if "badge" in ek.lower():
+                    ev["text"] = _rnd.choice(badge_placeholders)
+                elif "title" in ek.lower():
+                    ev["text"] = _rnd.choice(title_placeholders)
+                elif "domain" in ek.lower() or "website" in ek.lower() or "url" in ek.lower():
+                    ev["text"] = "{{domain}}"
+                else:
+                    ev["text"] = "Sample Text"
+            if not is_reference_clone:
+                w = ev.get("width")
+                if isinstance(w, (int, float)) and w < 50:
+                    ev["width"] = max(200, w)
+                h = ev.get("height")
+                if isinstance(h, (int, float)) and h < 20:
+                    ev["height"] = max(40, h)
+
+    found_badge = any("badge" in k.lower() for k in elements)
+    found_title = any("title" in k.lower() for k in elements)
+    found_website = any(isinstance(v, dict) and v.get("text") == "{{domain}}" for v in elements.values())
+    found_stars = any(isinstance(v, dict) and v.get("type") == "stars" for v in elements.values())
+
+    if not is_reference_clone:
+        if not found_badge:
+            import random as _rnd
+            elements["badge"] = {
+                "type": "text", "text": _rnd.choice(badge_placeholders),
+                "text_prompt": "Generate badge for recipe {{title}}. 2-3 words, title case.",
+                "position": {"top": 540, "left": 188}, "width": 360, "height": 48,
+                "font_family": "Georgia, serif", "font_size": 26, "font_weight": "bold",
+                "color": "#FFFFFF", "text_align": "center", "background": "transparent",
+                "border": "2px solid #D4AF37", "border_radius": 24, "padding": "10px 24px", "z_index": 20,
+            }
+        if not found_title:
+            import random as _rnd
+            elements["title"] = {
+                "type": "text", "text": _rnd.choice(title_placeholders),
+                "text_prompt": "Generate title for recipe {{title}}. 3-8 words.",
+                "position": {"top": 650, "left": 40}, "width": 656, "height": 100,
+                "font_family": "Georgia, serif", "font_size": 42, "font_weight": "bold",
+                "color": "#FFFFFF", "text_align": "center", "line_height": 1.2, "z_index": 20,
+            }
+        if not found_stars:
+            elements["stars"] = {
+                "type": "stars", "count": 5,
+                "position": {"top": 604, "left": 278}, "star_size": 28, "color": "#FFD700", "z_index": 20,
+            }
+        has_overlay = any(isinstance(v, dict) and (v.get("type") or "").lower() in ("div", "box", "shape") for v in elements.values())
+        if not has_overlay:
+            elements["overlay_band"] = {
+                "type": "div", "position": {"top": 500, "left": 0}, "width": cw, "height": 300,
+                "background_color": "rgba(0,0,0,0.7)", "z_index": 10,
+            }
+    if not found_website:
+        elements["website"] = {
+            "type": "text", "text": "{{domain}}",
+            "position": {"top": ch - 68, "left": 0}, "width": cw, "height": 48,
+            "font_family": "Arial, sans-serif", "font_size": 21, "font_weight": "bold",
+            "color": "#FFFFFF", "text_align": "center", "text_shadow": "0 0 12px rgba(0,0,0,0.5)", "z_index": 25,
+        }
+
+    if is_reference_clone:
+        z_div, z_text, z_stars = 5, 20, 30
+        for ek, ev in elements.items():
+            if not isinstance(ev, dict):
+                continue
+            etype = (ev.get("type") or "div").lower()
+            if etype in ("div", "box", "shape"):
+                ev["z_index"] = z_div
+                z_div += 5
+            elif etype in ("text", "shape_text"):
+                ev["z_index"] = z_text
+                z_text += 1
+            elif etype == "stars":
+                ev["z_index"] = z_stars
+                z_stars += 1
+
+    if not tpl.get("prompt"):
+        tpl["prompt"] = "Generate text for each field based on the recipe title. Return a JSON object only."
+    if not tpl.get("field_prompts"):
+        tpl["field_prompts"] = {}
+    fp = tpl["field_prompts"]
+    for ek, ev in elements.items():
+        if isinstance(ev, dict) and ev.get("type") in ("text", "shape_text") and ev.get("text") != "{{domain}}":
+            if ek not in fp and ev.get("text_prompt"):
+                fp[ek] = ev["text_prompt"]
+            elif ek not in fp:
+                fp[ek] = f"Generate {ek.replace('_', ' ')} text for recipe {{{{title}}}}. Short and catchy."
+
+    tpl.setdefault("name", "AI Creative Pin")
+
+    tpl.setdefault("style_slots", {
+        "overlay_band": {"background_color": "primary"},
+        "badge": {"color": "on_primary", "border": "border_accent"},
+        "title": {"color": "on_primary"},
+        "stars": {"color": "secondary"},
+        "website": {"color": "on_dark"},
+    })
+    tpl.setdefault("font_slots", {
+        "badge": "body",
+        "title": "heading",
+        "website": "body",
+    })
+    return tpl
+
+
+_COLOR_PALETTES = [
+    {"band": "#1A1A1A", "badge_bg": "#1A1A1A", "badge_border": "none", "badge_text": "#FFFFFF", "title_text": "#FFFFFF", "title_accent": "#DAA520", "accent": "#DAA520", "stars": "#FFD700", "web_bg": "rgba(0,0,0,0.6)", "web_text": "#FFFFFF", "card_bg": "rgba(255,255,255,0.95)", "card_title": "#1A1A1A", "card_badge": "#1A1A1A", "name": "Classic Dark"},
+    {"band": "#1B3248", "badge_bg": "#1B3248", "badge_border": "none", "badge_text": "#FFFFFF", "title_text": "#FFFFFF", "title_accent": "#FFFFFF", "accent": "#3498DB", "stars": "#FFD700", "web_bg": "#1B3248", "web_text": "#FFFFFF", "card_bg": "rgba(255,255,255,0.95)", "card_title": "#1B3248", "card_badge": "#1B3248", "name": "Navy Blue"},
+    {"band": "#2D8B72", "badge_bg": "#2D8B72", "badge_border": "none", "badge_text": "#FFFFFF", "title_text": "#FFFFFF", "title_accent": "#FFFFFF", "accent": "#2D8B72", "stars": "#FFD700", "web_bg": "#2D8B72", "web_text": "#FFFFFF", "card_bg": "rgba(255,255,255,0.95)", "card_title": "#2D8B72", "card_badge": "#FFFFFF", "name": "Teal Green"},
+    {"band": "#C0392B", "badge_bg": "#C0392B", "badge_border": "none", "badge_text": "#FFFFFF", "title_text": "#FFFFFF", "title_accent": "#FFD700", "accent": "#C0392B", "stars": "#FFD700", "web_bg": "#C0392B", "web_text": "#FFFFFF", "card_bg": "rgba(255,255,255,0.95)", "card_title": "#C0392B", "card_badge": "#FFFFFF", "name": "Bold Red"},
+    {"band": "#E67E22", "badge_bg": "#E67E22", "badge_border": "none", "badge_text": "#FFFFFF", "title_text": "#FFFFFF", "title_accent": "#FFFFFF", "accent": "#E67E22", "stars": "#FFD700", "web_bg": "#D35400", "web_text": "#FFFFFF", "card_bg": "rgba(255,255,255,0.95)", "card_title": "#D35400", "card_badge": "#FFFFFF", "name": "Orange Warm"},
+    {"band": "#8E44AD", "badge_bg": "#8E44AD", "badge_border": "none", "badge_text": "#FFFFFF", "title_text": "#FFFFFF", "title_accent": "#F1C40F", "accent": "#8E44AD", "stars": "#FFD700", "web_bg": "#6C3483", "web_text": "#FFFFFF", "card_bg": "rgba(255,255,255,0.95)", "card_title": "#6C3483", "card_badge": "#FFFFFF", "name": "Royal Purple"},
+    {"band": "#2C3E50", "badge_bg": "#2C3E50", "badge_border": "none", "badge_text": "#FFFFFF", "title_text": "#FFFFFF", "title_accent": "#E74C3C", "accent": "#E74C3C", "stars": "#FFD700", "web_bg": "#2C3E50", "web_text": "#ECF0F1", "card_bg": "rgba(255,255,255,0.95)", "card_title": "#2C3E50", "card_badge": "#E74C3C", "name": "Charcoal Red"},
+    {"band": "#D4AC0D", "badge_bg": "#1A1A1A", "badge_border": "none", "badge_text": "#D4AC0D", "title_text": "#FFFFFF", "title_accent": "#D4AC0D", "accent": "#D4AC0D", "stars": "#FFD700", "web_bg": "rgba(0,0,0,0.7)", "web_text": "#D4AC0D", "card_bg": "rgba(255,255,255,0.95)", "card_title": "#1A1A1A", "card_badge": "#D4AC0D", "name": "Gold Luxury"},
+    {"band": "#117A65", "badge_bg": "rgba(255,255,255,0.9)", "badge_border": "3px solid #117A65", "badge_text": "#117A65", "title_text": "#FFFFFF", "title_accent": "#FFFFFF", "accent": "#117A65", "stars": "#FFD700", "web_bg": "#117A65", "web_text": "#FFFFFF", "card_bg": "rgba(255,255,255,0.95)", "card_title": "#117A65", "card_badge": "#117A65", "name": "Emerald"},
+    {"band": "#E91E63", "badge_bg": "#E91E63", "badge_border": "none", "badge_text": "#FFFFFF", "title_text": "#1A1A1A", "title_accent": "#E91E63", "accent": "#E91E63", "stars": "#E91E63", "web_bg": "rgba(0,0,0,0.5)", "web_text": "#FFFFFF", "card_bg": "rgba(255,255,255,0.95)", "card_title": "#1A1A1A", "card_badge": "#E91E63", "name": "Hot Pink"},
+    {"band": "#34495E", "badge_bg": "#F39C12", "badge_border": "none", "badge_text": "#FFFFFF", "title_text": "#FFFFFF", "title_accent": "#F39C12", "accent": "#F39C12", "stars": "#F39C12", "web_bg": "#34495E", "web_text": "#F39C12", "card_bg": "rgba(255,255,255,0.95)", "card_title": "#34495E", "card_badge": "#F39C12", "name": "Slate Amber"},
+    {"band": "#6B3A2A", "badge_bg": "#6B3A2A", "badge_border": "none", "badge_text": "#FFE4B5", "title_text": "#FFFFFF", "title_accent": "#FFE4B5", "accent": "#FFE4B5", "stars": "#FFD700", "web_bg": "#6B3A2A", "web_text": "#FFE4B5", "card_bg": "rgba(255,248,235,0.95)", "card_title": "#6B3A2A", "card_badge": "#6B3A2A", "name": "Rustic Brown"},
+    # --- More distinct styles ---
+    {"band": "#FDF6E3", "badge_bg": "#073642", "badge_border": "none", "badge_text": "#FDF6E3", "title_text": "#073642", "title_accent": "#268BD2", "accent": "#268BD2", "stars": "#B58900", "web_bg": "#073642", "web_text": "#FDF6E3", "card_bg": "rgba(253,246,227,0.98)", "card_title": "#073642", "card_badge": "#268BD2", "name": "Light Solar"},
+    {"band": "#1E3A5F", "badge_bg": "#E8F4F8", "badge_border": "2px solid #E8F4F8", "badge_text": "#1E3A5F", "title_text": "#FFFFFF", "title_accent": "#7FDBDA", "accent": "#7FDBDA", "stars": "#7FDBDA", "web_bg": "#0D2137", "web_text": "#E8F4F8", "card_bg": "rgba(255,255,255,0.95)", "card_title": "#1E3A5F", "card_badge": "#7FDBDA", "name": "Coastal"},
+    {"band": "#2D132C", "badge_bg": "#C72C41", "badge_border": "none", "badge_text": "#FFFFFF", "title_text": "#FFFFFF", "title_accent": "#EE4540", "accent": "#EE4540", "stars": "#FFD700", "web_bg": "#2D132C", "web_text": "#FFF", "card_bg": "rgba(255,255,255,0.95)", "card_title": "#2D132C", "card_badge": "#EE4540", "name": "Berry Wine"},
+    {"band": "#0D1B2A", "badge_bg": "#415A77", "badge_border": "none", "badge_text": "#E0E1DD", "title_text": "#E0E1DD", "title_accent": "#778DA9", "accent": "#778DA9", "stars": "#E0E1DD", "web_bg": "#0D1B2A", "web_text": "#E0E1DD", "card_bg": "rgba(224,225,221,0.95)", "card_title": "#0D1B2A", "card_badge": "#415A77", "name": "Dark Slate"},
+    {"band": "#F5E6D3", "badge_bg": "#5D4E37", "badge_border": "none", "badge_text": "#F5E6D3", "title_text": "#3E3229", "title_accent": "#8B6914", "accent": "#8B6914", "stars": "#8B6914", "web_bg": "#5D4E37", "web_text": "#F5E6D3", "card_bg": "rgba(255,250,240,0.98)", "card_title": "#3E3229", "card_badge": "#5D4E37", "name": "Cream Earth"},
+    {"band": "#FF6B6B", "badge_bg": "#4ECDC4", "badge_border": "none", "badge_text": "#FFFFFF", "title_text": "#FFFFFF", "title_accent": "#FFE66D", "accent": "#FFE66D", "stars": "#FFE66D", "web_bg": "#2C3E50", "web_text": "#FFF", "card_bg": "rgba(255,255,255,0.95)", "card_title": "#2C3E50", "card_badge": "#4ECDC4", "name": "Coral Mint"},
+    {"band": "#2D3436", "badge_bg": "#E17055", "badge_border": "none", "badge_text": "#FFFFFF", "title_text": "#DFE6E9", "title_accent": "#FDCB6E", "accent": "#FDCB6E", "stars": "#FDCB6E", "web_bg": "#2D3436", "web_text": "#DFE6E9", "card_bg": "rgba(255,255,255,0.95)", "card_title": "#2D3436", "card_badge": "#E17055", "name": "Graphite Coral"},
+    {"band": "#6C5CE7", "badge_bg": "#A29BFE", "badge_border": "none", "badge_text": "#2D3436", "title_text": "#FFFFFF", "title_accent": "#DFE6E9", "accent": "#A29BFE", "stars": "#FDCB6E", "web_bg": "#5B4FCF", "web_text": "#FFF", "card_bg": "rgba(255,255,255,0.95)", "card_title": "#2D3436", "card_badge": "#6C5CE7", "name": "Violet"},
+    {"band": "#00B894", "badge_bg": "#00CEC9", "badge_border": "none", "badge_text": "#FFFFFF", "title_text": "#FFFFFF", "title_accent": "#FDCB6E", "accent": "#FDCB6E", "stars": "#FDCB6E", "web_bg": "#009B7D", "web_text": "#FFF", "card_bg": "rgba(255,255,255,0.95)", "card_title": "#006266", "card_badge": "#00CEC9", "name": "Mint Fresh"},
+    {"band": "#E84393", "badge_bg": "#FD79A8", "badge_border": "none", "badge_text": "#FFFFFF", "title_text": "#FFFFFF", "title_accent": "#F8B500", "accent": "#F8B500", "stars": "#F8B500", "web_bg": "#C0396B", "web_text": "#FFF", "card_bg": "rgba(255,255,255,0.95)", "card_title": "#2D3436", "card_badge": "#E84393", "name": "Pink Pop"},
+    {"band": "#2C2C54", "badge_bg": "#AAABBC", "badge_border": "2px solid #AAABBC", "badge_text": "#2C2C54", "title_text": "#EDE7E3", "title_accent": "#AAABBC", "accent": "#AAABBC", "stars": "#F8B500", "web_bg": "#1A1A2E", "web_text": "#EDE7E3", "card_bg": "rgba(237,231,227,0.95)", "card_title": "#2C2C54", "card_badge": "#2C2C54", "name": "Indigo Muted"},
+    {"band": "#F8B500", "badge_bg": "#1A1A1A", "badge_border": "none", "badge_text": "#F8B500", "title_text": "#1A1A1A", "title_accent": "#1A1A1A", "accent": "#1A1A1A", "stars": "#E74C3C", "web_bg": "#1A1A1A", "web_text": "#F8B500", "card_bg": "rgba(255,255,255,0.98)", "card_title": "#1A1A1A", "card_badge": "#F8B500", "name": "Yellow Bold"},
+    {"band": "#FFFFFF", "badge_bg": "#2D3436", "badge_border": "none", "badge_text": "#FFFFFF", "title_text": "#2D3436", "title_accent": "#E17055", "accent": "#E17055", "stars": "#E17055", "web_bg": "#2D3436", "web_text": "#FFFFFF", "card_bg": "rgba(255,255,255,0.98)", "card_title": "#2D3436", "card_badge": "#E17055", "name": "Minimal White"},
+]
+
+_FONT_COMBOS = [
+    {"heading": "Impact, 'Arial Black', sans-serif", "accent": "'Georgia', serif", "body": "Arial, sans-serif"},
+    {"heading": "'Arial Black', Impact, sans-serif", "accent": "'Brush Script MT', cursive", "body": "'Trebuchet MS', sans-serif"},
+    {"heading": "Impact, sans-serif", "accent": "'Palatino Linotype', serif", "body": "Verdana, sans-serif"},
+    {"heading": "'Arial Black', sans-serif", "accent": "'Lucida Handwriting', cursive", "body": "Calibri, sans-serif"},
+    {"heading": "Impact, 'Arial Narrow', sans-serif", "accent": "'Georgia', serif", "body": "'Segoe UI', sans-serif"},
+    {"heading": "'Trebuchet MS', Impact, sans-serif", "accent": "'Comic Sans MS', cursive", "body": "Arial, sans-serif"},
+    {"heading": "Impact, sans-serif", "accent": "'Times New Roman', serif", "body": "'Helvetica Neue', sans-serif"},
+    {"heading": "'Arial Black', Gadget, sans-serif", "accent": "'Palatino', serif", "body": "Tahoma, sans-serif"},
+    {"heading": "Impact, sans-serif", "accent": "'Courier New', monospace", "body": "Verdana, sans-serif"},
+    {"heading": "'Arial Narrow', sans-serif", "accent": "'Georgia', serif", "body": "Arial, sans-serif"},
+    {"heading": "Impact, sans-serif", "accent": "'Franklin Gothic Medium', sans-serif", "body": "'Segoe UI', sans-serif"},
+    {"heading": "'Century Gothic', sans-serif", "accent": "'Georgia', serif", "body": "Tahoma, sans-serif"},
+    {"heading": "'Arial Black', sans-serif", "accent": "'Times New Roman', serif", "body": "Calibri, sans-serif"},
+    {"heading": "Impact, sans-serif", "accent": "'Cambria', serif", "body": "Verdana, sans-serif"},
+    {"heading": "'Lucida Sans Unicode', sans-serif", "accent": "'Palatino Linotype', serif", "body": "Arial, sans-serif"},
+]
+
+_BADGE_TEXTS = ["MUST TRY", "TOP PICK", "EDITOR'S CHOICE", "TRENDING NOW", "NEW RECIPE", "BEST EVER", "FAMILY FAVORITE", "QUICK & EASY", "TOP RATED", "CHEF'S PICK", "SO GOOD", "AMAZING", "FAN FAV", "EASY PEASY", "CROWD PLEASER", "WEEKEND VIBES", "COZY COOKING", "INSTANT HIT"]
+_TITLE_LINE1 = ["HEALTHY", "DELICIOUS", "EASY", "BEST EVER", "AMAZING", "HOMEMADE", "CLASSIC", "PERFECT", "SIMPLE", "ULTIMATE", "FAVORITE", "QUICK", "COZY", "FRESH", "BOLD"]
+_TITLE_LINE2 = ["RECIPE IDEAS", "DINNER RECIPES", "COMFORT FOOD", "MEAL PREP", "WEEKNIGHT MEALS", "PARTY RECIPES", "COOKIE RECIPES", "DESSERT IDEAS", "BREAKFAST IDEAS", "ONE-POT MEALS", "SHEET PAN RECIPES", "SLOW COOKER", "AIR FRYER FAVES", "SUMMER RECIPES", "HOLIDAY RECIPES"]
+_SUBTITLE_TEXTS = ["Easy Recipe", "for Dinner", "Quick & Simple", "You'll Love", "That Actually Work", "for the Family", "Ready in Minutes", "Under 30 Min", "5 Ingredients", "Make Ahead", "Freezer Friendly", "One Bowl"]
+
+
+def _build_blueprint_templates():
+    """Return diverse pin template blueprints matching real Pinterest styles."""
+    CW, CH = 736, 1308
+    HCW = CW // 2
+    blueprints = []
+
+    # --- 1: Top full photo + dark band with HUGE text + 2 photos bottom side-by-side ---
+    # Like pin ref: "15 Healthy Sweet Potato Recipe Ideas"
+    blueprints.append({"_layout": "top_full_band_2bottom", "name": "Top Photo Bold Band",
+        "images": {
+            "top_image":      {"description_prompt": "Food hero shot",     "position": {"top": 0, "left": 0},   "width": CW,  "height": 520, "layer_order": 1},
+            "bottom_left":    {"description_prompt": "Food variant left",  "position": {"top": 880, "left": 0}, "width": HCW, "height": 428, "layer_order": 1},
+            "bottom_right":   {"description_prompt": "Food variant right", "position": {"top": 880, "left": HCW}, "width": HCW, "height": 428, "layer_order": 1},
+        },
+        "elements": {
+            "band":           {"type": "div",  "position": {"top": 480, "left": 0}, "width": CW, "height": 440, "z_index": 10},
+            "badge":          {"type": "text", "position": {"top": 505, "left": 40}, "width": 656, "height": 50,  "font_size": 30, "text_align": "center", "z_index": 20},
+            "title_main":     {"type": "text", "position": {"top": 565, "left": 30}, "width": 676, "height": 120, "font_size": 72, "font_weight": "900", "text_align": "center", "line_height": 0.95, "text_transform": "uppercase", "z_index": 20},
+            "title_accent":   {"type": "text", "position": {"top": 700, "left": 30}, "width": 676, "height": 60,  "font_size": 48, "text_align": "center", "z_index": 20},
+            "website":        {"type": "text", "text": "{{domain}}", "position": {"top": CH - 48, "left": 0}, "width": CW, "height": 40, "font_size": 18, "text_align": "center", "z_index": 20},
+        }})
+
+    # --- 2: 2 photos top side-by-side + white text band + full photo bottom ---
+    # Like pin ref: "25 High Protein Low Calorie Breakfasts"
+    blueprints.append({"_layout": "2top_band_bottom", "name": "Two Top White Band",
+        "images": {
+            "top_left":       {"description_prompt": "Food close-up left",  "position": {"top": 0, "left": 0},   "width": HCW, "height": 440, "layer_order": 1},
+            "top_right":      {"description_prompt": "Food close-up right", "position": {"top": 0, "left": HCW}, "width": HCW, "height": 440, "layer_order": 1},
+            "bottom_image":   {"description_prompt": "Food full bottom",    "position": {"top": 868, "left": 0}, "width": CW,  "height": 440, "layer_order": 1},
+        },
+        "elements": {
+            "band":           {"type": "div",  "position": {"top": 400, "left": 0}, "width": CW, "height": 508, "z_index": 10},
+            "title_main":     {"type": "text", "position": {"top": 420, "left": 30}, "width": 676, "height": 140, "font_size": 76, "font_weight": "900", "text_align": "center", "line_height": 0.92, "text_transform": "uppercase", "z_index": 20},
+            "title_accent":   {"type": "text", "position": {"top": 580, "left": 30}, "width": 676, "height": 60,  "font_size": 50, "text_align": "center", "font_style": "italic", "z_index": 20},
+            "badge":          {"type": "text", "position": {"top": 660, "left": 100}, "width": 536, "height": 46, "font_size": 32, "text_align": "center", "text_transform": "uppercase", "z_index": 20},
+            "website":        {"type": "text", "text": "{{domain}}", "position": {"top": 780, "left": 100}, "width": 536, "height": 36, "font_size": 18, "text_align": "center", "z_index": 20},
+        }})
+
+    # --- 3: 2x2 photo grid + dark band overlay in center ---
+    # Like pin ref: "50 Super Simple Ground Beef Recipes"
+    blueprints.append({"_layout": "grid_2x2_center_band", "name": "Grid Center Band",
+        "images": {
+            "top_left":       {"description_prompt": "Food dish 1", "position": {"top": 0, "left": 0},     "width": HCW, "height": 534, "layer_order": 1},
+            "top_right":      {"description_prompt": "Food dish 2", "position": {"top": 0, "left": HCW},   "width": HCW, "height": 534, "layer_order": 1},
+            "bottom_left":    {"description_prompt": "Food dish 3", "position": {"top": 534, "left": 0},   "width": HCW, "height": 534, "layer_order": 1},
+            "bottom_right":   {"description_prompt": "Food dish 4", "position": {"top": 534, "left": HCW}, "width": HCW, "height": 534, "layer_order": 1},
+        },
+        "elements": {
+            "band":           {"type": "div",  "position": {"top": 360, "left": 0}, "width": CW, "height": 420, "z_index": 10},
+            "badge_circle":   {"type": "div",  "position": {"top": 310, "left": 288}, "width": 160, "height": 160, "border_radius": 80, "border": "4px solid #FFFFFF", "z_index": 15},
+            "badge":          {"type": "text", "position": {"top": 338, "left": 298}, "width": 140, "height": 100, "font_size": 56, "font_weight": "900", "text_align": "center", "z_index": 20},
+            "title_accent":   {"type": "text", "position": {"top": 490, "left": 30}, "width": 676, "height": 56,  "font_size": 42, "text_align": "center", "font_style": "italic", "z_index": 20},
+            "title_main":     {"type": "text", "position": {"top": 556, "left": 20}, "width": 696, "height": 160, "font_size": 80, "font_weight": "900", "text_align": "center", "line_height": 0.9, "text_transform": "uppercase", "z_index": 20},
+            "website":        {"type": "text", "text": "{{domain}}", "position": {"top": 730, "left": 100}, "width": 536, "height": 36, "font_size": 18, "text_align": "center", "z_index": 20},
+        }})
+
+    # --- 4: 2x2 photo grid + white card center with mixed fonts ---
+    # Like pin ref: "30 Best Sweet Potato Recipes for Dinner"
+    blueprints.append({"_layout": "grid_2x2_white_card", "name": "Grid White Card",
+        "images": {
+            "top_left":       {"description_prompt": "Food angle 1",  "position": {"top": 0, "left": 0},     "width": HCW, "height": 654, "layer_order": 1},
+            "top_right":      {"description_prompt": "Food angle 2",  "position": {"top": 0, "left": HCW},   "width": HCW, "height": 654, "layer_order": 1},
+            "bottom_left":    {"description_prompt": "Food angle 3",  "position": {"top": 654, "left": 0},   "width": HCW, "height": 654, "layer_order": 1},
+            "bottom_right":   {"description_prompt": "Food angle 4",  "position": {"top": 654, "left": HCW}, "width": HCW, "height": 654, "layer_order": 1},
+        },
+        "elements": {
+            "card":           {"type": "div",  "position": {"top": 340, "left": 68}, "width": 600, "height": 560, "border_radius": 8, "z_index": 10},
+            "badge":          {"type": "text", "position": {"top": 370, "left": 248}, "width": 240, "height": 80, "font_size": 64, "font_weight": "900", "text_align": "center", "z_index": 20},
+            "title_pre":      {"type": "text", "position": {"top": 460, "left": 108}, "width": 520, "height": 50, "font_size": 36, "font_weight": "900", "text_align": "center", "text_transform": "uppercase", "z_index": 20},
+            "title_main":     {"type": "text", "position": {"top": 520, "left": 88}, "width": 560, "height": 160, "font_size": 72, "font_weight": "900", "text_align": "center", "line_height": 0.95, "text_transform": "uppercase", "z_index": 20},
+            "title_accent":   {"type": "text", "position": {"top": 710, "left": 108}, "width": 520, "height": 56, "font_size": 42, "text_align": "center", "font_style": "italic", "z_index": 20},
+            "website":        {"type": "text", "text": "{{domain}}", "position": {"top": 820, "left": 108}, "width": 520, "height": 36, "font_size": 17, "text_align": "center", "z_index": 20},
+        }})
+
+    # --- 5: Top+bottom split with text band between (brownie style) ---
+    # Like pin ref: "Brownie Crinkle Cookies"
+    blueprints.append({"_layout": "split_bold_band", "name": "Split Bold Text",
+        "images": {
+            "top_image":      {"description_prompt": "Food close shot",   "position": {"top": 0, "left": 0},   "width": CW, "height": 580, "layer_order": 1},
+            "bottom_image":   {"description_prompt": "Food detail shot",  "position": {"top": 828, "left": 0}, "width": CW, "height": 480, "layer_order": 1},
+        },
+        "elements": {
+            "band":           {"type": "div",  "position": {"top": 540, "left": 0}, "width": CW, "height": 328, "z_index": 10},
+            "badge":          {"type": "text", "position": {"top": 558, "left": 80}, "width": 576, "height": 44, "font_size": 26, "text_align": "center", "text_transform": "uppercase", "letter_spacing": "2px", "z_index": 20},
+            "title_main":     {"type": "text", "position": {"top": 616, "left": 20}, "width": 696, "height": 100, "font_size": 68, "font_weight": "900", "text_align": "center", "line_height": 0.95, "text_transform": "uppercase", "z_index": 20},
+            "title_accent":   {"type": "text", "position": {"top": 730, "left": 40}, "width": 656, "height": 56, "font_size": 48, "text_align": "center", "font_style": "italic", "z_index": 20},
+            "website":        {"type": "text", "text": "{{domain}}", "position": {"top": CH - 48, "left": 0}, "width": CW, "height": 40, "font_size": 18, "text_align": "center", "text_shadow": "0 0 8px rgba(0,0,0,0.5)", "z_index": 20},
+        }})
+
+    # --- 6: Top+bottom split with colored/bordered text band ---
+    # Like pin ref: "Best S'mores Cookie Recipe"
+    blueprints.append({"_layout": "split_bordered_band", "name": "Split Bordered Band",
+        "images": {
+            "top_image":      {"description_prompt": "Food macro shot",    "position": {"top": 0, "left": 0},   "width": CW, "height": 540, "layer_order": 1},
+            "bottom_image":   {"description_prompt": "Food second angle",  "position": {"top": 860, "left": 0}, "width": CW, "height": 448, "layer_order": 1},
+        },
+        "elements": {
+            "band":           {"type": "div",  "position": {"top": 500, "left": 0}, "width": CW, "height": 400, "border": "4px solid #FFFFFF", "z_index": 10},
+            "badge":          {"type": "text", "position": {"top": 522, "left": 60}, "width": 616, "height": 48, "font_size": 26, "text_align": "center", "text_transform": "uppercase", "letter_spacing": "3px", "z_index": 20},
+            "title_main":     {"type": "text", "position": {"top": 590, "left": 30}, "width": 676, "height": 200, "font_size": 70, "font_weight": "900", "text_align": "center", "line_height": 0.92, "text_transform": "uppercase", "z_index": 20},
+            "website":        {"type": "text", "text": "{{domain}}", "position": {"top": CH - 48, "left": 0}, "width": CW, "height": 40, "font_size": 18, "text_align": "center", "z_index": 20},
+        }})
+
+    # --- 7: Top full photo + text area + accent line + bottom photo ---
+    # Like pin ref: "Cream Cheese-Filled Banana Bread"
+    blueprints.append({"_layout": "split_accent_line", "name": "Accent Line Split",
+        "images": {
+            "top_image":      {"description_prompt": "Food hero",     "position": {"top": 0, "left": 0},   "width": CW, "height": 520, "layer_order": 1},
+            "bottom_image":   {"description_prompt": "Food serving",  "position": {"top": 920, "left": 0}, "width": CW, "height": 388, "layer_order": 1},
+        },
+        "elements": {
+            "accent_bar":     {"type": "div",  "position": {"top": 520, "left": 80}, "width": 576, "height": 6, "z_index": 15},
+            "title_main":     {"type": "text", "position": {"top": 548, "left": 20}, "width": 696, "height": 140, "font_size": 72, "font_weight": "900", "text_align": "center", "line_height": 0.92, "text_transform": "uppercase", "z_index": 20},
+            "title_accent":   {"type": "text", "position": {"top": 710, "left": 40}, "width": 656, "height": 56, "font_size": 52, "text_align": "center", "font_weight": "900", "text_transform": "uppercase", "z_index": 20},
+            "badge":          {"type": "text", "position": {"top": 790, "left": 140}, "width": 456, "height": 44, "font_size": 22, "text_align": "center", "text_transform": "uppercase", "letter_spacing": "4px", "z_index": 20},
+            "accent_bar_2":   {"type": "div",  "position": {"top": 858, "left": 80}, "width": 576, "height": 6, "z_index": 15},
+            "website":        {"type": "text", "text": "{{domain}}", "position": {"top": CH - 48, "left": 0}, "width": CW, "height": 40, "font_size": 18, "text_align": "center", "z_index": 20},
+        }})
+
+    # --- 8: Full background + bottom gradient + huge white text ---
+    blueprints.append({"_layout": "full_bg_gradient_title", "name": "Bold Gradient Title",
+        "images": {
+            "background":     {"description_prompt": "Food overhead",  "position": {"top": 0, "left": 0}, "width": CW, "height": CH, "layer_order": 1},
+        },
+        "elements": {
+            "gradient":       {"type": "div",  "position": {"top": 0, "left": 0}, "width": CW, "height": CH, "background_color": "linear-gradient(to bottom, transparent 35%, rgba(0,0,0,0.85) 100%)", "z_index": 5},
+            "badge":          {"type": "text", "position": {"top": CH - 480, "left": 40}, "width": 656, "height": 44, "font_size": 26, "text_align": "left", "text_transform": "uppercase", "letter_spacing": "3px", "z_index": 20},
+            "title_main":     {"type": "text", "position": {"top": CH - 420, "left": 30}, "width": 676, "height": 200, "font_size": 76, "font_weight": "900", "text_align": "left", "line_height": 0.92, "text_transform": "uppercase", "text_shadow": "3px 3px 12px rgba(0,0,0,0.8)", "z_index": 20},
+            "title_accent":   {"type": "text", "position": {"top": CH - 200, "left": 40}, "width": 656, "height": 56, "font_size": 44, "text_align": "left", "font_style": "italic", "text_shadow": "2px 2px 8px rgba(0,0,0,0.7)", "z_index": 20},
+            "website":        {"type": "text", "text": "{{domain}}", "position": {"top": CH - 56, "left": 0}, "width": CW, "height": 40, "font_size": 18, "text_align": "center", "z_index": 20},
+        }})
+
+    # --- 9: Top full + 2 bottom side-by-side + white text band ---
+    blueprints.append({"_layout": "top_full_white_2bottom", "name": "Top Photo White Band",
+        "images": {
+            "top_image":      {"description_prompt": "Food main shot",   "position": {"top": 0, "left": 0},     "width": CW,  "height": 440, "layer_order": 1},
+            "bottom_left":    {"description_prompt": "Food variant 1",   "position": {"top": 870, "left": 0},   "width": HCW, "height": 438, "layer_order": 1},
+            "bottom_right":   {"description_prompt": "Food variant 2",   "position": {"top": 870, "left": HCW}, "width": HCW, "height": 438, "layer_order": 1},
+        },
+        "elements": {
+            "band":           {"type": "div",  "position": {"top": 400, "left": 0}, "width": CW, "height": 510, "z_index": 10},
+            "badge":          {"type": "text", "position": {"top": 430, "left": 100}, "width": 536, "height": 46, "font_size": 28, "text_align": "center", "text_transform": "uppercase", "letter_spacing": "2px", "z_index": 20},
+            "title_main":     {"type": "text", "position": {"top": 500, "left": 30}, "width": 676, "height": 180, "font_size": 74, "font_weight": "900", "text_align": "center", "line_height": 0.92, "text_transform": "uppercase", "z_index": 20},
+            "title_accent":   {"type": "text", "position": {"top": 700, "left": 80}, "width": 576, "height": 50, "font_size": 40, "text_align": "center", "font_style": "italic", "z_index": 20},
+            "website":        {"type": "text", "text": "{{domain}}", "position": {"top": 780, "left": 100}, "width": 536, "height": 36, "font_size": 17, "text_align": "center", "z_index": 20},
+        }})
+
+    # --- 10: 2x2 grid + bottom dark band ---
+    blueprints.append({"_layout": "grid_2x2_bottom_band", "name": "Grid Bottom Band",
+        "images": {
+            "top_left":       {"description_prompt": "Food plated 1",  "position": {"top": 0, "left": 0},     "width": HCW, "height": 454, "layer_order": 1},
+            "top_right":      {"description_prompt": "Food plated 2",  "position": {"top": 0, "left": HCW},   "width": HCW, "height": 454, "layer_order": 1},
+            "bottom_left":    {"description_prompt": "Food plated 3",  "position": {"top": 454, "left": 0},   "width": HCW, "height": 354, "layer_order": 1},
+            "bottom_right":   {"description_prompt": "Food plated 4",  "position": {"top": 454, "left": HCW}, "width": HCW, "height": 354, "layer_order": 1},
+        },
+        "elements": {
+            "band":           {"type": "div",  "position": {"top": 768, "left": 0}, "width": CW, "height": 540, "z_index": 10},
+            "badge":          {"type": "text", "position": {"top": 800, "left": 80}, "width": 576, "height": 46, "font_size": 28, "text_align": "center", "text_transform": "uppercase", "letter_spacing": "3px", "z_index": 20},
+            "title_main":     {"type": "text", "position": {"top": 870, "left": 20}, "width": 696, "height": 200, "font_size": 78, "font_weight": "900", "text_align": "center", "line_height": 0.90, "text_transform": "uppercase", "z_index": 20},
+            "title_accent":   {"type": "text", "position": {"top": 1100, "left": 40}, "width": 656, "height": 56, "font_size": 42, "text_align": "center", "font_style": "italic", "z_index": 20},
+            "website":        {"type": "text", "text": "{{domain}}", "position": {"top": CH - 52, "left": 100}, "width": 536, "height": 36, "font_size": 18, "text_align": "center", "z_index": 20},
+        }})
+
+    # --- 11: 3 photos (full top + 2 bottom) with floating centered card ---
+    blueprints.append({"_layout": "top_full_2bottom_card", "name": "Photos Float Card",
+        "images": {
+            "top_image":      {"description_prompt": "Food beauty shot",   "position": {"top": 0, "left": 0},     "width": CW,  "height": 560, "layer_order": 1},
+            "bottom_left":    {"description_prompt": "Food variant left",  "position": {"top": 850, "left": 0},   "width": HCW, "height": 458, "layer_order": 1},
+            "bottom_right":   {"description_prompt": "Food variant right", "position": {"top": 850, "left": HCW}, "width": HCW, "height": 458, "layer_order": 1},
+        },
+        "elements": {
+            "card":           {"type": "div",  "position": {"top": 380, "left": 88}, "width": 560, "height": 520, "border_radius": 12, "z_index": 10},
+            "badge":          {"type": "text", "position": {"top": 410, "left": 168}, "width": 400, "height": 50, "font_size": 28, "text_align": "center", "text_transform": "uppercase", "letter_spacing": "2px", "z_index": 20},
+            "title_main":     {"type": "text", "position": {"top": 480, "left": 108}, "width": 520, "height": 180, "font_size": 68, "font_weight": "900", "text_align": "center", "line_height": 0.92, "text_transform": "uppercase", "z_index": 20},
+            "title_accent":   {"type": "text", "position": {"top": 690, "left": 128}, "width": 480, "height": 56, "font_size": 42, "text_align": "center", "font_style": "italic", "z_index": 20},
+            "website":        {"type": "text", "text": "{{domain}}", "position": {"top": 800, "left": 168}, "width": 400, "height": 36, "font_size": 16, "text_align": "center", "z_index": 20},
+        }})
+
+    # --- 12: Full BG + top dark band + bottom dark band (magazine) ---
+    blueprints.append({"_layout": "full_bg_dual_bands", "name": "Magazine Cover",
+        "images": {
+            "background":     {"description_prompt": "Food styled shot", "position": {"top": 0, "left": 0}, "width": CW, "height": CH, "layer_order": 1},
+        },
+        "elements": {
+            "top_band":       {"type": "div",  "position": {"top": 0, "left": 0}, "width": CW, "height": 180, "z_index": 10},
+            "badge":          {"type": "text", "position": {"top": 30, "left": 80}, "width": 576, "height": 48, "font_size": 28, "text_align": "center", "text_transform": "uppercase", "letter_spacing": "3px", "z_index": 20},
+            "title_top":      {"type": "text", "position": {"top": 90, "left": 30}, "width": 676, "height": 70, "font_size": 50, "font_weight": "900", "text_align": "center", "text_transform": "uppercase", "z_index": 20},
+            "bottom_band":    {"type": "div",  "position": {"top": CH - 340, "left": 0}, "width": CW, "height": 340, "z_index": 10},
+            "title_main":     {"type": "text", "position": {"top": CH - 310, "left": 20}, "width": 696, "height": 160, "font_size": 72, "font_weight": "900", "text_align": "center", "line_height": 0.92, "text_transform": "uppercase", "z_index": 20},
+            "title_accent":   {"type": "text", "position": {"top": CH - 130, "left": 40}, "width": 656, "height": 50, "font_size": 40, "text_align": "center", "font_style": "italic", "z_index": 20},
+            "website":        {"type": "text", "text": "{{domain}}", "position": {"top": CH - 56, "left": 0}, "width": CW, "height": 40, "font_size": 18, "text_align": "center", "z_index": 20},
+        }})
+
+    # --- 13: 2 bottom side-by-side + top dark band ---
+    blueprints.append({"_layout": "top_band_2bottom", "name": "Top Band Two Bottom",
+        "images": {
+            "bottom_left":    {"description_prompt": "Food photo left",  "position": {"top": 580, "left": 0},   "width": HCW, "height": 728, "layer_order": 1},
+            "bottom_right":   {"description_prompt": "Food photo right", "position": {"top": 580, "left": HCW}, "width": HCW, "height": 728, "layer_order": 1},
+        },
+        "elements": {
+            "band":           {"type": "div",  "position": {"top": 0, "left": 0}, "width": CW, "height": 620, "z_index": 10},
+            "badge":          {"type": "text", "position": {"top": 50, "left": 100}, "width": 536, "height": 48, "font_size": 28, "text_align": "center", "text_transform": "uppercase", "letter_spacing": "3px", "z_index": 20},
+            "title_main":     {"type": "text", "position": {"top": 130, "left": 20}, "width": 696, "height": 220, "font_size": 82, "font_weight": "900", "text_align": "center", "line_height": 0.88, "text_transform": "uppercase", "z_index": 20},
+            "title_accent":   {"type": "text", "position": {"top": 380, "left": 40}, "width": 656, "height": 60, "font_size": 46, "text_align": "center", "font_style": "italic", "z_index": 20},
+            "website":        {"type": "text", "text": "{{domain}}", "position": {"top": 480, "left": 100}, "width": 536, "height": 36, "font_size": 18, "text_align": "center", "z_index": 20},
+        }})
+
+    # --- 14: Side-by-side vertical (left photo, right photo) + overlay band ---
+    blueprints.append({"_layout": "side_by_side_band", "name": "Side By Side",
+        "images": {
+            "top_left":       {"description_prompt": "Food left",  "position": {"top": 0, "left": 0},   "width": HCW, "height": CH, "layer_order": 1},
+            "top_right":      {"description_prompt": "Food right", "position": {"top": 0, "left": HCW}, "width": HCW, "height": CH, "layer_order": 1},
+        },
+        "elements": {
+            "band":           {"type": "div",  "position": {"top": 420, "left": 0}, "width": CW, "height": 420, "z_index": 10},
+            "badge":          {"type": "text", "position": {"top": 448, "left": 100}, "width": 536, "height": 44, "font_size": 26, "text_align": "center", "text_transform": "uppercase", "letter_spacing": "3px", "z_index": 20},
+            "title_main":     {"type": "text", "position": {"top": 510, "left": 20}, "width": 696, "height": 180, "font_size": 74, "font_weight": "900", "text_align": "center", "line_height": 0.90, "text_transform": "uppercase", "z_index": 20},
+            "title_accent":   {"type": "text", "position": {"top": 710, "left": 40}, "width": 656, "height": 56, "font_size": 44, "text_align": "center", "font_style": "italic", "z_index": 20},
+            "website":        {"type": "text", "text": "{{domain}}", "position": {"top": 780, "left": 100}, "width": 536, "height": 36, "font_size": 18, "text_align": "center", "z_index": 20},
+        }})
+
+    # --- 15: Three rows: full top, text band, full bottom ---
+    blueprints.append({"_layout": "three_row_clean", "name": "Three Row Clean",
+        "images": {
+            "top_image":      {"description_prompt": "Food top",    "position": {"top": 0, "left": 0},   "width": CW, "height": 440, "layer_order": 1},
+            "bottom_image":   {"description_prompt": "Food bottom", "position": {"top": 900, "left": 0}, "width": CW, "height": 408, "layer_order": 1},
+        },
+        "elements": {
+            "band":           {"type": "div",  "position": {"top": 400, "left": 0}, "width": CW, "height": 540, "z_index": 10},
+            "badge":          {"type": "text", "position": {"top": 430, "left": 80}, "width": 576, "height": 46, "font_size": 28, "text_align": "center", "text_transform": "uppercase", "letter_spacing": "2px", "z_index": 20},
+            "title_main":     {"type": "text", "position": {"top": 500, "left": 20}, "width": 696, "height": 200, "font_size": 78, "font_weight": "900", "text_align": "center", "line_height": 0.90, "text_transform": "uppercase", "z_index": 20},
+            "title_accent":   {"type": "text", "position": {"top": 730, "left": 40}, "width": 656, "height": 56, "font_size": 44, "text_align": "center", "font_style": "italic", "z_index": 20},
+            "website":        {"type": "text", "text": "{{domain}}", "position": {"top": 820, "left": 100}, "width": 536, "height": 36, "font_size": 18, "text_align": "center", "z_index": 20},
+        }})
+
+    return blueprints
+
+
+def _apply_palette_to_blueprint(tpl, palette, fonts):
+    """Apply a color palette and font combo to a blueprint template."""
+    import copy
+    tpl = copy.deepcopy(tpl)
+    elements = tpl.get("elements", {})
+    for ek, ev in elements.items():
+        if not isinstance(ev, dict):
+            continue
+        etype = (ev.get("type") or "div").lower()
+        if etype in ("div", "box", "shape"):
+            if "gradient" in ek or "dark" in ek:
+                pass
+            elif "accent" in ek or "line" in ek or "bar" in ek or "seam" in ek:
+                ev["background_color"] = palette["accent"]
+            elif "card" in ek:
+                ev["background_color"] = palette.get("card_bg", "rgba(255,255,255,0.95)")
+            elif "circle" in ek:
+                ev["background_color"] = palette.get("card_bg", "rgba(255,255,255,0.95)")
+                ev.setdefault("border", "4px solid " + palette["band"])
+            else:
+                ev.setdefault("background_color", palette["band"])
+        elif etype == "text":
+            has_card_parent = any(
+                "card" in k2 and isinstance(elements.get(k2), dict) and elements[k2].get("type") in ("div", "box")
+                for k2 in elements
+            )
+            in_card = has_card_parent and tpl.get("_layout", "") in ("grid_2x2_white_card", "top_full_2bottom_card")
+
+            if ev.get("text") == "{{domain}}" or "website" in ek or "web" in ek:
+                if in_card:
+                    ev["color"] = palette.get("card_badge", palette["band"])
+                else:
+                    ev["color"] = palette["web_text"]
+                    if palette.get("web_bg") and "band" not in ek:
+                        pass
+                ev["font_family"] = fonts["body"]
+                ev["font_weight"] = "bold"
+            elif "badge" in ek:
+                if in_card:
+                    ev["color"] = palette.get("card_badge", palette["accent"])
+                    ev["font_family"] = fonts["heading"]
+                else:
+                    ev["color"] = palette["badge_text"]
+                    ev["font_family"] = fonts["body"]
+                    if palette["badge_bg"] and palette["badge_bg"] != "transparent":
+                        ev["background"] = palette["badge_bg"]
+                    if palette["badge_border"] and palette["badge_border"] != "none":
+                        ev["border"] = palette["badge_border"]
+                ev["font_weight"] = "bold"
+            elif "title_main" in ek or "title_top" in ek:
+                if in_card:
+                    ev["color"] = palette.get("card_title", palette["band"])
+                else:
+                    ev["color"] = palette["title_text"]
+                ev["font_family"] = fonts["heading"]
+                ev["font_weight"] = "900"
+                if not in_card:
+                    ev.setdefault("text_shadow", "2px 2px 8px rgba(0,0,0,0.6)")
+            elif "title_accent" in ek:
+                if in_card:
+                    ev["color"] = palette.get("card_badge", palette["accent"])
+                else:
+                    ev["color"] = palette.get("title_accent", palette["accent"])
+                ev["font_family"] = fonts["accent"]
+                ev["font_weight"] = "normal"
+                if not in_card:
+                    ev.setdefault("text_shadow", "1px 1px 6px rgba(0,0,0,0.5)")
+            elif "title_pre" in ek:
+                if in_card:
+                    ev["color"] = palette.get("card_title", palette["band"])
+                else:
+                    ev["color"] = palette["title_text"]
+                ev["font_family"] = fonts["heading"]
+                ev["font_weight"] = "900"
+            elif "subtitle" in ek:
+                ev["color"] = palette.get("title_accent", palette["accent"])
+                ev["font_family"] = fonts["accent"]
+                ev["font_weight"] = "bold"
+            else:
+                ev["color"] = palette["title_text"]
+                ev["font_family"] = fonts["body"]
+        elif etype == "stars":
+            ev["color"] = palette["stars"]
+    tpl["elements"] = elements
+    return tpl
+
+
+def _ai_create_template_json(config, provider, model_override=None, creative_prompt=None):
+    """Create a new pin template by picking a random blueprint and applying random color/font variations.
+    Optionally uses AI to generate badge/title text if a provider is available."""
+    import random
+    blueprints = _build_blueprint_templates()
+    bp = random.choice(blueprints)
+    palette = random.choice(_COLOR_PALETTES)
+    fonts = random.choice(_FONT_COMBOS)
+
+    tpl = _apply_palette_to_blueprint(bp, palette, fonts)
+    tpl["name"] = f"{palette['name']} {bp.get('name', 'Pin')}"
+    layout_key = tpl.pop("_layout", "")
+
+    badge_text = random.choice(_BADGE_TEXTS)
+    title_line1 = random.choice(_TITLE_LINE1)
+    title_line2 = random.choice(_TITLE_LINE2)
+    subtitle_text = random.choice(_SUBTITLE_TEXTS)
+    elements = tpl.get("elements", {})
+    for ek, ev in elements.items():
+        if not isinstance(ev, dict) or ev.get("type") != "text":
+            continue
+        if ev.get("text") == "{{domain}}":
+            continue
+        if "badge" in ek and not ev.get("text"):
+            ev["text"] = badge_text
+        elif "title_main" in ek and not ev.get("text"):
+            ev["text"] = title_line2
+        elif "title_accent" in ek and not ev.get("text"):
+            ev["text"] = subtitle_text
+        elif "title_pre" in ek and not ev.get("text"):
+            ev["text"] = title_line1
+        elif "title_top" in ek and not ev.get("text"):
+            ev["text"] = title_line1
+        elif "title" in ek and not ev.get("text"):
+            ev["text"] = title_line2
+        elif "subtitle" in ek and not ev.get("text"):
+            ev["text"] = subtitle_text
+        if not ev.get("text"):
+            ev["text"] = badge_text
+
+    tpl.setdefault("canvas", {"width": 736, "height": 1308, "aspect_ratio": "9:16"})
+    tpl.setdefault("prompt", "Generate text for each field based on the recipe title. Return a JSON object only.")
+    fp = {}
+    for ek, ev in elements.items():
+        if isinstance(ev, dict) and ev.get("type") == "text" and ev.get("text") != "{{domain}}":
+            if "badge" in ek:
+                fp[ek] = "Generate a catchy 2-3 word uppercase badge for recipe {{title}}."
+                ev["text_prompt"] = fp[ek]
+            elif "title_main" in ek:
+                fp[ek] = "Generate a bold short recipe category title for {{title}}. 2-4 words, uppercase."
+                ev["text_prompt"] = fp[ek]
+            elif "title_accent" in ek:
+                fp[ek] = "Generate a short catchy subtitle for recipe {{title}}. 2-4 words."
+                ev["text_prompt"] = fp[ek]
+            elif "title_pre" in ek or "title_top" in ek:
+                fp[ek] = "Generate one descriptive word for recipe {{title}}. E.g. HEALTHY, EASY, BEST."
+                ev["text_prompt"] = fp[ek]
+            elif "title" in ek:
+                fp[ek] = "Generate a short appetizing recipe title for {{title}}. 3-6 words, title case."
+                ev["text_prompt"] = fp[ek]
+            elif "subtitle" in ek:
+                fp[ek] = "Generate a short subtitle for recipe {{title}}. E.g. prep time or description."
+                ev["text_prompt"] = fp[ek]
+    tpl["field_prompts"] = fp
+
+    tpl["style_slots"] = {"band": {"background_color": "primary"}, "badge": {"color": "on_primary"}, "title_main": {"color": "on_primary"}, "title_accent": {"color": "secondary"}, "website": {"color": "on_dark"}}
+    tpl["font_slots"] = {"badge": "body", "title_main": "heading", "title_accent": "accent", "website": "body"}
+
+    if creative_prompt:
+        try:
+            messages = [
+                {"role": "system", "content": "You generate creative short text for Pinterest recipe pins. Return ONLY a JSON object with keys: badge (2-3 catchy UPPERCASE words), title_main (2-4 word UPPERCASE category), title_accent (2-4 word catchy subtitle). No explanation."},
+                {"role": "user", "content": f"Generate text for a recipe pin. Creative direction: {creative_prompt}"},
+            ]
+            raw = _call_ai_chat_generic(messages, provider, config, model_override=model_override, timeout=30)
+            if "```" in raw:
+                raw = re.sub(r"^.*?```(?:json)?\s*", "", raw, flags=re.DOTALL)
+                raw = re.sub(r"\s*```.*$", "", raw, flags=re.DOTALL)
+            raw = raw.strip()
+            start = raw.find("{")
+            end = raw.rfind("}")
+            if start >= 0 and end > start:
+                raw = raw[start:end + 1]
+            ai_texts = json.loads(raw)
+            if isinstance(ai_texts, dict):
+                for ek, ev in elements.items():
+                    if not isinstance(ev, dict):
+                        continue
+                    if "badge" in ek and ai_texts.get("badge"):
+                        ev["text"] = str(ai_texts["badge"])[:30]
+                    elif "title_main" in ek and ai_texts.get("title_main"):
+                        ev["text"] = str(ai_texts["title_main"])[:40]
+                    elif "title_accent" in ek and ai_texts.get("title_accent"):
+                        ev["text"] = str(ai_texts["title_accent"])[:40]
+        except Exception:
+            pass
+
+    return tpl
+
+
+@app.route("/api/pin-create-template-ai", methods=["POST"])
+@login_required
+def api_pin_create_template_ai():
+    """
+    Ask AI to design a completely new pin template from scratch (layout, colors, elements).
+    Runs in background. Saves to pin_template_pool or domain_templates.
+    Body: { ai_provider, model (optional), creative_prompt (optional), domain_id (optional),
+            save_to: "pool"|"domain" (default "pool"), template_name (optional) }
+    """
+    user = get_current_user()
+    user_id = user["id"]
+    body = request.get_json(silent=True) or {}
+    provider = (body.get("ai_provider") or "").strip()
+    model_override = (body.get("model") or body.get("openrouter_model") or body.get("openai_model")
+                      or body.get("local_model") or "").strip() or None
+    llamacpp_model_id = body.get("llamacpp_model_id")
+    if provider == "llamacpp" and llamacpp_model_id:
+        model_override = llamacpp_model_id
+    creative_prompt = (body.get("creative_prompt") or "").strip() or None
+    domain_id = body.get("domain_id")
+    if domain_id is not None:
+        domain_id = int(domain_id)
+    save_to = (body.get("save_to") or "pool").strip().lower()
+    custom_name = (body.get("template_name") or "").strip() or None
+
+    config = get_user_config_for_api(user_id)
+    if not provider:
+        provider = config.get("ai_provider") or "openrouter"
+    if provider in ("openrouter", "openai", "local"):
+        if body.get("openrouter_model"):
+            config["openrouter_model"] = body["openrouter_model"]
+        if body.get("openai_model"):
+            config["openai_model"] = body["openai_model"]
+        if body.get("local_model"):
+            config["local_models"] = body["local_model"]
+
+    job_id = str(uuid.uuid4())
+    _bulk_progress[job_id] = {
+        "status": "running",
+        "message": "AI is designing a new template…",
+        "current_title": "",
+        "type": "single",
+        "action": "Create template (AI)",
+        "domain_id": domain_id,
+        "created_at": time.time(),
+    }
+
+    def task():
+        try:
+            _bulk_progress[job_id]["message"] = "AI is generating template layout…"
+            tpl_data = _ai_create_template_json(config, provider, model_override=model_override, creative_prompt=creative_prompt)
+            tpl_name = tpl_data.get("name") or "AI Template"
+
+            now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
+            db_name = custom_name or f"ai_template_{now_str.replace(' ', '_').replace(':', '').replace('-', '')}"
+            db_name_norm = db_name.lower().replace("-", "_").replace(" ", "_")
+
+            wrapped = {
+                "template_id": db_name_norm,
+                "template_name": db_name_norm,
+                "style_slots": tpl_data.pop("style_slots", {}) or {},
+                "font_slots": tpl_data.pop("font_slots", {}) or {},
+                "template_data": tpl_data,
+            }
+            template_json_str = json.dumps(wrapped)
+
+            tid = None
+            _bulk_progress[job_id]["message"] = "Saving template…"
+
+            if save_to == "domain" and domain_id:
+                display_name = custom_name or f"AI Created {now_str}"
+                with get_connection() as conn:
+                    cur = db_execute(conn, "INSERT INTO domain_templates (domain_id, name, template_json, sort_order) VALUES (?, ?, ?, 0)",
+                                     (domain_id, display_name, template_json_str))
+                    tid = last_insert_id(cur)
+                if not tid:
+                    with get_connection() as conn:
+                        cur = db_execute(conn, "SELECT id FROM domain_templates WHERE domain_id = ? ORDER BY id DESC LIMIT 1", (domain_id,))
+                        row = cur.fetchone()
+                        tid = dict_row(row).get("id") if row else None
+                if tid:
+                    try:
+                        preview_url = _generate_domain_template_preview(template_json_str)
+                        if preview_url:
+                            with get_connection() as conn:
+                                db_execute(conn, "UPDATE domain_templates SET preview_image_url = ? WHERE id = ?", (preview_url, tid))
+                    except Exception:
+                        pass
+            else:
+                with get_connection() as conn:
+                    cur = db_execute(conn, "SELECT id FROM pin_template_pool WHERE name = ?", (db_name_norm,))
+                    existing = cur.fetchone()
+                    if existing:
+                        db_execute(conn, "UPDATE pin_template_pool SET template_json = ?, updated_at = CURRENT_TIMESTAMP WHERE name = ?",
+                                   (template_json_str, db_name_norm))
+                        tid = dict_row(existing).get("id")
+                    else:
+                        cur = db_execute(conn, "INSERT INTO pin_template_pool (name, template_json, preview_image_url) VALUES (?, ?, '')",
+                                         (db_name_norm, template_json_str))
+                        tid = last_insert_id(cur)
+
+            index_html = None
+            test_img = POOL_TEMPLATE_TEST_IMAGE
+            tpl_image_keys = list((tpl_data.get("images") or {}).keys())
+            image_urls = {k: test_img for k in tpl_image_keys}
+            image_urls.update({"background": test_img, "top_image": test_img, "bottom_image": test_img, "avatar": test_img, "main_image": test_img})
+            try:
+                import subprocess as _subprocess
+                renderer_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pin_renderer", "render_pin.js")
+                node_input = json.dumps({"template_data": tpl_data, "image_urls": image_urls})
+                proc = _subprocess.run(["node", renderer_script], input=node_input, capture_output=True, timeout=30,
+                                       cwd=os.path.dirname(os.path.abspath(__file__)), text=True)
+                if proc.returncode == 0:
+                    index_html = (proc.stdout or "").strip()
+            except Exception:
+                pass
+            if not index_html and save_to != "domain":
+                try:
+                    payload_render = {"template_data": tpl_data, "variables": {"title": "Preview Delight", "domain": "example.com"}}
+                    payload_render.update(image_urls)
+                    html, _, _ = _render_pool_template_to_html(db_name_norm, payload_render)
+                    index_html = html
+                except Exception:
+                    pass
+
+            update_data = {
+                "status": "done",
+                "message": f"New template '{custom_name or db_name_norm}' created by AI!",
+                "template_name": custom_name or db_name_norm,
+                "template_name_norm": db_name_norm,
+                "save_to": save_to,
+            }
+            if tid:
+                if save_to == "domain" and domain_id:
+                    update_data["domain_template_id"] = tid
+                else:
+                    update_data["pool_template_id"] = tid
+                    update_data["pool_template_name"] = db_name_norm
+            if index_html:
+                update_data["index_html"] = index_html
+            _bulk_progress[job_id].update(update_data)
+            log.info("AI created template: %s (save_to=%s, tid=%s)", db_name_norm, save_to, tid)
+        except Exception as e:
+            err = str(e)[:BULK_ERROR_DETAIL_MAX]
+            log.exception("AI template creation error: %s", err)
+            _bulk_progress[job_id].update({"status": "error", "message": err, "error_detail": err})
+
+    threading.Thread(target=task, daemon=True).start()
+    return jsonify({"success": True, "job_id": job_id})
+
+
+@app.route("/api/pin-create-template-from-images", methods=["POST"])
+@login_required
+def api_pin_create_template_from_images():
+    """
+    Upload multiple reference pin images; vision AI analyzes them and creates a new template matching their style.
+    Body: { images: ["data:image/jpeg;base64,...", ...] or [{"url": "data:..."}], save_to, template_name, domain_id, ai_provider, model }.
+    Uses OpenAI or OpenRouter vision model (e.g. gpt-4o). Runs in background.
+    """
+    user = get_current_user()
+    user_id = user["id"]
+    body = request.get_json(silent=True) or {}
+    raw_images = body.get("images") or []
+    if not isinstance(raw_images, list):
+        raw_images = [raw_images]
+    image_urls = []
+    for img in raw_images[:10]:
+        if isinstance(img, dict):
+            u = img.get("url") or img.get("data") or ""
+            if img.get("data") and not u.startswith("data:"):
+                u = "data:image/jpeg;base64," + (img.get("data") or "")
+        else:
+            u = str(img).strip()
+        if u:
+            image_urls.append(u)
+    if not image_urls:
+        return jsonify({"success": False, "error": "Provide at least one image (data URL or base64 in body.images)"}), 400
+    provider = (body.get("ai_provider") or "").strip()
+    model_override = (body.get("model") or body.get("openrouter_model") or body.get("openai_model") or "").strip() or None
+    domain_id = body.get("domain_id")
+    if domain_id is not None:
+        domain_id = int(domain_id)
+    save_to = (body.get("save_to") or "pool").strip().lower()
+    custom_name = (body.get("template_name") or "").strip() or None
+    config = get_user_config_for_api(user_id)
+    if not provider:
+        provider = config.get("ai_provider") or "openrouter"
+    if provider in ("openrouter", "openai"):
+        if body.get("openrouter_model"):
+            config["openrouter_model"] = body["openrouter_model"]
+        if body.get("openai_model"):
+            config["openai_model"] = body["openai_model"]
+    if provider not in ("openrouter", "openai"):
+        return jsonify({"success": False, "error": "Reference images require OpenAI or OpenRouter (vision model)."}), 400
+
+    job_id = str(uuid.uuid4())
+    _bulk_progress[job_id] = {
+        "status": "running",
+        "message": "Analyzing reference images…",
+        "current_title": "",
+        "type": "single",
+        "action": "Create template from images",
+        "domain_id": domain_id,
+        "created_at": time.time(),
+    }
+
+    def task():
+        try:
+            _bulk_progress[job_id]["message"] = "Vision AI is analyzing your pins…"
+            tpl_data = _create_template_from_reference_images(image_urls, config, provider, model_override=model_override)
+            now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
+            db_name = custom_name or f"from_images_{now_str.replace(' ', '_').replace(':', '').replace('-', '')}"
+            db_name_norm = db_name.lower().replace("-", "_").replace(" ", "_")
+            wrapped = {
+                "template_id": db_name_norm,
+                "template_name": db_name_norm,
+                "style_slots": tpl_data.pop("style_slots", {}) or {},
+                "font_slots": tpl_data.pop("font_slots", {}) or {},
+                "template_data": tpl_data,
+            }
+            template_json_str = json.dumps(wrapped)
+            tid = None
+            _bulk_progress[job_id]["message"] = "Saving template…"
+            if save_to == "domain" and domain_id:
+                display_name = custom_name or f"From reference {now_str}"
+                with get_connection() as conn:
+                    cur = db_execute(conn, "INSERT INTO domain_templates (domain_id, name, template_json, sort_order) VALUES (?, ?, ?, 0)",
+                                     (domain_id, display_name, template_json_str))
+                    tid = last_insert_id(cur)
+                if tid:
+                    try:
+                        preview_url = _generate_domain_template_preview(template_json_str)
+                        if preview_url:
+                            with get_connection() as conn:
+                                db_execute(conn, "UPDATE domain_templates SET preview_image_url = ? WHERE id = ?", (preview_url, tid))
+                    except Exception:
+                        pass
+            else:
+                with get_connection() as conn:
+                    cur = db_execute(conn, "SELECT id FROM pin_template_pool WHERE name = ?", (db_name_norm,))
+                    existing = cur.fetchone()
+                    if existing:
+                        db_execute(conn, "UPDATE pin_template_pool SET template_json = ?, updated_at = CURRENT_TIMESTAMP WHERE name = ?", (template_json_str, db_name_norm))
+                        tid = dict_row(existing).get("id")
+                    else:
+                        cur = db_execute(conn, "INSERT INTO pin_template_pool (name, template_json, preview_image_url) VALUES (?, ?, '')", (db_name_norm, template_json_str))
+                        tid = last_insert_id(cur)
+            test_img = POOL_TEMPLATE_TEST_IMAGE
+            tpl_image_keys = list((tpl_data.get("images") or {}).keys())
+            image_urls_tpl = {k: test_img for k in tpl_image_keys}
+            image_urls_tpl.update({"background": test_img, "top_image": test_img, "bottom_image": test_img, "main_image": test_img})
+            index_html = None
+            try:
+                import subprocess as _subprocess
+                renderer_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pin_renderer", "render_pin.js")
+                node_input = json.dumps({"template_data": tpl_data, "image_urls": image_urls_tpl})
+                proc = _subprocess.run(["node", renderer_script], input=node_input, capture_output=True, timeout=30,
+                                       cwd=os.path.dirname(os.path.abspath(__file__)), text=True)
+                if proc.returncode == 0:
+                    index_html = (proc.stdout or "").strip()
+            except Exception:
+                pass
+            update_data = {
+                "status": "done",
+                "message": f"Template '{custom_name or db_name_norm}' created from your reference images!",
+                "template_name": custom_name or db_name_norm,
+                "template_name_norm": db_name_norm,
+                "save_to": save_to,
+            }
+            if tid:
+                if save_to == "domain" and domain_id:
+                    update_data["domain_template_id"] = tid
+                else:
+                    update_data["pool_template_id"] = tid
+                    update_data["pool_template_name"] = db_name_norm
+            if index_html:
+                update_data["index_html"] = index_html
+            _bulk_progress[job_id].update(update_data)
+        except Exception as e:
+            err = str(e)[:BULK_ERROR_DETAIL_MAX]
+            log.exception("Create template from images error: %s", err)
+            _bulk_progress[job_id].update({"status": "error", "message": err, "error_detail": err})
+
+    threading.Thread(target=task, daemon=True).start()
+    return jsonify({"success": True, "job_id": job_id})
+
+
+@app.route("/api/pin-generate-async", methods=["POST"])
+@login_required
+def api_pin_generate_async():
+    """
+    Start pin generation in background. Appears in Running tasks.
+    Body: name (template name), same payload as /api/pin-generate, optional domain_id, save_as_template (bool),
+    template_name_for_domain (name for new template). When save_as_template true and domain_id set, creates a new
+    domain template with the AI-generated result.
+    """
+    user = get_current_user()
+    user_id = user["id"]
+    body = request.get_json(silent=True) or {}
+    name = (body.get("name") or body.get("template_name") or request.args.get("name") or "").strip()
+    if not name:
+        return jsonify({"success": False, "error": "name required"}), 400
+    name_norm = name.lower().replace("-", "_")
+    with get_connection() as conn:
+        cur = db_execute(conn, "SELECT id FROM pin_template_pool WHERE name = ?", (name_norm,))
+        is_pool = cur.fetchone() is not None
+    if name_norm == "template_39":
+        _seed_template_39_if_missing()
+        is_pool = True
+    if not is_pool:
+        return jsonify({"success": False, "error": "Only pool templates (e.g. template_39) support async generate"}), 400
+    domain_id = body.get("domain_id")
+    if domain_id is not None:
+        domain_id = int(domain_id)
+    save_as_template = body.get("save_as_template", True) if domain_id else False
+    template_name_for_domain = (body.get("template_name_for_domain") or "").strip() or None
+    job_id = str(uuid.uuid4())
+    payload = {k: v for k, v in body.items() if k not in ("domain_id", "save_as_template", "template_name_for_domain")}
+    _bulk_progress[job_id] = {
+        "status": "running",
+        "message": "Generating pin with AI…",
+        "current_title": "",
+        "type": "single",
+        "action": "Pin generate (AI)",
+        "domain_id": domain_id,
+        "created_at": time.time(),
+    }
+
+    def task():
+        try:
+            _bulk_progress[job_id]["message"] = "Generating…"
+            ok, out = _do_pin_generate_pool(name_norm, payload, user_id, template_only=True)
+            if not ok or not out.get("success"):
+                _bulk_progress[job_id].update({
+                    "status": "error",
+                    "message": out.get("error", "Generate failed"),
+                    "error_detail": out.get("error", "Generate failed"),
+                })
+                return
+            merged_tpl = out.get("template_data")
+            index_html = out.get("index_html")
+            if domain_id and save_as_template and isinstance(merged_tpl, dict):
+                template_name = template_name_for_domain or ("AI Generated " + datetime.utcnow().strftime("%Y-%m-%d %H:%M"))
+                wrapped = {"template_name": name_norm, "template_id": name_norm, "template_data": merged_tpl}
+                template_json = json.dumps(wrapped)
+                tid = None
+                with get_connection() as conn:
+                    cur = db_execute(conn, "INSERT INTO domain_templates (domain_id, name, template_json, sort_order) VALUES (?, ?, ?, 0)", (domain_id, template_name, template_json))
+                    tid = last_insert_id(cur)
+                if not tid:
+                    with get_connection() as conn:
+                        cur = db_execute(conn, "SELECT id FROM domain_templates WHERE domain_id = ? ORDER BY id DESC LIMIT 1", (domain_id,))
+                        row = cur.fetchone()
+                        tid = dict_row(row).get("id") if row else None
+                if tid:
+                    try:
+                        preview_url = _generate_domain_template_preview(template_json)
+                        if preview_url:
+                            with get_connection() as conn:
+                                db_execute(conn, "UPDATE domain_templates SET preview_image_url = ? WHERE id = ?", (preview_url, tid))
+                    except Exception:
+                        pass
+                update_data = {
+                    "status": "done",
+                    "message": "Generated and saved as new template.",
+                    "domain_template_id": tid,
+                    "template_name": template_name,
+                }
+                if index_html:
+                    update_data["index_html"] = index_html
+                _bulk_progress[job_id].update(update_data)
+            else:
+                _bulk_progress[job_id].update({
+                    "status": "done",
+                    "message": "Generated successfully.",
+                })
+        except Exception as e:
+            err = str(e)[:BULK_ERROR_DETAIL_MAX]
+            _bulk_progress[job_id].update({"status": "error", "message": err, "error_detail": err})
+
+    threading.Thread(target=task, daemon=True).start()
+    return jsonify({"success": True, "job_id": job_id})
 
 
 @app.route("/api/article-generators")
@@ -9258,6 +11088,109 @@ def api_domain_get(pk):
     out["pinterest_boards"] = pinterest_boards
     out["pinterest_mode"] = (row.get("pinterest_mode") or "").strip() or None  # 'rss' | 'manual' | 'schedule'
     out["pinterest_domain_verify"] = (row.get("pinterest_domain_verify") or "").strip() or None  # meta content for Pinterest claim
+    return jsonify(out)
+
+
+def _sibling_domain_index(domain_index):
+    """Return sibling domain_index in same pair: 0<->1, 2<->3."""
+    if domain_index is None:
+        return None
+    idx = int(domain_index) if domain_index is not None else 0
+    if idx in (0, 1):
+        return 1 - idx
+    if idx in (2, 3):
+        return 5 - idx  # 2->3, 3->2
+    return None
+
+
+@app.route("/api/domains/<int:domain_id>/first-article", methods=["GET"])
+def api_domain_first_article(domain_id):
+    """GET: First article (title + article_content) for this domain for Pin Editor 'Test with first article'.
+    Query: sibling_flip=1 to also return sibling domain's images flipped horizontally (A<->B, C<->D)."""
+    with get_connection() as conn:
+        cur = db_execute(conn, """SELECT d.id, d.domain_url, d.domain_name, d.group_id, d.domain_index
+            FROM domains d WHERE d.id = ?""", (domain_id,))
+        row = dict_row(cur.fetchone())
+        if not row:
+            return jsonify({"error": "Domain not found"}), 404
+        domain_url = (row.get("domain_url") or "").strip()
+        domain_name = (row.get("domain_name") or "").strip()
+        domain_display = domain_url or domain_name
+        if domain_display and "://" in domain_display:
+            try:
+                from urllib.parse import urlparse
+                domain_display = urlparse(domain_display).hostname or domain_display
+            except Exception:
+                pass
+        cur = db_execute(conn, """SELECT t.id AS title_id, t.title
+            FROM titles t WHERE t.domain_id = ? ORDER BY t.id LIMIT 1""", (domain_id,))
+        first_title = dict_row(cur.fetchone())
+        if not first_title:
+            return jsonify({"error": "No titles for this domain", "domain": domain_display, "title": "", "main_image": "", "top_image": "", "bottom_image": ""}), 200
+        title_id = first_title["title_id"]
+        title_text = (first_title.get("title") or "").strip()
+        cur = db_execute(conn, """SELECT main_image, top_image, bottom_image, ingredient_image, recipe_title_pin
+            FROM article_content WHERE title_id = ? AND language_code = 'en'""", (title_id,))
+        ac = dict_row(cur.fetchone()) or {}
+    main_image = (ac.get("main_image") or "").strip()
+    top_image = (ac.get("top_image") or "").strip() or main_image
+    bottom_image = (ac.get("bottom_image") or "").strip() or (ac.get("ingredient_image") or "").strip() or main_image
+    recipe_title_pin = (ac.get("recipe_title_pin") or "").strip() or title_text
+    out = {
+        "title_id": title_id,
+        "title": title_text,
+        "domain": domain_display,
+        "recipe_title_pin": recipe_title_pin,
+        "main_image": main_image,
+        "top_image": top_image,
+        "bottom_image": bottom_image,
+        "ingredient_image": (ac.get("ingredient_image") or "").strip(),
+    }
+    sibling_flip = str(request.args.get("sibling_flip", "")).strip().lower() in ("1", "true", "yes")
+    smain, stop, sbot = "", "", ""
+    if sibling_flip and row.get("group_id"):
+        sibling_idx = _sibling_domain_index(row.get("domain_index"))
+        if sibling_idx is not None:
+            with get_connection() as conn:
+                cur = db_execute(conn, """SELECT d.id FROM domains d
+                    WHERE d.group_id = ? AND d.domain_index = ?""", (row["group_id"], sibling_idx))
+                srow = cur.fetchone()
+                if srow:
+                    sibling_domain_id = dict_row(srow)["id"]
+                    cur = db_execute(conn, """SELECT t.id FROM titles t
+                        WHERE t.domain_id = ? AND TRIM(t.title) = ? ORDER BY t.id LIMIT 1""",
+                        (sibling_domain_id, title_text))
+                    stitle = cur.fetchone()
+                    if stitle:
+                        sibling_title_id = dict_row(stitle)["id"]
+                        cur = db_execute(conn, """SELECT main_image, top_image, bottom_image
+                            FROM article_content WHERE title_id = ? AND language_code = 'en'""", (sibling_title_id,))
+                        sac = dict_row(cur.fetchone()) or {}
+                        smain = (sac.get("main_image") or "").strip()
+                        stop = (sac.get("top_image") or "").strip() or smain
+                        sbot = (sac.get("bottom_image") or "").strip() or smain
+        if smain or stop or sbot:
+            user_id = None
+            try:
+                u = get_current_user()
+                if u:
+                    user_id = u.get("id")
+            except Exception:
+                pass
+            user_config = get_user_config_for_api(user_id) or {}
+            try:
+                from imagine import flip_image_horizontal_and_upload
+                flipped = {}
+                prefix = "pin_editor_sibling"
+                if smain:
+                    flipped["main_image"] = flip_image_horizontal_and_upload(smain, prefix + "_main", user_config)
+                if stop:
+                    flipped["top_image"] = flip_image_horizontal_and_upload(stop, prefix + "_top", user_config)
+                if sbot:
+                    flipped["bottom_image"] = flip_image_horizontal_and_upload(sbot, prefix + "_bot", user_config)
+                out["sibling_flipped"] = flipped
+            except Exception as e:
+                out["sibling_flipped_error"] = str(e)
     return jsonify(out)
 
 
@@ -11920,13 +13853,16 @@ def _generate_single_domain_page_with_openai(domain_name: str, slug: str, design
 
 # --- Domain templates API (for Pin Editor) ---
 PLACEHOLDER_IMAGE_URL = "https://placehold.co/600x1067/1a1a1a/888?text=Pin"
+# Appetizing food photo used as test image for pool templates (template_39), matching Pin API templates
+POOL_TEMPLATE_TEST_IMAGE = "https://pub-265e755dc4334724956a9d45d1c8bfb0.r2.dev/main_image/ba00aa85/58c84a65007.png"
 
 
 def _generate_domain_template_preview(template_json_str: str, domain_colors: dict = None, preview_small: bool = False, user_config: dict = None) -> str:
     """Generate preview image for template JSON via Pin API (screenshot + Cloudflare R2); return image URL or None on failure.
-    Images are saved at full 600x1067 to preserve original dimensions (no resize/crop).
+    Supports both Pin API templates and pool templates (template_39). Pool templates use JS renderer + generate-from-html.
+    Images are saved at full canvas size (600x1067 or 736x1308) to preserve original dimensions.
     domain_colors: optional dict - Pin API will style the pin to match the domain.
-    preview_small: if True, use 300x534 (smaller); default False uses 600x1067."""
+    preview_small: if True, use 300x534 (smaller); default False uses full canvas size."""
     import base64
     import re
     try:
@@ -11936,13 +13872,50 @@ def _generate_domain_template_preview(template_json_str: str, domain_colors: dic
         filled = re.sub(r"\{\{[^}]+\}\}", "Preview", filled)
         body = json.loads(filled)
         template_name = (body.get("template_name") or body.get("template_id") or "template_1").strip().lower().replace("-", "_")
-        payload = body.get("template_data") if "template_data" in body else body
-        if not isinstance(payload, dict):
-            payload = {}
-        payload["variables"] = {"title": "Preview"}
+        template_data = body.get("template_data") if "template_data" in body else body
+        if not isinstance(template_data, dict):
+            template_data = {}
+        payload = dict(template_data)
+        payload["variables"] = payload.get("variables") or {}
+        payload["variables"].setdefault("title", "Preview Delight")
+        payload["variables"].setdefault("domain", "example.com")
         if domain_colors and isinstance(domain_colors, dict):
             payload["domain_colors"] = domain_colors
         pin_base = (PIN_API_URL or "http://localhost:5000").rstrip("/")
+        # Pool templates (e.g. template_39): use JS path, generate image, upload to R2
+        pool_names = _pool_only_template_names()
+        if template_name in pool_names:
+            merge_payload = {
+                "template_data": body.get("template_data") or body,
+                "variables": {"title": "Preview Delight", "domain": "example.com"},
+                "background": POOL_TEMPLATE_TEST_IMAGE,
+                "main_image": POOL_TEMPLATE_TEST_IMAGE,
+            }
+            try:
+                html, w, h = _render_pool_template_to_html(template_name, merge_payload, pin_api_base=pin_base)
+                r = requests_lib.post(pin_base + "/generate-from-html", json={"html": html, "width": w, "height": h}, timeout=90)
+                r.raise_for_status()
+                data = r.json()
+                if data.get("image_url") and str(data["image_url"]).startswith("http"):
+                    return data["image_url"]
+                screenshot_b64 = data.get("screenshot_base64")
+                if screenshot_b64 and isinstance(screenshot_b64, str):
+                    if screenshot_b64.startswith("data:"):
+                        b64 = screenshot_b64.split(",", 1)[-1]
+                    else:
+                        b64 = screenshot_b64
+                    png_bytes = base64.b64decode(b64)
+                    if png_bytes and len(png_bytes) >= 100:
+                        import r2_upload
+                        cfg = user_config or {}
+                        if not cfg:
+                            user = get_current_user()
+                            cfg = get_user_config_for_api(user["id"]) if user else {}
+                        return r2_upload.upload_bytes_to_r2(png_bytes, "template_preview", "image/png", user_config=cfg)
+            except Exception:
+                pass
+            return None
+        # Pin API templates: call /generate
         api_url = f"{pin_base}/generate?name={template_name}"
         if preview_small:
             api_url += "&preview_small=1"
@@ -13566,12 +15539,13 @@ def admin_domains():
     .pin-thumb-wrap {{ position: relative; display: inline-block; }}
     .pin-thumb-wrap .pin-del {{ display: none; position: absolute; top: -5px; right: -5px; width: 14px; height: 14px; border-radius: 50%; background: #dc3545; color: #fff; border: 1px solid #fff; font-size: 9px; line-height: 12px; text-align: center; cursor: pointer; padding: 0; z-index: 2; }}
     .pin-thumb-wrap:hover .pin-del {{ display: block; }}
-    .pin-thumb {{ width: 32px; height: 32px; object-fit: contain; object-position: center; border-radius: 4px; border: 1px solid #dee2e6; cursor: pointer; flex-shrink: 0; background: #f8f9fa; }}
+    .pin-thumb {{ width: 32px; height: 32px; border-radius: 4px; border: 1px solid #dee2e6; cursor: pointer; flex-shrink: 0; background: #f8f9fa; }}
+    .pin-thumb-wrap img.pin-thumb {{ width: 36px; height: 64px; object-fit: contain; object-position: center; aspect-ratio: 9/16; }}
     .pin-thumb:hover {{ border-color: #0d6efd; box-shadow: 0 0 0 2px rgba(13,110,253,.25); }}
     .pin-thumb-placeholder {{ display: inline-flex; align-items: center; justify-content: center; background: #e9ecef; color: #6c757d; font-size: 0.75rem; text-decoration: none; }}
     .pin-add {{ background: #e9ecef; color: #0d6efd; font-size: 0.9rem; font-weight: bold; line-height: 1; }}
     .pin-add:hover {{ background: #0d6efd; color: #fff; }}
-    .pin-thumb-hover-preview {{ display: none; position: fixed; z-index: 9999; pointer-events: none; border: 2px solid #0d6efd; border-radius: 8px; box-shadow: 0 8px 32px rgba(0,0,0,0.25); background: #fff; max-width: 240px; max-height: 420px; object-fit: contain; }}
+    .pin-thumb-hover-preview {{ display: none; position: fixed; z-index: 9999; pointer-events: none; border: 2px solid #0d6efd; border-radius: 8px; box-shadow: 0 8px 32px rgba(0,0,0,0.25); background: #fff; max-width: 240px; max-height: 420px; object-fit: contain; object-position: center; }}
     .article-cell {{ display: flex; gap: 2px; align-items: center; flex-wrap: wrap; }}
     .article-cell .article-select-wrap {{ flex: 1; min-width: 90px; }}
     .article-cell .article-edit-btn, .article-cell .article-example-btn {{ padding: 0.15rem 0.3rem; font-size: 0.75rem; flex-shrink: 0; }}
@@ -14652,32 +16626,25 @@ def admin_domains():
       function openPinExampleModal(domainId) {{
         if (typeof showGlobalLoading === 'function') showGlobalLoading();
         fetch('/api/pin-templates').then(r => r.json()).then(function(d) {{
-          var templates = (d.templates || []).filter(t => !t.startsWith('group_'));
+          var raw = (d.templates || []);
+          var templates = raw.map(function(t) {{ return (typeof t === 'object' && t && t.name) ? t.name : t; }}).filter(function(t) {{ return t && !String(t).startsWith('group_'); }});
           var modal = document.getElementById('templateExampleModal');
           var infoEl = document.getElementById('templateExampleDomainInfo');
           var bodyEl = document.getElementById('templateExampleContent');
-          if (infoEl) infoEl.textContent = '— Pin Styles';
+          if (infoEl) infoEl.textContent = '— Pin Styles (from Pin API + DB)';
           if (bodyEl) {{
             bodyEl.innerHTML = templates.map(function(t) {{
-              var previewUrl = '/api/pin-template-example-raw?template=' + encodeURIComponent(t);
-              return `
-                <div class="col-md-6 col-lg-3 mb-4">
-                  <div class="card h-100 shadow-sm border-0">
-                    <div class="card-header bg-white d-flex justify-content-between align-items-center py-2 border-bottom">
-                      <span class="fw-bold small text-truncate" style="max-width:140px;">${{t}}</span>
-                      <button type="button" class="btn btn-sm btn-primary select-pin-tpl-btn" data-template="${{t}}">Select</button>
-                    </div>
-                    <div class="card-body p-0 position-relative" style="height: 533px; overflow: hidden; background: #fff;">
-                      <div class="position-absolute w-100 h-100 d-flex justify-content-center align-items-center loading-spinner">
-                        <div class="spinner-border text-secondary" role="status"><span class="visually-hidden">Loading...</span></div>
-                      </div>
-                      <iframe src="${{previewUrl}}" 
-                              style="width: 200%; height: 200%; border: none; transform: scale(0.5); transform-origin: top left; position: relative; z-index: 1;"
-                              onload="this.previousElementSibling.style.display='none';"></iframe>
-                    </div>
-                  </div>
-                </div>
-              `;
+              var tName = (typeof t === 'object' && t && t.name) ? t.name : t;
+              var previewUrl = '/api/pin-template-example-raw?template=' + encodeURIComponent(tName);
+              return '<div class="col-md-6 col-lg-3 mb-4"><div class="card h-100 shadow-sm border-0">' +
+                '<div class="card-header bg-white d-flex justify-content-between align-items-center py-2 border-bottom">' +
+                '<span class="fw-bold small text-truncate" style="max-width:140px;">' + tName + '</span>' +
+                '<button type="button" class="btn btn-sm btn-primary select-pin-tpl-btn" data-template="' + tName + '">Select</button></div>' +
+                '<div class="card-body p-0 position-relative" style="height: 533px; overflow: hidden; background: #fff;">' +
+                '<div class="position-absolute w-100 h-100 d-flex justify-content-center align-items-center loading-spinner">' +
+                '<div class="spinner-border text-secondary" role="status"><span class="visually-hidden">Loading...</span></div></div>' +
+                '<iframe src="' + previewUrl + '" style="width: 200%; height: 200%; border: none; transform: scale(0.5); transform-origin: top left; position: relative; z-index: 1;" ' +
+                'onload="this.previousElementSibling.style.display=\\'none\\';"></iframe></div></div></div>';
             }}).join('');
             
             bodyEl.querySelectorAll('.select-pin-tpl-btn').forEach(function(btn) {{
@@ -16961,6 +18928,12 @@ def admin_domains():
         if (domainArticlesAutoScrollCheck) domainArticlesAutoScrollCheck.addEventListener('change', function() {{ if (this.checked) startDomainArticlesAutoScroll(); else stopDomainArticlesAutoScroll(); }});
         if (domainArticlesAutoScrollSecEl) domainArticlesAutoScrollSecEl.addEventListener('change', function() {{ if (domainArticlesAutoScrollCheck && domainArticlesAutoScrollCheck.checked) startDomainArticlesAutoScroll(); }});
         if (domainArticlesModal) domainArticlesModal.addEventListener('hidden.bs.modal', function() {{ stopDomainArticlesAutoScroll(); }});
+        window.refreshDomainArticlesModalIfOpen = function() {{
+          if (!domainArticlesModal || !domainArticlesDomainId || domainArticlesLoading) return;
+          if (bootstrap.Modal && bootstrap.Modal.getInstance(domainArticlesModal) && domainArticlesModal.classList.contains('show')) {{
+            refetchDomainArticlesList();
+          }}
+        }};
       }})();
       (function() {{
         var allArticlesModal = document.getElementById('allArticlesModal');
@@ -18443,17 +20416,28 @@ def admin_domain_templates(pk):
         <button type="button" class="btn btn-primary" onclick="saveNewTemplate()">Save template to domain</button>
       </div>
     </div>
-    <table class="table table-bordered"><thead><tr><th>ID</th><th>Name</th><th>Order</th><th></th></tr></thead><tbody>{rows or "<tr><td colspan='4' class='text-muted'>No templates yet.</td></tr>"}</tbody></table>
+    <table class="table table-bordered"><thead><tr><th>ID</th><th>Name</th><th>Order</th><th></th></tr></thead><tbody id="domainTemplatesTableBody">{rows or "<tr><td colspan='4' class='text-muted'>No templates yet.</td></tr>"}</tbody></table>
     <a href="/admin/domains" class="btn btn-secondary mt-2">Back to Domains</a>
     <div id="editModal" class="modal fade" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Edit template</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="editId"><label class="form-label">Name</label><input type="text" id="editName" class="form-control mb-2"><label class="form-label">JSON</label><textarea id="editJson" class="form-control font-monospace" rows="12"></textarea></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary" onclick="saveEditTemplate()">Save</button></div></div></div></div>
     <script>
     const domainId = {pk};
+    function _esc(s) {{ if (s == null || s === undefined) return ''; return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }}
+    function refreshDomainTemplatesList() {{
+      fetch('/api/domain-templates?domain_id=' + domainId).then(r => r.json()).then(d => {{
+        const tbody = document.getElementById('domainTemplatesTableBody');
+        if (!tbody) return;
+        const list = d.templates || [];
+        if (list.length === 0) {{ tbody.innerHTML = "<tr><td colspan='4' class='text-muted'>No templates yet.</td></tr>"; return; }}
+        tbody.innerHTML = list.map(t => '<tr><td>' + t.id + '</td><td>' + _esc(t.name) + '</td><td>' + _esc(t.sort_order) + '</td><td><button type="button" class="btn btn-sm btn-outline-secondary" onclick="editTemplate(' + t.id + ')">Edit</button> <button type="button" class="btn btn-sm btn-danger" onclick="deleteTemplate(' + t.id + ')">Delete</button></td></tr>').join('');
+      }}).catch(() => {{}});
+    }}
+    window.refreshDomainTemplatesList = refreshDomainTemplatesList;
     function saveNewTemplate() {{
       const name = document.getElementById('newTemplateName').value.trim() || 'Unnamed';
       const json = document.getElementById('newTemplateJson').value.trim();
       if (!json) {{ alert('Paste JSON first'); return; }}
       fetch('/api/domain-templates', {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }}, body: JSON.stringify({{ domain_id: domainId, name: name, template_json: json }}) }})
-        .then(r => r.json()).then(d => {{ alert(d.success ? 'Saved' : (d.error || 'Error')); if (d.success) location.reload(); }}).catch(e => alert(e));
+        .then(r => r.json()).then(d => {{ alert(d.success ? 'Saved' : (d.error || 'Error')); if (d.success) {{ refreshDomainTemplatesList(); document.getElementById('newTemplateJson').value = ''; }} }}).catch(e => alert(e));
     }}
     function editTemplate(id) {{
       fetch('/api/domain-templates/' + id).then(r => r.json()).then(d => {{
@@ -18468,18 +20452,18 @@ def admin_domain_templates(pk):
       const name = document.getElementById('editName').value.trim();
       const json = document.getElementById('editJson').value.trim();
       fetch('/api/domain-templates/' + id, {{ method: 'PUT', headers: {{ 'Content-Type': 'application/json' }}, body: JSON.stringify({{ name: name, template_json: json }}) }})
-        .then(r => r.json()).then(d => {{ alert(d.success ? 'Updated' : (d.error || 'Error')); if (d.success) {{ bootstrap.Modal.getInstance(document.getElementById('editModal')).hide(); location.reload(); }} }}).catch(e => alert(e));
+        .then(r => r.json()).then(d => {{ alert(d.success ? 'Updated' : (d.error || 'Error')); if (d.success) {{ bootstrap.Modal.getInstance(document.getElementById('editModal')).hide(); refreshDomainTemplatesList(); }} }}).catch(e => alert(e));
     }}
     function deleteTemplate(id) {{
       if (!confirm('Delete this template?')) return;
-      fetch('/api/domain-templates/' + id, {{ method: 'DELETE' }}).then(r => r.json()).then(d => {{ if (d.success) location.reload(); else alert(d.error || 'Error'); }}).catch(e => alert(e));
+      fetch('/api/domain-templates/' + id, {{ method: 'DELETE' }}).then(r => r.json()).then(d => {{ if (d.success) refreshDomainTemplatesList(); else alert(d.error || 'Error'); }}).catch(e => alert(e));
     }}
     function savePinterestVerify() {{
       const val = document.getElementById('pinterestDomainVerify').value.trim();
       fetch('/api/domains/' + domainId + '/pinterest', {{
         method: 'PUT', headers: {{ 'Content-Type': 'application/json' }},
         body: JSON.stringify({{ pinterest_domain_verify: val || null }})
-      }}).then(r => r.json()).then(d => {{ alert(d.success ? 'Saved' : (d.error || 'Error')); if (d.success) location.reload(); }}).catch(e => alert(e));
+      }}).then(r => r.json()).then(d => {{ alert(d.success ? 'Saved' : (d.error || 'Error')); }}).catch(e => alert(e));
     }}
     </script>
     """
@@ -23773,6 +25757,7 @@ def profile(target_user_id=None):
                 "image_request_delay_sec": max(0, min(120, int(request.form.get("image_request_delay_sec") or 15))),
                 "rss_base_url": ((request.form.get("rss_base_url") or "").strip().rstrip("/") or None),
                 "skip_cf_status_check": 1 if request.form.get("skip_cf_status_check") in ("on", "1", "true") else 0,
+                "pin_generator_type": (request.form.get("pin_generator_type") or "python").strip().lower() or "python",
             }
             
             if exists:
@@ -23899,6 +25884,9 @@ def profile(target_user_id=None):
     _profile_ai_provider = (keys.get("ai_provider") or "openai").strip().lower()
     if _profile_ai_provider not in ("openai", "openrouter", "local", "llamacpp"):
         _profile_ai_provider = "openai"
+    _profile_pin_generator = (keys.get("pin_generator_type") or "python").strip().lower()
+    if _profile_pin_generator not in ("python", "javascript"):
+        _profile_pin_generator = "python"
 
     content = f"""
     {back_button}
@@ -23948,6 +25936,16 @@ def profile(target_user_id=None):
           <hr class="my-4">
           <h5 class="mb-3 text-muted">Optional Settings</h5>
           
+          <h5 class="mb-3 mt-4">Pin generation <span class="badge bg-secondary">Optional</span></h5>
+          <div class="mb-3">
+            <label class="form-label">Generate pins with</label>
+            <select name="pin_generator_type" class="form-select" style="max-width:220px">
+              <option value="python" {('selected' if _profile_pin_generator == 'python' else '')}>Python (templates from Pin API)</option>
+              <option value="javascript" {('selected' if _profile_pin_generator == 'javascript' else '')}>JavaScript (templates from database)</option>
+            </select>
+            <div class="form-text">JavaScript uses templates stored in the database (e.g. from Pin Template Pool sync). Use for future AI-generated templates.</div>
+          </div>
+
           <h5 class="mb-3 mt-4">AI provider (for content) <span class="badge bg-secondary">Optional</span></h5>
           <div class="mb-3">
             <label class="form-label">Default provider</label>
@@ -24296,4 +26294,5 @@ def api_users_create():
 
 if __name__ == "__main__":
     init_db()
+    _seed_template_39_if_missing()
     app.run(host="0.0.0.0", port=5001, debug=True)

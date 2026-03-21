@@ -462,6 +462,10 @@ def _run_mysql_migrations_part2(cursor):
         cursor.execute("ALTER TABLE user_api_keys ADD COLUMN skip_cf_status_check TINYINT DEFAULT 0")
     except Exception:
         pass
+    try:
+        cursor.execute("ALTER TABLE user_api_keys ADD COLUMN pin_generator_type VARCHAR(32) DEFAULT 'python'")
+    except Exception:
+        pass
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS app_logs (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -534,6 +538,14 @@ def _run_mysql_migrations_part2(cursor):
     """)
 
 
+def _safe_execute(conn, cur, sql, *args):
+    """Execute SQL; on error, rollback so transaction can continue (PostgreSQL requirement)."""
+    try:
+        cur.execute(sql, *args)
+    except Exception:
+        conn.rollback()
+
+
 def _init_supabase():
     """PostgreSQL schema for Supabase."""
     with get_connection() as conn:
@@ -600,34 +612,14 @@ def _init_supabase():
                 UNIQUE (user_id)
             )
         """)
-        try:
-            cur.execute("ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS bulk_max_concurrency INT DEFAULT 6")
-        except Exception:
-            pass
-        try:
-            cur.execute("ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS ai_provider VARCHAR(32) DEFAULT NULL")
-        except Exception:
-            pass
-        try:
-            cur.execute("ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS llamacpp_manager_url TEXT")
-        except Exception:
-            pass
-        try:
-            cur.execute("ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS llamacpp_model_id INT DEFAULT NULL")
-        except Exception:
-            pass
-        try:
-            cur.execute("ALTER TABLE user_api_keys ADD COLUMN image_request_delay_sec INT DEFAULT 15")
-        except Exception:
-            pass  # column may already exist
-        try:
-            cur.execute("ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS rss_base_url VARCHAR(512) DEFAULT NULL")
-        except Exception:
-            pass
-        try:
-            cur.execute("ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS skip_cf_status_check SMALLINT DEFAULT 0")
-        except Exception:
-            pass
+        _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS bulk_max_concurrency INT DEFAULT 6")
+        _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS ai_provider VARCHAR(32) DEFAULT NULL")
+        _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS llamacpp_manager_url TEXT")
+        _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS llamacpp_model_id INT DEFAULT NULL")
+        _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS image_request_delay_sec INT DEFAULT 15")
+        _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS rss_base_url VARCHAR(512) DEFAULT NULL")
+        _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS skip_cf_status_check SMALLINT DEFAULT 0")
+        _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS pin_generator_type VARCHAR(32) DEFAULT 'python'")
         cur.execute("""
             CREATE TABLE IF NOT EXISTS user_domains (
                 id SERIAL PRIMARY KEY,
@@ -699,22 +691,10 @@ def _init_supabase():
                 FOREIGN KEY (title_id) REFERENCES titles(id)
             )
         """)
-        try:
-            cur.execute("ALTER TABLE article_content ADD COLUMN IF NOT EXISTS generation_cost_usd NUMERIC(12,6)")
-        except Exception:
-            pass
-        try:
-            cur.execute("ALTER TABLE article_content ADD COLUMN IF NOT EXISTS usage_json TEXT")
-        except Exception:
-            pass
-        try:
-            cur.execute("ALTER TABLE article_content ADD COLUMN IF NOT EXISTS status_error TEXT")
-        except Exception:
-            pass
-        try:
-            cur.execute("ALTER TABLE article_content ADD COLUMN IF NOT EXISTS pinterest_board_slug VARCHAR(128)")
-        except Exception:
-            pass
+        _safe_execute(conn, cur, "ALTER TABLE article_content ADD COLUMN IF NOT EXISTS generation_cost_usd NUMERIC(12,6)")
+        _safe_execute(conn, cur, "ALTER TABLE article_content ADD COLUMN IF NOT EXISTS usage_json TEXT")
+        _safe_execute(conn, cur, "ALTER TABLE article_content ADD COLUMN IF NOT EXISTS status_error TEXT")
+        _safe_execute(conn, cur, "ALTER TABLE article_content ADD COLUMN IF NOT EXISTS pinterest_board_slug VARCHAR(128)")
         cur.execute("""
             CREATE TABLE IF NOT EXISTS domain_templates (
                 id SERIAL PRIMARY KEY,
@@ -749,13 +729,7 @@ def _init_supabase():
                     "domain_page_disclaimer", "domain_page_contact_us",
                     "cloudflare_info", "pinterest_board_id", "pinterest_boards", "pinterest_access_token", "pinterest_refresh_token",
                     "pinterest_app_id", "pinterest_app_secret", "visual_customizations", "pinterest_mode", "pinterest_domain_verify"):
-            try:
-                cur.execute(f'ALTER TABLE domains ADD COLUMN IF NOT EXISTS {col} TEXT')
-            except Exception:
-                try:
-                    cur.execute(f'ALTER TABLE domains ADD COLUMN IF NOT EXISTS {col} VARCHAR(255)')
-                except Exception:
-                    pass
+            _safe_execute(conn, cur, f'ALTER TABLE domains ADD COLUMN IF NOT EXISTS {col} TEXT')
         cur.execute("""
             CREATE TABLE IF NOT EXISTS app_logs (
                 id SERIAL PRIMARY KEY,
@@ -774,10 +748,7 @@ def _init_supabase():
         """)
         for idx in ("idx_log_type", "idx_application", "idx_success", "idx_title_id", "idx_domain_id", "idx_job_id", "idx_created_at"):
             col = idx.replace("idx_", "")
-            try:
-                cur.execute(f"CREATE INDEX IF NOT EXISTS {idx} ON app_logs({col})")
-            except Exception:
-                pass
+            _safe_execute(conn, cur, f"CREATE INDEX IF NOT EXISTS {idx} ON app_logs({col})")
         cur.execute("""
             CREATE TABLE IF NOT EXISTS writers_pool (
                 id SERIAL PRIMARY KEY,
@@ -790,10 +761,7 @@ def _init_supabase():
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         """)
-        try:
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_writers_pool_user ON writers_pool(user_id)")
-        except Exception:
-            pass
+        _safe_execute(conn, cur, "CREATE INDEX IF NOT EXISTS idx_writers_pool_user ON writers_pool(user_id)")
         cur.execute("""
             CREATE TABLE IF NOT EXISTS pin_template_pool (
                 id SERIAL PRIMARY KEY,
@@ -815,22 +783,7 @@ def _init_supabase():
             )
         """)
         cur.execute("CREATE INDEX IF NOT EXISTS idx_ai_provider_models_provider ON ai_provider_models(provider)")
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS ai_provider_models (
-                id SERIAL PRIMARY KEY,
-                provider VARCHAR(32) NOT NULL,
-                model_id VARCHAR(255) NOT NULL,
-                label VARCHAR(512),
-                is_free SMALLINT DEFAULT 0,
-                sort_order INT DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_ai_provider_models_provider ON ai_provider_models(provider)")
-        try:
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_pin_template_pool_name ON pin_template_pool(name)")
-        except Exception:
-            pass
+        _safe_execute(conn, cur, "CREATE INDEX IF NOT EXISTS idx_pin_template_pool_name ON pin_template_pool(name)")
 
 
 def execute(conn, query, params=None):
