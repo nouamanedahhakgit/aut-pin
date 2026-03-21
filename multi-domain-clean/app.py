@@ -3976,7 +3976,7 @@ def admin_updates():
         return redirect(url_for("admin_domains"))
     content = """
     <div class="card mb-4" style="max-width:700px">
-      <div class="card-header">🔄 Container Updates taaaaaj</div>
+      <div class="card-header">🔄 Container Updates tap</div>
       <div class="card-body">
         <div id="updatesStatus" class="mb-3"><span class="text-muted">Checking...</span></div>
         <div id="updatesInfo" class="mb-3 small text-muted"></div>
