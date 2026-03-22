@@ -15785,7 +15785,7 @@ def admin_domains():
       <button type="button" class="btn btn-outline-primary btn-sm" onclick="openAllArticlesModal()" title="List all articles (filter by domain, default not validated)">Articles</button>
     </div>
 
-    <div class="collapse mb-4" id="bulkAddCard">
+    <div class="collapse mb-4{' show' if request.args.get('bulk_add') == '1' else ''}" id="bulkAddCard">
       <div class="card">
         <div class="card-body">
           <form method="post" action="/admin/domains/bulk-add" id="bulkAddForm" onsubmit="return submitBulkAdd(event)">
@@ -20244,9 +20244,12 @@ def _deploy_domain_background_with_job(domain_id, user_id, job_id, url):
                 job["done"] = job.get("done", 0) + 1
 
 
-@app.route("/admin/domains/bulk-add", methods=["POST"])
+@app.route("/admin/domains/bulk-add", methods=["GET", "POST"])
 @login_required
 def admin_domains_bulk_add():
+    if request.method == "GET":
+        return redirect(url_for("admin_domains") + "?bulk_add=1")
+    
     user = get_current_user()
     user_id = user["id"]
     
@@ -20339,13 +20342,19 @@ def admin_domains_bulk_add():
                 subgroup_name = f"{parent_name} - Batch {chunk_idx + 1}"
                 cur = db_execute(conn, "INSERT INTO `groups` (name, parent_group_id) VALUES (?, ?)", (subgroup_name, target_group_id))
                 new_group_id = last_insert_id(cur)
+                if not new_group_id:
+                    fallback = db_execute(conn, "SELECT id FROM `groups` WHERE name = ? AND parent_group_id = ? ORDER BY id DESC LIMIT 1", (subgroup_name, target_group_id))
+                    row = fallback.fetchone()
+                    if row:
+                        new_group_id = dict_row(row).get("id")
                 
-                # Assign subgroup to user
-                try:
-                    db_execute(conn, "INSERT INTO user_groups (user_id, group_id) VALUES (?, ?)", (user_id, new_group_id))
-                    log.info(f"[bulk_add] Assigned subgroup {new_group_id} to user {user_id}")
-                except Exception as e:
-                    log.warning(f"[bulk_add] Could not assign subgroup {new_group_id}: {e}")
+                # Assign subgroup to user (only if valid id)
+                if new_group_id:
+                    try:
+                        db_execute(conn, "INSERT INTO user_groups (user_id, group_id) VALUES (?, ?)", (user_id, new_group_id))
+                        log.info(f"[bulk_add] Assigned subgroup {new_group_id} to user {user_id}")
+                    except Exception as e:
+                        log.warning(f"[bulk_add] Could not assign subgroup {new_group_id}: {e}")
                 
                 # Add domains to this subgroup with indexes 0, 1, 2, 3 (A, B, C, D)
                 for domain_index, (url, has_dns) in enumerate(chunk):
@@ -20357,6 +20366,11 @@ def admin_domains_bulk_add():
                     cur = db_execute(conn, "INSERT INTO domains (domain_url, domain_name, group_id, domain_index) VALUES (?, ?, ?, ?)", 
                                    (url, url, new_group_id, domain_index))
                     did = last_insert_id(cur)
+                    if not did:
+                        fallback = db_execute(conn, "SELECT id FROM domains WHERE domain_url = ? AND group_id = ? AND domain_index = ? ORDER BY id DESC LIMIT 1", (url, new_group_id, domain_index))
+                        row = fallback.fetchone()
+                        if row:
+                            did = dict_row(row).get("id")
                     if did:
                         _assign_random_site_templates(conn, did, user_id, domain_index=overall_index, pin_templates_override=pin_pair)
                         _assign_writers_from_pool(conn, did, user_id)
@@ -20385,6 +20399,11 @@ def admin_domains_bulk_add():
                     pin_pair = [pin_pool[(overall_index * 2) % n], pin_pool[(overall_index * 2 + 1) % n]]
                 cur = db_execute(conn, "INSERT INTO domains (domain_url, domain_name) VALUES (?, ?)", (url, url))
                 did = last_insert_id(cur)
+                if not did:
+                    fallback = db_execute(conn, "SELECT id FROM domains WHERE domain_url = ? AND domain_name = ? AND group_id IS NULL ORDER BY id DESC LIMIT 1", (url, url))
+                    row = fallback.fetchone()
+                    if row:
+                        did = dict_row(row).get("id")
                 if did:
                     _assign_random_site_templates(conn, did, user_id, domain_index=overall_index, pin_templates_override=pin_pair)
                     _assign_writers_from_pool(conn, did, user_id)
