@@ -15109,7 +15109,7 @@ def admin_domains():
             FROM `groups` g
             LEFT JOIN domains d ON d.group_id = g.id
             GROUP BY g.id
-            HAVING domain_count < 4
+            HAVING COUNT(d.id) < 4
             ORDER BY g.id
         """)
         groups_with_space = {dict_row(r)["id"]: dict_row(r).get("domain_count", 0) for r in cur.fetchall()}
@@ -25079,13 +25079,25 @@ def admin_groups_add():
             
             # Get the new group ID
             new_group_id = last_insert_id(cur)
+            # Fallback: if last_insert_id failed or returned 0 (Supabase pooler), fetch by name
+            if not new_group_id:
+                if parent_group_id is None:
+                    fallback = db_execute(conn, "SELECT id FROM `groups` WHERE name = ? AND parent_group_id IS NULL ORDER BY id DESC LIMIT 1", (name,))
+                else:
+                    fallback = db_execute(conn, "SELECT id FROM `groups` WHERE name = ? AND parent_group_id = ? ORDER BY id DESC LIMIT 1", (name, parent_group_id))
+                row = fallback.fetchone()
+                if row:
+                    new_group_id = dict_row(row).get("id")
+                if new_group_id is None:
+                    log.warning("[admin_groups_add] Could not get new group id after INSERT; group may exist but user not assigned")
             
-            # Assign group to current user
-            try:
-                db_execute(conn, "INSERT INTO user_groups (user_id, group_id) VALUES (?, ?)", (user_id, new_group_id))
-                log.info(f"[admin_groups_add] Assigned group {new_group_id} to user {user_id}")
-            except Exception as e:
-                log.warning(f"[admin_groups_add] Could not assign group {new_group_id} to user {user_id}: {e}")
+            # Assign group to current user (only if we have a valid id)
+            if new_group_id:
+                try:
+                    db_execute(conn, "INSERT INTO user_groups (user_id, group_id) VALUES (?, ?)", (user_id, new_group_id))
+                    log.info(f"[admin_groups_add] Assigned group {new_group_id} to user {user_id}")
+                except Exception as e:
+                    log.warning(f"[admin_groups_add] Could not assign group {new_group_id} to user {user_id}: {e}")
             
             # If this is a subgroup, also assign parent group to user (if not already)
             if parent_group_id:

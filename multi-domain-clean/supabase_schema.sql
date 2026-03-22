@@ -188,6 +188,7 @@ ALTER TABLE domains ADD COLUMN IF NOT EXISTS pinterest_app_secret TEXT;
 ALTER TABLE domains ADD COLUMN IF NOT EXISTS visual_customizations TEXT;
 ALTER TABLE domains ADD COLUMN IF NOT EXISTS pinterest_mode TEXT;
 ALTER TABLE domains ADD COLUMN IF NOT EXISTS pinterest_domain_verify VARCHAR(128);
+ALTER TABLE domains ADD COLUMN IF NOT EXISTS pinterest_boards TEXT;
 
 CREATE TABLE IF NOT EXISTS app_logs (
     id SERIAL PRIMARY KEY,

@@ -1,5 +1,6 @@
 """Database connection and schema. Supports MySQL or Supabase (PostgreSQL) via DB_BACKEND in .env."""
 import os
+import re
 from contextlib import contextmanager
 
 try:
@@ -799,13 +800,24 @@ def _init_supabase():
         """)
         cur.execute("CREATE INDEX IF NOT EXISTS idx_ai_provider_models_provider ON ai_provider_models(provider)")
         _safe_execute(conn, cur, "CREATE INDEX IF NOT EXISTS idx_pin_template_pool_name ON pin_template_pool(name)")
+        _run_supabase_migrations(conn, cur)
+
+
+def _run_supabase_migrations(conn, cur):
+    """Add any columns that MySQL has, so Supabase schema stays in sync."""
+    for col in ("pinterest_boards",):
+        _safe_execute(conn, cur, f'ALTER TABLE domains ADD COLUMN IF NOT EXISTS {col} TEXT')
 
 
 def execute(conn, query, params=None):
-    """Execute query. Use ? placeholders; they are converted to %s. For Supabase, backticks become double-quotes."""
+    """Execute query. Use ? placeholders; they are converted to %s. For Supabase, backticks become double-quotes.
+    For Supabase INSERT, appends RETURNING id so last_insert_id works with connection pooling."""
     q = query.replace("?", "%s")
     if DB_BACKEND == "supabase":
         q = q.replace("`", '"')
+        # Append RETURNING id for simple INSERT (more reliable than lastval() with connection pooling)
+        if re.match(r"^\s*INSERT\s+INTO\s+", q, re.IGNORECASE) and " RETURNING " not in q.upper():
+            q = q.rstrip("; \n") + " RETURNING id"
     cur = conn.cursor()
     if params:
         cur.execute(q, params)
@@ -821,10 +833,25 @@ def last_insert_id(cursor):
     if hasattr(cursor, "lastrowid") and cursor.lastrowid is not None:
         return cursor.lastrowid
     if DB_BACKEND == "supabase":
+        # Prefer result from RETURNING id (set by execute for INSERT)
+        if cursor.description:
+            row = cursor.fetchone()
+            if row:
+                # RealDictCursor: row['id']; tuple: row[0]; try common variations
+                for key in ("id", "ID"):
+                    if hasattr(row, "get") and row.get(key) is not None:
+                        val = row[key]
+                        return val if val else None  # 0 is invalid for auto-increment
+                try:
+                    val = row[0] if len(row) else None
+                    return val if val else None
+                except (TypeError, IndexError, KeyError):
+                    pass
         try:
             cursor.execute("SELECT lastval()")
             row = cursor.fetchone()
-            return list(row.values())[0] if row and hasattr(row, "values") else (row[0] if row else None)
+            val = list(row.values())[0] if row and hasattr(row, "values") else (row[0] if row else None)
+            return val if val else None  # 0 is invalid for auto-increment
         except Exception:
             return None
     return None
@@ -842,6 +869,7 @@ def get_fk_children(conn, table_name, pk_column):
             JOIN information_schema.constraint_column_usage ccu
                 ON ccu.constraint_name = tc.constraint_name AND ccu.table_schema = tc.table_schema
             WHERE tc.constraint_type = 'FOREIGN KEY'
+              AND tc.table_schema = current_schema()
               AND ccu.table_name = %s AND ccu.column_name = %s
         """, (table_name, pk_column))
     else:
