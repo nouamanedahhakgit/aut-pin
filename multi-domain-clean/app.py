@@ -16036,9 +16036,9 @@ def admin_domains():
             }}
             if (data.added > 0) {{
               refreshDomainsTable();
-              // Poll to pick up generated pin preview images (background thread)
+              // Poll briefly to pick up generated pin preview images (background thread)
               var pollCount = 0;
-              var pollMax = 6;
+              var pollMax = 3;
               var pollInterval = setInterval(function() {{
                 pollCount++;
                 refreshDomainsTable();

@@ -32324,3 +32324,9 @@ INFO:     127.0.0.1:52188 - "GET /domain-page-themes HTTP/1.1" 200 OK
 INFO:     127.0.0.1:60355 - "GET /domain-page-themes HTTP/1.1" 200 OK
 INFO:     127.0.0.1:56119 - "GET /domain-page-themes HTTP/1.1" 200 OK
 INFO:     127.0.0.1:57898 - "GET /domain-page-themes HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [50600]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
