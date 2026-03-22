@@ -196,6 +196,37 @@ function templateFromData(data) {
   };
 }
 
+/** Render HTML-template type: raw HTML with {{placeholder}} replacement. */
+function renderHtmlTemplate(tpl, imageUrls, variables) {
+  let html = tpl.html || "";
+  const vars = { ...variables };
+  const mainImg = imageUrls.main_image || imageUrls.background || "";
+  vars.main_image = mainImg;
+  vars.background = imageUrls.background || mainImg;
+  vars.top_image = imageUrls.top_image || mainImg;
+  vars.bottom_image = imageUrls.bottom_image || mainImg;
+  // Replace text placeholders (HTML-escape)
+  const textSlots = ["badge", "title", "domain", "tagline", "small_title", "subtitle", "hook_text", "website"];
+  for (const k of textSlots) {
+    const placeholder = "{{" + k + "}}";
+    if (!html.includes(placeholder)) continue;
+    let val = vars[k];
+    if (val == null || val === "") val = k === "domain" ? "example.com" : (k === "title" ? "Recipe Title" : k.replace(/_/g, " "));
+    val = String(val).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    html = html.split(placeholder).join(val);
+  }
+  // Replace any remaining {{x}} with vars or image URLs
+  const remaining = html.match(/\{\{([^}]+)\}\}/g);
+  if (remaining) {
+    for (const ph of remaining) {
+      const key = ph.slice(2, -2);
+      const val = vars[key] != null ? String(vars[key]).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;") : (imageUrls[key] || "");
+      html = html.split(ph).join(val);
+    }
+  }
+  return html;
+}
+
 function main() {
   let input = "";
   process.stdin.setEncoding("utf8");
@@ -204,12 +235,19 @@ function main() {
     try {
       const data = JSON.parse(input);
       const raw = data.template_data || data;
-      // Use flat structure: merged_tpl has name, canvas, images, elements at top level
       const flat = (raw && raw.template_data) ? raw.template_data : raw;
-      const tpl = templateFromData(flat || {});
       const imageUrls = data.image_urls || data.imageUrls || {};
       if (raw.background && !imageUrls.background) imageUrls.background = raw.background;
       if (raw.main_image && !imageUrls.background) imageUrls.background = raw.main_image;
+
+      if (flat.template_type === "html" && flat.html) {
+        const variables = data.variables || flat.variables || {};
+        const html = renderHtmlTemplate(flat, imageUrls, variables);
+        process.stdout.write(html);
+        return;
+      }
+
+      const tpl = templateFromData(flat || {});
       const css = buildCss(tpl);
       const html = buildHtml(tpl, imageUrls, css);
       process.stdout.write(html);

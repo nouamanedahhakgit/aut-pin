@@ -25,7 +25,7 @@ import urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, request, redirect, url_for, jsonify, send_from_directory, send_file, session, make_response
 import requests as requests_lib
-from db import get_connection, init_db, dict_row, execute as db_execute, last_insert_id, get_fk_children
+from db import get_connection, init_db, dict_row, execute as db_execute, last_insert_id, get_fk_children, DB_BACKEND
 from rewrite import rewrite, generate_article_content_for_a, generate_image_prompts_for_title
 from config import GENERATE_ARTICLE_API_URL, PIN_EDITOR_URL, PIN_API_URL, ARTICLE_GENERATORS_DIR, OPENAI_API_KEY, OPENAI_MODEL, WEBSITE_PARTS_API_URL, STATIC_PROJECT_OUTPUT_DIR, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, get_ai_config, LLAMACPP_MANAGER_URL, UPDATER_URL
 import imagine
@@ -7109,11 +7109,17 @@ def api_group_subgroups():
             if not all_gids:
                 return jsonify({"subgroups": []})
             ph = ",".join(["?"] * len(all_gids))
+            agg_expr = (
+                "(SELECT STRING_AGG(COALESCE(d.domain_url, d.domain_name)::text, ',' ORDER BY d.domain_index, d.id) "
+                "FROM (SELECT domain_url, domain_name, domain_index, id FROM domains WHERE group_id = g.id ORDER BY domain_index, id LIMIT 4) d)"
+                if DB_BACKEND == "supabase"
+                else "(SELECT group_concat(COALESCE(d.domain_url, d.domain_name)) "
+                "FROM (SELECT domain_url, domain_name FROM domains WHERE group_id = g.id ORDER BY domain_index, id LIMIT 4) d)"
+            )
             cur = db_execute(conn, f"""
                 SELECT g.id, g.name, g.parent_group_id,
                     (SELECT COUNT(*) FROM domains d WHERE d.group_id = g.id) as domain_count,
-                    (SELECT group_concat(COALESCE(d.domain_url, d.domain_name))
-                     FROM (SELECT domain_url, domain_name FROM domains WHERE group_id = g.id ORDER BY domain_index, id LIMIT 4) d) as domain_preview
+                    {agg_expr} as domain_preview
                 FROM `groups` g
                 WHERE g.id IN ({ph}) AND EXISTS (SELECT 1 FROM domains d WHERE d.group_id = g.id)
                 ORDER BY g.id
@@ -7248,9 +7254,8 @@ def api_bulk_group_counts():
                 user_groups_list = get_user_groups(user["id"])
                 user_domain_ids = get_user_domain_ids(user["id"])
                 
-                cur = conn.cursor()
-                cur.execute("SELECT id FROM domains WHERE group_id = ?", (gid,))
-                group_domains = [row[0] for row in cur.fetchall()]
+                cur = db_execute(conn, "SELECT id FROM domains WHERE group_id = ?", (gid,))
+                group_domains = [dict_row(r).get("id") for r in cur.fetchall() if dict_row(r) and dict_row(r).get("id")]
                 
                 has_access = False
                 if gid in user_groups_list:
@@ -8625,7 +8630,11 @@ def _render_pool_template_to_html(template_name, payload=None, pin_api_base=None
     if not os.path.isfile(renderer_script):
         raise ValueError("pin_renderer/render_pin.js not found")
     import subprocess
-    node_input = json.dumps({"template_data": merged_tpl, "image_urls": image_urls})
+    node_payload = {"template_data": merged_tpl, "image_urls": image_urls}
+    if merged_tpl.get("template_type") == "html":
+        vars_in = payload.get("variables") or {}
+        node_payload["variables"] = vars_in
+    node_input = json.dumps(node_payload)
     proc = subprocess.run(
         ["node", renderer_script],
         input=node_input,
@@ -8690,6 +8699,36 @@ def _seed_template_39_if_missing():
         log.info("Seeded template_39 into pin_template_pool (DB only)")
     except Exception as e:
         log.warning("Seed template_39: %s", e)
+
+
+def _seed_html_templates_if_missing():
+    """Seed cottage_cheese_bread and stuffed_peppers HTML templates into pin_template_pool from JSON file."""
+    _html_templates_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pin_templates", "html_templates.json")
+    if not os.path.isfile(_html_templates_path):
+        return
+    try:
+        with open(_html_templates_path, "r", encoding="utf-8") as f:
+            themes = json.load(f)
+        with get_connection() as conn:
+            for theme in themes:
+                name = (theme.get("template_id") or theme.get("template_name") or "").strip().lower().replace("-", "_")
+                if not name:
+                    continue
+                cur = db_execute(conn, "SELECT id FROM pin_template_pool WHERE name = ?", (name,))
+                if cur.fetchone():
+                    continue
+                payload = {
+                    "template_id": theme.get("template_id") or name,
+                    "template_name": theme.get("template_name") or name,
+                    "style_slots": theme.get("style_slots") or {},
+                    "font_slots": theme.get("font_slots") or {},
+                    "template_data": theme.get("template_data") or {},
+                }
+                db_execute(conn, "INSERT INTO pin_template_pool (name, template_json, preview_image_url) VALUES (?, ?, ?)",
+                           (name, json.dumps(payload), ""))
+                log.info("Seeded HTML template %s into pin_template_pool", name)
+    except Exception as e:
+        log.warning("Seed HTML templates: %s", e)
 
 
 def _do_generate_pin_image(title_id, domain_template_id=None, user_id=None):
@@ -8886,7 +8925,12 @@ def _do_generate_pin_image(title_id, domain_template_id=None, user_id=None):
         renderer_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pin_renderer", "render_pin.js")
         if not os.path.isfile(renderer_script):
             raise ValueError("JavaScript pin renderer not found: pin_renderer/render_pin.js.")
-        node_input = json.dumps({"template_data": merged_tpl, "image_urls": image_urls})
+        node_payload = {"template_data": merged_tpl, "image_urls": image_urls}
+        if merged_tpl.get("template_type") == "html" and merged_tpl.get("variables"):
+            node_payload["variables"] = merged_tpl["variables"]
+        elif merged_tpl.get("template_type") == "html":
+            node_payload["variables"] = {"title": article_title, "domain": domain_display}
+        node_input = json.dumps(node_payload)
         try:
             proc = subprocess.run(
                 ["node", renderer_script],
@@ -9203,6 +9247,7 @@ def _pin_api_url():
 def _pool_only_template_names():
     """Template names that exist only in pin_template_pool (no Python file). Used for Pin Editor list and JS path."""
     _seed_template_39_if_missing()
+    _seed_html_templates_if_missing()
     with get_connection() as conn:
         cur = db_execute(conn, "SELECT name FROM pin_template_pool ORDER BY name")
         return [dict_row(r).get("name") for r in cur.fetchall() if dict_row(r).get("name")]
@@ -9276,9 +9321,11 @@ def api_pin_template(name):
             return jsonify(r.json())
     except Exception:
         pass
-    # Fallback 1: load from pin_template_pool (e.g. template_39) — logic stored in DB
+    # Fallback 1: load from pin_template_pool (e.g. template_39, cottage_cheese_bread, stuffed_peppers)
     if name_norm == "template_39":
         _seed_template_39_if_missing()
+    else:
+        _seed_html_templates_if_missing()
     with get_connection() as conn:
         cur = db_execute(conn, "SELECT template_json FROM pin_template_pool WHERE name = ?", (name_norm,))
         row = dict_row(cur.fetchone())
@@ -9323,6 +9370,8 @@ def api_pin_template_preview_img():
         return "Missing template", 400
     if name == "template_39":
         _seed_template_39_if_missing()
+    else:
+        _seed_html_templates_if_missing()
     with get_connection() as conn:
         cur = db_execute(conn, "SELECT id FROM pin_template_pool WHERE name = ?", (name,))
         if cur.fetchone() is None:
@@ -25515,12 +25564,13 @@ def admin_users():
         cur = db_execute(conn, """
             SELECT u.id, u.username, u.email, u.is_admin, u.is_active, u.created_at,
                    COUNT(DISTINCT ud.domain_id) as domain_count,
-                   k.cloned_at, source_u.username as cloned_from_username
+                   MAX(k.cloned_at) as cloned_at,
+                   MAX(source_u.username) as cloned_from_username
             FROM users u
             LEFT JOIN user_domains ud ON ud.user_id = u.id
             LEFT JOIN user_api_keys k ON k.user_id = u.id
             LEFT JOIN users source_u ON source_u.id = k.cloned_from_user_id
-            GROUP BY u.id
+            GROUP BY u.id, u.username, u.email, u.is_admin, u.is_active, u.created_at
             ORDER BY u.id DESC
         """)
         users = [dict_row(r) for r in cur.fetchall()]
@@ -26236,4 +26286,6 @@ def api_users_clone_profile():
 
 if __name__ == "__main__":
     init_db()
+    _seed_template_39_if_missing()
+    _seed_html_templates_if_missing()
     app.run(host="0.0.0.0", port=5001)

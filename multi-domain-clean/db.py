@@ -809,12 +809,20 @@ def _run_supabase_migrations(conn, cur):
         _safe_execute(conn, cur, f'ALTER TABLE domains ADD COLUMN IF NOT EXISTS {col} TEXT')
 
 
+def _pg_compat_query(q):
+    """Convert MySQL-specific SQL to PostgreSQL-compatible form."""
+    q = q.replace("`", '"')
+    # IFNULL(a,b) -> COALESCE(a,b) — PostgreSQL doesn't have IFNULL
+    q = re.sub(r"\bIFNULL\s*\(", "COALESCE(", q, flags=re.IGNORECASE)
+    return q
+
+
 def execute(conn, query, params=None):
     """Execute query. Use ? placeholders; they are converted to %s. For Supabase, backticks become double-quotes.
     For Supabase INSERT, appends RETURNING id so last_insert_id works with connection pooling."""
     q = query.replace("?", "%s")
     if DB_BACKEND == "supabase":
-        q = q.replace("`", '"')
+        q = _pg_compat_query(q)
         # Append RETURNING id for simple INSERT (more reliable than lastval() with connection pooling)
         if re.match(r"^\s*INSERT\s+INTO\s+", q, re.IGNORECASE) and " RETURNING " not in q.upper():
             q = q.rstrip("; \n") + " RETURNING id"

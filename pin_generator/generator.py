@@ -532,9 +532,10 @@ def run_server(available_templates, host="0.0.0.0", port=5000):
         if not isinstance(tpl_data, dict):
             return jsonify({"success": False, "error": "Missing or invalid template_data"}), 400
         merged = copy.deepcopy(tpl_data)
-        # Normalize to template shape
-        tpl = template_from_data(merged)
-        merged = copy.deepcopy(tpl)
+        # Normalize to template shape (skip for HTML templates - preserve html, template_type, field_prompts)
+        if merged.get("template_type") != "html":
+            tpl = template_from_data(merged)
+            merged = copy.deepcopy(tpl)
         # Domain style
         dc = body.get("domain_colors")
         df = body.get("domain_fonts")
@@ -553,6 +554,7 @@ def run_server(available_templates, host="0.0.0.0", port=5000):
         # OpenAI text for fields with field_prompts — runs after apply_overrides so generated text wins
         ai_config = {k: body[k] for k in ("openai_api_key", "openrouter_api_key", "ai_provider", "openai_model", "openrouter_model") if k in body}
         title = (body.get("variables") or {}).get("title") or body.get("title") or body.get("name")
+        domain = (body.get("variables") or {}).get("domain") or body.get("domain") or "example.com"
         if title and isinstance(title, str):
             elements = merged.get("elements") or {}
             field_prompts = merged.get("field_prompts") or {}
@@ -565,10 +567,17 @@ def run_server(available_templates, host="0.0.0.0", port=5000):
                 try:
                     generated = _generate_texts_via_openai(title, prompt, field_prompts, config=ai_config)
                     if generated:
-                        generated = _fit_generated_texts(generated, merged.get("elements") or {})
-                        for fn, text in generated.items():
-                            if fn in merged.get("elements", {}):
-                                merged["elements"][fn]["text"] = text
+                        if merged.get("template_type") == "html":
+                            # HTML templates: put generated text in variables for placeholder replacement
+                            merged.setdefault("variables", {})
+                            merged["variables"].update(generated)
+                            merged["variables"]["title"] = title
+                            merged["variables"]["domain"] = domain
+                        else:
+                            generated = _fit_generated_texts(generated, elements)
+                            for fn, text in generated.items():
+                                if fn in merged.get("elements", {}):
+                                    merged["elements"][fn]["text"] = text
                 except OpenAIServiceError as e:
                     log.warning("merge_template OpenAI: %s", e)
         return jsonify({"success": True, "template_data": merged})

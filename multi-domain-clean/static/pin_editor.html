@@ -1281,6 +1281,62 @@
       const tabs = [];
       const panels = [];
 
+      if (templateData.template_type === 'html') {
+        const htmlSection = document.createElement('div');
+        htmlSection.className = 'form-section';
+        htmlSection.innerHTML = '<h3>HTML / CSS</h3><p class="small text-muted mb-2">Edit the pin HTML and CSS directly. Use placeholders: {{badge}}, {{title}}, {{domain}}, {{tagline}}, {{main_image}}</p><textarea id="htmlTemplateEditor" class="form-control font-monospace" rows="16" placeholder="&lt;!DOCTYPE html&gt;..." style="font-size:12px"></textarea>';
+        if (templateData.field_prompts && Object.keys(templateData.field_prompts).length > 0) {
+          htmlSection.innerHTML += '<h4 class="mt-3 mb-2">Field prompts (AI generation)</h4><textarea id="htmlFieldPrompts" class="form-control font-monospace small" rows="6" placeholder="JSON: {&quot;badge&quot;: &quot;...&quot;}"></textarea>';
+        }
+        tabs.push({ id: 'tab-html', label: 'HTML/CSS' });
+        panels.push(htmlSection);
+        const nameSection = document.createElement('div');
+        nameSection.className = 'form-section';
+        nameSection.innerHTML = '<label for="pinName">Pin name</label><input type="text" id="pinName" placeholder="Recipe or pin name">';
+        tabs.push({ id: 'tab-pin-name', label: 'Pin name' });
+        panels.push(nameSection);
+        const tabBar = document.createElement('div');
+        tabBar.className = 'element-tabs';
+        tabs.forEach((t, i) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'tab-btn' + (i === 0 ? ' active' : '');
+          btn.textContent = t.label;
+          btn.setAttribute('data-tab-index', String(i));
+          tabBar.appendChild(btn);
+        });
+        const panelsWrap = document.createElement('div');
+        panelsWrap.className = 'element-tab-panels';
+        panels.forEach((panel, i) => {
+          const wrap = document.createElement('div');
+          wrap.className = 'element-tab-panel' + (i === 0 ? ' active' : '');
+          wrap.setAttribute('data-tab-index', String(i));
+          wrap.appendChild(panel);
+          panelsWrap.appendChild(wrap);
+        });
+        tabBar.addEventListener('click', function (e) {
+          const btn = e.target.closest('.tab-btn');
+          if (!btn) return;
+          const idx = btn.getAttribute('data-tab-index');
+          tabBar.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); });
+          btn.classList.add('active');
+          panelsWrap.querySelectorAll('.element-tab-panel').forEach(p => {
+            p.classList.toggle('active', p.getAttribute('data-tab-index') === idx);
+          });
+        });
+        container.appendChild(tabBar);
+        container.appendChild(panelsWrap);
+        document.getElementById('pinName').value = templateData.name || '';
+        const htmlArea = document.getElementById('htmlTemplateEditor');
+        if (htmlArea) htmlArea.value = templateData.html || '';
+        const fpArea = document.getElementById('htmlFieldPrompts');
+        if (fpArea && templateData.field_prompts) fpArea.value = JSON.stringify(templateData.field_prompts, null, 2);
+        htmlArea && htmlArea.addEventListener('input', function () { updateJsonOut(); clearTimeout(previewDebounce); previewDebounce = setTimeout(updatePreview, 500); });
+        fpArea && fpArea.addEventListener('input', function () { updateJsonOut(); });
+        pinPreviewClickMap = [];
+        return;
+      }
+
       const nameSection = document.createElement('div');
       nameSection.className = 'form-section';
       nameSection.innerHTML = '<label for="pinName">Pin name</label><input type="text" id="pinName" placeholder="Recipe or pin name">';
@@ -1594,6 +1650,16 @@
       if (!templateData) return null;
       const data = JSON.parse(JSON.stringify(templateData));
       data.name = getVal('pinName') || data.name;
+
+      if (data.template_type === 'html') {
+        const htmlEl = document.getElementById('htmlTemplateEditor');
+        if (htmlEl) data.html = htmlEl.value || data.html || '';
+        const fpEl = document.getElementById('htmlFieldPrompts');
+        if (fpEl && fpEl.value.trim()) {
+          try { data.field_prompts = JSON.parse(fpEl.value.trim()); } catch (e) { /* keep existing */ }
+        }
+        return data;
+      }
 
       const images = data.images || {};
       Object.keys(images).forEach(key => {
