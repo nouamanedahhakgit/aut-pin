@@ -1,6 +1,7 @@
 """Database connection and schema. Supports MySQL or Supabase (PostgreSQL) via DB_BACKEND in .env."""
 import os
 import re
+import time
 from contextlib import contextmanager
 
 try:
@@ -60,13 +61,36 @@ def _get_supabase_connection():
     last_error = None
     for url in urls_to_try:
         url = url.strip()
-        try:
-            return psycopg2.connect(url, cursor_factory=RealDictCursor)
-        except Exception as e:
-            last_error = e
-            if "could not translate host name" in str(e).lower() or "resolve" in str(e).lower():
-                continue  # try next URL (e.g. pooler)
-            raise
+        for attempt in range(3):  # retry transient DNS/network failures
+            try:
+                return psycopg2.connect(url, cursor_factory=RealDictCursor)
+            except Exception as e:
+                last_error = e
+                err_msg = str(e).lower()
+                is_transient = (
+                    "could not translate host name" in err_msg
+                    or "resolve" in err_msg
+                    or "connection refused" in err_msg
+                    or "timed out" in err_msg
+                )
+                if is_transient and attempt < 2:
+                    time.sleep(2 + attempt)  # 2s, 3s
+                    continue
+                if "could not translate host name" in err_msg or "resolve" in err_msg:
+                    continue  # try next URL (e.g. direct vs pooler)
+                raise
+    # Log failure for diagnostics (avoid logging full URL with password)
+    try:
+        import logging
+        _log = logging.getLogger(__name__)
+        _host = "?"
+        if urls_to_try:
+            m = re.search(r"@([^:/]+)", urls_to_try[-1])
+            if m:
+                _host = m.group(1)
+        _log.error("[Supabase] Connection failed to %s: %s", _host, last_error)
+    except Exception:
+        pass
     raise last_error
 
 
@@ -552,6 +576,19 @@ def _run_mysql_migrations_part2(cursor):
             INDEX idx_ai_provider_models_provider (provider)
         )
     """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS pin_url_submissions (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            url TEXT NOT NULL,
+            `generated` TINYINT(1) DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            INDEX idx_pin_url_user (user_id),
+            INDEX idx_pin_url_generated (`generated`),
+            INDEX idx_pin_url_created (created_at)
+        )
+    """)
 
 
 def _safe_execute(conn, cur, sql, *args):
@@ -800,6 +837,19 @@ def _init_supabase():
         """)
         cur.execute("CREATE INDEX IF NOT EXISTS idx_ai_provider_models_provider ON ai_provider_models(provider)")
         _safe_execute(conn, cur, "CREATE INDEX IF NOT EXISTS idx_pin_template_pool_name ON pin_template_pool(name)")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS pin_url_submissions (
+                id SERIAL PRIMARY KEY,
+                user_id INT NOT NULL,
+                url TEXT NOT NULL,
+                generated SMALLINT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        """)
+        _safe_execute(conn, cur, "CREATE INDEX IF NOT EXISTS idx_pin_url_user ON pin_url_submissions(user_id)")
+        _safe_execute(conn, cur, "CREATE INDEX IF NOT EXISTS idx_pin_url_generated ON pin_url_submissions(generated)")
+        _safe_execute(conn, cur, "CREATE INDEX IF NOT EXISTS idx_pin_url_created ON pin_url_submissions(created_at)")
         _run_supabase_migrations(conn, cur)
 
 

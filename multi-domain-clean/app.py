@@ -10,11 +10,25 @@ import re
 import os
 import base64
 import logging
+from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
+# Write logs to .logs/multi-domain-clean-app.log (separate from run_all's stdout redirect)
+_log_dir = Path(__file__).resolve().parent.parent / ".logs"
+try:
+    _log_dir.mkdir(parents=True, exist_ok=True)
+    _app_log = _log_dir / "multi-domain-clean-app.log"
+    _fh = logging.FileHandler(_app_log, encoding="utf-8")
+    _fh.setLevel(logging.INFO)
+    _fh.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
+    logging.getLogger().addHandler(_fh)
+except Exception as _e:
+    import sys
+    print(f"[multi-domain-clean] Logging setup failed: {_e}", file=sys.stderr)
 import subprocess
 import tempfile
+import zipfile
 import traceback
 import threading
 import uuid
@@ -285,6 +299,12 @@ def _no_cache_html(response):
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
     return response
+
+
+@app.before_request
+def _log_request():
+    """Log each request so activity appears in .logs/multi-domain-clean.log."""
+    log.info("%s %s", request.method, request.path)
 
 
 _bulk_progress = {}  # job_id -> { status, message, error_detail?, current_title, ok, failed, type, group_id?, mode, created_at }
@@ -709,6 +729,7 @@ def base_layout(content, title, nav_extra=None):
       <a class="nav-link" href="/admin/domains">Domains</a>
       <a class="nav-link" href="/admin/writers">Writers</a>
       <a class="nav-link" href="/admin/ai-models">AI Models</a>
+      <a class="nav-link" href="/admin/pin-urls">📌 Pin URLs</a>
       <a class="nav-link" href="/admin/logs">📋 Logs</a>
       {f'<a class="nav-link" href="/admin/updates">🔄 Updates</a>' if session.get('is_admin') else ''}
       {f'<a class="nav-link" href="/admin/users">👥 Users</a>' if session.get('is_admin') else ''}
@@ -4175,6 +4196,358 @@ def admin_updates():
     </script>
     """
     return base_layout(content, "Updates", nav_extra="")
+
+
+@app.route("/admin/pin-urls", methods=["GET"])
+@login_required
+def admin_pin_urls():
+    """Page for users to submit pin image URLs; admin can filter and download."""
+    return base_layout(_render_pin_urls_page(), "Pin URLs", nav_extra="")
+
+
+def _render_pin_urls_page():
+    return """
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span>📌 Pin URL Submissions</span>
+    <span class="small text-muted">Users submit pin image URLs; you generate themes from them</span>
+  </div>
+  <div class="card-body">
+    <div class="mb-4">
+      <label class="form-label fw-medium">Add URLs (one per line)</label>
+      <textarea id="pinUrlInput" class="form-control font-monospace small" rows="4" placeholder="https://example.com/pin1.png&#10;https://example.com/pin2.jpg"></textarea>
+      <button type="button" class="btn btn-primary mt-2" id="pinUrlAddBtn">Add URLs</button>
+    </div>
+    <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+      <label class="form-label mb-0 small">Filters:</label>
+      <select id="pinUrlFilterUser" class="form-select form-select-sm" style="width:auto">
+        <option value="">All users</option>
+      </select>
+      <select id="pinUrlFilterGenerated" class="form-select form-select-sm" style="width:auto">
+        <option value="">All</option>
+        <option value="1">Generated ✓</option>
+        <option value="0">Not generated</option>
+      </select>
+      <input type="date" id="pinUrlFilterDateFrom" class="form-control form-control-sm" style="width:auto" title="From date">
+      <input type="date" id="pinUrlFilterDateTo" class="form-control form-control-sm" style="width:auto" title="To date">
+      <button type="button" class="btn btn-outline-secondary btn-sm" id="pinUrlRefreshBtn">Refresh</button>
+      <span class="ms-auto d-flex gap-2 flex-wrap">
+        <button type="button" class="btn btn-outline-success btn-sm" id="pinUrlDownloadGenerated">Download URLs (generated)</button>
+        <button type="button" class="btn btn-outline-warning btn-sm" id="pinUrlDownloadNot">Download URLs (not generated)</button>
+        <button type="button" class="btn btn-outline-primary btn-sm" id="pinUrlDownloadAll">Download URLs (all)</button>
+        <button type="button" class="btn btn-outline-info btn-sm" id="pinUrlDownloadImages">Download images (ZIP)</button>
+      </span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-hover">
+        <thead><tr><th>ID</th><th>Preview</th><th>URL</th><th>User</th><th>Generated</th><th>Date</th><th>Actions</th></tr></thead>
+        <tbody id="pinUrlTableBody"></tbody>
+      </table>
+    </div>
+    <div id="pinUrlEmpty" class="text-muted text-center py-4 small" style="display:none">No submissions yet. Add URLs above.</div>
+  </div>
+</div>
+<script>
+(function(){
+  function getFilters(includeGenerated){
+    var q = [];
+    var u = document.getElementById('pinUrlFilterUser').value;
+    var g = (includeGenerated !== false) ? document.getElementById('pinUrlFilterGenerated').value : null;
+    var df = document.getElementById('pinUrlFilterDateFrom').value;
+    var dt = document.getElementById('pinUrlFilterDateTo').value;
+    if(u) q.push('user_id='+encodeURIComponent(u));
+    if(g !== null && g !== '') q.push('generated='+encodeURIComponent(g));
+    if(df) q.push('date_from='+encodeURIComponent(df));
+    if(dt) q.push('date_to='+encodeURIComponent(dt));
+    return q.length ? '?'+q.join('&') : '';
+  }
+  function load(){
+    fetch('/api/pin-url-submissions'+getFilters()).then(r=>r.json()).then(function(d){
+      var tbody = document.getElementById('pinUrlTableBody');
+      var empty = document.getElementById('pinUrlEmpty');
+      if(d.error){ tbody.innerHTML='<tr><td colspan="7" class="text-danger">'+d.error+'</td></tr>'; empty.style.display='none'; return; }
+      var rows = d.submissions || [];
+      if(rows.length === 0){ tbody.innerHTML=''; empty.style.display='block'; return; }
+      empty.style.display='none';
+      tbody.innerHTML = rows.map(function(r){
+        var url = (r.url||'').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+        var urlShort = url.length>60 ? url.substring(0,57)+'...' : url;
+        var gen = r.generated ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>';
+        var date = r.created_at ? new Date(r.created_at).toLocaleString() : '—';
+        var toggleCls = r.generated ? 'btn-warning' : 'btn-success';
+        var toggleLabel = r.generated ? 'Mark not generated' : 'Mark generated';
+        var thumb = '<img src="'+url+'" alt="" style="width:60px;height:80px;object-fit:cover;border-radius:4px;background:#eee" onerror="this.style.display=\\'none\\'" loading="lazy">';
+        return '<tr><td>'+r.id+'</td><td><a href="'+url+'" target="_blank" rel="noopener">'+thumb+'</a></td><td><a href="'+url+'" target="_blank" rel="noopener" title="'+url+'">'+urlShort+'</a></td><td>'+(r.username||'—')+'</td><td>'+gen+'</td><td>'+date+'</td><td><button type="button" class="btn btn-sm '+toggleCls+'" data-id="'+r.id+'" data-gen="'+r.generated+'">'+toggleLabel+'</button></td></tr>';
+      }).join('');
+      tbody.querySelectorAll('button[data-id]').forEach(function(btn){
+        btn.onclick = function(){ var newVal = this.getAttribute('data-gen')==='true' ? 0 : 1; toggleGenerated(parseInt(this.getAttribute('data-id'),10), newVal); };
+      });
+    }).catch(function(e){ document.getElementById('pinUrlTableBody').innerHTML='<tr><td colspan="7" class="text-danger">'+e+'</td></tr>'; });
+  }
+  function toggleGenerated(id, generated){
+    fetch('/api/pin-url-submissions/'+id, {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({generated: generated})}).then(r=>r.json()).then(function(d){
+      if(d.success) load();
+      else alert(d.error||'Error');
+    }).catch(function(e){ alert(e); });
+  }
+  function loadUsers(){
+    fetch('/api/pin-url-users').then(r=>r.json()).then(function(d){
+      var sel = document.getElementById('pinUrlFilterUser');
+      sel.innerHTML = '<option value="">All users</option>';
+      (d.users||[]).forEach(function(u){
+        var o = document.createElement('option');
+        o.value = u.id;
+        o.textContent = (u.username||'user '+u.id);
+        sel.appendChild(o);
+      });
+    }).catch(function(){});
+  }
+  document.getElementById('pinUrlAddBtn').onclick = function(){
+    var ta = document.getElementById('pinUrlInput');
+    var urls = (ta.value||'').split(/[\\r\\n]+/).map(function(s){ return s.trim(); }).filter(Boolean);
+    if(!urls.length){ alert('Enter at least one URL'); return; }
+    fetch('/api/pin-url-submissions', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({urls: urls})}).then(function(r){ return r.json().then(function(d){ if(!r.ok) throw new Error(d.error||r.status); return d; }); }).then(function(d){
+      if(d.success){ ta.value=''; alert('Added '+d.added+' URL(s)'); load(); }
+      else alert(d.error||'Error');
+    }).catch(function(e){ alert('Error: '+(e.message||e)); });
+  };
+  document.getElementById('pinUrlRefreshBtn').onclick = load;
+  document.getElementById('pinUrlFilterUser').onchange = load;
+  document.getElementById('pinUrlFilterGenerated').onchange = load;
+  document.getElementById('pinUrlFilterDateFrom').onchange = load;
+  document.getElementById('pinUrlFilterDateTo').onchange = load;
+  function doDownload(mode){
+    var q = getFilters(false);
+    if(mode === 'generated') q += (q ? '&' : '?') + 'generated=1';
+    else if(mode === 'not_generated') q += (q ? '&' : '?') + 'generated=0';
+    window.location.href = '/api/pin-url-submissions/download' + (q || '');
+  }
+  function doDownloadImages(){
+    var q = getFilters(false);
+    window.location.href = '/api/pin-url-submissions/download-images' + (q || '');
+  }
+  document.getElementById('pinUrlDownloadGenerated').onclick = function(){ doDownload('generated'); };
+  document.getElementById('pinUrlDownloadNot').onclick = function(){ doDownload('not_generated'); };
+  document.getElementById('pinUrlDownloadAll').onclick = function(){ doDownload('all'); };
+  document.getElementById('pinUrlDownloadImages').onclick = function(){ doDownloadImages(); };
+  loadUsers();
+  load();
+})();
+</script>
+"""
+
+
+@app.route("/api/pin-url-submissions", methods=["GET"])
+@login_required
+def api_pin_url_submissions_list():
+    """List pin URL submissions with filters."""
+    user_id = request.args.get("user_id", type=int)
+    generated = request.args.get("generated")
+    date_from = request.args.get("date_from")
+    date_to = request.args.get("date_to")
+    with get_connection() as conn:
+        q = """
+            SELECT p.id, p.url, p.`generated`, p.created_at, p.user_id, u.username
+            FROM pin_url_submissions p
+            LEFT JOIN users u ON u.id = p.user_id
+            WHERE 1=1
+        """
+        params = []
+        if user_id:
+            q += " AND p.user_id = ?"
+            params.append(user_id)
+        if generated is not None and str(generated) in ("0", "1"):
+            q += " AND p.`generated` = ?"
+            params.append(int(generated))
+        if date_from:
+            q += " AND DATE(p.created_at) >= ?"
+            params.append(date_from)
+        if date_to:
+            q += " AND DATE(p.created_at) <= ?"
+            params.append(date_to)
+        q += " ORDER BY p.created_at DESC"
+        cur = db_execute(conn, q, tuple(params))
+        rows = cur.fetchall()
+    out = []
+    for r in rows:
+        out.append({
+            "id": r.get("id"),
+            "url": r.get("url"),
+            "generated": bool(r.get("generated")),
+            "created_at": r.get("created_at").isoformat() if hasattr(r.get("created_at"), "isoformat") else str(r.get("created_at") or ""),
+            "user_id": r.get("user_id"),
+            "username": r.get("username"),
+        })
+    return jsonify({"submissions": out})
+
+
+@app.route("/api/pin-url-submissions", methods=["POST"])
+@login_required
+def api_pin_url_submissions_add():
+    """Add pin image URLs. Accepts { urls: [str] }."""
+    user = get_current_user()
+    if not user:
+        return jsonify({"error": "Not logged in"}), 401
+    data = request.get_json(silent=True) or {}
+    urls = data.get("urls") or []
+    if not isinstance(urls, list):
+        urls = [str(urls)] if urls else []
+    urls = [u.strip() for u in urls if isinstance(u, str) and u.strip().startswith(("http://", "https://"))]
+    if not urls:
+        return jsonify({"error": "Provide at least one valid URL (must start with http:// or https://)", "added": 0}), 400
+    added = 0
+    errors = []
+    with get_connection() as conn:
+        for u in urls:
+            try:
+                db_execute(conn, "INSERT INTO pin_url_submissions (user_id, url, `generated`) VALUES (?, ?, 0)", (user["id"], u[:4096]))
+                added += 1
+            except Exception as e:
+                errors.append(str(e))
+                log.warning("[pin-url-submissions] INSERT failed for %s...: %s", (u[:50] + "..." if len(u) > 50 else u), e)
+    if added == 0 and errors:
+        return jsonify({"error": "Failed to add URLs. Check .logs/multi-domain-clean-app.log. " + (errors[0][:200] if errors else ""), "added": 0}), 500
+    return jsonify({"success": True, "added": added})
+
+
+@app.route("/api/pin-url-submissions/<int:sub_id>", methods=["PATCH"])
+@login_required
+def api_pin_url_submissions_update(sub_id):
+    """Toggle generated flag. Body: { generated: 0|1 }."""
+    data = request.get_json(silent=True) or {}
+    gen = data.get("generated")
+    if gen is None:
+        return jsonify({"error": "generated required"}), 400
+    gen = 1 if gen else 0
+    with get_connection() as conn:
+        cur = db_execute(conn, "UPDATE pin_url_submissions SET `generated` = ? WHERE id = ?", (gen, sub_id))
+        if getattr(cur, "rowcount", 0) == 0:
+            return jsonify({"error": "Not found"}), 404
+    return jsonify({"success": True})
+
+
+@app.route("/api/pin-url-submissions/download")
+@login_required
+def api_pin_url_submissions_download():
+    """Download URLs as plain text (one per line). Uses same filters as list."""
+    user_id = request.args.get("user_id", type=int)
+    generated = request.args.get("generated")
+    date_from = request.args.get("date_from")
+    date_to = request.args.get("date_to")
+    q = """
+        SELECT p.url FROM pin_url_submissions p
+        WHERE 1=1
+    """
+    params = []
+    if user_id:
+        q += " AND p.user_id = ?"
+        params.append(user_id)
+    if generated is not None and str(generated) in ("0", "1"):
+        q += " AND p.`generated` = ?"
+        params.append(int(generated))
+    if date_from:
+        q += " AND DATE(p.created_at) >= ?"
+        params.append(date_from)
+    if date_to:
+        q += " AND DATE(p.created_at) <= ?"
+        params.append(date_to)
+    q += " ORDER BY p.created_at DESC"
+    with get_connection() as conn:
+        cur = db_execute(conn, q, tuple(params))
+        rows = cur.fetchall()
+    urls = [r.get("url") or "" for r in rows if r.get("url")]
+    from flask import Response
+    fn = "pin_urls"
+    if generated is not None and str(generated) == "1":
+        fn += "_generated"
+    elif generated is not None and str(generated) == "0":
+        fn += "_not_generated"
+    fn += ".txt"
+    return Response("\n".join(urls), mimetype="text/plain", headers={"Content-Disposition": "attachment; filename=" + fn})
+
+
+def _ext_from_url(url):
+    """Guess image extension from URL path."""
+    path = urllib.parse.urlparse(url).path
+    if "." in path:
+        ext = path.rsplit(".", 1)[-1].lower()
+        if ext in ("png", "jpg", "jpeg", "gif", "webp", "bmp"):
+            return "." + ext
+    return ".jpg"
+
+
+@app.route("/api/pin-url-submissions/download-images")
+@login_required
+def api_pin_url_submissions_download_images():
+    """Download images as a ZIP file. Uses same filters as list."""
+    user_id = request.args.get("user_id", type=int)
+    generated = request.args.get("generated")
+    date_from = request.args.get("date_from")
+    date_to = request.args.get("date_to")
+    q = """
+        SELECT p.id, p.url FROM pin_url_submissions p
+        WHERE 1=1
+    """
+    params = []
+    if user_id:
+        q += " AND p.user_id = ?"
+        params.append(user_id)
+    if generated is not None and str(generated) in ("0", "1"):
+        q += " AND p.`generated` = ?"
+        params.append(int(generated))
+    if date_from:
+        q += " AND DATE(p.created_at) >= ?"
+        params.append(date_from)
+    if date_to:
+        q += " AND DATE(p.created_at) <= ?"
+        params.append(date_to)
+    q += " ORDER BY p.created_at DESC"
+    with get_connection() as conn:
+        cur = db_execute(conn, q, tuple(params))
+        rows = cur.fetchall()
+    urls = [(r.get("id"), r.get("url") or "") for r in rows if r.get("url")]
+    if not urls:
+        return jsonify({"error": "No URLs to download"}), 400
+
+    buf = io.BytesIO()
+    seen = {}
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for row_id, url in urls:
+            try:
+                req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    data = resp.read()
+            except Exception as e:
+                log.warning("[pin-url-images] Failed to fetch %s: %s", url[:80], e)
+                continue
+            ext = _ext_from_url(url)
+            base = f"image_{row_id}"
+            name = base + ext
+            if name in seen:
+                seen[name] += 1
+                name = f"{base}_{seen[name]}{ext}"
+            else:
+                seen[name] = 1
+            zf.writestr(name, data)
+
+    buf.seek(0)
+    fn = "pin_images"
+    if generated is not None and str(generated) == "1":
+        fn += "_generated"
+    elif generated is not None and str(generated) == "0":
+        fn += "_not_generated"
+    fn += ".zip"
+    return send_file(buf, mimetype="application/zip", as_attachment=True, download_name=fn)
+
+
+@app.route("/api/pin-url-users")
+@login_required
+def api_pin_url_users():
+    """List all users (for filter dropdown)."""
+    with get_connection() as conn:
+        cur = db_execute(conn, "SELECT id, username FROM users ORDER BY username")
+        rows = cur.fetchall()
+    return jsonify({"users": [{"id": r.get("id"), "username": r.get("username") or ("user " + str(r.get("id", "")))} for r in rows]})
 
 
 def _render_logs_dashboard():
@@ -26863,4 +27236,5 @@ if __name__ == "__main__":
     init_db()
     _seed_template_39_if_missing()
     _seed_html_templates_if_missing()
+    log.info("Starting Flask on http://0.0.0.0:5001")
     app.run(host="0.0.0.0", port=5001)

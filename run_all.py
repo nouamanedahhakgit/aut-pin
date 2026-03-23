@@ -6,6 +6,7 @@ Start or stop all automation microservices at once.
   python run_all.py start -f      -- start in foreground (see output, Ctrl+C to stop)
   python run_all.py stop          -- stop all services
   python run_all.py restart       -- stop then start
+  python run_all.py kill-ports    -- kill any process using service ports (when stop finds no PIDs)
 
 If services fail to start, run one manually to see errors:
   cd multi-domain-clean && python app.py
@@ -113,6 +114,8 @@ def start():
             flags = 0
             if os.name == "nt" and not foreground:
                 flags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) | subprocess.CREATE_NEW_PROCESS_GROUP
+            env = os.environ.copy()
+            env["PYTHONUNBUFFERED"] = "1"
             if foreground:
                 stdout_dst = sys.stdout
                 stderr_dst = sys.stderr
@@ -130,6 +133,7 @@ def start():
                 stderr=stderr_dst,
                 stdin=subprocess.DEVNULL,
                 creationflags=flags,
+                env=env,
             )
             procs.append((svc["name"], p.pid, p))
             print(f"Started {svc['name']} (port {svc['port']}) PID {p.pid}" + (f" -> .logs/{svc['name']}.log" if not foreground else ""))
@@ -160,6 +164,7 @@ def stop():
     entries = _read_pids()
     if not entries:
         print("No services tracked in .services.pid (or already stopped).")
+        print("If ports are still in use, run: python run_all.py kill-ports")
         return 0
     for name, pid in entries:
         _kill_pid(pid)
@@ -176,18 +181,74 @@ def restart():
     return start()
 
 
+def _pids_on_port(port):
+    """Return set of PIDs listening on the given port (Windows or Unix)."""
+    pids = set()
+    try:
+        if os.name == "nt":
+            out = subprocess.run(
+                ["netstat", "-ano"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            for line in (out.stdout or "").splitlines():
+                # LISTENING ... :5001 ... 12345
+                if f":{port}" in line and "LISTENING" in line:
+                    parts = line.split()
+                    if parts:
+                        try:
+                            pids.add(int(parts[-1]))
+                        except ValueError:
+                            pass
+        else:
+            out = subprocess.run(
+                ["lsof", "-ti", f":{port}"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            for pid in (out.stdout or "").strip().split():
+                if pid:
+                    try:
+                        pids.add(int(pid))
+                    except ValueError:
+                        pass
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+    return pids
+
+
+def kill_ports():
+    """Kill any process using service ports. Use when stop finds no PIDs but ports are in use."""
+    ports = [svc["port"] for svc in SERVICES]
+    killed = []
+    for port in ports:
+        for pid in _pids_on_port(port):
+            _kill_pid(pid)
+            killed.append((port, pid))
+    if killed:
+        for port, pid in killed:
+            print(f"Killed PID {pid} on port {port}")
+    else:
+        print("No processes found on service ports %s" % ", ".join(str(p) for p in ports))
+    return 0
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__.strip())
         return 1
     cmd = sys.argv[1].lower()
-    if cmd not in ("start", "stop", "restart"):
+    if cmd not in ("start", "stop", "restart", "kill-ports"):
         print(__doc__.strip())
         return 1
     if cmd == "start":
         return start()
     if cmd == "restart":
         return restart()
+    if cmd == "kill-ports":
+        return kill_ports()
     return stop()
 
 
