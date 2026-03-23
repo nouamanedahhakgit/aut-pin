@@ -125,10 +125,11 @@ def _fit_generated_texts(generated, elements):
     return out
 
 
-def _generate_texts_via_openai(title, prompt, field_prompts, config=None):
+def _generate_texts_via_openai(title, prompt, field_prompts, config=None, field_examples=None):
     """
     Call OpenAI to generate text for each field based on recipe title.
     config: optional dict with openai_api_key, openrouter_api_key, ai_provider, openai_model, openrouter_model (from multi-domain-clean profile).
+    field_examples: optional dict {"field_name": "example text"} - when provided, AI must match EXACT word count and reskin for the new recipe.
     Returns dict like {"subtitle": "...", "title": "..."}.
     Raises OpenAIServiceError if the API is called but fails (quota, rate limit, etc.).
     Returns {} only when OpenAI is skipped (no key, no title, no field_prompts).
@@ -173,17 +174,33 @@ def _generate_texts_via_openai(title, prompt, field_prompts, config=None):
     try:
         # Replace {{title}} in each field prompt so the model gets the actual recipe name
         resolved = {k: v.replace("{{title}}", title) for k, v in field_prompts.items()}
-        user_content = (
-            f"{prompt}\n\n"
-            f"Recipe/ARTICLE title (you MUST use this — do not invent a different recipe): {title}\n\n"
-            f"Field prompts (generate one value per key; output only the JSON object):\n"
-            f"{json.dumps(resolved, indent=2)}"
-        )
+        user_parts = [
+            prompt,
+            "",
+            f"Recipe/ARTICLE title (you MUST use this — do not invent a different recipe): {title}",
+            "",
+            "Field prompts (generate one value per key; output only the JSON object):",
+            json.dumps(resolved, indent=2),
+        ]
+        if field_examples:
+            word_counts = {k: len(v.split()) for k, v in field_examples.items() if isinstance(v, str) and v.strip()}
+            user_parts.extend([
+                "",
+                "FIELD EXAMPLES (match EXACT word count — reskin for the new recipe):",
+                json.dumps(field_examples, indent=2),
+                "",
+                f"Word counts to match: {json.dumps(word_counts)}. Your output MUST have the SAME number of words per field.",
+            ])
+        user_content = "\n".join(user_parts)
         system_content = (
             "You return only a single valid JSON object. No markdown, no code fence, no explanation. "
             "Keys are field names, values are the generated text strings. "
-            "CRITICAL: All generated text must be ABOUT THE GIVEN RECIPE/ARTICLE TITLE ONLY. Do not invent a different dish or generic text; the badge and title must relate directly to the recipe title provided."
+            "CRITICAL: All generated text must be ABOUT THE GIVEN RECIPE/ARTICLE TITLE ONLY. Do not invent a different dish or generic text; the badge and title must relate directly to the recipe title provided. "
         )
+        if field_examples:
+            system_content += (
+                "When field_examples are provided: RESKIN the content — create new text for the given recipe that matches the EXACT word count of each example. Same structure, different words."
+            )
         resp = client.chat.completions.create(
             model=model,
             messages=[
@@ -563,9 +580,10 @@ def run_server(available_templates, host="0.0.0.0", port=5000):
                     if isinstance(ev, dict) and ev.get("type") == "text" and ev.get("text_prompt"):
                         field_prompts[ek] = ev["text_prompt"]
             prompt = merged.get("prompt") or "Generate text for each field. Replace {{title}} with the recipe title; output a JSON object with one key per field."
+            field_examples = merged.get("field_examples") or {}
             if field_prompts and prompt:
                 try:
-                    generated = _generate_texts_via_openai(title, prompt, field_prompts, config=ai_config)
+                    generated = _generate_texts_via_openai(title, prompt, field_prompts, config=ai_config, field_examples=field_examples if field_examples else None)
                     if generated:
                         if merged.get("template_type") == "html":
                             # HTML templates: put generated text in variables for placeholder replacement
@@ -688,9 +706,10 @@ def run_server(available_templates, host="0.0.0.0", port=5000):
                 if not field_prompts:
                     field_prompts = template_data.get("field_prompts") or {}
                 prompt = template_data.get("prompt") or "Generate text for each field. Replace {{title}} with the recipe title in each prompt; output a JSON object with one key per field and the generated text as value."
+                field_examples = template_data.get("field_examples") or {}
                 if prompt and field_prompts and isinstance(field_prompts, dict):
                     try:
-                        generated = _generate_texts_via_openai(title, prompt, field_prompts, config=ai_config)
+                        generated = _generate_texts_via_openai(title, prompt, field_prompts, config=ai_config, field_examples=field_examples if field_examples else None)
                     except OpenAIServiceError as e:
                         log.error("Pin generation aborted: OpenAI failed — %s", e)
                         return jsonify({

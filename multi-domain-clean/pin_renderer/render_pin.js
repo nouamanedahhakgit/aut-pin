@@ -205,14 +205,19 @@ function renderHtmlTemplate(tpl, imageUrls, variables) {
   vars.background = imageUrls.background || mainImg;
   vars.top_image = imageUrls.top_image || mainImg;
   vars.bottom_image = imageUrls.bottom_image || mainImg;
-  // Replace text placeholders (HTML-escape)
+  // Replace text placeholders (HTML-escape). Slots that may contain <br> get it converted to newline first.
   const textSlots = ["badge", "title", "domain", "tagline", "small_title", "subtitle", "hook_text", "website"];
+  const slotsAllowBr = ["tagline", "subtitle", "hook_text"];
   for (const k of textSlots) {
     const placeholder = "{{" + k + "}}";
     if (!html.includes(placeholder)) continue;
     let val = vars[k];
     if (val == null || val === "") val = k === "domain" ? "example.com" : (k === "title" ? "Recipe Title" : k.replace(/_/g, " "));
-    val = String(val).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    val = String(val);
+    if (slotsAllowBr.includes(k)) {
+      val = val.replace(/<br\s*\/?>/gi, "\n");
+    }
+    val = val.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     html = html.split(placeholder).join(val);
   }
   // Replace any remaining {{x}} with vars or image URLs

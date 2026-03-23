@@ -972,7 +972,7 @@ function _updateBulkModalAiHints(prefix) {{
     fetch('/api/ollama-models').then(function(r){{ return r.json(); }}).then(function(d){{
       var models = d.models || [];
       var current = window._profileLocalModel || '';
-      ['bulkModal','bulkGroupModal','bulkAllGroupsModal'].forEach(function(p){{
+      ['bulkModal','bulkGroupModal','bulkDomainModal','bulkAllGroupsModal'].forEach(function(p){{
         var locSel = document.getElementById(p + 'LocalModel');
         if (locSel && models.length) {{
           locSel.innerHTML = '';
@@ -987,7 +987,7 @@ function _updateBulkModalAiHints(prefix) {{
     fetch('/api/llamacpp-models').then(function(r){{ return r.json(); }}).then(function(d){{
       var models = d.models || d.model_options || [];
       var current = (window._profileLlamaCppModelId || '') + '';
-      ['bulkModal','bulkGroupModal','bulkAllGroupsModal'].forEach(function(p){{
+      ['bulkModal','bulkGroupModal','bulkDomainModal','bulkAllGroupsModal'].forEach(function(p){{
         var sel = document.getElementById(p + 'LlamaCppModel');
         if (sel && models.length) {{
           sel.innerHTML = '';
@@ -1008,7 +1008,7 @@ function _updateBulkModalAiHints(prefix) {{
       window._openRouterModelOptionsList = modelOptions;
       var blackMode = document.querySelector('input[name="bulkGroupModalOpenRouterMode"][value="rotation_blacklist"]');
       var useAllFree = blackMode && blackMode.checked;
-      ['bulkModal','bulkGroupModal','bulkAllGroupsModal'].forEach(function(p){{
+      ['bulkModal','bulkGroupModal','bulkDomainModal','bulkAllGroupsModal'].forEach(function(p){{
         var m = document.getElementById(p + 'OpenRouterModels');
         if (m) {{
           m.innerHTML = '';
@@ -1040,8 +1040,8 @@ function _updateBulkModalAiHints(prefix) {{
       Promise.all([fetch('/api/openai-models').then(function(r){{ return r.json(); }}), fetch('/api/profile-ai-defaults').then(function(r){{ return r.json(); }})]).then(function(arr){{
         var modelOptions = arr[0].model_options || arr[0].models || [];
         var defaultOai = (arr[1] || {{}}).openai_model || 'gpt-4o-mini';
-        ['bulkModal','bulkGroupModal','bulkAllGroupsModal'].forEach(function(p){{
-          var m = document.getElementById(p + 'OpenAIModel');
+        ['bulkModal','bulkGroupModal','bulkDomainModal','bulkAllGroupsModal'].forEach(function(p){{
+        var m = document.getElementById(p + 'OpenAIModel');
           if (m) {{ m.innerHTML = ''; modelOptions.forEach(function(item){{ var id = typeof item === 'string' ? item : item.id; var label = typeof item === 'string' ? item : (item.label || item.id); var o = document.createElement('option'); o.value = id; o.textContent = label; m.appendChild(o); }}); for (var i = 0; i < m.options.length; i++) {{ if (m.options[i].value === defaultOai) {{ m.selectedIndex = i; break; }} }} }}
         }});
       }}).catch(function(){{}});
@@ -1049,7 +1049,7 @@ function _updateBulkModalAiHints(prefix) {{
   }}
   fetch('/api/ai-config?provider=' + encodeURIComponent(provider)).then(function(r){{ return r.json(); }}).then(function(cfg) {{
     var hint = 'AI: ' + (cfg.label || cfg.provider + '/' + cfg.model);
-    var btnIds = prefix === 'bulkModal' ? ['bulkModalBtnArticle','bulkModalBtnAll'] : prefix === 'bulkGroupModal' ? ['bulkGroupBtnArticle','bulkGroupBtnAll'] : ['bulkAllGroupsBtnArticle','bulkAllGroupsBtnAll'];
+    var btnIds = prefix === 'bulkModal' ? ['bulkModalBtnArticle','bulkModalBtnAll'] : prefix === 'bulkGroupModal' ? ['bulkGroupBtnArticle','bulkGroupBtnAll'] : prefix === 'bulkDomainModal' ? ['bulkDomainBtnArticle','bulkDomainBtnAll'] : ['bulkAllGroupsBtnArticle','bulkAllGroupsBtnAll'];
     btnIds.forEach(function(id) {{ var b = document.getElementById(id); if (b) b.title = (b.textContent || '') + ' — ' + hint; }});
   }}).catch(function(){{}});
 }}
@@ -1361,6 +1361,120 @@ function runBulkGroupDeployCloudflare() {{
       alert(d.message || 'No domains to deploy in this group.');
     }}
   }}).catch(function(e){{ alert('Error: ' + e); }});
+}}
+function _updateBulkDomainModalButtons(d) {{
+  var btnPrompts = document.getElementById('bulkDomainBtnPrompts');
+  var btnArticle = document.getElementById('bulkDomainBtnArticle');
+  var btnImages = document.getElementById('bulkDomainBtnImages');
+  var btnPinterest = document.getElementById('bulkDomainBtnPinterest');
+  var btnAll = document.getElementById('bulkDomainBtnAll');
+  var spr = (document.querySelector('input[name="bulkDomainModalScopePrompts"]:checked') || {{}}).value || 'empty_only';
+  var sc = (document.querySelector('input[name="bulkDomainModalScopeContent"]:checked') || {{}}).value || 'empty_only';
+  var si = (document.querySelector('input[name="bulkDomainModalScopeImages"]:checked') || {{}}).value || 'empty_only';
+  var sp = (document.querySelector('input[name="bulkDomainModalScopePins"]:checked') || {{}}).value || 'empty_only';
+  var npr = spr === 'override' ? (d.total || 0) : (d.rows_needs_prompts != null ? d.rows_needs_prompts : 0);
+  var nc = sc === 'override' ? (d.total || 0) : (d.rows_needs_content != null ? d.rows_needs_content : d.no_html_css || 0);
+  var ni = si === 'override' ? (d.total || 0) : (d.rows_needs_images != null ? d.rows_needs_images : d.no_images || 0);
+  var np = sp === 'override' ? (d.total || 0) : (d.rows_needs_pins != null ? d.rows_needs_pins : d.no_pins || 0);
+  if (btnPrompts) btnPrompts.textContent = 'Run prompts (' + npr + ')';
+  if (btnArticle) btnArticle.textContent = 'Run content (' + nc + ')';
+  if (btnImages) btnImages.textContent = 'Run images (' + ni + ')';
+  if (btnPinterest) btnPinterest.textContent = 'Run Pinterest (' + np + ')';
+  if (btnAll) btnAll.textContent = 'Run all (' + npr + ', ' + nc + ', ' + ni + ', ' + np + ')';
+}}
+function openBulkDomainModal(domainId, filter, domainLabel) {{
+  document.getElementById('bulkDomainModalDomainId').value = domainId || '';
+  document.getElementById('bulkDomainModalFilter').value = filter || 'all';
+  var filterLabels = {{ all:'All', no_prompt:'Needs prompt', no_main:'Needs main', no_ing:'Needs ing', no_pin:'Needs pin', no_content:'Not generated', not_validated:'Not validated', validated:'Validated' }};
+  var fl = filterLabels[filter] || filter;
+  document.getElementById('bulkDomainModalFilterLabel').textContent = 'Filter: ' + fl + (domainLabel ? ' · ' + domainLabel : '');
+  _applyProfileAiDefaults('bulkDomainModal');
+  var btnPrompts = document.getElementById('bulkDomainBtnPrompts');
+  var btnArticle = document.getElementById('bulkDomainBtnArticle');
+  var btnImages = document.getElementById('bulkDomainBtnImages');
+  var btnPinterest = document.getElementById('bulkDomainBtnPinterest');
+  var btnAll = document.getElementById('bulkDomainBtnAll');
+  if (btnPrompts) btnPrompts.textContent = 'Run prompts';
+  if (btnArticle) btnArticle.textContent = 'Run content';
+  if (btnImages) btnImages.textContent = 'Run images';
+  if (btnPinterest) btnPinterest.textContent = 'Run Pinterest';
+  if (btnAll) btnAll.textContent = 'Run all';
+  var url = '/api/bulk-domain-counts?domain_id=' + encodeURIComponent(domainId) + '&filter=' + encodeURIComponent(filter || 'all');
+  fetch(url).then(function(r){{ return r.json(); }}).then(function(d) {{
+    if (d.error) {{ alert(d.error); return; }}
+    window._bulkDomainModalCounts = d;
+    _updateBulkDomainModalButtons(d);
+    _updateBulkModalAiHints('bulkDomainModal');
+    var handler = function(){{ _updateBulkDomainModalButtons(window._bulkDomainModalCounts || {{}}); }};
+    ['bulkDomainModalScopePrompts','bulkDomainModalScopeContent','bulkDomainModalScopeImages','bulkDomainModalScopePins'].forEach(function(name){{
+      document.querySelectorAll('input[name="' + name + '"]').forEach(function(el){{
+        if (window._bulkDomainScopeHandler) el.removeEventListener('change', window._bulkDomainScopeHandler);
+        el.addEventListener('change', handler);
+      }});
+    }});
+    window._bulkDomainScopeHandler = handler;
+    var aiSel = document.getElementById('bulkDomainModalAiProvider');
+    if (aiSel) aiSel.addEventListener('change', function(){{ _updateBulkModalAiHints('bulkDomainModal'); }});
+    document.querySelectorAll('input[name="bulkDomainModalOpenRouterMode"]').forEach(function(r){{ r.addEventListener('change', function(){{ _updateBulkModalAiHints('bulkDomainModal'); }}); }});
+  }}).catch(function(){{ alert('Failed to load counts'); }});
+  var dmModal = document.getElementById('domainArticlesModal');
+  if (dmModal && bootstrap.Modal.getInstance(dmModal)) bootstrap.Modal.getInstance(dmModal).hide();
+  new bootstrap.Modal(document.getElementById('bulkDomainModal')).show();
+}}
+function runBulkDomainFromModal(mode) {{
+  var domainId = document.getElementById('bulkDomainModalDomainId').value;
+  var filter = document.getElementById('bulkDomainModalFilter').value || 'all';
+  if (!domainId) {{ alert('No domain selected'); return; }}
+  bootstrap.Modal.getInstance(document.getElementById('bulkDomainModal')).hide();
+  var sprEl = document.querySelector('input[name="bulkDomainModalScopePrompts"]:checked');
+  var scEl = document.querySelector('input[name="bulkDomainModalScopeContent"]:checked');
+  var siEl = document.querySelector('input[name="bulkDomainModalScopeImages"]:checked');
+  var spEl = document.querySelector('input[name="bulkDomainModalScopePins"]:checked');
+  var scopePrompts = (sprEl && sprEl.value) || 'empty_only';
+  var scopeContent = (scEl && scEl.value) || 'override';
+  var scopeImages = (siEl && siEl.value) || 'override';
+  var scopePins = (spEl && spEl.value) || 'override';
+  var aiProvider = (document.getElementById('bulkDomainModalAiProvider') || {{}}).value || '';
+  var preset = (document.querySelector('input[name="bulkDomainConcurrencyPreset"]:checked') || {{}}).value || 'low';
+  var n = preset === 'low' ? 1 : preset === 'medium' ? 2 : Math.max(1, Math.min(parseInt((document.getElementById('bulkDomainConcurrencyN')||{{}}).value, 10) || 6, 20));
+  var url = '/api/bulk-run-domain?domain_id=' + domainId + '&filter=' + encodeURIComponent(filter) + '&mode=' + mode + '&scope_prompts=' + scopePrompts + '&scope_content=' + scopeContent + '&scope_images=' + scopeImages + '&scope_pins=' + scopePins + '&concurrency_n=' + n + '&async=1' + (aiProvider ? '&ai_provider=' + encodeURIComponent(aiProvider) : '') + _getOpenRouterModelsParam('bulkDomainModal') + _getOpenRouterModeParam('bulkDomainModal') + _getAiModelParams('bulkDomainModal');
+  if (typeof requestTaskNotificationPermission==='function') requestTaskNotificationPermission();
+  var modal = document.getElementById('progressModal');
+  var body = document.getElementById('progressModalBody');
+  if (modal && body) {{
+    renderProgressBodyFromMode(mode, 'running', 'Starting job...', '', []);
+    document.getElementById('progressBgBtn').style.display = 'none';
+    new bootstrap.Modal(modal).show();
+  }}
+  fetch(url, {{ method: 'POST' }}).then(r=>r.json()).then(function(d){{
+    if (d.error) {{ if (body) body.innerHTML = '<p class="text-danger">' + d.error + '</p>'; return; }}
+    var jobId = d.job_id;
+    if (d.success && jobId) {{
+      if (typeof refreshRunningTasks==='function') refreshRunningTasks();
+      if (modal && body) {{
+        window._currentProgressJobId = jobId;
+        document.getElementById('progressBgBtn').style.display = 'inline-block';
+        function poll() {{
+          fetch('/api/bulk-run-status?job_id=' + encodeURIComponent(jobId)).then(r=>r.json()).then(function(s){{
+            if (body) renderProgressBody(s, body);
+            if (s.status === 'done' || s.status === 'error' || s.status === 'cancelled') {{
+              if (_progressPollInterval) {{ clearInterval(_progressPollInterval); _progressPollInterval = null; }}
+              document.getElementById('progressBgBtn').style.display = 'none';
+              if (typeof notifyTaskComplete==='function') notifyTaskComplete(workflowStepsFromStatus(s)[0] || 'Run', s.status, s.message);
+              if (typeof refreshAfterRun==='function') refreshAfterRun();
+              if (typeof refreshRunningTasks==='function') refreshRunningTasks();
+              setTimeout(function(){{ if (bootstrap.Modal.getInstance(modal)) bootstrap.Modal.getInstance(modal).hide(); }}, 2000);
+            }}
+          }}).catch(function(){{}});
+        }}
+        poll();
+        _progressPollInterval = setInterval(poll, 800);
+      }}
+    }}
+  }}).catch(function(e){{
+    if (body) body.innerHTML = '<p class="text-danger">Error: ' + (e.message || e) + '</p>';
+  }});
+  if (typeof refreshRunningTasks==='function') setTimeout(refreshRunningTasks, 500);
 }}
 function _updateBulkAllGroupsModalButtons(d) {{
   var btnArticle = document.getElementById('bulkAllGroupsBtnArticle');
@@ -2158,10 +2272,9 @@ function openProgressModalForJob(jobId) {{
 }}
 function refreshRunningTasks() {{
   var el = document.getElementById('running-tasks-panel');
-  if(!el) return;
-  var filterVal = (el.querySelector && el.querySelector('#runTasksFilter')) ? el.querySelector('#runTasksFilter').value : 'all';
-  var domainFilter = (el.querySelector && el.querySelector('#runTasksDomainFilter')) ? el.querySelector('#runTasksDomainFilter').value : '';
-  var dateFilter = (el.querySelector && el.querySelector('#runTasksDateFilter')) ? el.querySelector('#runTasksDateFilter').value : 'all';
+  var filterVal = el && el.querySelector && el.querySelector('#runTasksFilter') ? el.querySelector('#runTasksFilter').value : 'all';
+  var domainFilter = (el && el.querySelector && el.querySelector('#runTasksDomainFilter')) ? el.querySelector('#runTasksDomainFilter').value : '';
+  var dateFilter = (el && el.querySelector && el.querySelector('#runTasksDateFilter')) ? el.querySelector('#runTasksDateFilter').value : 'all';
   var url = '/api/bulk-run-jobs?';
   if (domainFilter) url += 'domain_id=' + encodeURIComponent(domainFilter) + '&';
   if (dateFilter && dateFilter !== 'all') url += 'date=' + encodeURIComponent(dateFilter) + '&';
@@ -2172,8 +2285,20 @@ function refreshRunningTasks() {{
     }});
     var hasAnyJobs = (d.jobs||[]).length > 0;
     var hasActiveFilters = !!(domainFilter || (dateFilter && dateFilter !== 'all'));
-    if(!hasAnyJobs && !hasActiveFilters) {{ el.innerHTML = ''; el.style.display='none'; return; }}
-    el.style.display = 'block';
+    var runningJobs = (d.jobs||[]).filter(function(j){{ return j.status==='running'; }});
+    var fl = document.getElementById('floating-task-indicator');
+    var ft = document.getElementById('floating-task-text');
+    if(fl && ft) {{
+      if(runningJobs.length > 0) {{
+        fl.style.display = 'flex';
+        ft.textContent = runningJobs.length + ' task' + (runningJobs.length>1?'s':'') + ' running';
+        fl.setAttribute('data-job-id', runningJobs[0].job_id || '');
+      }} else {{
+        fl.style.display = 'none';
+      }}
+    }}
+    if(!hasAnyJobs && !hasActiveFilters) {{ if(el) {{ el.innerHTML = ''; el.style.display='none'; }} return; }}
+    if(el) el.style.display = 'block';
     var html = '<div class="card mb-3"><div class="card-header py-2 d-flex flex-wrap align-items-center justify-content-between gap-2">';
     html += '<div class="d-flex align-items-center gap-2 flex-wrap"><strong>Running tasks</strong>';
     html += '<select id="runTasksFilter" class="form-select form-select-sm" style="width:auto" onchange="refreshRunningTasks()">';
@@ -2232,7 +2357,7 @@ function refreshRunningTasks() {{
         if(j.status==='running') btns += '<button type="button" class="btn btn-outline-danger btn-sm flex-shrink-0 run-task-stop py-0 px-1" data-job-id="' + jidEsc + '" style="font-size:0.7rem">Stop</button>';
         if(j.title_id && (j.status==='done'||j.status==='error') && typeof viewContent==='function') btns += '<button type="button" class="btn btn-outline-success btn-sm flex-shrink-0 me-1 run-task-view-article py-0 px-1" data-title-id="' + j.title_id + '" title="View article" style="font-size:0.7rem">View</button>';
         var tid = j.title_id || '';
-        if(tid) btns += '<div class="stats-article-actions d-inline-flex flex-wrap gap-1 me-1"><button type="button" class="btn btn-secondary btn-sm py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-prompts\\',{{title_id:'+tid+'}},\\'Prompts\\')" title="Prompts">Pp</button><button type="button" class="btn btn-success btn-sm py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-article-external\\',{{title_id:'+tid+'}},\\'Article\\')" title="Article">Art</button><button type="button" class="btn btn-info btn-sm text-white py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-main-image\\',{{title_id:'+tid+'}},\\'Main image\\')" title="Main">M</button><button type="button" class="btn btn-warning btn-sm text-dark py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-ingredient-image\\',{{title_id:'+tid+'}},\\'Ingredient\\')" title="Ingredient">I</button><button type="button" class="btn btn-outline-primary btn-sm py-0 px-1" onclick="event.stopPropagation(); openPinPickerModal('+tid+')" title="Pin">P</button><button type="button" class="btn btn-danger btn-sm py-0 px-1" onclick="event.stopPropagation(); openPinToPinterest('+tid+')" title="Pin (open Pinterest)">Post</button><button type="button" class="btn btn-secondary btn-sm py-0 px-1" onclick="event.stopPropagation(); var sm=document.getElementById(\\'statsArticlesModal\\'); if(sm&&bootstrap.Modal.getInstance(sm)) bootstrap.Modal.getInstance(sm).hide(); openBulkModal('+tid+');" title="Run A,B,C,D">Run</button></div>';
+        if(tid) btns += '<div class="stats-article-actions d-inline-flex flex-wrap gap-1 me-1"><button type="button" class="btn btn-secondary btn-sm py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-prompts\\',{{title_id:'+tid+'}},\\'Prompts\\')" title="Prompts">📝</button><button type="button" class="btn btn-info btn-sm text-white py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-main-image\\',{{title_id:'+tid+'}},\\'Main image\\')" title="Main image">🖼️</button><button type="button" class="btn btn-warning btn-sm text-dark py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-ingredient-image\\',{{title_id:'+tid+'}},\\'Ingredient\\')" title="Ingredient">🥗</button><button type="button" class="btn btn-success btn-sm py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-article-external\\',{{title_id:'+tid+'}},\\'Article\\')" title="Article">📄</button><button type="button" class="btn btn-outline-primary btn-sm py-0 px-1" onclick="event.stopPropagation(); openPinPickerModal('+tid+')" title="Pin">📌</button><button type="button" class="btn btn-danger btn-sm py-0 px-1" onclick="event.stopPropagation(); openPinToPinterest('+tid+')" title="Pin (open Pinterest)">Post</button><button type="button" class="btn btn-primary btn-sm py-0 px-1" onclick="event.stopPropagation(); var sm=document.getElementById(\\'statsArticlesModal\\'); if(sm&&bootstrap.Modal.getInstance(sm)) bootstrap.Modal.getInstance(sm).hide(); openBulkModal('+tid+');" title="Run A,B,C,D">▶️</button></div>';
         else if((j.type==='group'||j.type==='all') && (j.status==='done'||j.status==='error')) btns += '<button type="button" class="btn btn-outline-secondary btn-sm flex-shrink-0 run-task-view-articles py-0 px-1 me-1" data-job-id="' + jidEsc + '" title="Preview articles in this task" style="font-size:0.7rem">Articles</button>';
       }}
       html += '<li class="d-flex justify-content-between align-items-start gap-2 mb-1 py-1 border-bottom run-task-row" style="' + clickable + '" data-job-id="' + jidEsc + '"><div class="flex-grow-1"><span class="fw-medium">' + typeLabel + modeLabel + (badges ? ' ' + badges : '') + '</span><br><span class="' + statusClass + '">' + (j.status||'') + '</span>: ' + (j.message||'').replace(/</g,'&lt;') + activeLine + stepsLine + '</div>';
@@ -2249,6 +2374,7 @@ function refreshRunningTasks() {{
       html += '</div></div>';
     }}
     html += '</div></div>';
+    if(!el) return;
     el.innerHTML = html;
     fetch('/api/domains').then(r=>r.json()).then(function(dm){{
       var sel = document.getElementById('runTasksDomainFilter');
@@ -2310,7 +2436,7 @@ function openTaskArticlesModal(jobId) {{
           var tid = it.id || '';
           var title = (it.title || '').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
           var dom = (it.domain_url || it.domain_name || '').replace(/</g,'&lt;');
-          var actions = '<div class="stats-article-actions mt-1"><button type="button" class="btn btn-secondary btn-sm py-0 px-1" onclick="openSingleActionModal(\\'/api/generate-prompts\\',{{title_id:'+tid+'}},\\'Prompts\\')" title="Prompts">Pp</button><button type="button" class="btn btn-success btn-sm py-0 px-1" onclick="openSingleActionModal(\\'/api/generate-article-external\\',{{title_id:'+tid+'}},\\'Article\\')" title="Article">Art</button><button type="button" class="btn btn-info btn-sm text-white py-0 px-1" onclick="openSingleActionModal(\\'/api/generate-main-image\\',{{title_id:'+tid+'}},\\'Main\\')" title="Main">M</button><button type="button" class="btn btn-warning btn-sm text-dark py-0 px-1" onclick="openSingleActionModal(\\'/api/generate-ingredient-image\\',{{title_id:'+tid+'}},\\'Ingredient\\')" title="Ingredient">I</button><button type="button" class="btn btn-outline-primary btn-sm py-0 px-1" onclick="openPinPickerModal('+tid+')" title="Pin">P</button><button type="button" class="btn btn-danger btn-sm py-0 px-1" onclick="event.stopPropagation(); openPinToPinterest('+tid+')" title="Pin (open Pinterest)">Post</button><button type="button" class="btn btn-secondary btn-sm py-0 px-1" onclick="openBulkModal('+tid+');" title="Run">Run</button>';
+          var actions = '<div class="stats-article-actions mt-1"><button type="button" class="btn btn-secondary btn-sm py-0 px-1" onclick="openSingleActionModal(\\'/api/generate-prompts\\',{{title_id:'+tid+'}},\\'Prompts\\')" title="Prompts">📝</button><button type="button" class="btn btn-info btn-sm text-white py-0 px-1" onclick="openSingleActionModal(\\'/api/generate-main-image\\',{{title_id:'+tid+'}},\\'Main image\\')" title="Main image">🖼️</button><button type="button" class="btn btn-warning btn-sm text-dark py-0 px-1" onclick="openSingleActionModal(\\'/api/generate-ingredient-image\\',{{title_id:'+tid+'}},\\'Ingredient\\')" title="Ingredient">🥗</button><button type="button" class="btn btn-success btn-sm py-0 px-1" onclick="openSingleActionModal(\\'/api/generate-article-external\\',{{title_id:'+tid+'}},\\'Article\\')" title="Article">📄</button><button type="button" class="btn btn-outline-primary btn-sm py-0 px-1" onclick="openPinPickerModal('+tid+')" title="Pin">📌</button><button type="button" class="btn btn-danger btn-sm py-0 px-1" onclick="event.stopPropagation(); openPinToPinterest('+tid+')" title="Pin (open Pinterest)">Post</button><button type="button" class="btn btn-primary btn-sm py-0 px-1" onclick="openBulkModal('+tid+');" title="Run">▶️</button>';
           if(typeof viewContent==='function') actions += '<button type="button" class="btn btn-outline-success btn-sm py-0 px-1 ms-1" onclick="viewContent('+tid+')" title="Preview">Preview</button>';
           var li = document.createElement('li');
           li.className = 'list-group-item py-1 px-2';
@@ -2539,8 +2665,12 @@ function openSingleActionModal(url, data, label) {{
   document.getElementById('singleActionModalTitle').textContent = label || 'Run';
   document.getElementById('singleActionPrompt').textContent = 'Run ' + (label || '') + ' in background?';
   var isContent = (url || '').indexOf('generate-article') >= 0;
+  if (!isContent) {{
+    runSingleAction(false);
+    return;
+  }}
   var wrap = document.getElementById('singleActionAiProviderWrap');
-  if (wrap) wrap.style.display = isContent ? 'block' : 'none';
+  if (wrap) wrap.style.display = 'block';
   if (isContent) {{
     _updateSingleActionOpenRouterOptions();
     if (!window._singleActionOpenRouterListeners) {{
@@ -2735,6 +2865,7 @@ function runSingleAction(foreground) {{
         window._currentProgressJobId = jobId;
         var bgBtn = document.getElementById('progressBgBtn');
         if(bgBtn) bgBtn.style.display = 'inline-block';
+        if(typeof refreshRunningTasks==='function') refreshRunningTasks();
         function poll() {{
           fetch('/api/bulk-run-status?job_id=' + jobId).then(r=>r.json()).then(s=>{{
             if(typeof renderProgressBody==='function') renderProgressBody(s, body);
@@ -2760,14 +2891,16 @@ function runSingleAction(foreground) {{
 </script>
 <div id="viewModal" class="modal fade" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="viewModalTitle">View</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body" id="viewModalBody"></div></div></div></div>
 <div id="bulkModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Run for this row</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="bulkModalTitleId"><p class="mb-2">What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkModalBtnPrompts" class="btn btn-outline-secondary" onclick="runBulk('prompts')">Run prompts</button><button type="button" id="bulkModalBtnImages" class="btn btn-outline-info" onclick="runBulk('images')">Run images</button><button type="button" id="bulkModalBtnArticle" class="btn btn-outline-success" onclick="runBulk('article')">Run content</button><button type="button" id="bulkModalBtnPinterest" class="btn btn-outline-danger" onclick="runBulk('pin_image')">Run Pinterest</button><button type="button" id="bulkModalBtnAll" class="btn btn-primary" onclick="runBulk('all')">Run all (prompts, images, content, Pinterest)</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option><option value="local">Local (Ollama)</option><option value="llamacpp">llama.cpp</option></select><div id="bulkModalLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model (≤15B):</p><select id="bulkModalLocalModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkModalLlamaCppWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">llama.cpp model:</p><select id="bulkModalLlamaCppModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkModalOpenAIWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenAI model:</p><select id="bulkModalOpenAIModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkModalOpenRouterWrap" class="mb-3" style="display:none"><p class="mb-1 fw-medium small">OpenRouter:</p><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalOpenRouterMode" value="rotation"> Rotation (try next on failure)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalOpenRouterMode" value="select"> Select model(s)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalOpenRouterMode" value="rotation_blacklist" checked> Rotation (exclude failed for next)</label></div><div class="d-flex align-items-center gap-2 mb-1"><div class="btn-group btn-group-sm"><button type="button" id="bulkModalOrFilterAll" class="btn btn-primary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkModal','all')">All</button><button type="button" id="bulkModalOrFilterFree" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkModal','free')">Free</button><button type="button" id="bulkModalOrFilterPaid" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkModal','paid')">Paid</button></div></div><select id="bulkModalOpenRouterModels" class="form-select form-select-sm" multiple style="max-height:100px;width:100%"></select></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeContent" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeContent" value="empty_only" checked> Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for images (main+ingredient):</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeImages" value="override"> Override existing</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeImages" value="empty_only" checked> Only rows without main+ingredient images</label></div><p class="mb-2 fw-medium small">Scope for Pinterest:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopePins" value="override"> Override existing</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopePins" value="empty_only" checked> Only rows without pin images</label></div><p class="small text-muted mt-2 mb-0">Note: Articles without article_html will be skipped for image generation.</p></div></div></div></div>
+<div id="bulkDomainModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="bulkDomainModalTitle">Run for domain</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="bulkDomainModalDomainId"><input type="hidden" id="bulkDomainModalFilter"><p class="mb-2 fw-medium small" id="bulkDomainModalFilterLabel">Filter: —</p><p class="mb-2">What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkDomainBtnPrompts" class="btn btn-outline-secondary" onclick="runBulkDomainFromModal('prompts')">Run prompts</button><button type="button" id="bulkDomainBtnImages" class="btn btn-outline-info" onclick="runBulkDomainFromModal('images')">Run images</button><button type="button" id="bulkDomainBtnArticle" class="btn btn-outline-success" onclick="runBulkDomainFromModal('article')">Run content</button><button type="button" id="bulkDomainBtnPinterest" class="btn btn-outline-danger" onclick="runBulkDomainFromModal('pin_image')">Run Pinterest</button><button type="button" id="bulkDomainBtnAll" class="btn btn-primary" onclick="runBulkDomainFromModal('all')">Run all</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkDomainModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter">OpenRouter</option><option value="openai" selected>OpenAI</option><option value="local">Local (Ollama)</option><option value="llamacpp">llama.cpp</option></select><div id="bulkDomainModalLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model (≤15B):</p><select id="bulkDomainModalLocalModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkDomainModalLlamaCppWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">llama.cpp model:</p><select id="bulkDomainModalLlamaCppModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkDomainModalOpenAIWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenAI model:</p><select id="bulkDomainModalOpenAIModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkDomainModalOrOpts" class="mb-3 p-2 bg-light border rounded small" style="display:none;"><div class="fw-medium mb-1">OpenRouter:</div><div class="mb-2"><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkDomainModalOpenRouterMode" id="bulkDomainModalOrModeRot" value="rotation"><label class="form-check-label" for="bulkDomainModalOrModeRot">Rotation (try next on failure)</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkDomainModalOpenRouterMode" id="bulkDomainModalOrModeFall" value="fallback"><label class="form-check-label" for="bulkDomainModalOrModeFall">Fallback</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkDomainModalOpenRouterMode" id="bulkDomainModalOrModeBlack" value="rotation_blacklist" checked><label class="form-check-label" for="bulkDomainModalOrModeBlack">Rotation (exclude failed)</label></div></div><div class="d-flex align-items-center gap-2 mb-1"><span class="fw-medium">Select model(s)</span><div class="btn-group btn-group-sm"><button type="button" id="bulkDomainModalOrFilterAll" class="btn btn-primary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkDomainModal','all')">All</button><button type="button" id="bulkDomainModalOrFilterFree" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkDomainModal','free')">Free</button><button type="button" id="bulkDomainModalOrFilterPaid" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkDomainModal','paid')">Paid</button></div></div><select id="bulkDomainModalOpenRouterModels" class="form-select form-select-sm mb-1" multiple style="max-height:120px;width:100%"></select><button type="button" class="btn btn-outline-secondary btn-sm" onclick="_resetOpenRouterModels('bulkDomainModal')">Reset to defaults</button></div><p class="mb-2 fw-medium small">Scope for prompts:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkDomainModalScopePrompts" id="bdmScopePrompts1" value="override"><label class="form-check-label small" for="bdmScopePrompts1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkDomainModalScopePrompts" id="bdmScopePrompts2" value="empty_only" checked><label class="form-check-label small" for="bdmScopePrompts2">Only rows without prompts</label></div><p class="mb-2 fw-medium small">Scope for images:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkDomainModalScopeImages" id="bdmScopeImages1" value="override"><label class="form-check-label small" for="bdmScopeImages1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkDomainModalScopeImages" id="bdmScopeImages2" value="empty_only" checked><label class="form-check-label small" for="bdmScopeImages2">Only rows without images</label></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkDomainModalScopeContent" id="bdmScopeContent1" value="override"><label class="form-check-label small" for="bdmScopeContent1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkDomainModalScopeContent" id="bdmScopeContent2" value="empty_only" checked><label class="form-check-label small" for="bdmScopeContent2">Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for Pinterest:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkDomainModalScopePins" id="bdmScopePins1" value="override"><label class="form-check-label small" for="bdmScopePins1">Override existing</label></div><div class="form-check mb-2"><input class="form-check-input" type="radio" name="bulkDomainModalScopePins" id="bdmScopePins2" value="empty_only" checked><label class="form-check-label small" for="bdmScopePins2">Only rows without pin images</label></div><p class="small text-muted mb-2">Workflow order (Run all): prompts → images → content → Pinterest.</p><hr class="my-3"><p class="mb-2 fw-medium">Concurrency:</p><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkDomainConcurrencyPreset" value="low"> Low — 1 row</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkDomainConcurrencyPreset" value="medium"> Medium — 2 rows</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkDomainConcurrencyPreset" value="max" checked> Max — <input type="number" id="bulkDomainConcurrencyN" value="6" min="1" max="20" class="form-control form-control-sm d-inline-block" style="width:55px"> rows</label></div></div></div></div></div>
 <div id="bulkGroupModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="bulkGroupModalTitle">Run for group</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="bulkGroupModalGroupId"><p class="mb-2 fw-medium small">Run scope:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalRunScope" id="bulkGroupModalScopeAll" value="all" checked><label class="form-check-label small" for="bulkGroupModalScopeAll">All subgroups in this group</label></div><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalRunScope" id="bulkGroupModalScopeSelected" value="selected"><label class="form-check-label small" for="bulkGroupModalScopeSelected">Selected subgroups only</label></div><div id="bulkGroupSubgroupsWrap" class="border rounded p-2 mb-2" style="max-height:140px;overflow-y:auto;display:none"><div class="d-flex gap-2 mb-1"><button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.querySelectorAll('#bulkGroupSubgroupsWrap .bulk-group-subgroup-cb').forEach(function(cb){{cb.checked=true}})">Select all</button><button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.querySelectorAll('#bulkGroupSubgroupsWrap .bulk-group-subgroup-cb').forEach(function(cb){{cb.checked=false}})">Deselect all</button></div><div id="bulkGroupSubgroupsList"></div></div><p class="mb-2">What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkGroupBtnPrompts" class="btn btn-outline-secondary" onclick="runBulkGroupFromModal('prompts')">Run prompts</button><button type="button" id="bulkGroupBtnImages" class="btn btn-outline-info" onclick="runBulkGroupFromModal('images')">Run images</button><button type="button" id="bulkGroupBtnArticle" class="btn btn-outline-success" onclick="runBulkGroupFromModal('article')">Run content</button><button type="button" id="bulkGroupBtnPinterest" class="btn btn-outline-danger" onclick="runBulkGroupFromModal('pin_image')">Run Pinterest</button><button type="button" id="bulkGroupBtnAll" class="btn btn-primary" onclick="runBulkGroupFromModal('all')">Run all</button><hr class="my-2"><button type="button" id="bulkGroupBtnDeployCf" class="btn btn-info" onclick="runBulkGroupDeployCloudflare()">☁️ Deploy all to Cloudflare</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkGroupModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter">OpenRouter</option><option value="openai" selected>OpenAI</option><option value="local">Local (Ollama)</option><option value="llamacpp">llama.cpp</option></select><div id="bulkGroupModalLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model (≤15B):</p><select id="bulkGroupModalLocalModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkGroupModalLlamaCppWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">llama.cpp model:</p><select id="bulkGroupModalLlamaCppModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkGroupModalOpenAIWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenAI model:</p><select id="bulkGroupModalOpenAIModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkGroupModalOrOpts" class="mb-3 p-2 bg-light border rounded small" style="display:none;"><div class="fw-medium mb-1">OpenRouter:</div><div class="mb-2"><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeRot" value="rotation"><label class="form-check-label" for="bulkGroupModalOrModeRot">Rotation (try next on failure)</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeFall" value="fallback"><label class="form-check-label" for="bulkGroupModalOrModeFall">Fallback (run all simultaneously, use first success)</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeBlack" value="rotation_blacklist" checked><label class="form-check-label" for="bulkGroupModalOrModeBlack">Rotation (exclude failed for next articles)</label></div></div><div class="d-flex align-items-center gap-2 mb-1"><span class="fw-medium">Select model(s)</span><div class="btn-group btn-group-sm"><button type="button" id="bulkGroupModalOrFilterAll" class="btn btn-primary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkGroupModal','all')">All</button><button type="button" id="bulkGroupModalOrFilterFree" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkGroupModal','free')">Free</button><button type="button" id="bulkGroupModalOrFilterPaid" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkGroupModal','paid')">Paid</button></div></div><select id="bulkGroupModalOpenRouterModels" class="form-select form-select-sm mb-1" multiple style="max-height:120px;width:100%"></select><button type="button" class="btn btn-outline-secondary btn-sm" onclick="_resetOpenRouterModels('bulkGroupModal')">Reset to defaults</button></div><p class="mb-2 fw-medium small">Scope for prompts (main+ingredient):</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopePrompts" id="bgmScopePrompts1" value="override"><label class="form-check-label small" for="bgmScopePrompts1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkGroupModalScopePrompts" id="bgmScopePrompts2" value="empty_only" checked><label class="form-check-label small" for="bgmScopePrompts2">Only rows without main+ingredient prompts</label></div><p class="mb-2 fw-medium small">Scope for images:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopeImages" id="bgmScopeImages1" value="override"><label class="form-check-label small" for="bgmScopeImages1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkGroupModalScopeImages" id="bgmScopeImages2" value="empty_only" checked><label class="form-check-label small" for="bgmScopeImages2">Only rows without main+ingredient images</label></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopeContent" id="bgmScopeContent1" value="override"><label class="form-check-label small" for="bgmScopeContent1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkGroupModalScopeContent" id="bgmScopeContent2" value="empty_only" checked><label class="form-check-label small" for="bgmScopeContent2">Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for Pinterest:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopePins" id="bgmScopePins1" value="override"><label class="form-check-label small" for="bgmScopePins1">Override existing</label></div><div class="form-check mb-2"><input class="form-check-input" type="radio" name="bulkGroupModalScopePins" id="bgmScopePins2" value="empty_only" checked><label class="form-check-label small" for="bgmScopePins2">Only rows without pin images</label></div><p class="small text-muted mb-2">Workflow order (Run all): prompts → images (main, ingredient) → content → Pinterest.</p><hr class="my-3"><p class="mb-2 fw-medium">Concurrency:</p><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkGroupConcurrencyPreset" value="low"> Low — 1 row</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkGroupConcurrencyPreset" value="medium"> Medium — 2 rows</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkGroupConcurrencyPreset" value="max" checked> Max — <input type="number" id="bulkGroupConcurrencyN" value="6" min="1" max="20" class="form-control form-control-sm d-inline-block" style="width:55px"> rows</label></div></div></div></div></div>
 
 <div id="bulkAllGroupsModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Run for all groups</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><p class="mb-2">Run for all rows in all groups. What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkAllGroupsBtnPrompts" class="btn btn-outline-secondary" onclick="runBulkAllGroups('prompts')">Run prompts</button><button type="button" id="bulkAllGroupsBtnImages" class="btn btn-outline-info" onclick="runBulkAllGroups('images')">Run images</button><button type="button" id="bulkAllGroupsBtnArticle" class="btn btn-outline-success" onclick="runBulkAllGroups('article')">Run content</button><button type="button" id="bulkAllGroupsBtnPinterest" class="btn btn-outline-danger" onclick="runBulkAllGroups('pin_image')">Run Pinterest</button><button type="button" id="bulkAllGroupsBtnAll" class="btn btn-primary" onclick="runBulkAllGroups('all')">Run all (prompts, images, content, Pinterest)</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkAllGroupsModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option><option value="local">Local (Ollama)</option><option value="llamacpp">llama.cpp</option></select><div id="bulkAllGroupsModalLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model (≤15B):</p><select id="bulkAllGroupsModalLocalModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkAllGroupsModalLlamaCppWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">llama.cpp model:</p><select id="bulkAllGroupsModalLlamaCppModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkAllGroupsModalOpenAIWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenAI model:</p><select id="bulkAllGroupsModalOpenAIModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkAllGroupsModalOpenRouterWrap" class="mb-3" style="display:none"><p class="mb-1 fw-medium small">OpenRouter:</p><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalOpenRouterMode" value="rotation"> Rotation (try next on failure)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalOpenRouterMode" value="select"> Select model(s)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalOpenRouterMode" value="rotation_blacklist" checked> Rotation (exclude failed for next articles)</label></div><div class="d-flex align-items-center gap-2 mb-1"><div class="btn-group btn-group-sm"><button type="button" id="bulkAllGroupsModalOrFilterAll" class="btn btn-primary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkAllGroupsModal','all')">All</button><button type="button" id="bulkAllGroupsModalOrFilterFree" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkAllGroupsModal','free')">Free</button><button type="button" id="bulkAllGroupsModalOrFilterPaid" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkAllGroupsModal','paid')">Paid</button></div></div><select id="bulkAllGroupsModalOpenRouterModels" class="form-select form-select-sm" multiple style="max-height:100px;width:100%"></select></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeContent" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeContent" value="empty_only" checked> Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for images:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeImages" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeImages" value="empty_only" checked> Only rows without main+ingredient images</label></div><p class="mb-2 fw-medium small">Scope for Pinterest:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopePins" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopePins" value="empty_only" checked> Only rows without pin images</label></div><hr class="my-3"><p class="mb-2 fw-medium">Concurrency (rows A B C D at a time):</p><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrencyPreset" value="low"> Low — 1 row at a time</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrencyPreset" value="medium"> Medium — 2 rows at a time</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrencyPreset" value="max" checked> Max — <input type="number" id="allGroupsConcurrencyN" value="6" min="1" max="20" class="form-control form-control-sm d-inline-block" style="width:55px"> rows at a time</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrencyPreset" value="group"> Group — max <input type="number" id="allGroupsGroupN" value="2" min="1" max="10" class="form-control form-control-sm d-inline-block" style="width:55px"> groups in parallel</label></div><p class="small text-muted mt-2 mb-0">Note: Articles without article_html will be skipped for image generation.</p></div></div></div></div>
 <div id="singleActionModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="singleActionModalTitle">Run</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="singleActionUrl"><input type="hidden" id="singleActionData"><input type="hidden" id="singleActionLabel"><div id="singleActionAiProviderWrap" class="mb-3" style="display:none"><p class="mb-2 fw-medium small">AI provider:</p><select id="singleActionAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option><option value="local">Local</option><option value="llamacpp">llama.cpp</option></select><div id="singleActionOpenRouterWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenRouter:</p><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="singleActionOpenRouterMode" value="rotation" checked> Rotation (try next on failure)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="singleActionOpenRouterMode" value="select"> Select model(s)</label></div><select id="singleActionOpenRouterModels" class="form-select form-select-sm" multiple style="max-height:100px;width:100%"></select></div><div id="singleActionLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model:</p><select id="singleActionLocalModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="singleActionLlamaCppWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">llama.cpp model:</p><select id="singleActionLlamaCppModel" class="form-select form-select-sm" style="width:100%"></select></div></div><p class="mb-3" id="singleActionPrompt">Run in background?</p><div class="d-flex gap-2"><button type="button" class="btn btn-primary" onclick="runSingleAction(false)">Background</button></div></div></div></div></div>
 <div id="pinPickerModal" class="modal fade" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Select Pin Template</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="pinPickerTitleId"><div id="pinPickerLoading" class="text-center py-4"><div class="spinner-border spinner-border-sm"></div> Loading templates...</div><div id="pinPickerEmpty" class="text-center py-4 text-muted" style="display:none">No templates found for this domain.<br>Add templates in Admin &rarr; Domains &rarr; Templates.</div><div id="pinPickerGrid" class="d-flex flex-wrap gap-3 justify-content-center" style="display:none"></div><div id="pinPickerActions" class="d-flex flex-wrap gap-2 mt-3 pt-3 border-top align-items-center" style="display:none"><span class="me-auto small text-muted" id="pinPickerSelected"></span><label class="d-flex align-items-center gap-1 small mb-0"><input type="checkbox" id="pinPickerPostToPinterest"> Pin (open Pinterest) after</label><button type="button" class="btn btn-primary btn-sm" onclick="runPinPicker(true)">Foreground</button><button type="button" class="btn btn-outline-secondary btn-sm" onclick="runPinPicker(false)">Background</button></div></div></div></div></div>
 <div id="bulkChoiceModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Run</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="bulkChoiceUrl"><input type="hidden" id="bulkChoiceMode"><p class="mb-3">Run in foreground or background?</p><div class="d-flex gap-2"><button type="button" class="btn btn-primary" onclick="runBulkChoice(true)">Foreground</button><button type="button" class="btn btn-outline-secondary" onclick="runBulkChoice(false)">Background</button></div></div></div></div></div>
-<div id="progressModal" class="modal fade" tabindex="-1" data-bs-backdrop="static"><div class="modal-dialog modal-dialog-scrollable" style="max-width:680px"><div class="modal-content"><div class="modal-header py-1"><h6 class="modal-title mb-0" id="progressModalTitle">Workflow progress</h6><button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body py-2" id="progressModalBody" style="max-height:65vh"><p class="mb-0 small">Please wait.</p></div><div class="modal-footer py-1"><button type="button" class="btn btn-outline-secondary btn-sm" id="progressBgBtn" onclick="runInBackground()" style="display:none">Run in background</button></div></div></div></div>
+<div id="progressModal" class="modal fade" tabindex="-1" data-bs-backdrop="static"><div class="modal-dialog modal-dialog-scrollable" style="max-width:680px"><div class="modal-content"><div class="modal-header py-1"><h6 class="modal-title mb-0" id="progressModalTitle">Workflow progress</h6><button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body py-2" id="progressModalBody" style="max-height:65vh"><p class="mb-0 small">Please wait.</p></div><div class="modal-footer py-1"><button type="button" class="btn btn-outline-secondary btn-sm" id="progressBgBtn" onclick="runInBackground()" style="display:none" title="Dismiss modal — task continues, see floating indicator">Dismiss (task continues)</button></div></div></div></div>
 <div id="taskArticlesModal" class="modal fade" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content"><div class="modal-header py-2 d-flex align-items-center gap-2"><h6 class="modal-title mb-0" id="taskArticlesModalTitle">Articles in task</h6><select id="taskArticlesDomainFilter" class="form-select form-select-sm" style="width:auto;max-width:180px" title="Filter by domain"><option value="">All domains</option></select><button type="button" class="btn-close btn-close-sm ms-auto" data-bs-dismiss="modal"></button></div><div class="modal-body py-2"><ul class="list-group list-group-flush" id="taskArticlesModalList"></ul></div></div></div></div>
+<div id="floating-task-indicator" style="display:none;position:fixed;bottom:16px;right:16px;z-index:99999;background:#0d6efd;color:#fff;padding:8px 14px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.25);cursor:pointer;font-size:0.85rem;font-weight:600;align-items:center;gap:8px;animation:workflow-pulse 2s ease-in-out infinite;flex-direction:row;" onclick="var j=document.getElementById('floating-task-indicator').getAttribute('data-job-id');if(j&&typeof openProgressModalForJob==='function')openProgressModalForJob(j);"><span class="spinner-border spinner-border-sm" style="width:1rem;height:1rem;border-width:2px;flex-shrink:0;"></span><span id="floating-task-text">1 running</span></div>
 <script src="/static/js/bootstrap.bundle.min.js"></script>
 <script>
 if(typeof refreshRunningTasks==='function') refreshRunningTasks();
@@ -3131,19 +3264,20 @@ def _render_article_run_actions_html(ids, domain_index, ac_map, title_a_id, in_g
         ta_id = title_a_id
     btns = []
     if domain_index == 0:
-        btns.append(f'<button type="button" class="btn btn-success btn-sm" onclick="openSingleActionModal(\'/api/generate-article-external\',{{title_id:{tid_i}}},\'Article A\')" title="Article">Art</button>')
-        btns.append(f'<button type="button" class="btn btn-info btn-sm text-white" onclick="openSingleActionModal(\'/api/generate-main-image\',{{title_id:{tid_i}}},\'Main image\')" title="Main">M</button>')
-        btns.append(f'<button type="button" class="btn btn-warning btn-sm text-dark" onclick="openSingleActionModal(\'/api/generate-ingredient-image\',{{title_id:{tid_i}}},\'Ingredient\')" title="Ingredient">I</button>')
-        btns.append(f'<button type="button" class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation(); openPinPickerModal({tid_i})" title="Pin">P</button>')
+        btns.append(f'<button type="button" class="btn btn-secondary btn-sm" onclick="openSingleActionModal(\'/api/generate-prompts\',{{title_id:{tid_i}}},\'Prompts\')" title="Prompts">📝</button>')
+        btns.append(f'<button type="button" class="btn btn-info btn-sm text-white" onclick="openSingleActionModal(\'/api/generate-main-image\',{{title_id:{tid_i}}},\'Main image\')" title="Main image">🖼️</button>')
+        btns.append(f'<button type="button" class="btn btn-warning btn-sm text-dark" onclick="openSingleActionModal(\'/api/generate-ingredient-image\',{{title_id:{tid_i}}},\'Ingredient\')" title="Ingredient">🥗</button>')
+        btns.append(f'<button type="button" class="btn btn-success btn-sm" onclick="openSingleActionModal(\'/api/generate-article-external\',{{title_id:{tid_i}}},\'Article A\')" title="Article">📄</button>')
+        btns.append(f'<button type="button" class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation(); openPinPickerModal({tid_i})" title="Pin">📌</button>')
     else:
         dis = ' disabled' if not a_has_all else ''
-        btns.append(f'<button type="button" class="btn btn-primary btn-sm"{dis} onclick="openSingleActionModal(\'/api/generate-article-bcd\',{{title_id:{tid_i}}},\'BCD\')" title="Content from A">C</button>')
-        btns.append(f'<button type="button" class="btn btn-info btn-sm text-white" onclick="openSingleActionModal(\'/api/generate-main-image\',{{title_id:{ta_id}}},\'Main\')" title="Main (all)">M</button>')
-        btns.append(f'<button type="button" class="btn btn-warning btn-sm text-dark" onclick="openSingleActionModal(\'/api/generate-ingredient-image\',{{title_id:{ta_id}}},\'Ingr\')" title="Ingr (all)">I</button>')
-        btns.append(f'<button type="button" class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation(); openPinPickerModal({tid_i})" title="Pin">P</button>')
+        btns.append(f'<button type="button" class="btn btn-primary btn-sm"{dis} onclick="openSingleActionModal(\'/api/generate-article-bcd\',{{title_id:{tid_i}}},\'BCD\')" title="Content from A">📄</button>')
+        btns.append(f'<button type="button" class="btn btn-info btn-sm text-white" onclick="openSingleActionModal(\'/api/generate-main-image\',{{title_id:{ta_id}}},\'Main (all)\')" title="Main (all)">🖼️</button>')
+        btns.append(f'<button type="button" class="btn btn-warning btn-sm text-dark" onclick="openSingleActionModal(\'/api/generate-ingredient-image\',{{title_id:{ta_id}}},\'Ingr (all)\')" title="Ingr (all)">🥗</button>')
+        btns.append(f'<button type="button" class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation(); openPinPickerModal({tid_i})" title="Pin">📌</button>')
     if in_group and (title_a_id or ta_id):
         run_tid = title_a_id or ta_id
-        btns.append(f'<button type="button" class="btn btn-secondary btn-sm" onclick="var sm=document.getElementById(&#39;statsArticlesModal&#39;); if(sm && bootstrap.Modal.getInstance(sm)) bootstrap.Modal.getInstance(sm).hide(); openBulkModal({run_tid});" title="Run content+images for A,B,C,D">Run</button>')
+        btns.append(f'<button type="button" class="btn btn-primary btn-sm" onclick="var sm=document.getElementById(&#39;statsArticlesModal&#39;); if(sm && bootstrap.Modal.getInstance(sm)) bootstrap.Modal.getInstance(sm).hide(); openBulkModal({run_tid});" title="Run content+images for A,B,C,D">▶️</button>')
     return "".join(btns)
 
 
@@ -3389,18 +3523,19 @@ def _render_groups_html(groups_data, ac_map):
                             display = (short_model or "") + (" ·<br>" if short_model and date_dd_mm_yy else "") + (date_dd_mm_yy or "")
                             pill_hint = f'<span class="pill-hint small text-muted" title="{html.escape(mu or "-")}">{display}</span>'
                     if i == 0:
-                        btns = f'<button type="button" class="btn btn-success btn-sm" onclick="openSingleActionModal(\'/api/generate-article-external\',{{title_id:{tid_i}}},\'Article A\')" title="Article">Art</button>'
-                        btns += f'<button type="button" class="btn btn-info btn-sm text-white" onclick="openSingleActionModal(\'/api/generate-main-image\',{{title_id:{tid_i}}},\'Main image\')" title="Main image">M</button>'
-                        btns += f'<button type="button" class="btn btn-warning btn-sm text-dark" onclick="openSingleActionModal(\'/api/generate-ingredient-image\',{{title_id:{tid_i}}},\'Ingredient image\')" title="Ingredient">I</button>'
-                        btns += f'<button type="button" class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation(); openPinPickerModal({tid_i})" title="Pin">P</button>'
+                        btns = f'<button type="button" class="btn btn-secondary btn-sm" onclick="openSingleActionModal(\'/api/generate-prompts\',{{title_id:{tid_i}}},\'Prompts\')" title="Prompts">📝</button>'
+                        btns += f'<button type="button" class="btn btn-info btn-sm text-white" onclick="openSingleActionModal(\'/api/generate-main-image\',{{title_id:{tid_i}}},\'Main image\')" title="Main image">🖼️</button>'
+                        btns += f'<button type="button" class="btn btn-warning btn-sm text-dark" onclick="openSingleActionModal(\'/api/generate-ingredient-image\',{{title_id:{tid_i}}},\'Ingredient image\')" title="Ingredient">🥗</button>'
+                        btns += f'<button type="button" class="btn btn-success btn-sm" onclick="openSingleActionModal(\'/api/generate-article-external\',{{title_id:{tid_i}}},\'Article A\')" title="Article">📄</button>'
+                        btns += f'<button type="button" class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation(); openPinPickerModal({tid_i})" title="Pin">📌</button>'
                         btns += f'<button type="button" class="btn btn-outline-secondary btn-sm" onclick="viewDomainSingle({tid_i},\'{lb}\')" title="View all">V</button>'
                     else:
                         dis = ' disabled' if not a_has_all else ''
                         ta_id = ids[0]
-                        btns = f'<button type="button" class="btn btn-primary btn-sm"{dis} onclick="openSingleActionModal(\'/api/generate-article-bcd\',{{title_id:{tid_i}}},\'BCD\')" title="Content from A">C</button>'
-                        btns += f'<button type="button" class="btn btn-info btn-sm text-white" onclick="openSingleActionModal(\'/api/generate-main-image\',{{title_id:{ta_id}}},\'Main image\')" title="Main (all)">M</button>'
-                        btns += f'<button type="button" class="btn btn-warning btn-sm text-dark" onclick="openSingleActionModal(\'/api/generate-ingredient-image\',{{title_id:{ta_id}}},\'Ingredient image\')" title="Ingr (all)">I</button>'
-                        btns += f'<button type="button" class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation(); openPinPickerModal({tid_i})" title="Pin">P</button>'
+                        btns = f'<button type="button" class="btn btn-primary btn-sm"{dis} onclick="openSingleActionModal(\'/api/generate-article-bcd\',{{title_id:{tid_i}}},\'BCD\')" title="Content from A">📄</button>'
+                        btns += f'<button type="button" class="btn btn-info btn-sm text-white" onclick="openSingleActionModal(\'/api/generate-main-image\',{{title_id:{ta_id}}},\'Main (all)\')" title="Main (all)">🖼️</button>'
+                        btns += f'<button type="button" class="btn btn-warning btn-sm text-dark" onclick="openSingleActionModal(\'/api/generate-ingredient-image\',{{title_id:{ta_id}}},\'Ingredient (all)\')" title="Ingr (all)">🥗</button>'
+                        btns += f'<button type="button" class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation(); openPinPickerModal({tid_i})" title="Pin">📌</button>'
                         btns += f'<button type="button" class="btn btn-outline-secondary btn-sm" onclick="viewDomainSingle({tid_i},\'{lb}\')" title="View all">V</button>'
                     return f'<span class="run-domain-action-pill {pill_class}"><span class="pill-label">{pill_label}</span><span class="pill-btns">{btns}</span>{pill_hint}</span>'
                 action_pills = "".join(action_pill(i) for i in range(4))
@@ -3773,18 +3908,19 @@ def api_render_title_row(title_id):
                     display = (short_model or "") + (" ·<br>" if short_model and date_dd_mm_yy else "") + (date_dd_mm_yy or "")
                     pill_hint = f'<span class="pill-hint small text-muted" title="{html.escape(mu or "-")}">{display}</span>'
             if i == 0:
-                btns = f'<button type="button" class="btn btn-success btn-sm" onclick="openSingleActionModal(\'/api/generate-article-external\',{{title_id:{tid_i}}},\'Article A\')" title="Article">Art</button>'
-                btns += f'<button type="button" class="btn btn-info btn-sm text-white" onclick="openSingleActionModal(\'/api/generate-main-image\',{{title_id:{tid_i}}},\'Main image\')" title="Main image">M</button>'
-                btns += f'<button type="button" class="btn btn-warning btn-sm text-dark" onclick="openSingleActionModal(\'/api/generate-ingredient-image\',{{title_id:{tid_i}}},\'Ingredient image\')" title="Ingredient">I</button>'
-                btns += f'<button type="button" class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation(); openPinPickerModal({tid_i})" title="Pin">P</button>'
+                btns = f'<button type="button" class="btn btn-secondary btn-sm" onclick="openSingleActionModal(\'/api/generate-prompts\',{{title_id:{tid_i}}},\'Prompts\')" title="Prompts">📝</button>'
+                btns += f'<button type="button" class="btn btn-info btn-sm text-white" onclick="openSingleActionModal(\'/api/generate-main-image\',{{title_id:{tid_i}}},\'Main image\')" title="Main image">🖼️</button>'
+                btns += f'<button type="button" class="btn btn-warning btn-sm text-dark" onclick="openSingleActionModal(\'/api/generate-ingredient-image\',{{title_id:{tid_i}}},\'Ingredient image\')" title="Ingredient">🥗</button>'
+                btns += f'<button type="button" class="btn btn-success btn-sm" onclick="openSingleActionModal(\'/api/generate-article-external\',{{title_id:{tid_i}}},\'Article A\')" title="Article">📄</button>'
+                btns += f'<button type="button" class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation(); openPinPickerModal({tid_i})" title="Pin">📌</button>'
                 btns += f'<button type="button" class="btn btn-outline-secondary btn-sm" onclick="viewDomainSingle({tid_i},\'{lb}\')" title="View all">V</button>'
             else:
                 dis = ' disabled' if not a_has_all else ''
                 ta_id = ids[0]
-                btns = f'<button type="button" class="btn btn-primary btn-sm"{dis} onclick="openSingleActionModal(\'/api/generate-article-bcd\',{{title_id:{tid_i}}},\'BCD\')" title="Content from A">C</button>'
-                btns += f'<button type="button" class="btn btn-info btn-sm text-white" onclick="openSingleActionModal(\'/api/generate-main-image\',{{title_id:{ta_id}}},\'Main image\')" title="Main (all)">M</button>'
-                btns += f'<button type="button" class="btn btn-warning btn-sm text-dark" onclick="openSingleActionModal(\'/api/generate-ingredient-image\',{{title_id:{ta_id}}},\'Ingredient image\')" title="Ingr (all)">I</button>'
-                btns += f'<button type="button" class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation(); openPinPickerModal({tid_i})" title="Pin">P</button>'
+                btns = f'<button type="button" class="btn btn-primary btn-sm"{dis} onclick="openSingleActionModal(\'/api/generate-article-bcd\',{{title_id:{tid_i}}},\'BCD\')" title="Content from A">📄</button>'
+                btns += f'<button type="button" class="btn btn-info btn-sm text-white" onclick="openSingleActionModal(\'/api/generate-main-image\',{{title_id:{ta_id}}},\'Main (all)\')" title="Main (all)">🖼️</button>'
+                btns += f'<button type="button" class="btn btn-warning btn-sm text-dark" onclick="openSingleActionModal(\'/api/generate-ingredient-image\',{{title_id:{ta_id}}},\'Ingredient (all)\')" title="Ingr (all)">🥗</button>'
+                btns += f'<button type="button" class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation(); openPinPickerModal({tid_i})" title="Pin">📌</button>'
                 btns += f'<button type="button" class="btn btn-outline-secondary btn-sm" onclick="viewDomainSingle({tid_i},\'{lb}\')" title="View all">V</button>'
             return f'<span class="run-domain-action-pill {pill_class}"><span class="pill-label">{pill_label}</span><span class="pill-btns">{btns}</span>{pill_hint}</span>'
 
@@ -7251,18 +7387,28 @@ def api_bulk_group_counts():
             if not user or not user.get("is_admin", False):
                 if not user:
                      return jsonify({"error": "Not logged in"}), 401
-                user_groups_list = get_user_groups(user["id"])
+                user_group_ids = get_user_group_ids(user["id"])
                 user_domain_ids = get_user_domain_ids(user["id"])
-                
-                cur = db_execute(conn, "SELECT id FROM domains WHERE group_id = ?", (gid,))
+
+                def get_all_group_descendants_for_access(gid_val):
+                    result = [gid_val]
+                    cur_acc = db_execute(conn, "SELECT id FROM `groups` WHERE parent_group_id = ?", (gid_val,))
+                    for r in cur_acc.fetchall():
+                        cid = dict_row(r).get("id")
+                        if cid:
+                            result.extend(get_all_group_descendants_for_access(cid))
+                    return result
+                descendant_gids = get_all_group_descendants_for_access(gid)
+                ph_acc = ",".join(["?"] * len(descendant_gids))
+                cur = db_execute(conn, f"SELECT id FROM domains WHERE group_id IN ({ph_acc})", tuple(descendant_gids))
                 group_domains = [dict_row(r).get("id") for r in cur.fetchall() if dict_row(r) and dict_row(r).get("id")]
-                
+
                 has_access = False
-                if gid in user_groups_list:
+                if any(g in user_group_ids for g in descendant_gids):
                     has_access = True
-                elif all(d in user_domain_ids for d in group_domains) and group_domains:
+                elif group_domains and all(d in user_domain_ids for d in group_domains):
                     has_access = True
-                    
+
                 if not has_access:
                     return jsonify({"error": "Forbidden"}), 403
 
@@ -7287,10 +7433,12 @@ def api_bulk_group_counts():
                 all_gids = allowed_gids
             placeholders = ",".join(["?"] * len(all_gids))
 
+            # Only count Domain A titles (domain_index 0) — bulk run processes those
             cur = db_execute(conn, f"""
                 SELECT COUNT(DISTINCT t.title) as n FROM titles t
                 JOIN domains d ON t.domain_id = d.id
                 WHERE COALESCE(t.group_id, d.group_id) IN ({placeholders})
+                  AND COALESCE(d.domain_index, 0) = 0
             """, tuple(all_gids))
             row = cur.fetchone()
             total = (row.get('n', 0) if row else 0) or 0
@@ -7354,10 +7502,11 @@ def api_bulk_group_counts():
             row = cur.fetchone()
             with_html = (row.get('n', 0) if row else 0) or 0
             
-            # calculate needs rows dynamically based on domain equivalents
+            # calculate needs rows dynamically based on domain equivalents (Domain A only, like bulk run)
             rows_needs_content = 0
             cur = db_execute(conn, f"""SELECT MIN(t.id) as id FROM titles t JOIN domains d ON t.domain_id = d.id
                 WHERE COALESCE(t.group_id, d.group_id) IN ({placeholders})
+                  AND COALESCE(d.domain_index, 0) = 0
                 GROUP BY COALESCE(t.group_id, d.group_id), t.title
                 ORDER BY MIN(t.id)""", tuple(all_gids))
             for r in cur.fetchall():
@@ -7380,6 +7529,7 @@ def api_bulk_group_counts():
             rows_needs_images = 0
             cur2 = db_execute(conn, f"""SELECT MIN(t.id) as id FROM titles t JOIN domains d ON t.domain_id = d.id
                 WHERE COALESCE(t.group_id, d.group_id) IN ({placeholders})
+                  AND COALESCE(d.domain_index, 0) = 0
                 GROUP BY COALESCE(t.group_id, d.group_id), t.title
                 ORDER BY MIN(t.id)""", tuple(all_gids))
             for r in cur2.fetchall():
@@ -7400,6 +7550,7 @@ def api_bulk_group_counts():
             rows_needs_pins = 0
             cur3 = db_execute(conn, f"""SELECT MIN(t.id) as id FROM titles t JOIN domains d ON t.domain_id = d.id
                 WHERE COALESCE(t.group_id, d.group_id) IN ({placeholders})
+                  AND COALESCE(d.domain_index, 0) = 0
                 GROUP BY COALESCE(t.group_id, d.group_id), t.title
                 ORDER BY MIN(t.id)""", tuple(all_gids))
             for r in cur3.fetchall():
@@ -7409,6 +7560,7 @@ def api_bulk_group_counts():
             rows_needs_prompts = 0
             cur4 = db_execute(conn, f"""SELECT MIN(t.id) as id FROM titles t JOIN domains d ON t.domain_id = d.id
                 WHERE COALESCE(t.group_id, d.group_id) IN ({placeholders})
+                  AND COALESCE(d.domain_index, 0) = 0
                 GROUP BY COALESCE(t.group_id, d.group_id), t.title
                 ORDER BY MIN(t.id)""", tuple(all_gids))
             for r in cur4.fetchall():
@@ -7532,6 +7684,260 @@ def api_bulk_all_groups_counts():
             if tid and _row_any_needs_pins(conn, tid, "empty_only"):
                 rows_needs_pins += 1
     return jsonify({"total": total, "no_html_css": no_html_css, "no_images": no_images, "no_pins": no_pins, "with_html": with_html, "no_ac_row": no_ac_row, "rows_needs_content": rows_needs_content, "rows_needs_images": rows_needs_images, "rows_needs_pins": rows_needs_pins, "total_rows": total_rows})
+
+
+def _domain_filter_where(filter_val):
+    """Build filter_where for domain articles (same logic as api_domain_articles_list)."""
+    if filter_val == "all":
+        return ""
+    if filter_val == "no_prompt":
+        return " AND (ac.id IS NULL OR TRIM(COALESCE(ac.prompt,'')) = '' OR TRIM(COALESCE(ac.prompt_image_ingredients,'')) = '')"
+    if filter_val == "no_main":
+        return " AND (ac.id IS NULL OR ac.main_image IS NULL OR TRIM(COALESCE(ac.main_image,'')) NOT LIKE 'http%%')"
+    if filter_val == "no_ing":
+        return " AND (ac.id IS NULL OR ac.ingredient_image IS NULL OR TRIM(COALESCE(ac.ingredient_image,'')) NOT LIKE 'http%%')"
+    if filter_val == "no_pin":
+        return " AND (ac.id IS NULL OR ac.pin_image IS NULL OR TRIM(COALESCE(ac.pin_image,'')) NOT LIKE 'http%%')"
+    if filter_val == "no_content":
+        return " AND (ac.id IS NULL OR TRIM(COALESCE(ac.article_html,'')) = '' OR TRIM(COALESCE(ac.article_css,'')) = '')"
+    if filter_val == "not_validated":
+        return """ AND ac.id IS NOT NULL
+            AND TRIM(COALESCE(ac.prompt,'')) != '' AND TRIM(COALESCE(ac.prompt_image_ingredients,'')) != ''
+            AND ac.main_image IS NOT NULL AND TRIM(COALESCE(ac.main_image,'')) LIKE 'http%%'
+            AND ac.ingredient_image IS NOT NULL AND TRIM(COALESCE(ac.ingredient_image,'')) LIKE 'http%%'
+            AND ac.pin_image IS NOT NULL AND TRIM(COALESCE(ac.pin_image,'')) LIKE 'http%%'
+            AND TRIM(COALESCE(ac.article_html,'')) != '' AND TRIM(COALESCE(ac.article_css,'')) != ''
+            AND COALESCE(ac.validated, 0) = 0"""
+    if filter_val == "validated":
+        return " AND ac.id IS NOT NULL AND COALESCE(ac.validated, 0) = 1"
+    return ""
+
+
+@app.route("/api/bulk-domain-counts", methods=["GET"])
+@login_required
+def api_bulk_domain_counts():
+    """Return counts for domain filtered titles (same shape as bulk-group-counts)."""
+    domain_id = request.args.get("domain_id")
+    filter_val = (request.args.get("filter") or "all").strip().lower()
+    valid_filters = ("all", "no_prompt", "no_main", "no_ing", "no_pin", "no_content", "not_validated", "validated")
+    if filter_val not in valid_filters:
+        filter_val = "all"
+    if not domain_id:
+        return jsonify({"error": "domain_id required"}), 400
+    try:
+        pk = int(domain_id)
+    except ValueError:
+        return jsonify({"error": "invalid domain_id"}), 400
+    filter_where = _domain_filter_where(filter_val)
+    base_where = "t.domain_id = ?"
+    with get_connection() as conn:
+        cur = db_execute(conn, """
+            SELECT COUNT(*) AS total FROM titles t
+            LEFT JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
+            WHERE """ + base_where + filter_where, (pk,))
+        row = dict_row(cur.fetchone())
+        total = (row.get("total") or 0) or 0
+        cur = db_execute(conn, """
+            SELECT COUNT(*) AS n FROM titles t
+            LEFT JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
+            WHERE """ + base_where + filter_where + """
+            AND (ac.id IS NULL OR TRIM(COALESCE(ac.prompt,'')) = '' OR TRIM(COALESCE(ac.prompt_image_ingredients,'')) = '')
+        """, (pk,))
+        row = dict_row(cur.fetchone())
+        rows_needs_prompts = (row.get("n") or 0) or 0
+        cur = db_execute(conn, """
+            SELECT COUNT(*) AS n FROM titles t
+            LEFT JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
+            WHERE """ + base_where + filter_where + """
+            AND (ac.id IS NULL OR TRIM(COALESCE(ac.article_html,'')) = '' OR TRIM(COALESCE(ac.article_css,'')) = '')
+        """, (pk,))
+        row = dict_row(cur.fetchone())
+        rows_needs_content = (row.get("n") or 0) or 0
+        cur = db_execute(conn, """
+            SELECT COUNT(*) AS n FROM titles t
+            LEFT JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
+            WHERE """ + base_where + filter_where + """
+            AND (ac.id IS NULL OR ac.main_image IS NULL OR TRIM(COALESCE(ac.main_image,'')) NOT LIKE 'http%%'
+                OR ac.ingredient_image IS NULL OR TRIM(COALESCE(ac.ingredient_image,'')) NOT LIKE 'http%%')
+        """, (pk,))
+        row = dict_row(cur.fetchone())
+        rows_needs_images = (row.get("n") or 0) or 0
+        cur = db_execute(conn, """
+            SELECT COUNT(*) AS n FROM titles t
+            LEFT JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
+            WHERE """ + base_where + filter_where + """
+            AND (ac.id IS NULL OR ac.pin_image IS NULL OR TRIM(COALESCE(ac.pin_image,'')) NOT LIKE 'http%%')
+        """, (pk,))
+        row = dict_row(cur.fetchone())
+        rows_needs_pins = (row.get("n") or 0) or 0
+    return jsonify({
+        "total": total,
+        "no_html_css": rows_needs_content,
+        "no_images": rows_needs_images,
+        "no_pins": rows_needs_pins,
+        "rows_needs_prompts": rows_needs_prompts,
+        "rows_needs_content": rows_needs_content,
+        "rows_needs_images": rows_needs_images,
+        "rows_needs_pins": rows_needs_pins,
+    })
+
+
+@app.route("/api/bulk-run-domain", methods=["POST"])
+@login_required
+def api_bulk_run_domain():
+    """Run bulk for domain filtered titles. Params: domain_id, filter, mode, scope_*, concurrency_n, async=1."""
+    req = {**(request.get_json(silent=True) or {}), **dict(request.args)}
+    domain_id = req.get("domain_id")
+    filter_val = (req.get("filter") or "all").strip().lower()
+    mode = str(req.get("mode", "all")).lower()
+    if not domain_id:
+        return jsonify({"success": False, "error": "domain_id required"}), 400
+    try:
+        pk = int(domain_id)
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "error": "invalid domain_id"}), 400
+    valid_filters = ("all", "no_prompt", "no_main", "no_ing", "no_pin", "no_content", "not_validated", "validated")
+    if filter_val not in valid_filters:
+        filter_val = "all"
+    filter_where = _domain_filter_where(filter_val)
+    base_where = "t.domain_id = ?"
+    with get_connection() as conn:
+        cur = db_execute(conn, """
+            SELECT t.id FROM titles t
+            LEFT JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
+            WHERE """ + base_where + filter_where + """
+            ORDER BY t.id DESC
+        """, (pk,))
+        title_ids = [dict_row(r).get("id") for r in cur.fetchall() if dict_row(r) and dict_row(r).get("id")]
+    if not title_ids:
+        return jsonify({"success": False, "error": "No titles match filter"}), 400
+    scope_prompts = str(req.get("scope_prompts") or "empty_only").lower()
+    scope_content = str(req.get("scope_content") or "override").lower()
+    scope_images = str(req.get("scope_images") or "override").lower()
+    scope_pins = str(req.get("scope_pins") or "override").lower()
+    for s in (scope_prompts, scope_content, scope_images, scope_pins):
+        if s not in ("override", "empty_only"):
+            scope_prompts = scope_content = scope_images = scope_pins = "override"
+            break
+    _cn = req.get("concurrency_n") or 1
+    try:
+        concurrency_n = max(1, min(int(_cn), 20))
+    except (TypeError, ValueError):
+        concurrency_n = 1
+    ai_provider = (req.get("ai_provider") or "").strip() or None
+    openrouter_models = _parse_openrouter_models(req)
+    openai_model = (req.get("openai_model") or "").strip() or None
+    openrouter_model = (req.get("openrouter_model") or "").strip() or None
+    openrouter_mode = (req.get("openrouter_mode") or "").strip() or None
+    local_model = (req.get("local_model") or "").strip() or None
+    llamacpp_model_id = req.get("llamacpp_model_id")
+    if llamacpp_model_id is not None and str(llamacpp_model_id).strip():
+        try:
+            llamacpp_model_id = int(llamacpp_model_id)
+        except (TypeError, ValueError):
+            llamacpp_model_id = None
+    else:
+        llamacpp_model_id = None
+    user = get_current_user()
+    user_id = user["id"] if user else None
+    job_id = str(uuid.uuid4())
+    _bulk_progress[job_id] = {
+        "status": "running",
+        "message": "Starting...",
+        "current_title": "",
+        "type": "domain",
+        "domain_id": pk,
+        "mode": mode,
+        "total_rows": len(title_ids),
+        "done": 0,
+        "created_at": time.time(),
+        "steps": [],
+    }
+
+    def task():
+        need_delay_before_image = False
+        user_config = get_user_config_for_api(user_id) or {}
+        total_ok, total_failed = 0, 0
+        for idx, tid in enumerate(title_ids):
+            if _bulk_cancel.get(job_id):
+                break
+            with get_connection() as conn:
+                cur = db_execute(conn, "SELECT title FROM titles WHERE id = ?", (tid,))
+                r = dict_row(cur.fetchone())
+                title = (r.get("title") or "")[:50] if r else ""
+            _bulk_progress[job_id]["current_title"] = title
+            _bulk_progress[job_id]["done"] = idx
+            _bulk_progress[job_id]["message"] = f"Processing {idx+1}/{len(title_ids)}"
+            try:
+                ran_prompts_this_row = False
+                if mode in ("prompts", "all"):
+                    with get_connection() as conn:
+                        cur = db_execute(conn, "SELECT prompt, prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (tid,))
+                        row = dict_row(cur.fetchone())
+                    need_prompts = (scope_prompts == "override") or not (row and (row.get("prompt") or "").strip() and (row.get("prompt_image_ingredients") or "").strip())
+                    if need_prompts:
+                        _do_generate_prompts(tid, user_id=user_id, ai_provider=ai_provider, openai_model=openai_model, openrouter_model=openrouter_model, local_model=local_model, llamacpp_model_id=llamacpp_model_id)
+                        ran_prompts_this_row = True
+                if mode in ("images", "all"):
+                    with get_connection() as conn:
+                        skip = _should_skip_images(conn, tid, scope_images)
+                    if skip and mode == "all" and scope_prompts == "override" and ran_prompts_this_row:
+                        skip = False
+                    if not skip:
+                        from imagine import generate_4_images_multi_channel
+                        delay_sec = user_config.get("image_request_delay_sec", 15)
+                        if need_delay_before_image and delay_sec > 0:
+                            time.sleep(delay_sec)
+                        with get_connection() as conn:
+                            cur = db_execute(conn, "SELECT prompt, prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (tid,))
+                            row = dict_row(cur.fetchone())
+                        prompt = (row.get("prompt") or "").strip() if row else ""
+                        prompt_ing = (row.get("prompt_image_ingredients") or "").strip() if row else ""
+                        if prompt:
+                            urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", user_config=user_config)
+                            if not err and urls:
+                                need_delay_before_image = True
+                                with get_connection() as conn:
+                                    db_execute(conn, "UPDATE article_content SET main_image = ?, top_image = ? WHERE title_id = ? AND language_code = 'en'", (urls[0], urls[0], tid))
+                        if prompt_ing:
+                            if need_delay_before_image and delay_sec > 0:
+                                time.sleep(delay_sec)
+                            urls2, err2, _ = generate_4_images_multi_channel(prompt_ing, key_prefix="ingredient_image", user_config=user_config)
+                            if not err2 and urls2:
+                                need_delay_before_image = True
+                                with get_connection() as conn:
+                                    db_execute(conn, "UPDATE article_content SET ingredient_image = ? WHERE title_id = ? AND language_code = 'en'", (urls2[0], tid))
+                if mode in ("article", "all"):
+                    with get_connection() as conn:
+                        cur = db_execute(conn, "SELECT article_html, article_css FROM article_content WHERE title_id = ? AND language_code = 'en'", (tid,))
+                        row = dict_row(cur.fetchone())
+                    need_content = (scope_content == "override") or not (row and (row.get("article_html") or "").strip() and (row.get("article_css") or "").strip())
+                    if need_content:
+                        _do_generate_article_external(tid, ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model, local_model=local_model, llamacpp_model_id=llamacpp_model_id, user_id=user_id)
+                if mode in ("pin_image", "all"):
+                    with get_connection() as conn:
+                        cur = db_execute(conn, "SELECT pin_image FROM article_content WHERE title_id = ? AND language_code = 'en'", (tid,))
+                        row = dict_row(cur.fetchone())
+                    has_pin = row and (row.get("pin_image") or "").strip() and str(row.get("pin_image") or "").startswith("http")
+                    need_pin = (scope_pins == "override") or not has_pin
+                    if need_pin:
+                        _do_generate_pin_image(tid, user_id=user_id)
+                total_ok += 1
+                steps = _bulk_progress[job_id].get("steps", [])
+                steps.append(f"✓ [{tid}] {title}")
+                _bulk_progress[job_id]["steps"] = steps[-80:]
+            except Exception as e:
+                total_failed += 1
+                steps = _bulk_progress[job_id].get("steps", [])
+                steps.append(f"✗ [{tid}] {title} | {str(e)[:60]}")
+                _bulk_progress[job_id]["steps"] = steps[-80:]
+        if _bulk_cancel.get(job_id):
+            _bulk_progress[job_id].update({"status": "cancelled", "message": f"Cancelled. {total_ok}✓ {total_failed}✗", "ok": total_ok, "failed": total_failed})
+        else:
+            _bulk_progress[job_id].update({"status": "done", "message": f"Done. {total_ok}✓ {total_failed}✗", "ok": total_ok, "failed": total_failed})
+
+    threading.Thread(target=task, daemon=True).start()
+    return jsonify({"success": True, "job_id": job_id})
 
 
 @app.route("/api/bulk-run-filtered", methods=["POST"])
@@ -8785,29 +9191,39 @@ def _do_generate_pin_image(title_id, domain_template_id=None, user_id=None):
                 domain_display = urlparse(domain_display).hostname or domain_display
             except Exception:
                 pass
-        # 5001: replace ALL {{}} in domain template with correspondent data from article_content and domain
+        # Parse template — for HTML templates, do NOT pre-replace {{badge}}, {{title}}, {{tagline}} etc.
+        # so Pin API can generate them via AI. Non-HTML templates get full placeholder replacement.
         def esc(s):
             return (s or "").replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\r", "\\r")
-        replacements = {
-            "main_image": esc(main_img),
-            "top_image": esc(top_img),
-            "bottom_image": esc(bottom_img),
-            "avatar_image": esc(main_img or ing_img),
-            "title": esc(article_title),
-            "subtitle": "",
-            "badge": "",
-            "website": esc(domain_display),
-            "domain": esc(domain_display),
-            "time_badge": "",
-        }
-        filled = template_json_str
-        for k, v in replacements.items():
-            filled = filled.replace("{{" + k + "}}", (v or ""))
-        filled = re.sub(r'\{\{[^}]+\}\}', '', filled)
         try:
-            body = json.loads(filled)
-        except json.JSONDecodeError as e:
-            raise ValueError("Template JSON invalid after replace: " + str(e))
+            body_pre = json.loads(template_json_str)
+        except json.JSONDecodeError:
+            body_pre = None
+        tpl_data_pre = body_pre.get("template_data") if body_pre and "template_data" in body_pre else body_pre
+        is_html_template = isinstance(tpl_data_pre, dict) and tpl_data_pre.get("template_type") == "html"
+        if is_html_template:
+            body = body_pre
+        else:
+            replacements = {
+                "main_image": esc(main_img),
+                "top_image": esc(top_img),
+                "bottom_image": esc(bottom_img),
+                "avatar_image": esc(main_img or ing_img),
+                "title": esc(article_title),
+                "subtitle": "",
+                "badge": "",
+                "website": esc(domain_display),
+                "domain": esc(domain_display),
+                "time_badge": "",
+            }
+            filled = template_json_str
+            for k, v in replacements.items():
+                filled = filled.replace("{{" + k + "}}", (v or ""))
+            filled = re.sub(r'\{\{[^}]+\}\}', '', filled)
+            try:
+                body = json.loads(filled)
+            except json.JSONDecodeError as e:
+                raise ValueError("Template JSON invalid after replace: " + str(e))
         template_name = body.get("template_name") or body.get("template_id") or ""
         payload = body.get("template_data") if "template_data" in body else body
         if not template_name:
@@ -8894,6 +9310,34 @@ def _do_generate_pin_image(title_id, domain_template_id=None, user_id=None):
         base_tpl = body.get("template_data") if isinstance(body.get("template_data"), dict) else body
         if not isinstance(base_tpl, dict):
             raise ValueError("Template JSON has no template_data")
+        # Inject field_examples and field_prompts from html_templates.json if missing (ensures word-count reskin)
+        if is_html_template and (not base_tpl.get("field_examples") or not base_tpl.get("field_prompts")):
+            try:
+                _html_tpl_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pin_templates", "html_templates.json")
+                if os.path.isfile(_html_tpl_path):
+                    with open(_html_tpl_path, "r", encoding="utf-8") as _f:
+                        _html_tpl_list = json.load(_f)
+                    _matched_td = None
+                    for _ent in _html_tpl_list or []:
+                        _tid = (_ent.get("template_id") or _ent.get("template_name") or "").strip().lower().replace("-", "_")
+                        _td = _ent.get("template_data") or _ent
+                        if _tid and _tid == template_name_normalized and isinstance(_td, dict):
+                            _matched_td = _td
+                            break
+                    if not _matched_td:
+                        _base_name = (base_tpl.get("name") or "").strip()
+                        for _ent in _html_tpl_list or []:
+                            _td = _ent.get("template_data") or _ent
+                            if isinstance(_td, dict) and (_td.get("name") or "").strip() == _base_name:
+                                _matched_td = _td
+                                break
+                    if _matched_td:
+                        if not base_tpl.get("field_examples") and _matched_td.get("field_examples"):
+                            base_tpl["field_examples"] = _matched_td["field_examples"]
+                        if not base_tpl.get("field_prompts") and _matched_td.get("field_prompts"):
+                            base_tpl["field_prompts"] = _matched_td["field_prompts"]
+            except Exception as _e:
+                log.warning("Could not inject field_examples from html_templates.json: %s", _e)
         merge_payload = dict(payload)
         merge_payload["template_data"] = base_tpl
         merge_payload.setdefault("style_slots", body.get("style_slots") or {})
@@ -12089,7 +12533,7 @@ def api_domain_articles_by_stat(pk):
         return jsonify({"error": "type parameter required"}), 400
     
     with get_connection() as conn:
-        sel = "t.id, t.title, ac.main_image, ac.ingredient_image, ac.pin_image"
+        sel = "t.id, t.title, ac.main_image, ac.ingredient_image, ac.pin_image, ac.prompt, ac.prompt_image_ingredients, ac.article_html, ac.article_css"
         if stat_type == "prompt":
             cur = db_execute(conn, f"""SELECT {sel} FROM titles t
                 JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
@@ -12149,10 +12593,20 @@ def api_domain_articles_by_stat(pk):
         articles = []
         for r in cur.fetchall():
             row = dict_row(r)
-            a = {"id": row.get("id"), "title": (row.get("title") or "")[:80]}
             main_url = _img(row.get("main_image"))
             ing_url = _img(row.get("ingredient_image"))
             pin_url = _img(row.get("pin_image"))
+            prompt_ok = bool((row.get("prompt") or "").strip()) and bool((row.get("prompt_image_ingredients") or "").strip())
+            content_ok = bool((row.get("article_html") or "").strip()) and bool((row.get("article_css") or "").strip())
+            a = {
+                "id": row.get("id"),
+                "title": (row.get("title") or "")[:80],
+                "has_prompt": prompt_ok,
+                "has_main": bool(main_url),
+                "has_ing": bool(ing_url),
+                "has_pin": bool(pin_url),
+                "has_content": content_ok,
+            }
             if main_url: a["main_image"] = main_url
             if ing_url: a["ingredient_image"] = ing_url
             if pin_url: a["pin_image"] = pin_url
@@ -12490,39 +12944,68 @@ def api_domain_fonts_put(pk):
 
 @app.route("/api/domains/<int:pk>/articles-list")
 def api_domain_articles_list(pk):
-    """Return paginated list of titles for domain. Params: validated=0|1|all (default 0), content=any|empty (default any). content=empty = no article_content row or empty article_html/article_css."""
+    """Return paginated list of titles for domain. Params: filter=all|no_prompt|no_main|no_ing|no_pin|no_content|not_validated|validated (default not_validated).
+    Legacy: validated=0|1|all, content=any|empty (used when filter not set)."""
     offset = max(0, int(request.args.get("offset", 0)))
     limit = min(100, max(1, int(request.args.get("limit", 30))))
-    validated_filter = (request.args.get("validated") or "0").strip().lower()
-    if validated_filter not in ("0", "1", "all"):
-        validated_filter = "0"
+    filter_val = (request.args.get("filter") or request.args.get("filter_type") or "").strip().lower()
+    validated_filter = (request.args.get("validated") or "").strip().lower()
     content_filter = (request.args.get("content") or "any").strip().lower()
     if content_filter not in ("any", "empty"):
         content_filter = "any"
+    valid_filters = ("all", "no_prompt", "no_main", "no_ing", "no_pin", "no_content", "not_validated", "validated")
+    if filter_val not in valid_filters:
+        filter_val = ""
+    if not filter_val:
+        if validated_filter == "1":
+            filter_val = "validated"
+        elif validated_filter == "all":
+            filter_val = "all"
+        elif content_filter == "empty":
+            filter_val = "no_content"
+        elif validated_filter in ("0", ""):
+            filter_val = "not_validated"
     with get_connection() as conn:
         base_where = "t.domain_id = ?"
-        validated_where = ""
-        if validated_filter == "0":
-            # Not validated: must have article_content with both html and css (exclude "not generated yet")
-            validated_where = " AND ac.id IS NOT NULL AND TRIM(COALESCE(ac.article_html,'')) != '' AND TRIM(COALESCE(ac.article_css,'')) != '' AND COALESCE(ac.validated, 0) = 0"
-        elif validated_filter == "1":
-            validated_where = " AND ac.id IS NOT NULL AND COALESCE(ac.validated, 0) = 1"
-        content_where = ""
-        if content_filter == "empty":
-            content_where = " AND (ac.id IS NULL OR TRIM(COALESCE(ac.article_html,'')) = '' OR TRIM(COALESCE(ac.article_css,'')) = '')"
+        filter_where = ""
+        if filter_val == "all":
+            filter_where = ""
+        elif filter_val == "no_prompt":
+            filter_where = " AND (ac.id IS NULL OR TRIM(COALESCE(ac.prompt,'')) = '' OR TRIM(COALESCE(ac.prompt_image_ingredients,'')) = '')"
+        elif filter_val == "no_main":
+            filter_where = " AND (ac.id IS NULL OR ac.main_image IS NULL OR TRIM(COALESCE(ac.main_image,'')) NOT LIKE 'http%')"
+        elif filter_val == "no_ing":
+            filter_where = " AND (ac.id IS NULL OR ac.ingredient_image IS NULL OR TRIM(COALESCE(ac.ingredient_image,'')) NOT LIKE 'http%')"
+        elif filter_val == "no_pin":
+            filter_where = " AND (ac.id IS NULL OR ac.pin_image IS NULL OR TRIM(COALESCE(ac.pin_image,'')) NOT LIKE 'http%')"
+        elif filter_val == "no_content":
+            filter_where = " AND (ac.id IS NULL OR TRIM(COALESCE(ac.article_html,'')) = '' OR TRIM(COALESCE(ac.article_css,'')) = '')"
+        elif filter_val == "not_validated":
+            # Titles with ALL steps completed (prompt, main, ing, content, pin) but not yet validated
+            filter_where = """ AND ac.id IS NOT NULL
+                AND TRIM(COALESCE(ac.prompt,'')) != '' AND TRIM(COALESCE(ac.prompt_image_ingredients,'')) != ''
+                AND ac.main_image IS NOT NULL AND TRIM(COALESCE(ac.main_image,'')) LIKE 'http%'
+                AND ac.ingredient_image IS NOT NULL AND TRIM(COALESCE(ac.ingredient_image,'')) LIKE 'http%'
+                AND ac.pin_image IS NOT NULL AND TRIM(COALESCE(ac.pin_image,'')) LIKE 'http%'
+                AND TRIM(COALESCE(ac.article_html,'')) != '' AND TRIM(COALESCE(ac.article_css,'')) != ''
+                AND COALESCE(ac.validated, 0) = 0"""
+        elif filter_val == "validated":
+            filter_where = " AND ac.id IS NOT NULL AND COALESCE(ac.validated, 0) = 1"
         cur = db_execute(conn, """
             SELECT COUNT(*) AS total FROM titles t
             LEFT JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
-            WHERE """ + base_where + validated_where + content_where, (pk,))
+            WHERE """ + base_where + filter_where, (pk,))
         row = dict_row(cur.fetchone())
         total = (row.get("total") or 0) or 0
         cur = db_execute(conn, """
             SELECT t.id, t.title, t.domain_id, t.group_id, d.domain_index,
-                   ac.generated_at, ac.model_used, COALESCE(ac.validated, 0) AS validated
+                   ac.generated_at, ac.model_used, COALESCE(ac.validated, 0) AS validated,
+                   ac.prompt, ac.prompt_image_ingredients, ac.main_image, ac.ingredient_image, ac.pin_image,
+                   ac.article_html, ac.article_css
             FROM titles t
             JOIN domains d ON t.domain_id = d.id
             LEFT JOIN article_content ac ON ac.title_id = t.id AND ac.language_code = 'en'
-            WHERE """ + base_where + validated_where + content_where + """
+            WHERE """ + base_where + filter_where + """
             ORDER BY t.id DESC LIMIT ? OFFSET ?
         """, (pk, limit, offset))
         rows = cur.fetchall()
@@ -12548,6 +13031,11 @@ def api_domain_articles_list(pk):
                         siblings["ABCD"[idx]] = d.get("id")
         gen_at = row.get("generated_at")
         is_validated = bool(row.get("validated"))
+        prompt_ok = bool((row.get("prompt") or "").strip()) and bool((row.get("prompt_image_ingredients") or "").strip())
+        main_ok = bool((row.get("main_image") or "").strip() and str(row.get("main_image") or "").startswith("http"))
+        ing_ok = bool((row.get("ingredient_image") or "").strip() and str(row.get("ingredient_image") or "").startswith("http"))
+        pin_ok = bool((row.get("pin_image") or "").strip() and str(row.get("pin_image") or "").startswith("http"))
+        content_ok = bool((row.get("article_html") or "").strip()) and bool((row.get("article_css") or "").strip())
         items.append({
             "id": row.get("id"),
             "title": title_text,
@@ -12556,6 +13044,11 @@ def api_domain_articles_list(pk):
             "domain_index": row.get("domain_index"),
             "validated": is_validated,
             "siblings": siblings,
+            "has_prompt": prompt_ok,
+            "has_main": main_ok,
+            "has_ing": ing_ok,
+            "has_pin": pin_ok,
+            "has_content": content_ok,
         })
     return jsonify({"total": total, "items": items, "offset": offset, "limit": limit})
 
@@ -15806,6 +16299,8 @@ def admin_domains():
     #allArticlesListWrap {{ height: 55vh; max-height: 100%; overflow-y: scroll !important; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; flex-shrink: 0; }}
     #allArticlesList .list-group-item.active .btn-domain-sibling {{ background: #fff; color: #212529; border: 1px solid rgba(0,0,0,0.2); }}
     #allArticlesList .list-group-item.active .btn-domain-sibling.btn-primary {{ background: #fff; color: #0d6efd; border: 1px solid #0d6efd; font-weight: 600; }}
+    .article-running-progress {{ color: #0d6efd; font-size: 0.75rem; animation: article-spin 0.9s linear infinite; }}
+    @keyframes article-spin {{ to {{ transform: rotate(360deg); }} }}
     .domain-search-suggestions {{ border-top: 2px solid #6C8AE4; }}
     .domain-suggestion-item:hover {{ background-color: #f8f9fa; }}
     </style>
@@ -16075,14 +16570,6 @@ def admin_domains():
         .then(function(data) {{
           if (data.success) {{
             var url = data.redirect_url || '/admin/domains';
-            if (url.indexOf('?') >= 0) {{
-              var params = new URLSearchParams(url.split('?')[1]);
-              var groupId = params.get('group_id');
-              if (groupId) {{
-                var newUrl = window.location.pathname + '?group_id=' + groupId + (params.get('bulk_job_id') ? '&bulk_job_id=' + params.get('bulk_job_id') : '');
-                history.replaceState({{}}, '', newUrl);
-              }}
-            }}
             if (data.added > 0) {{
               refreshDomainsTable();
               // Poll briefly to pick up generated pin preview images (background thread)
@@ -16093,9 +16580,11 @@ def admin_domains():
                 refreshDomainsTable();
                 if (pollCount >= pollMax) clearInterval(pollInterval);
               }}, 5000);
+              alert('Added ' + data.added + ' domain(s). Each has 2 pin templates; previews will appear shortly.');
             }}
-            if (data.skipped > 0) alert('Skipped ' + data.skipped + ' duplicate(s).');
-            if (data.added > 0) alert('Added ' + data.added + ' domain(s). Each has 2 pin templates; previews will appear shortly.');
+            if (data.skipped > 0 && data.added === 0) alert('Skipped ' + data.skipped + ' duplicate(s).');
+            // Navigate to redirect_url so add_error/group_id/bulk_job_id show correctly (full reload)
+            window.location = url;
           }} else {{
             alert(data.error || 'Failed to add domains');
           }}
@@ -16271,23 +16760,32 @@ def admin_domains():
     <div id="domainArticlesModal" class="modal fade" tabindex="-1">
       <div class="modal-dialog modal-xl" style="max-width:95%;height:90vh;margin:2vh auto;">
         <div class="modal-content d-flex flex-column" style="height:90vh;">
-          <div class="modal-header py-2 flex-shrink-0">
-            <h5 class="modal-title" id="domainArticlesModalTitle">Articles</h5>
+          <div class="modal-header py-2 flex-shrink-0 d-flex align-items-center justify-content-between gap-2">
+            <h5 class="modal-title mb-0" id="domainArticlesModalTitle">Articles</h5>
+            <span id="domainArticlesModalRunGroup"></span>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body p-2 d-flex flex-column" id="domainArticlesModalBody">
             <div class="d-flex flex-wrap align-items-center gap-2 mb-2 flex-shrink-0">
               <span class="small text-muted" id="domainArticlesModalCount">—</span>
               <span class="small text-muted">Filter:</span>
-              <div class="btn-group btn-group-sm" role="group" id="domainArticlesFilterGroup">
-                <input type="radio" class="btn-check" name="domainArticlesValidatedFilter" id="domainArticlesFilterNot" value="0" checked>
-                <label class="btn btn-outline-secondary btn-sm" for="domainArticlesFilterNot">Not validated</label>
-                <input type="radio" class="btn-check" name="domainArticlesValidatedFilter" id="domainArticlesFilterYes" value="1">
-                <label class="btn btn-outline-secondary btn-sm" for="domainArticlesFilterYes">Validated</label>
-                <input type="radio" class="btn-check" name="domainArticlesValidatedFilter" id="domainArticlesFilterAll" value="all">
+              <div class="btn-group btn-group-sm flex-wrap" role="group" id="domainArticlesFilterGroup">
+                <input type="radio" class="btn-check" name="domainArticlesFilter" id="domainArticlesFilterAll" value="all">
                 <label class="btn btn-outline-secondary btn-sm" for="domainArticlesFilterAll">All</label>
-                <input type="radio" class="btn-check" name="domainArticlesValidatedFilter" id="domainArticlesFilterEmpty" value="empty">
-                <label class="btn btn-outline-secondary btn-sm" for="domainArticlesFilterEmpty">Not generated yet</label>
+                <input type="radio" class="btn-check" name="domainArticlesFilter" id="domainArticlesFilterNoPrompt" value="no_prompt">
+                <label class="btn btn-outline-secondary btn-sm" for="domainArticlesFilterNoPrompt" title="Missing prompts">📝 Needs prompt</label>
+                <input type="radio" class="btn-check" name="domainArticlesFilter" id="domainArticlesFilterNoMain" value="no_main">
+                <label class="btn btn-outline-secondary btn-sm" for="domainArticlesFilterNoMain" title="Missing main image">🖼️ Needs main</label>
+                <input type="radio" class="btn-check" name="domainArticlesFilter" id="domainArticlesFilterNoIng" value="no_ing">
+                <label class="btn btn-outline-secondary btn-sm" for="domainArticlesFilterNoIng" title="Missing ingredient image">🥗 Needs ing</label>
+                <input type="radio" class="btn-check" name="domainArticlesFilter" id="domainArticlesFilterNoPin" value="no_pin">
+                <label class="btn btn-outline-secondary btn-sm" for="domainArticlesFilterNoPin" title="Missing pin">📌 Needs pin</label>
+                <input type="radio" class="btn-check" name="domainArticlesFilter" id="domainArticlesFilterNoContent" value="no_content">
+                <label class="btn btn-outline-secondary btn-sm" for="domainArticlesFilterNoContent" title="No article HTML yet">📄 Not generated</label>
+                <input type="radio" class="btn-check" name="domainArticlesFilter" id="domainArticlesFilterNotValidated" value="not_validated" checked>
+                <label class="btn btn-outline-secondary btn-sm" for="domainArticlesFilterNotValidated" title="All steps complete (prompt, images, article, pin) but not yet validated">○ Not validated</label>
+                <input type="radio" class="btn-check" name="domainArticlesFilter" id="domainArticlesFilterValidated" value="validated">
+                <label class="btn btn-outline-secondary btn-sm" for="domainArticlesFilterValidated">✓ Validated</label>
               </div>
             </div>
             <div class="row g-2 flex-grow-1 overflow-hidden" style="min-height:0;">
@@ -18667,7 +19165,9 @@ def admin_domains():
                   if (pinUrl) thumbHtml += '<span class="stats-thumb-wrap"><a href="'+pinUrl+'" target="_blank" rel="noopener"><img src="'+pinUrl+'" class="stats-article-thumb" alt="Pin" title="Hover to enlarge – Pin image"/></a></span>';
                   thumbHtml += '</div>';
                 }}
-                var actions = '<div class="stats-article-actions mt-1 w-100"><button type="button" class="btn btn-success btn-sm py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-article-external\\',{{title_id:'+tid+'}},\\'Article\\')" title="Article">Art</button><button type="button" class="btn btn-info btn-sm text-white py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-main-image\\',{{title_id:'+tid+'}},\\'Main\\')" title="Main">M</button><button type="button" class="btn btn-warning btn-sm text-dark py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-ingredient-image\\',{{title_id:'+tid+'}},\\'Ingredient\\')" title="Ingredient">I</button><button type="button" class="btn btn-outline-primary btn-sm py-0 px-1" onclick="event.stopPropagation(); openPinPickerModal('+tid+')" title="Pin">P</button></div>';
+                var _p = (a.has_prompt ? '✓' : '✗'); var _m = (a.has_main ? '✓' : '✗'); var _i = (a.has_ing ? '✓' : '✗'); var _c = (a.has_content ? '✓' : '✗'); var _pin = (a.has_pin ? '✓' : '✗');
+                var _pc = a.has_prompt ? 'btn-success' : 'btn-outline-secondary'; var _mc = a.has_main ? 'btn-info text-white' : 'btn-outline-info'; var _ic = a.has_ing ? 'btn-warning text-dark' : 'btn-outline-warning'; var _cc = a.has_content ? 'btn-success' : 'btn-outline-success'; var _pinc = a.has_pin ? 'btn-primary' : 'btn-outline-primary';
+                var actions = '<div class="stats-article-actions mt-1 w-100"><button type="button" class="btn '+_pc+' btn-sm py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-prompts\\',{{title_id:'+tid+'}},\\'Prompts\\')" title="Prompts">📝'+_p+'</button><button type="button" class="btn '+_mc+' btn-sm py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-main-image\\',{{title_id:'+tid+'}},\\'Main image\\')" title="Main image">🖼️'+_m+'</button><button type="button" class="btn '+_ic+' btn-sm py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-ingredient-image\\',{{title_id:'+tid+'}},\\'Ingredient\\')" title="Ingredient">🥗'+_i+'</button><button type="button" class="btn '+_cc+' btn-sm py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-article-external\\',{{title_id:'+tid+'}},\\'Article\\')" title="Article">📄'+_c+'</button><button type="button" class="btn '+_pinc+' btn-sm py-0 px-1" onclick="event.stopPropagation(); openPinPickerModal('+tid+')" title="Pin">📌'+_pin+'</button></div>';
                 html += '<div class="stats-article-card"><div class="d-flex align-items-start gap-2"><a href="'+url+'" target="_blank" rel="noopener" title="Open">'+tid+'</a><span class="stats-article-title flex-grow-1" title="'+titleEsc+'">'+titleEsc+'</span></div>'+thumbHtml+actions+'</div>';
               }});
               grid.innerHTML = html;
@@ -18693,6 +19193,24 @@ def admin_domains():
         var domainArticlesNextOffset = 0;
         var domainArticlesLoading = false;
         var PAGE_SIZE = 30;
+        var _domainArticlesRunningPoll = null;
+        function updateDomainArticlesRunningProgress() {{
+          var list = document.getElementById('domainArticlesList');
+          if (!list) return;
+          fetch('/api/running-title-ids').then(function(r){{ return r.json(); }}).then(function(d){{
+            var running = d.running || {{}};
+            list.querySelectorAll('.article-running-progress').forEach(function(el){{
+              var tid = el.getAttribute('data-title-id') || '';
+              var info = running[tid];
+              if (info) {{
+                el.style.display = '';
+                el.setAttribute('title', (info.action || '') + (info.message ? ': ' + info.message : ''));
+              }} else {{
+                el.style.display = 'none';
+              }}
+            }});
+          }}).catch(function(){{}});
+        }}
         function updateDomainArticlesPosition() {{
           var pos = domainArticlesPosition;
           if (!pos) return;
@@ -18713,14 +19231,19 @@ def admin_domains():
             row.scrollIntoView({{ block: 'nearest', behavior: 'smooth' }});
           }}
         }}
-        function getDomainArticlesValidatedFilter() {{
-          var el = document.querySelector('input[name="domainArticlesValidatedFilter"]:checked');
-          return (el && el.value) ? el.value : '0';
+        function getDomainArticlesFilter() {{
+          var el = document.querySelector('input[name="domainArticlesFilter"]:checked');
+          return (el && el.value) ? el.value : 'not_validated';
         }}
         function getDomainArticlesListParams() {{
-          var vf = getDomainArticlesValidatedFilter();
-          if (vf === 'empty') return {{ validated: 'all', content: 'empty' }};
-          return {{ validated: vf, content: 'any' }};
+          return {{ filter: getDomainArticlesFilter() }};
+        }}
+        function updateDomainArticlesRunButton() {{
+          var runEl = document.getElementById('domainArticlesModalRunGroup');
+          if (!runEl || !domainArticlesDomainId) {{ runEl.innerHTML = ''; return; }}
+          var filter = getDomainArticlesFilter();
+          var n = domainArticlesTotal || 0;
+          runEl.innerHTML = '<button type="button" class="btn btn-success btn-sm domain-articles-run-domain-btn" data-domain-id="' + domainArticlesDomainId + '" data-filter="' + (filter || 'all') + '" data-domain-url="' + (domainArticlesDomainUrl || '').replace(/"/g, '&quot;') + '" title="Run prompts, images, content, Pinterest for filtered articles">Run for domain (' + n + ')</button>';
         }}
         function loadMoreDomainArticles(callback) {{
           if (!domainArticlesDomainId || domainArticlesLoading) {{ if (callback) callback(); return; }}
@@ -18728,7 +19251,7 @@ def admin_domains():
           domainArticlesLoading = true;
           if (domainArticlesListLoading) domainArticlesListLoading.style.display = '';
           var p = getDomainArticlesListParams();
-          var q = 'offset='+domainArticlesNextOffset+'&limit='+PAGE_SIZE+'&validated='+encodeURIComponent(p.validated)+'&content='+encodeURIComponent(p.content);
+          var q = 'offset='+domainArticlesNextOffset+'&limit='+PAGE_SIZE+'&filter='+encodeURIComponent(p.filter || 'not_validated');
           fetch('/api/domains/'+domainArticlesDomainId+'/articles-list?'+q)
             .then(function(r) {{ return r.json(); }})
             .then(function(d) {{
@@ -18759,9 +19282,11 @@ def admin_domains():
                 var sibWrap = btnHtml ? '<span class="d-inline-flex flex-nowrap flex-shrink-0 align-items-center">' + btnHtml + '</span>' : '';
                 var validBadge = (it.validated ? '<span class="badge bg-success ms-1 flex-shrink-0">Validated</span>' : '<span class="text-muted small ms-1 flex-shrink-0">—</span>');
                 var tid = it.id || '';
-                var actionsHtml = '<div class="stats-article-actions mt-1 w-100"><button type="button" class="btn btn-success btn-sm" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-article-external\\',{{title_id:'+tid+'}},\\'Article\\')" title="Article">Art</button><button type="button" class="btn btn-info btn-sm text-white" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-main-image\\',{{title_id:'+tid+'}},\\'Main image\\')" title="Main">M</button><button type="button" class="btn btn-warning btn-sm text-dark" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-ingredient-image\\',{{title_id:'+tid+'}},\\'Ingredient\\')" title="Ingredient">I</button><button type="button" class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation(); openPinPickerModal('+tid+')" title="Pin">P</button><button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); var sm=document.getElementById(\\'statsArticlesModal\\'); if(sm && bootstrap.Modal.getInstance(sm)) bootstrap.Modal.getInstance(sm).hide(); openBulkModal('+tid+');" title="Run content+images for A,B,C,D">Run</button></div>';
+                var _p = (it.has_prompt ? '✓' : '✗'); var _m = (it.has_main ? '✓' : '✗'); var _i = (it.has_ing ? '✓' : '✗'); var _c = (it.has_content ? '✓' : '✗'); var _pin = (it.has_pin ? '✓' : '✗');
+                var _pc = it.has_prompt ? 'btn-success' : 'btn-outline-secondary'; var _mc = it.has_main ? 'btn-info text-white' : 'btn-outline-info'; var _ic = it.has_ing ? 'btn-warning text-dark' : 'btn-outline-warning'; var _cc = it.has_content ? 'btn-success' : 'btn-outline-success'; var _pinc = it.has_pin ? 'btn-primary' : 'btn-outline-primary';
+                var actionsHtml = '<div class="stats-article-actions mt-1 w-100"><button type="button" class="btn '+_pc+' btn-sm" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-prompts\\',{{title_id:'+tid+'}},\\'Prompts\\')" title="Prompts">📝'+_p+'</button><button type="button" class="btn '+_mc+' btn-sm" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-main-image\\',{{title_id:'+tid+'}},\\'Main image\\')" title="Main image">🖼️'+_m+'</button><button type="button" class="btn '+_ic+' btn-sm" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-ingredient-image\\',{{title_id:'+tid+'}},\\'Ingredient\\')" title="Ingredient">🥗'+_i+'</button><button type="button" class="btn '+_cc+' btn-sm" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-article-external\\',{{title_id:'+tid+'}},\\'Article\\')" title="Article">📄'+_c+'</button><button type="button" class="btn '+_pinc+' btn-sm" onclick="event.stopPropagation(); openPinPickerModal('+tid+')" title="Pin">📌'+_pin+'</button><button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation(); var sm=document.getElementById(\\'statsArticlesModal\\'); if(sm && bootstrap.Modal.getInstance(sm)) bootstrap.Modal.getInstance(sm).hide(); openBulkModal('+tid+');" title="Run content+images for A,B,C,D">▶️</button></div>';
                 li.className = 'list-group-item list-group-item-action py-1 px-2 d-flex flex-wrap align-items-center';
-                li.innerHTML = '<span class="text-muted small me-1 flex-shrink-0">'+ (it.id || '') + '</span><span class="text-truncate me-1" style="min-width:0;max-width:140px" title="'+ titleEsc +'">'+ titleEsc +'</span>' + validBadge + meta + sibWrap + actionsHtml;
+                li.innerHTML = '<span class="text-muted small me-1 flex-shrink-0">'+ (it.id || '') + '</span><span class="text-truncate me-1" style="min-width:0;max-width:140px" title="'+ titleEsc +'">'+ titleEsc +'</span><span class="article-running-progress ms-1 flex-shrink-0" style="display:none" data-title-id="'+tid+'" title="">⟳</span>' + validBadge + meta + sibWrap + actionsHtml;
                 if (domainArticlesList) domainArticlesList.appendChild(li);
               }});
               if (callback) callback();
@@ -18792,7 +19317,7 @@ def admin_domains():
               var m = new bootstrap.Modal(domainArticlesModal);
               m.show();
             }}
-            var q0 = 'offset=0&limit='+PAGE_SIZE+'&validated='+encodeURIComponent(listParams.validated)+'&content='+encodeURIComponent(listParams.content);
+            var q0 = 'offset=0&limit='+PAGE_SIZE+'&filter='+encodeURIComponent(listParams.filter || 'not_validated');
             fetch('/api/domains/'+domainId+'/articles-list?'+q0)
               .then(function(r) {{ return r.json(); }})
               .then(function(d) {{
@@ -18825,14 +19350,17 @@ def admin_domains():
                   var sibWrap = btnHtml ? '<span class="d-inline-flex flex-nowrap flex-shrink-0 align-items-center">' + btnHtml + '</span>' : '';
                   var validBadge = (it.validated ? '<span class="badge bg-success ms-1 flex-shrink-0">Validated</span>' : '<span class="text-muted small ms-1 flex-shrink-0">—</span>');
                   var tid = it.id || '';
-                  var actionsHtml = '<div class="stats-article-actions mt-1 w-100"><button type="button" class="btn btn-success btn-sm" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-article-external\\',{{title_id:'+tid+'}},\\'Article\\')" title="Article">Art</button><button type="button" class="btn btn-info btn-sm text-white" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-main-image\\',{{title_id:'+tid+'}},\\'Main image\\')" title="Main">M</button><button type="button" class="btn btn-warning btn-sm text-dark" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-ingredient-image\\',{{title_id:'+tid+'}},\\'Ingredient\\')" title="Ingredient">I</button><button type="button" class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation(); openPinPickerModal('+tid+')" title="Pin">P</button><button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); var sm=document.getElementById(\\'statsArticlesModal\\'); if(sm && bootstrap.Modal.getInstance(sm)) bootstrap.Modal.getInstance(sm).hide(); openBulkModal('+tid+');" title="Run content+images for A,B,C,D">Run</button></div>';
+                  var _p = (it.has_prompt ? '✓' : '✗'); var _m = (it.has_main ? '✓' : '✗'); var _i = (it.has_ing ? '✓' : '✗'); var _c = (it.has_content ? '✓' : '✗'); var _pin = (it.has_pin ? '✓' : '✗');
+                  var _pc = it.has_prompt ? 'btn-success' : 'btn-outline-secondary'; var _mc = it.has_main ? 'btn-info text-white' : 'btn-outline-info'; var _ic = it.has_ing ? 'btn-warning text-dark' : 'btn-outline-warning'; var _cc = it.has_content ? 'btn-success' : 'btn-outline-success'; var _pinc = it.has_pin ? 'btn-primary' : 'btn-outline-primary';
+                  var actionsHtml = '<div class="stats-article-actions mt-1 w-100"><button type="button" class="btn '+_pc+' btn-sm" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-prompts\\',{{title_id:'+tid+'}},\\'Prompts\\')" title="Prompts">📝'+_p+'</button><button type="button" class="btn '+_mc+' btn-sm" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-main-image\\',{{title_id:'+tid+'}},\\'Main image\\')" title="Main image">🖼️'+_m+'</button><button type="button" class="btn '+_ic+' btn-sm" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-ingredient-image\\',{{title_id:'+tid+'}},\\'Ingredient\\')" title="Ingredient">🥗'+_i+'</button><button type="button" class="btn '+_cc+' btn-sm" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-article-external\\',{{title_id:'+tid+'}},\\'Article\\')" title="Article">📄'+_c+'</button><button type="button" class="btn '+_pinc+' btn-sm" onclick="event.stopPropagation(); openPinPickerModal('+tid+')" title="Pin">📌'+_pin+'</button><button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation(); var sm=document.getElementById(\\'statsArticlesModal\\'); if(sm && bootstrap.Modal.getInstance(sm)) bootstrap.Modal.getInstance(sm).hide(); openBulkModal('+tid+');" title="Run content+images for A,B,C,D">▶️</button></div>';
                   li.className = 'list-group-item list-group-item-action py-1 px-2 d-flex flex-wrap align-items-center';
-                  li.innerHTML = '<span class="text-muted small me-1 flex-shrink-0">'+ (it.id || '') + '</span><span class="text-truncate me-1" style="min-width:0;max-width:140px" title="'+ titleEsc +'">'+ titleEsc +'</span>' + validBadge + meta + sibWrap + actionsHtml;
+                  li.innerHTML = '<span class="text-muted small me-1 flex-shrink-0">'+ (it.id || '') + '</span><span class="text-truncate me-1" style="min-width:0;max-width:140px" title="'+ titleEsc +'">'+ titleEsc +'</span><span class="article-running-progress ms-1 flex-shrink-0" style="display:none" data-title-id="'+tid+'" title="">⟳</span>' + validBadge + meta + sibWrap + actionsHtml;
                   if (domainArticlesList) domainArticlesList.appendChild(li);
                 }});
                 updateDomainArticlesPosition();
                 if (domainArticlesCurrentIndex < domainArticlesItems.length) scrollToDomainArticleIndex(domainArticlesCurrentIndex);
                 showDomainArticleHtmlPlaceholder();
+                updateDomainArticlesRunButton();
               }})
               .catch(function() {{ document.getElementById('domainArticlesModalCount').textContent = 'Error loading'; }});
           }});
@@ -18861,6 +19389,16 @@ def admin_domains():
             if (el.scrollHeight - el.scrollTop - el.clientHeight < 120) loadMoreDomainArticles();
           }});
         }}
+        if (domainArticlesModal) {{
+          domainArticlesModal.addEventListener('shown.bs.modal', function() {{
+            updateDomainArticlesRunningProgress();
+            if (_domainArticlesRunningPoll) clearInterval(_domainArticlesRunningPoll);
+            _domainArticlesRunningPoll = setInterval(updateDomainArticlesRunningProgress, 2500);
+          }});
+          domainArticlesModal.addEventListener('hidden.bs.modal', function() {{
+            if (_domainArticlesRunningPoll) {{ clearInterval(_domainArticlesRunningPoll); _domainArticlesRunningPoll = null; }}
+          }});
+        }}
         function refetchDomainArticlesList() {{
           if (!domainArticlesDomainId || domainArticlesLoading) return;
           domainArticlesLoading = true;
@@ -18871,7 +19409,7 @@ def admin_domains():
           if (domainArticlesListLoading) domainArticlesListLoading.style.display = '';
           document.getElementById('domainArticlesModalCount').textContent = 'Loading…';
           var p = getDomainArticlesListParams();
-          var qr = 'offset=0&limit='+PAGE_SIZE+'&validated='+encodeURIComponent(p.validated)+'&content='+encodeURIComponent(p.content);
+          var qr = 'offset=0&limit='+PAGE_SIZE+'&filter='+encodeURIComponent(p.filter || 'not_validated');
           fetch('/api/domains/'+domainArticlesDomainId+'/articles-list?'+qr)
             .then(function(r) {{ return r.json(); }})
             .then(function(d) {{
@@ -18903,18 +19441,29 @@ def admin_domains():
                 var sibWrap = btnHtml ? '<span class="d-inline-flex flex-nowrap flex-shrink-0 align-items-center">' + btnHtml + '</span>' : '';
                 var validBadge = (it.validated ? '<span class="badge bg-success ms-1 flex-shrink-0">Validated</span>' : '<span class="text-muted small ms-1 flex-shrink-0">—</span>');
                 var tid = it.id || '';
-                var actionsHtml = '<div class="stats-article-actions mt-1 w-100"><button type="button" class="btn btn-success btn-sm" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-article-external\\',{{title_id:'+tid+'}},\\'Article\\')" title="Article">Art</button><button type="button" class="btn btn-info btn-sm text-white" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-main-image\\',{{title_id:'+tid+'}},\\'Main image\\')" title="Main">M</button><button type="button" class="btn btn-warning btn-sm text-dark" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-ingredient-image\\',{{title_id:'+tid+'}},\\'Ingredient\\')" title="Ingredient">I</button><button type="button" class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation(); openPinPickerModal('+tid+')" title="Pin">P</button><button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); var sm=document.getElementById(\\'statsArticlesModal\\'); if(sm && bootstrap.Modal.getInstance(sm)) bootstrap.Modal.getInstance(sm).hide(); openBulkModal('+tid+');" title="Run content+images for A,B,C,D">Run</button></div>';
+                var _p = (it.has_prompt ? '✓' : '✗'); var _m = (it.has_main ? '✓' : '✗'); var _i = (it.has_ing ? '✓' : '✗'); var _c = (it.has_content ? '✓' : '✗'); var _pin = (it.has_pin ? '✓' : '✗');
+                var _pc = it.has_prompt ? 'btn-success' : 'btn-outline-secondary'; var _mc = it.has_main ? 'btn-info text-white' : 'btn-outline-info'; var _ic = it.has_ing ? 'btn-warning text-dark' : 'btn-outline-warning'; var _cc = it.has_content ? 'btn-success' : 'btn-outline-success'; var _pinc = it.has_pin ? 'btn-primary' : 'btn-outline-primary';
+                var actionsHtml = '<div class="stats-article-actions mt-1 w-100"><button type="button" class="btn '+_pc+' btn-sm" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-prompts\\',{{title_id:'+tid+'}},\\'Prompts\\')" title="Prompts">📝'+_p+'</button><button type="button" class="btn '+_mc+' btn-sm" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-main-image\\',{{title_id:'+tid+'}},\\'Main image\\')" title="Main image">🖼️'+_m+'</button><button type="button" class="btn '+_ic+' btn-sm" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-ingredient-image\\',{{title_id:'+tid+'}},\\'Ingredient\\')" title="Ingredient">🥗'+_i+'</button><button type="button" class="btn '+_cc+' btn-sm" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-article-external\\',{{title_id:'+tid+'}},\\'Article\\')" title="Article">📄'+_c+'</button><button type="button" class="btn '+_pinc+' btn-sm" onclick="event.stopPropagation(); openPinPickerModal('+tid+')" title="Pin">📌'+_pin+'</button><button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation(); var sm=document.getElementById(\\'statsArticlesModal\\'); if(sm && bootstrap.Modal.getInstance(sm)) bootstrap.Modal.getInstance(sm).hide(); openBulkModal('+tid+');" title="Run content+images for A,B,C,D">▶️</button></div>';
                 li.className = 'list-group-item list-group-item-action py-1 px-2 d-flex flex-wrap align-items-center';
-                li.innerHTML = '<span class="text-muted small me-1 flex-shrink-0">'+ (it.id || '') + '</span><span class="text-truncate me-1" style="min-width:0;max-width:140px" title="'+ titleEsc +'">'+ titleEsc +'</span>' + validBadge + meta + sibWrap + actionsHtml;
+                li.innerHTML = '<span class="text-muted small me-1 flex-shrink-0">'+ (it.id || '') + '</span><span class="text-truncate me-1" style="min-width:0;max-width:140px" title="'+ titleEsc +'">'+ titleEsc +'</span><span class="article-running-progress ms-1 flex-shrink-0" style="display:none" data-title-id="'+tid+'" title="">⟳</span>' + validBadge + meta + sibWrap + actionsHtml;
                 if (domainArticlesList) domainArticlesList.appendChild(li);
               }});
               updateDomainArticlesPosition();
               if (domainArticlesCurrentIndex < domainArticlesItems.length) {{ scrollToDomainArticleIndex(domainArticlesCurrentIndex); refreshDomainArticleHtmlPreview(); }} else {{ showDomainArticleHtmlPlaceholder(); }}
+              updateDomainArticlesRunButton();
             }})
             .catch(function() {{ document.getElementById('domainArticlesModalCount').textContent = 'Error loading'; }})
             .finally(function() {{ domainArticlesLoading = false; if (domainArticlesListLoading) domainArticlesListLoading.style.display = 'none'; }});
         }}
-        document.querySelectorAll('input[name="domainArticlesValidatedFilter"]').forEach(function(radio) {{
+        document.addEventListener('click', function(e) {{
+          var btn = e.target.closest('.domain-articles-run-domain-btn');
+          if (!btn) return;
+          var did = btn.getAttribute('data-domain-id');
+          var flt = btn.getAttribute('data-filter') || 'all';
+          var url = btn.getAttribute('data-domain-url') || '';
+          if (did && typeof openBulkDomainModal === 'function') openBulkDomainModal(did, flt, url);
+        }});
+        document.querySelectorAll('input[name="domainArticlesFilter"]').forEach(function(radio) {{
           radio.addEventListener('change', function() {{ if (domainArticlesDomainId) refetchDomainArticlesList(); }});
         }});
         var domainArticlesValidateNextBtn = document.getElementById('domainArticlesValidateNextBtn');
@@ -18924,12 +19473,12 @@ def admin_domains():
             var it = domainArticlesItems[domainArticlesCurrentIndex];
             var titleId = it && it.id;
             if (!titleId) return;
-            var vf = getDomainArticlesValidatedFilter();
+            var vf = getDomainArticlesFilter();
             fetch('/api/article-content/' + titleId + '/validated', {{ method: 'PUT', headers: {{ 'Content-Type': 'application/json' }}, body: JSON.stringify({{ validated: true }}) }})
               .then(function(r) {{ return r.json(); }})
               .then(function(d) {{
                 if (!d.success) return;
-                if (vf === '0') {{
+                if (vf === 'not_validated') {{
                   refetchDomainArticlesList();
                 }} else {{
                   it.validated = true;
@@ -19320,10 +19869,11 @@ def admin_domains():
                 var pillBtns = '';
                 if (tid) {{
                   pillBtns = '<span class="pill-btns ms-1 mt-1 d-inline-flex flex-wrap gap-1">'
-                    + '<button type="button" class="btn btn-success btn-sm py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-article-external\\',{{title_id:'+tid+'}},\\'Article A\\')" title="Article">Art</button>'
-                    + '<button type="button" class="btn btn-info btn-sm text-white py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-main-image\\',{{title_id:'+tid+'}},\\'Main image\\')" title="Main image">M</button>'
-                    + '<button type="button" class="btn btn-warning btn-sm text-dark py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-ingredient-image\\',{{title_id:'+tid+'}},\\'Ingredient image\\')" title="Ingredient">I</button>'
-                    + '<button type="button" class="btn btn-outline-primary btn-sm py-0 px-1" onclick="event.stopPropagation(); openPinPickerModal('+tid+')" title="Pin">P</button>'
+                    + '<button type="button" class="btn btn-secondary btn-sm py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-prompts\\',{{title_id:'+tid+'}},\\'Prompts\\')" title="Prompts">📝</button>'
+                    + '<button type="button" class="btn btn-info btn-sm text-white py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-main-image\\',{{title_id:'+tid+'}},\\'Main image\\')" title="Main image">🖼️</button>'
+                    + '<button type="button" class="btn btn-warning btn-sm text-dark py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-ingredient-image\\',{{title_id:'+tid+'}},\\'Ingredient image\\')" title="Ingredient">🥗</button>'
+                    + '<button type="button" class="btn btn-success btn-sm py-0 px-1" onclick="event.stopPropagation(); openSingleActionModal(\\'/api/generate-article-external\\',{{title_id:'+tid+'}},\\'Article A\\')" title="Article">📄</button>'
+                    + '<button type="button" class="btn btn-outline-primary btn-sm py-0 px-1" onclick="event.stopPropagation(); openPinPickerModal('+tid+')" title="Pin">📌</button>'
                     + '<button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1" onclick="event.stopPropagation(); viewDomainSingle('+tid+',\\'A\\')" title="View all">V</button>'
                     + '</span>';
                 }}
@@ -20342,16 +20892,6 @@ def admin_domains_bulk_add():
             if cur.fetchone():
                 skipped.append(url)
                 items_to_add[:] = [(u, d) for u, d in items_to_add if u != url]
-        
-        # Fetch full pin template pool once for bulk add; prefer Pin API for bulk add; shuffle for random rotation across domains
-        pin_pool = []
-        pin_pool_shuffled = []
-        pool = _fetch_full_pin_template_pool(conn, prefer_api=True)
-        if len(pool) >= 2:
-            pin_pool_shuffled = list(pool)
-            random.shuffle(pin_pool_shuffled)
-            pin_pool = pin_pool_shuffled
-            log.info(f"[bulk_add] Using {len(pin_pool)} pin templates for rotation (2 per domain)")
 
         if not items_to_add:
             redirect_url = url_for("admin_domains")
@@ -20363,7 +20903,17 @@ def admin_domains_bulk_add():
             if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.form.get("ajax") == "1":
                 return jsonify({"success": True, "redirect_url": redirect_url, "added": 0, "skipped": len(skipped), "bulk_job_id": None})
             return redirect(redirect_url)
-        
+
+        # Fetch full pin template pool once for bulk add; prefer Pin API for bulk add; shuffle for random rotation across domains
+        pin_pool = []
+        pin_pool_shuffled = []
+        pool = _fetch_full_pin_template_pool(conn, prefer_api=True)
+        if len(pool) >= 2:
+            pin_pool_shuffled = list(pool)
+            random.shuffle(pin_pool_shuffled)
+            pin_pool = pin_pool_shuffled
+            log.info(f"[bulk_add] Using {len(pin_pool)} pin templates for rotation (2 per domain)")
+
         # If target group specified, create subgroups with 4 domains each (A, B, C, D)
         if target_group_id:
             # Get parent group name for subgroup naming
@@ -23093,6 +23643,31 @@ def api_running_tasks():
         })
         seen_job_ids.add(jid)
     return jsonify({"tasks": tasks})
+
+
+@app.route("/api/running-title-ids", methods=["GET"])
+@login_required
+def api_running_title_ids():
+    """Return title_ids that currently have a running job. Used by domain articles list to show progress."""
+    running = {}
+    for jid, p in list(_bulk_progress.items()):
+        if p.get("status") != "running":
+            continue
+        action = p.get("action", p.get("type", ""))
+        msg = (p.get("message") or "Running")[:60]
+        tid = p.get("title_id")
+        if tid is not None:
+            tid_str = str(tid)
+            if tid_str not in running or msg:
+                running[tid_str] = {"action": action, "message": msg}
+        for art in (p.get("active_articles") or []):
+            if isinstance(art, dict) and "tid" in art:
+                tid_str = str(art["tid"])
+                running[tid_str] = {"action": action, "message": msg}
+            elif isinstance(art, dict) and "id" in art:
+                tid_str = str(art["id"])
+                running[tid_str] = {"action": action, "message": msg}
+    return jsonify({"running": running})
 
 
 @app.route("/api/domains/<int:domain_id>/deploy-cloudflare/status", methods=["GET"])
