@@ -2,7 +2,13 @@
   {
     "template_id": "cottage_cheese_bread",
     "template_name": "cottage_cheese_bread",
-    "style_slots": {},
+    "style_slots": {
+      "html_colors": [
+        {"find": "#5D4037", "use": "primary"},
+        {"find": "#E8D5B5", "use": "border"},
+        {"find": "#F5E6C8", "use": "secondary"}
+      ]
+    },
     "font_slots": {},
     "template_data": {
       "template_type": "html",
@@ -25,7 +31,14 @@
   {
     "template_id": "stuffed_peppers",
     "template_name": "stuffed_peppers",
-    "style_slots": {},
+    "style_slots": {
+      "html_colors": [
+        {"find": "#F5A623", "use": "primary"},
+        {"find": "#F7B731", "use": "secondary"},
+        {"find": "#8B5A2B", "use": "primary"},
+        {"find": "#000", "use": "primary"}
+      ]
+    },
     "font_slots": {},
     "template_data": {
       "template_type": "html",
@@ -43,6 +56,97 @@
         "badge": "Reskin the badge for recipe {{title}}. Match the EXACT word count of the example (3 words). Output a short descriptor. Example: 'Easy & High Protein'. Keep text in its designated area, not onto the image. Output ONLY the text, no quotes."
       },
       "html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Pin</title>\n    <style>\n        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap');\n        * { margin: 0; padding: 0; box-sizing: border-box; }\n        body { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f0f0f0; font-family: 'Montserrat', sans-serif; }\n        .pin-container { width: 736px; height: 1472px; background: linear-gradient(135deg, #F5A623 0%, #F7B731 100%); position: relative; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }\n        .header-text { text-align: center; padding-top: 60px; color: white; }\n        .small-title { font-size: 42px; font-weight: 600; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 10px; }\n        .main-title { font-size: 130px; font-weight: 900; line-height: 0.9; text-transform: uppercase; letter-spacing: -2px; margin: 0 20px; text-shadow: 0 4px 8px rgba(0,0,0,0.1); }\n        .badge { display: inline-block; background: #000; color: white; padding: 18px 40px; border-radius: 50px; font-size: 38px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-top: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }\n        .image-section { position: relative; margin-top: 40px; padding: 0 40px; }\n        .main-image { width: 656px; height: 875px; background: url('{{main_image}}') center/cover; border-radius: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); position: relative; overflow: hidden; }\n        .curly-arrow { position: absolute; left: -20px; top: 200px; width: 120px; height: 200px; z-index: 10; }\n        .curly-arrow svg { width: 100%; height: 100%; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); }\n        .footer { position: absolute; bottom: 0; left: 0; right: 0; background: #8B5A2B; padding: 35px; text-align: center; }\n        .url-text { color: white; font-size: 32px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; }\n    </style>\n</head>\n<body>\n    <div class=\"pin-container\">\n        <div class=\"header-text\">\n            <div class=\"small-title\">{{small_title}}</div>\n            <div class=\"main-title\">{{title}}</div>\n            <div class=\"badge\">{{badge}}</div>\n        </div>\n        <div class=\"image-section\">\n            <div class=\"curly-arrow\">\n                <svg viewBox=\"0 0 100 150\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M80 20C60 20 40 40 40 60C40 80 60 90 70 100C80 110 90 120 80 130\" stroke=\"white\" stroke-width=\"6\" stroke-linecap=\"round\" fill=\"none\"/><path d=\"M70 115L80 130L90 120\" stroke=\"white\" stroke-width=\"6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\"/></svg>\n            </div>\n            <div class=\"main-image\"></div>\n        </div>\n        <div class=\"footer\">\n            <div class=\"url-text\">www.{{domain}}</div>\n        </div>\n    </div>\n</body>\n</html>"
+    }
+  },
+  {
+    "template_id": "split_chowder",
+    "template_name": "split_chowder",
+    "style_slots": {
+      "html_colors": [
+        {"find": "#6b4423", "use": "primary"},
+        {"find": "#ff9f1c", "use": "secondary"},
+        {"find": "#ffb800", "use": "secondary"},
+        {"find": "#3d2817", "use": "text_primary"}
+      ]
+    },
+    "font_slots": {},
+    "template_data": {
+      "template_type": "html",
+      "name": "Split Image Recipe Pin with Stars",
+      "canvas": {"width": 736, "height": 1472, "aspect_ratio": "9:16"},
+      "images": {
+        "top_image": {"position": {"top": 0, "left": 0}, "width": 736, "height": 736, "layer_order": 1},
+        "bottom_image": {"position": {"top": 736, "left": 0}, "width": 736, "height": 736, "layer_order": 1}
+      },
+      "prompt": "Generate text for each field based on the recipe title provided. Use field_prompts; replace {{title}} with the user's recipe title. MATCH THE EXACT WORD COUNT of each field_example. Keep all text within its designated area; no overflow onto images. Output a single JSON object only: {\"field_name\": \"text\", ...}. Do not include 'website' or 'domain'; domain is injected automatically.",
+      "field_examples": {
+        "title": "Slow Cooker Chicken Corn Chowder Recipe"
+      },
+      "field_prompts": {
+        "title": "Reskin the title for recipe {{title}}. Match the EXACT word count of the example (5 words). Output the main TITLE for the pin. Example: 'Slow Cooker Chicken Corn Chowder Recipe'. Keep text in its box; more words overflow onto the image. Output ONLY the text, no quotes."
+      },
+      "html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Pin</title>\n    <style>\n        * { margin: 0; padding: 0; box-sizing: border-box; }\n        body { min-height: 100vh; display: flex; justify-content: center; align-items: center; background: #f0f0f0; font-family: 'Georgia', serif; padding: 20px; }\n        .pin-container { width: 736px; height: 1472px; background: white; border-radius: 32px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.15); position: relative; }\n        .image-section { position: relative; width: 100%; height: 100%; overflow: hidden; }\n        .top-image, .bottom-image { position: absolute; width: 100%; height: 50%; overflow: hidden; }\n        .top-image { top: 0; }\n        .bottom-image { bottom: 0; }\n        .top-image img, .bottom-image img { width: 100%; height: 100%; object-fit: cover; }\n        .content-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; text-align: center; z-index: 10; }\n        .stars { background: white; display: inline-flex; gap: 4px; padding: 8px 20px; border-radius: 20px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 2px solid #6b4423; }\n        .star { color: #ffb800; font-size: 24px; }\n        .title-box { background: #6b4423; padding: 30px 25px; border-radius: 4px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }\n        .title { color: white; font-size: 42px; font-family: 'Brush Script MT', cursive; line-height: 1.2; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin-bottom: 15px; }\n        .url-box { background: #ff9f1c; display: inline-block; padding: 10px 30px; border-radius: 25px; margin-top: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }\n        .url-text { color: #3d2817; font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; }\n    </style>\n</head>\n<body>\n    <div class=\"pin-container\">\n        <div class=\"image-section\">\n            <div class=\"top-image\"><img src=\"{{top_image}}\" alt=\"\"></div>\n            <div class=\"content-overlay\">\n                <div class=\"stars\"><span class=\"star\">★</span><span class=\"star\">★</span><span class=\"star\">★</span><span class=\"star\">★</span><span class=\"star\">★</span></div>\n                <div class=\"title-box\">\n                    <h1 class=\"title\">{{title}}</h1>\n                    <div class=\"url-box\"><span class=\"url-text\">www.{{domain}}</span></div>\n                </div>\n            </div>\n            <div class=\"bottom-image\"><img src=\"{{bottom_image}}\" alt=\"\" style=\"object-position: bottom;\"></div>\n        </div>\n    </div>\n</body>\n</html>"
+    }
+  },
+  {
+    "template_id": "meal_prep_listicle",
+    "template_name": "meal_prep_listicle",
+    "style_slots": {
+      "html_colors": [
+        {"find": "#4a7c59", "use": "primary"},
+        {"find": "#1a1a1a", "use": "text_primary"},
+        {"find": "#333", "use": "text_secondary"},
+        {"find": "#666", "use": "text_secondary"}
+      ]
+    },
+    "font_slots": {},
+    "template_data": {
+      "template_type": "html",
+      "name": "Quad Grid Listicle Recipe Pin",
+      "canvas": {"width": 736, "height": 1472, "aspect_ratio": "9:16"},
+      "prompt": "Generate text for each field based on the recipe title provided. Use field_prompts; replace {{title}} with the user's recipe title. MATCH THE EXACT WORD COUNT of each field_example. Keep all text within its designated area; no overflow onto images. Output a single JSON object only: {\"field_name\": \"text\", ...}. Do not include 'website' or 'domain'; domain is injected automatically.",
+      "field_examples": {
+        "number": "11",
+        "subtitle": "High-Protein",
+        "main_title": "MEAL PREP",
+        "secondary_title": "Recipes for the Week"
+      },
+      "field_prompts": {
+        "number": "Reskin the number for recipe {{title}}. Match the EXACT word count (1 token/number). Output a list number like '11' or '7'. Output ONLY the text, no quotes.",
+        "subtitle": "Reskin the subtitle for recipe {{title}}. Match the EXACT word count of the example (1 word). Output a category. Example: 'High-Protein'. Output ONLY the text, no quotes.",
+        "main_title": "Reskin the main title for recipe {{title}}. Match the EXACT word count of the example (2 words). Output in UPPERCASE. Example: 'MEAL PREP'. Output ONLY the text, no quotes.",
+        "secondary_title": "Reskin the secondary title for recipe {{title}}. Match the EXACT word count of the example (4 words). Example: 'Recipes for the Week'. Keep text in its area. Output ONLY the text, no quotes."
+      },
+      "html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Pin</title>\n    <style>\n        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Inter:wght@400;600;800&display=swap');\n        * { margin: 0; padding: 0; box-sizing: border-box; }\n        body { min-height: 100vh; display: flex; justify-content: center; align-items: center; background: #f5f5f5; padding: 20px; }\n        .pin-container { width: 736px; height: 1472px; background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 25px 80px rgba(0,0,0,0.12); position: relative; }\n        .quad-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; height: 100%; gap: 0; }\n        .quad-item { position: relative; overflow: hidden; }\n        .quad-item img { width: 100%; height: 100%; object-fit: cover; }\n        .center-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; text-align: center; z-index: 10; background: rgba(255,255,255,0.98); padding: 40px 30px; border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }\n        .number { font-family: Inter, sans-serif; font-size: 52px; font-weight: 800; color: #4a7c59; line-height: 1; margin-bottom: 5px; }\n        .subtitle { font-family: Inter, sans-serif; font-size: 14px; font-weight: 600; color: #4a7c59; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 15px; }\n        .main-title { font-family: 'Playfair Display', serif; font-size: 56px; font-weight: 900; color: #1a1a1a; line-height: 0.95; margin-bottom: 10px; text-transform: uppercase; }\n        .secondary-title { font-family: Inter, sans-serif; font-size: 18px; font-weight: 400; color: #333; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 25px; }\n        .site-url { font-family: Inter, sans-serif; font-size: 13px; font-weight: 600; color: #666; letter-spacing: 3px; text-transform: uppercase; }\n    </style>\n</head>\n<body>\n    <div class=\"pin-container\">\n        <div class=\"quad-grid\">\n            <div class=\"quad-item\"><img src=\"{{main_image}}\" alt=\"\" style=\"object-position: top left;\"></div>\n            <div class=\"quad-item\"><img src=\"{{main_image}}\" alt=\"\" style=\"object-position: top right;\"></div>\n            <div class=\"quad-item\"><img src=\"{{main_image}}\" alt=\"\" style=\"object-position: bottom left;\"></div>\n            <div class=\"quad-item\"><img src=\"{{main_image}}\" alt=\"\" style=\"object-position: bottom right;\"></div>\n            <div class=\"center-content\">\n                <span class=\"number\">{{number}}</span>\n                <div class=\"subtitle\">{{subtitle}}</div>\n                <h1 class=\"main-title\">{{main_title}}</h1>\n                <div class=\"secondary-title\">{{secondary_title}}</div>\n                <div class=\"site-url\">{{domain}}</div>\n            </div>\n        </div>\n    </div>\n</body>\n</html>"
+    }
+  },
+  {
+    "template_id": "worlds_best_chowder",
+    "template_name": "worlds_best_chowder",
+    "style_slots": {
+      "html_colors": [
+        {"find": "#5a7247", "use": "primary"},
+        {"find": "#c9a66b", "use": "secondary"},
+        {"find": "#f4d03f", "use": "secondary"}
+      ]
+    },
+    "font_slots": {},
+    "template_data": {
+      "template_type": "html",
+      "name": "World's Best Ribbon Recipe Pin",
+      "canvas": {"width": 736, "height": 1472, "aspect_ratio": "9:16"},
+      "prompt": "Generate text for each field based on the recipe title provided. Use field_prompts; replace {{title}} with the user's recipe title. MATCH THE EXACT WORD COUNT of each field_example. Keep all text within its designated area; no overflow onto images. Output a single JSON object only: {\"field_name\": \"text\", ...}. Do not include 'website' or 'domain'; domain is injected automatically.",
+      "field_examples": {
+        "ribbon_text": "The",
+        "best_text": "World's Best",
+        "recipe_title": "Chicken Corn Chowder"
+      },
+      "field_prompts": {
+        "ribbon_text": "Reskin the ribbon text for recipe {{title}}. Match the EXACT word count (1 word). Example: 'The'. Output ONLY the text, no quotes.",
+        "best_text": "Reskin the best text for recipe {{title}}. Match the EXACT word count of the example (2 words). Example: 'World's Best'. Output ONLY the text, no quotes.",
+        "recipe_title": "Reskin the recipe title for recipe {{title}}. Match the EXACT word count of the example (3 words). Example: 'Chicken Corn Chowder'. Can use <br> for line break. Keep text in its area. Output ONLY the text, no quotes."
+      },
+      "html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Pin</title>\n    <style>\n        @import url('https://fonts.googleapis.com/css2?family=Pacifico&family=Roboto+Condensed:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');\n        * { margin: 0; padding: 0; box-sizing: border-box; }\n        body { min-height: 100vh; display: flex; justify-content: center; align-items: center; background: #e8e6e1; padding: 20px; }\n        .pin-container { width: 736px; height: 1472px; background: white; border-radius: 30px; overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,0.18); position: relative; }\n        .image-wrapper { position: relative; height: 100%; background: #f0ebe3; overflow: hidden; }\n        .chowder-image { width: 100%; height: 100%; object-fit: cover; }\n        .content-band { position: absolute; top: 50%; left: 0; transform: translateY(-50%); width: 100%; background: #5a7247; padding: 60px 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 10; }\n        .ribbon { position: absolute; top: -30px; left: 50%; transform: translateX(-50%); width: 80%; height: 80px; background: #c9a66b; z-index: 15; display: flex; align-items: center; justify-content: center; box-shadow: 0 5px 20px rgba(0,0,0,0.2); }\n        .ribbon-text { font-family: 'Playfair Display', serif; font-size: 42px; color: white; font-style: italic; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }\n        .main-content { text-align: center; position: relative; z-index: 10; }\n        .the-text { font-family: Pacifico, cursive; font-size: 48px; color: #c9a66b; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin-bottom: -10px; }\n        .best-text { font-family: 'Playfair Display', serif; font-size: 64px; font-weight: 700; color: white; text-shadow: 3px 3px 6px rgba(0,0,0,0.4); line-height: 1; margin: 10px 0; }\n        .recipe-title { font-family: 'Roboto Condensed', sans-serif; font-size: 52px; font-weight: 700; color: #f4d03f; text-transform: capitalize; line-height: 1.1; text-shadow: 2px 2px 4px rgba(0,0,0,0.4); margin-top: 20px; }\n    </style>\n</head>\n<body>\n    <div class=\"pin-container\">\n        <div class=\"image-wrapper\">\n            <img src=\"{{main_image}}\" alt=\"\" class=\"chowder-image\">\n            <div class=\"content-band\">\n                <div class=\"ribbon\"><span class=\"ribbon-text\">{{ribbon_text}}</span></div>\n                <div class=\"main-content\">\n                    <div class=\"the-text\">{{ribbon_text}}</div>\n                    <div class=\"best-text\">{{best_text}}</div>\n                    <h1 class=\"recipe-title\">{{recipe_title}}</h1>\n                </div>\n            </div>\n        </div>\n    </div>\n</body>\n</html>"
     }
   }
 ]

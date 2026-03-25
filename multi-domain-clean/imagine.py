@@ -16,11 +16,6 @@ from config import (
     MIDJOURNEY_API_TOKEN,
     MIDJOURNEY_CHANNEL_ID,
     USEAPI_BASE_URL,
-    R2_ACCOUNT_ID,
-    R2_ACCESS_KEY_ID,
-    R2_SECRET_ACCESS_KEY,
-    R2_BUCKET_NAME,
-    R2_PUBLIC_URL,
 )
 import r2_upload
 
@@ -238,15 +233,8 @@ def _extract_useapi_urls(job_data: dict) -> list:
 
 
 def process_grid_to_r2(grid_url: str, key_prefix: str, user_config: dict = None) -> tuple:
-    """Download grid, split into 4, upload to R2. Returns ([url1, url2, url3, url4], error_or_None)."""
+    """Download grid, split into 4, upload to R2 or local hosted storage. Returns ([url1, url2, url3, url4], error_or_None)."""
     user_config = user_config or {}
-    account_id = user_config.get("r2_account_id") or R2_ACCOUNT_ID
-    access_key = user_config.get("r2_access_key_id") or R2_ACCESS_KEY_ID
-    secret_key = user_config.get("r2_secret_access_key") or R2_SECRET_ACCESS_KEY
-    bucket_name = user_config.get("r2_bucket_name") or R2_BUCKET_NAME
-    public_url = user_config.get("r2_public_url") or R2_PUBLIC_URL
-    if not account_id or not access_key or not secret_key or not bucket_name or not public_url:
-        return [], "R2 not configured in user profile"
     try:
         img = download_image(grid_url)
         splits = split_midjourney_grid(img)
@@ -262,7 +250,7 @@ def process_grid_to_r2(grid_url: str, key_prefix: str, user_config: dict = None)
 
 def generate_4_images(prompt: str, key_prefix: str = "multi-domain", cancel_check=None, user_config: dict = None) -> tuple:
     """
-    Create Midjourney job, poll until done, get 4 images, upload to R2.
+    Create Midjourney job, poll until done, get 4 images, upload to R2 or local hosted storage.
     Returns ([url1, url2, url3, url4], error_or_None).
     Image 1 -> A, 2 -> B, 3 -> C, 4 -> D.
     cancel_check: optional callable; if it returns True, abort and return ([], "Cancelled").

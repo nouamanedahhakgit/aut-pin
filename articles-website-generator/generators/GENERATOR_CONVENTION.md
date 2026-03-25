@@ -2,6 +2,8 @@
 
 Add new generators as `generator-N.py` (e.g. `generator-5.py`). The system auto-discovers them.
 
+**When creating a NEW generator:** Follow `_archive/article/ARTICLE_GENERATOR_PROMPT.md` — use **dynamic structures** (not the same intro→why love→ingredients→steps→faqs every time), always use `main_article_image` and `ingredient_image`, and generate rich, informative content.
+
 ## Required for full integration
 
 1. **File name**: `generator-*.py` in this folder

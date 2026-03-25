@@ -564,8 +564,18 @@ def run_server(available_templates, host="0.0.0.0", port=5000):
             except Exception as e:
                 log.warning("merge_template domain_style: %s", e)
         _deep_merge(merged, {k: v for k, v in body.items() if k not in ("template_data", "style_slots", "font_slots") and v is not None})
-        if body.get("variables"):
-            _apply_variables(merged, body["variables"])
+        # Build variables: merge body variables + domain color placeholders for HTML templates
+        variables = dict(body.get("variables") or {})
+        if merged.get("template_type") == "html" and dc:
+            variables.setdefault("domain_primary", dc.get("primary") or "#5D4037")
+            variables.setdefault("domain_secondary", dc.get("secondary") or "#8B5A2B")
+            variables.setdefault("domain_background", dc.get("background") or "#FFFFFF")
+            variables.setdefault("domain_text_primary", dc.get("text_primary") or "#000000")
+            variables.setdefault("domain_text_secondary", dc.get("text_secondary") or "#666666")
+            variables.setdefault("domain_on_primary", "#FFFFFF")
+            variables.setdefault("domain_on_secondary", "#FFFFFF")
+        if variables:
+            _apply_variables(merged, variables)
         # Apply layout/position/domain overrides BEFORE AI, so AI-generated text is not overwritten (same as Python /generate)
         apply_overrides(merged, body)
         # OpenAI text for fields with field_prompts — runs after apply_overrides so generated text wins

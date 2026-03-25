@@ -1199,9 +1199,11 @@
       } catch (e) { setStatus('Failed to load domains: ' + e.message, true); }
     }
 
-    async function loadGenerators() {
+    async function loadGenerators(currentGenerator) {
       try {
-        const d = await api('/api/article-generators');
+        let url = '/api/article-generators';
+        if (currentGenerator) url += '?current_generator=' + encodeURIComponent(currentGenerator);
+        const d = await api(url);
         const gens = d.generators || [];
         const sel = document.getElementById('generatorSelect');
         sel.innerHTML = gens.map(g => `<option value="${g}">${g}</option>`).join('');

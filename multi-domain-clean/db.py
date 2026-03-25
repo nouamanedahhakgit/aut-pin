@@ -455,6 +455,14 @@ def _run_mysql_migrations_part2(cursor):
     except Exception:
         pass
     try:
+        cursor.execute("ALTER TABLE user_api_keys ADD COLUMN groq_api_key TEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE user_api_keys ADD COLUMN groq_model VARCHAR(255)")
+    except Exception:
+        pass
+    try:
         cursor.execute("ALTER TABLE user_api_keys ADD COLUMN image_request_delay_sec INT DEFAULT 15")
     except Exception:
         pass  # column may already exist
@@ -504,6 +512,26 @@ def _run_mysql_migrations_part2(cursor):
         pass
     try:
         cursor.execute("ALTER TABLE user_api_keys ADD COLUMN pin_generator_type VARCHAR(32) DEFAULT 'python'")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE user_api_keys ADD COLUMN active_themes LONGTEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE user_api_keys ADD COLUMN active_pin_templates LONGTEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE user_api_keys ADD COLUMN active_article_generators LONGTEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE user_api_keys ADD COLUMN ui_poll_running_tasks TINYINT DEFAULT 0")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE user_api_keys ADD COLUMN ui_cf_auto_refresh_domains TINYINT DEFAULT 0")
     except Exception:
         pass
     cursor.execute("""
@@ -669,10 +697,17 @@ def _init_supabase():
         _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS ai_provider VARCHAR(32) DEFAULT NULL")
         _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS llamacpp_manager_url TEXT")
         _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS llamacpp_model_id INT DEFAULT NULL")
+        _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS groq_api_key TEXT")
+        _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS groq_model VARCHAR(255)")
         _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS image_request_delay_sec INT DEFAULT 15")
         _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS rss_base_url VARCHAR(512) DEFAULT NULL")
         _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS skip_cf_status_check SMALLINT DEFAULT 0")
         _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS pin_generator_type VARCHAR(32) DEFAULT 'python'")
+        _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS active_themes TEXT")
+        _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS active_pin_templates TEXT")
+        _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS active_article_generators TEXT")
+        _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS ui_poll_running_tasks SMALLINT DEFAULT 0")
+        _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS ui_cf_auto_refresh_domains SMALLINT DEFAULT 0")
         cur.execute("""
             CREATE TABLE IF NOT EXISTS user_domains (
                 id SERIAL PRIMARY KEY,

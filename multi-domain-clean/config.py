@@ -15,6 +15,10 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openai/gpt-oss-120b")
 
+# Groq (OpenAI-compatible API — https://console.groq.com/keys)
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+
 # Local (Ollama or similar)
 LOCAL_API_URL = os.getenv("LOCAL_API_URL", "http://192.168.1.20:11434")
 
@@ -27,6 +31,8 @@ def get_ai_config(provider=None):
     p = (provider or "").strip().lower() or AI_PROVIDER
     if p == "openrouter":
         return "openrouter", OPENROUTER_MODEL
+    if p == "groq":
+        return "groq", GROQ_MODEL
     return "openai", OPENAI_MODEL
 
 
@@ -42,6 +48,14 @@ def get_openai_client(provider=None):
             api_key=OPENROUTER_API_KEY,
         )
         return client, OPENROUTER_MODEL
+    if p == "groq":
+        if not GROQ_API_KEY:
+            raise ValueError("GROQ_API_KEY not set in .env")
+        client = openai.OpenAI(
+            base_url="https://api.groq.com/openai/v1",
+            api_key=GROQ_API_KEY,
+        )
+        return client, GROQ_MODEL
     else:
         if not OPENAI_API_KEY:
             raise ValueError("OPENAI_API_KEY not set in .env")
@@ -69,12 +83,21 @@ STATIC_PROJECT_OUTPUT_DIR = os.getenv("STATIC_PROJECT_OUTPUT_DIR", os.path.join(
 CLOUDFLARE_ACCOUNT_ID = os.getenv("CLOUDFLARE_ACCOUNT_ID", "")
 CLOUDFLARE_API_TOKEN = os.getenv("CLOUDFLARE_API_TOKEN", "")
 
-# Cloudflare R2
+# Cloudflare R2 (optional if using local image hosting below)
 R2_ACCOUNT_ID = os.getenv("R2_ACCOUNT_ID", "")
 R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID", "")
 R2_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY", "")
 R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME", "")
 R2_PUBLIC_URL = os.getenv("R2_PUBLIC_URL", "")
+
+# When R2 is not configured, pin/MJ/previews are stored on disk and served via /api/hosted-images/...
+_config_dir = os.path.dirname(os.path.abspath(__file__))
+HOSTED_IMAGES_DIR = os.getenv(
+    "HOSTED_IMAGES_DIR",
+    os.path.join(_config_dir, "data", "hosted_images"),
+)
+# Absolute base URL for image links when there is no HTTP request (bulk jobs, Pinterest). Example: https://your-app.com
+PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "").rstrip("/")
 
 # Pinterest: uses simple "Pin it" URL (no API key). No config needed.
 

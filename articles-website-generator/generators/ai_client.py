@@ -99,10 +99,29 @@ MODEL_PRICING = {
     "anthropic/claude-3-opus": (15.00, 75.00),
     "google/gemini-pro": (0.50, 1.50),
     "google/gemini-flash": (0.10, 0.40),
+    # Groq (approximate; check console.groq.com/docs)
+    "llama-3.3-70b-versatile": (0.59, 0.79),
+    "llama-3.1-8b-instant": (0.05, 0.08),
+    "mixtral-8x7b-32768": (0.24, 0.24),
+    "gemma2-9b-it": (0.20, 0.20),
 }
 
 LOCAL_API_URL = os.getenv("LOCAL_API_URL", "http://192.168.1.20:11434/api/generate")
 LOCAL_MODELS = os.getenv("LOCAL_MODELS", "qwen3:8b,llama3.2:3b,ibm/granite4:latest,gemma3:latest,functiongemma:latest").split(",")
+
+
+def _first_groq_key(config: dict):
+    """Single key from config, or first entry in groq_api_keys (multi-key profile)."""
+    k = (config.get("groq_api_key") or "").strip()
+    if k:
+        return k
+    keys = config.get("groq_api_keys")
+    if isinstance(keys, list):
+        for x in keys:
+            s = str(x).strip() if x is not None else ""
+            if s:
+                return s
+    return None
 
 
 def create_ai_client(config: dict):
@@ -124,6 +143,13 @@ def create_ai_client(config: dict):
     elif provider == "llamacpp" and not config.get("llamacpp_manager_url"):
         if config.get("openrouter_api_key"):
             provider = "openrouter"
+        elif _first_groq_key(config):
+            provider = "groq"
+        elif config.get("openai_api_key"):
+            provider = "openai"
+    elif provider == "groq" and not _first_groq_key(config):
+        if config.get("openrouter_api_key"):
+            provider = "openrouter"
         elif config.get("openai_api_key"):
             provider = "openai"
             
@@ -131,6 +157,8 @@ def create_ai_client(config: dict):
         provider = "openrouter"
     elif provider == "openrouter" and not config.get("openrouter_api_key") and config.get("openai_api_key"):
         provider = "openai"
+    elif provider == "openai" and not config.get("openai_api_key") and config.get("groq_api_key"):
+        provider = "groq"
         
     config["ai_provider"] = provider
 
@@ -150,6 +178,15 @@ def create_ai_client(config: dict):
             api_key=api_key,
         )
         model = config.get("openrouter_model") or os.getenv("OPENROUTER_MODEL", "openai/gpt-oss-120b")
+    elif provider == "groq":
+        api_key = _first_groq_key(config) or os.getenv("GROQ_API_KEY")
+        if not api_key:
+            raise ValueError("groq_api_key must be set. Add your Groq API key in multi-domain-clean → Profile (https://console.groq.com/keys).")
+        client = OpenAI(
+            base_url="https://api.groq.com/openai/v1",
+            api_key=api_key,
+        )
+        model = config.get("groq_model") or os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
     elif provider == "local":
         local_base = config.get("local_api_url") or os.getenv("LOCAL_API_URL", "http://192.168.1.20:11434")
         if isinstance(local_base, str) and local_base.endswith("/api/generate"):
@@ -170,6 +207,11 @@ def create_ai_client(config: dict):
                 api_key = config.get("openrouter_api_key") or os.getenv("OPENROUTER_API_KEY")
                 client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key)
                 model = config.get("openrouter_model") or os.getenv("OPENROUTER_MODEL", "openai/gpt-oss-120b")
+                return client, model
+            if _first_groq_key(config) or os.getenv("GROQ_API_KEY"):
+                api_key = _first_groq_key(config) or os.getenv("GROQ_API_KEY")
+                client = OpenAI(base_url="https://api.groq.com/openai/v1", api_key=api_key)
+                model = config.get("groq_model") or os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
                 return client, model
             raise ValueError("openai_api_key must be set. Add your OpenAI API key in multi-domain-clean → Profile. If using bulk run, ensure you are logged in.")
         client = OpenAI(api_key=api_key)

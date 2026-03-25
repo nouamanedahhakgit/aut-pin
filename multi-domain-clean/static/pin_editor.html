@@ -714,6 +714,9 @@
               <button type="button" class="btn btn-secondary" id="btnApplyDomainColors" title="Re-apply domain colors and fonts">Domain Colors</button>
               <button type="button" class="btn btn-success" id="btnSaveToDomain">Save</button>
             </div>
+            <div id="saveToPoolWrap" style="display:none;" class="d-flex gap-2 align-items-center">
+              <button type="button" class="btn btn-outline-warning" id="btnUpdatePoolTemplate" title="Update this template in the pool (HTML templates like cottage_cheese_bread)">Update pool template</button>
+            </div>
           </div>
         </div>
         <div class="mb1">
@@ -938,6 +941,13 @@
       const tw = document.getElementById('testWithArticleWrap');
       if (tw) tw.style.display = 'block';
     }
+    function updatePoolWrapVisibility() {
+      const wrap = document.getElementById('saveToPoolWrap');
+      if (!wrap) return;
+      const sel = document.getElementById('templateSelect');
+      const isPool = currentTemplateName && !currentDomainTemplateId && sel && !String(sel.value || '').startsWith('domain:');
+      wrap.style.display = isPool ? 'flex' : 'none';
+    }
 
     async function loadDomainForWebsite() {
       if (!domainId) return;
@@ -1094,6 +1104,7 @@
         buildForm();
         if (domainColors || domainFonts) applyDomainColors();
         updateJsonOut();
+        updatePoolWrapVisibility();
         setStatus('Editing saved template. Update and save to keep changes.');
         await updatePreview();
       } catch (e) {
@@ -1844,6 +1855,27 @@
         colorMap.border_accent = '2px solid ' + dc.primary;
         colorMap.border_accent_3 = '3px solid ' + dc.primary;
       }
+      // HTML templates: use style_slots.html_colors to replace hex values with domain colors
+      if (templateData.template_type === 'html' && currentStyleSlots && currentStyleSlots.html_colors) {
+        const htmlEl = document.getElementById('htmlTemplateEditor');
+        if (htmlEl && dc) {
+          let html = htmlEl.value || templateData.html || '';
+          currentStyleSlots.html_colors.forEach(function (slot) {
+            const find = (slot.find || slot.hex || '').trim();
+            const useKey = (slot.use || slot.color_key || 'primary').toLowerCase();
+            const replacement = colorMap[useKey] || dc[useKey];
+            if (find && replacement) {
+              const re = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+              html = html.replace(re, replacement);
+            }
+          });
+          htmlEl.value = html;
+          if (templateData) templateData.html = html;
+          updateJsonOut();
+          triggerAutoPreview();
+          return;
+        }
+      }
       const elements = templateData.elements || {};
       if (currentStyleSlots && Object.keys(currentStyleSlots).length > 0) {
         Object.entries(currentStyleSlots).forEach(([elemName, propMap]) => {
@@ -2446,6 +2478,57 @@
         });
     });
 
+    document.getElementById('btnUpdatePoolTemplate').addEventListener('click', function () {
+      if (!currentTemplateName) { setStatus('Select a template first.', true); return; }
+      const btn = this;
+      const raw = document.getElementById('jsonOut').textContent.trim();
+      if (!raw || raw === '{}') {
+        alert('Edit the template first — the Saved JSON updates automatically.');
+        return;
+      }
+      let payload;
+      try {
+        payload = JSON.parse(raw);
+      } catch (e) {
+        alert('Invalid JSON in the Saved JSON box.');
+        return;
+      }
+      const name = (payload.template_name || payload.template_id || currentTemplateName).toString().trim().toLowerCase().replace(/-/g, '_') || currentTemplateName;
+      const body = {
+        template_name: payload.template_name || name,
+        template_id: payload.template_id || name,
+        template_data: payload.template_data || payload,
+        style_slots: payload.style_slots || currentStyleSlots || {},
+        font_slots: payload.font_slots || currentFontSlots || {},
+      };
+      btn.disabled = true;
+      btn.textContent = 'Updating…';
+      setStatus('Updating pool template…');
+      fetch('/api/pin-template-pool/' + encodeURIComponent(name), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+        .then(r => r.json())
+        .then(d => {
+          if (d.success) {
+            setStatus('Pool template updated.');
+            alert('Pool template updated.');
+          } else {
+            setStatus('Error: ' + (d.error || 'Unknown'), true);
+            alert('Error: ' + (d.error || 'Unknown'));
+          }
+        })
+        .catch(e => {
+          setStatus('Error: ' + e.message, true);
+          alert('Error: ' + e.message);
+        })
+        .finally(function () {
+          btn.disabled = false;
+          btn.textContent = 'Update pool template';
+        });
+    });
+
     document.getElementById('templateSelect').addEventListener('change', async () => {
       const name = document.getElementById('templateSelect').value;
 
@@ -2460,6 +2543,7 @@
         currentDomainTemplateId = null;
         hasPreviewInIframe = false;
         buildForm();
+        updatePoolWrapVisibility();
         document.getElementById('previewPlaceholder').style.display = 'block';
         const w = document.getElementById('previewIframeWrap');
         if (w) w.style.display = 'none';
@@ -2484,14 +2568,15 @@
           templateData = parsed.template_data || parsed;
           currentStyleSlots = parsed.style_slots || {};
           currentFontSlots = parsed.font_slots || {};
-          buildForm();
-          if (domainId && (domainColors || domainFonts)) applyDomainColors();
-          updateJsonOut();
-          setStatus('Domain template loaded.');
-          setStatus('Loading preview…');
-          await updatePreview();
-        } catch (e) {
-          setStatus('Failed to load domain template: ' + (e.message || e), true);
+        buildForm();
+        if (domainId && (domainColors || domainFonts)) applyDomainColors();
+        updateJsonOut();
+        updatePoolWrapVisibility();
+        setStatus('Domain template loaded.');
+        setStatus('Loading preview…');
+        await updatePreview();
+      } catch (e) {
+        setStatus('Failed to load domain template: ' + (e.message || e), true);
         }
         return;
       }
@@ -2513,6 +2598,7 @@
           applyDomainColors();
         }
         updateJsonOut();
+        updatePoolWrapVisibility();
         setStatus('Loading preview…');
         await updatePreview();
       } catch (e) {

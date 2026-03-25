@@ -3433,3 +3433,2671 @@ INFO:     Started server process [12240]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [20696]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60045 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [16788]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:57192 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59120 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54914 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60986 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60184 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58863 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [23624]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:58507 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [11448]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:52985 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51900 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56927 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54150 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56518 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56918 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65182 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [19284]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60374 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [27416]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [8772]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:61275 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56057 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62458 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [22080]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [18576]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [2560]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [20556]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [21684]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:58043 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61319 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57930 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63773 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65193 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [10728]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [15736]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50975 - "POST /generate-article-preview/generator-1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55616 - "POST /generate-article-preview/generator-1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65097 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61411 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [29300]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [23980]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [22600]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:65431 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [13264]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [30072]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [20416]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [30032]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50711 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [23320]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [24004]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [4036]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [27656]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:64586 - "POST /generate-article-preview/generator-10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64588 - "POST /generate-article-preview/generator-12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64590 - "POST /generate-article-preview/generator-15 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64587 - "POST /generate-article-preview/generator-13 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64589 - "POST /generate-article-preview/generator-14 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64585 - "POST /generate-article-preview/generator-1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55256 - "POST /generate-article-preview/generator-4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55257 - "POST /generate-article-preview/generator-3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55255 - "POST /generate-article-preview/generator-2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55260 - "POST /generate-article-preview/generator-5 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 282, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 284, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+KeyError: 'title'
+
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 282, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 284, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:55258 - "POST /generate-article-preview/generator-7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55259 - "POST /generate-article-preview/generator-6 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63554 - "POST /generate-article-preview/generator-8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63555 - "POST /generate-article-preview/generator-9 HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [30532]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:49678 - "POST /generate-article-preview/generator-13 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49679 - "POST /generate-article-preview/generator-14 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52877 - "POST /generate-article-preview/generator-1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49674 - "POST /generate-article-preview/generator-11 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49675 - "POST /generate-article-preview/generator-10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49676 - "POST /generate-article-preview/generator-12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49297 - "POST /generate-article-preview/generator-15 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56169 - "POST /generate-article-preview/generator-2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56168 - "POST /generate-article-preview/generator-17 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49298 - "POST /generate-article-preview/generator-16 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56171 - "POST /generate-article-preview/generator-3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56170 - "POST /generate-article-preview/generator-4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61739 - "POST /generate-article-preview/generator-5 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 282, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 284, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+KeyError: 'title'
+
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 282, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 284, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:65410 - "POST /generate-article-preview/generator-7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65411 - "POST /generate-article-preview/generator-6 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65412 - "POST /generate-article-preview/generator-9 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52084 - "POST /generate-article-preview/generator-8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65028 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65320 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [13324]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [25376]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60801 - "POST /generate-article-preview/generator-16 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49162 - "POST /generate-article-preview/generator-1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49163 - "POST /generate-article-preview/generator-12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60799 - "POST /generate-article-preview/generator-15 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60800 - "POST /generate-article-preview/generator-17 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49164 - "POST /generate-article-preview/generator-10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55568 - "POST /generate-article-preview/generator-19 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 157, in generate_article_preview
+    module = _load_generator_module(generator_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 88, in _load_generator_module
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-19.py", line 342
+    @media(max-width:600px){{.recipe-card-buttons{{flex-direction:column}}h1{{font-size:1.6rem}}}}"""
+                                                                                                     ^
+SyntaxError: f-string: single '}' is not allowed
+INFO:     127.0.0.1:55570 - "POST /generate-article-preview/generator-18 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 157, in generate_article_preview
+    module = _load_generator_module(generator_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 88, in _load_generator_module
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-18.py", line 352
+    @media(max-width:600px){{.recipe-card-buttons{{flex-direction:column}}h1{{font-size:1.75rem}}}}"""
+                                                                                                      ^
+SyntaxError: f-string: single '}' is not allowed
+INFO:     127.0.0.1:55569 - "POST /generate-article-preview/generator-5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55572 - "POST /generate-article-preview/generator-2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55571 - "POST /generate-article-preview/generator-4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55573 - "POST /generate-article-preview/generator-3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54735 - "POST /generate-article-preview/generator-8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54734 - "POST /generate-article-preview/generator-9 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 282, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 284, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:54733 - "POST /generate-article-preview/generator-6 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 282, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 284, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:54732 - "POST /generate-article-preview/generator-7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61795 - "POST /generate-article-preview/generator-13 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61794 - "POST /generate-article-preview/generator-14 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61797 - "POST /generate-article-preview/generator-11 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61796 - "POST /generate-article-preview/generator-1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61799 - "POST /generate-article-preview/generator-10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61798 - "POST /generate-article-preview/generator-12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61011 - "POST /generate-article-preview/generator-18 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 157, in generate_article_preview
+    module = _load_generator_module(generator_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 88, in _load_generator_module
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-18.py", line 352
+    @media(max-width:600px){{.recipe-card-buttons{{flex-direction:column}}h1{{font-size:1.75rem}}}}"""
+                                                                                                      ^
+SyntaxError: f-string: single '}' is not allowed
+INFO:     127.0.0.1:61009 - "POST /generate-article-preview/generator-15 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61010 - "POST /generate-article-preview/generator-19 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 157, in generate_article_preview
+    module = _load_generator_module(generator_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 88, in _load_generator_module
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-19.py", line 342
+    @media(max-width:600px){{.recipe-card-buttons{{flex-direction:column}}h1{{font-size:1.6rem}}}}"""
+                                                                                                     ^
+SyntaxError: f-string: single '}' is not allowed
+INFO:     127.0.0.1:61008 - "POST /generate-article-preview/generator-16 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61012 - "POST /generate-article-preview/generator-17 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61013 - "POST /generate-article-preview/generator-2 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 282, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 284, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:51397 - "POST /generate-article-preview/generator-6 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51398 - "POST /generate-article-preview/generator-5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51395 - "POST /generate-article-preview/generator-3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51396 - "POST /generate-article-preview/generator-4 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 282, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 284, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:51400 - "POST /generate-article-preview/generator-7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51399 - "POST /generate-article-preview/generator-8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50714 - "POST /generate-article-preview/generator-9 HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [3480]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [21400]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:54809 - "POST /generate-article-preview/generator-12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54804 - "POST /generate-article-preview/generator-1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54808 - "POST /generate-article-preview/generator-14 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54806 - "POST /generate-article-preview/generator-10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54807 - "POST /generate-article-preview/generator-11 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54805 - "POST /generate-article-preview/generator-13 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58620 - "POST /generate-article-preview/generator-17 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58618 - "POST /generate-article-preview/generator-18 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 157, in generate_article_preview
+    module = _load_generator_module(generator_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 88, in _load_generator_module
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-18.py", line 353
+    {media}"""
+              ^
+SyntaxError: f-string: single '}' is not allowed
+INFO:     127.0.0.1:58621 - "POST /generate-article-preview/generator-19 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 157, in generate_article_preview
+    module = _load_generator_module(generator_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 88, in _load_generator_module
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-19.py", line 343
+    {media}"""
+              ^
+SyntaxError: f-string: single '}' is not allowed
+INFO:     127.0.0.1:58619 - "POST /generate-article-preview/generator-16 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58617 - "POST /generate-article-preview/generator-15 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58622 - "POST /generate-article-preview/generator-2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54527 - "POST /generate-article-preview/generator-3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60691 - "POST /generate-article-preview/generator-4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60694 - "POST /generate-article-preview/generator-5 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 282, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 284, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:60692 - "POST /generate-article-preview/generator-8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60695 - "POST /generate-article-preview/generator-6 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 282, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 284, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:60693 - "POST /generate-article-preview/generator-7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60547 - "POST /generate-article-preview/generator-9 HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [22132]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50229 - "POST /generate-article-preview/generator-15 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50226 - "POST /generate-article-preview/generator-12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50230 - "POST /generate-article-preview/generator-16 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50228 - "POST /generate-article-preview/generator-13 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50227 - "POST /generate-article-preview/generator-14 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50225 - "POST /generate-article-preview/generator-1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50373 - "POST /generate-article-preview/generator-18 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 157, in generate_article_preview
+    module = _load_generator_module(generator_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 88, in _load_generator_module
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-18.py", line 353
+    {media}"""
+              ^
+SyntaxError: f-string: single '}' is not allowed
+INFO:     127.0.0.1:50372 - "POST /generate-article-preview/generator-17 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50376 - "POST /generate-article-preview/generator-19 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 157, in generate_article_preview
+    module = _load_generator_module(generator_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 88, in _load_generator_module
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-19.py", line 343
+    {media}"""
+              ^
+SyntaxError: f-string: single '}' is not allowed
+INFO:     127.0.0.1:50375 - "POST /generate-article-preview/generator-3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50377 - "POST /generate-article-preview/generator-4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50374 - "POST /generate-article-preview/generator-2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49785 - "POST /generate-article-preview/generator-5 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 282, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 284, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:49786 - "POST /generate-article-preview/generator-6 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58672 - "POST /generate-article-preview/generator-8 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 282, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 284, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:58671 - "POST /generate-article-preview/generator-7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58673 - "POST /generate-article-preview/generator-9 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64586 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62080 - "POST /generate-article-preview/generator-1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54118 - "POST /generate-article-preview/generator-10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54120 - "POST /generate-article-preview/generator-12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54121 - "POST /generate-article-preview/generator-11 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54119 - "POST /generate-article-preview/generator-13 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65364 - "POST /generate-article-preview/generator-14 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50506 - "POST /generate-article-preview/generator-15 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51161 - "POST /generate-article-preview/generator-18 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 157, in generate_article_preview
+    module = _load_generator_module(generator_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 88, in _load_generator_module
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-18.py", line 353
+    {media}"""
+              ^
+SyntaxError: f-string: single '}' is not allowed
+INFO:     127.0.0.1:51162 - "POST /generate-article-preview/generator-19 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 157, in generate_article_preview
+    module = _load_generator_module(generator_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 88, in _load_generator_module
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-19.py", line 343
+    {media}"""
+              ^
+SyntaxError: f-string: single '}' is not allowed
+INFO:     127.0.0.1:51159 - "POST /generate-article-preview/generator-16 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51160 - "POST /generate-article-preview/generator-17 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63679 - "POST /generate-article-preview/generator-2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64417 - "POST /generate-article-preview/generator-3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54675 - "POST /generate-article-preview/generator-5 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 282, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 284, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:54677 - "POST /generate-article-preview/generator-6 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 282, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 284, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:54678 - "POST /generate-article-preview/generator-7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54676 - "POST /generate-article-preview/generator-4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52616 - "POST /generate-article-preview/generator-8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57377 - "POST /generate-article-preview/generator-9 HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [31524]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [15260]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:54445 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56959 - "POST /generate-article-preview/generator-1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56964 - "POST /generate-article-preview/generator-15 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56961 - "POST /generate-article-preview/generator-12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56962 - "POST /generate-article-preview/generator-14 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56960 - "POST /generate-article-preview/generator-11 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56963 - "POST /generate-article-preview/generator-13 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51102 - "POST /generate-article-preview/generator-19 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 158, in generate_article_preview
+    module = _load_generator_module(generator_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 89, in _load_generator_module
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-19.py", line 346
+    {media}"""
+              ^
+SyntaxError: f-string: single '}' is not allowed
+INFO:     127.0.0.1:51098 - "POST /generate-article-preview/generator-18 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 158, in generate_article_preview
+    module = _load_generator_module(generator_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 89, in _load_generator_module
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-18.py", line 356
+    {media}"""
+              ^
+SyntaxError: f-string: single '}' is not allowed
+INFO:     127.0.0.1:51103 - "POST /generate-article-preview/generator-3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51099 - "POST /generate-article-preview/generator-2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51101 - "POST /generate-article-preview/generator-16 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51100 - "POST /generate-article-preview/generator-17 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 289, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 291, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:54863 - "POST /generate-article-preview/generator-5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54861 - "POST /generate-article-preview/generator-4 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 289, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 291, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:54862 - "POST /generate-article-preview/generator-7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54866 - "POST /generate-article-preview/generator-9 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54865 - "POST /generate-article-preview/generator-8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54864 - "POST /generate-article-preview/generator-6 HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [14548]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50860 - "POST /generate-article-preview/generator-1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50861 - "POST /generate-article-preview/generator-11 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50858 - "POST /generate-article-preview/generator-13 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50862 - "POST /generate-article-preview/generator-12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50859 - "POST /generate-article-preview/generator-10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60401 - "POST /generate-article-preview/generator-14 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53255 - "POST /generate-article-preview/generator-18 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 158, in generate_article_preview
+    module = _load_generator_module(generator_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 89, in _load_generator_module
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-18.py", line 356
+    {media}"""
+              ^
+SyntaxError: f-string: single '}' is not allowed
+INFO:     127.0.0.1:53254 - "POST /generate-article-preview/generator-19 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 158, in generate_article_preview
+    module = _load_generator_module(generator_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 89, in _load_generator_module
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-19.py", line 346
+    {media}"""
+              ^
+SyntaxError: f-string: single '}' is not allowed
+INFO:     127.0.0.1:53252 - "POST /generate-article-preview/generator-16 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53251 - "POST /generate-article-preview/generator-15 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53253 - "POST /generate-article-preview/generator-17 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58215 - "POST /generate-article-preview/generator-2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49692 - "POST /generate-article-preview/generator-3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49693 - "POST /generate-article-preview/generator-5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49696 - "POST /generate-article-preview/generator-4 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 289, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 291, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+KeyError: 'title'
+
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 289, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 291, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:49695 - "POST /generate-article-preview/generator-6 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49694 - "POST /generate-article-preview/generator-7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65427 - "POST /generate-article-preview/generator-8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56743 - "POST /generate-article-preview/generator-9 HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [11020]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:65087 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56060 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57826 - "GET /generators/generator-1/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60713 - "POST /generate-article-preview/generator-1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65492 - "POST /generate-article-preview/generator-1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61787 - "POST /generate-article-preview/generator-10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61789 - "POST /generate-article-preview/generator-12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61788 - "POST /generate-article-preview/generator-11 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61790 - "POST /generate-article-preview/generator-13 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60461 - "POST /generate-article-preview/generator-14 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52375 - "POST /generate-article-preview/generator-15 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59558 - "POST /generate-article-preview/generator-18 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 158, in generate_article_preview
+    module = _load_generator_module(generator_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 89, in _load_generator_module
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-18.py", line 356
+    {media}"""
+              ^
+SyntaxError: f-string: single '}' is not allowed
+INFO:     127.0.0.1:59557 - "POST /generate-article-preview/generator-17 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59559 - "POST /generate-article-preview/generator-16 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59560 - "POST /generate-article-preview/generator-19 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 158, in generate_article_preview
+    module = _load_generator_module(generator_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 89, in _load_generator_module
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-19.py", line 346
+    {media}"""
+              ^
+SyntaxError: f-string: single '}' is not allowed
+INFO:     127.0.0.1:57835 - "POST /generate-article-preview/generator-2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56408 - "POST /generate-article-preview/generator-3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54643 - "POST /generate-article-preview/generator-4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54644 - "POST /generate-article-preview/generator-5 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 289, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 291, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+KeyError: 'title'
+
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 289, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 291, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:54645 - "POST /generate-article-preview/generator-6 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54646 - "POST /generate-article-preview/generator-7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63436 - "POST /generate-article-preview/generator-8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57238 - "POST /generate-article-preview/generator-9 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50469 - "POST /generate-article-preview/generator-1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61838 - "POST /generate-article-preview/generator-12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61839 - "POST /generate-article-preview/generator-14 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61836 - "POST /generate-article-preview/generator-11 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61837 - "POST /generate-article-preview/generator-13 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61835 - "POST /generate-article-preview/generator-10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63732 - "POST /generate-article-preview/generator-15 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62103 - "POST /generate-article-preview/generator-16 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53589 - "POST /generate-article-preview/generator-18 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 158, in generate_article_preview
+    module = _load_generator_module(generator_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 89, in _load_generator_module
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-18.py", line 356
+    {media}"""
+              ^
+SyntaxError: f-string: single '}' is not allowed
+INFO:     127.0.0.1:52680 - "POST /generate-article-preview/generator-19 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 158, in generate_article_preview
+    module = _load_generator_module(generator_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 89, in _load_generator_module
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-19.py", line 346
+    {media}"""
+              ^
+SyntaxError: f-string: single '}' is not allowed
+INFO:     127.0.0.1:53590 - "POST /generate-article-preview/generator-17 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50640 - "POST /generate-article-preview/generator-2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64182 - "POST /generate-article-preview/generator-3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57398 - "POST /generate-article-preview/generator-5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57397 - "POST /generate-article-preview/generator-4 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 289, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 291, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:50602 - "POST /generate-article-preview/generator-6 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 289, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 291, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:50603 - "POST /generate-article-preview/generator-7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61618 - "POST /generate-article-preview/generator-8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52500 - "POST /generate-article-preview/generator-9 HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [31396]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [30852]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:56984 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49677 - "POST /generate-article-preview/generator-11 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49676 - "POST /generate-article-preview/generator-12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49675 - "POST /generate-article-preview/generator-1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49678 - "POST /generate-article-preview/generator-10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49680 - "POST /generate-article-preview/generator-14 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49679 - "POST /generate-article-preview/generator-13 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56013 - "POST /generate-article-preview/generator-15 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56012 - "POST /generate-article-preview/generator-16 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56011 - "POST /generate-article-preview/generator-17 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55615 - "POST /generate-article-preview/generator-18 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 158, in generate_article_preview
+    module = _load_generator_module(generator_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 89, in _load_generator_module
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-18.py", line 356
+    {media}"""
+              ^
+SyntaxError: f-string: single '}' is not allowed
+INFO:     127.0.0.1:55616 - "POST /generate-article-preview/generator-19 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 158, in generate_article_preview
+    module = _load_generator_module(generator_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 89, in _load_generator_module
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-19.py", line 346
+    {media}"""
+              ^
+SyntaxError: f-string: single '}' is not allowed
+INFO:     127.0.0.1:55614 - "POST /generate-article-preview/generator-2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56767 - "POST /generate-article-preview/generator-5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56765 - "POST /generate-article-preview/generator-3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56766 - "POST /generate-article-preview/generator-4 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 289, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 291, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+KeyError: 'title'
+
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 289, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 291, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:56770 - "POST /generate-article-preview/generator-7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56768 - "POST /generate-article-preview/generator-8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56769 - "POST /generate-article-preview/generator-6 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58936 - "POST /generate-article-preview/generator-9 HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [5836]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [30392]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [1576]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60902 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [17236]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:54977 - "POST /generate-article-preview/generator-19 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 158, in generate_article_preview
+    module = _load_generator_module(generator_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 89, in _load_generator_module
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-19.py", line 346
+    {media}"""
+              ^
+SyntaxError: f-string: single '}' is not allowed
+INFO:     127.0.0.1:54976 - "POST /generate-article-preview/generator-20 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 158, in generate_article_preview
+    module = _load_generator_module(generator_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 89, in _load_generator_module
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-20.py", line 602
+    {media}"""
+              ^
+SyntaxError: f-string: single '}' is not allowed
+INFO:     127.0.0.1:54980 - "POST /generate-article-preview/generator-18 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\applications.py", line 1138, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 121, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 107, in app
+    response = await f(request)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 426, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+  File "C:\Users\leno\AppData\Local\Programs\Python\Python39\lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 158, in generate_article_preview
+    module = _load_generator_module(generator_name)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 89, in _load_generator_module
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 923, in get_code
+  File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-18.py", line 356
+    {media}"""
+              ^
+SyntaxError: f-string: single '}' is not allowed
+INFO:     127.0.0.1:54979 - "POST /generate-article-preview/generator-17 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54975 - "POST /generate-article-preview/generator-16 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54978 - "POST /generate-article-preview/generator-2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62753 - "POST /generate-article-preview/generator-3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60185 - "POST /generate-article-preview/generator-4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60186 - "POST /generate-article-preview/generator-5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60188 - "POST /generate-article-preview/generator-8 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 289, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 291, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:60184 - "POST /generate-article-preview/generator-7 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 289, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 291, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:60187 - "POST /generate-article-preview/generator-6 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58689 - "POST /generate-article-preview/generator-9 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58090 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51253 - "POST /generate-article-preview/generator-1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56412 - "POST /generate-article-preview/generator-12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56411 - "POST /generate-article-preview/generator-11 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56410 - "POST /generate-article-preview/generator-10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61771 - "POST /generate-article-preview/generator-13 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51571 - "POST /generate-article-preview/generator-14 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63175 - "POST /generate-article-preview/generator-15 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54921 - "POST /generate-article-preview/generator-16 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54920 - "POST /generate-article-preview/generator-17 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54919 - "POST /generate-article-preview/generator-18 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51956 - "POST /generate-article-preview/generator-19 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50133 - "POST /generate-article-preview/generator-2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64363 - "POST /generate-article-preview/generator-20 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52303 - "POST /generate-article-preview/generator-4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52302 - "POST /generate-article-preview/generator-3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52304 - "POST /generate-article-preview/generator-5 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 289, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 291, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:53545 - "POST /generate-article-preview/generator-6 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 289, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 291, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:61250 - "POST /generate-article-preview/generator-7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53714 - "POST /generate-article-preview/generator-8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54439 - "POST /generate-article-preview/generator-9 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62018 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [11112]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [14392]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [21480]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [21204]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [15084]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:57789 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57567 - "POST /generate-article-preview/generator-10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57562 - "POST /generate-article-preview/generator-1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57564 - "POST /generate-article-preview/generator-13 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57566 - "POST /generate-article-preview/generator-11 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57565 - "POST /generate-article-preview/generator-12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57563 - "POST /generate-article-preview/generator-14 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50069 - "POST /generate-article-preview/generator-18 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50068 - "POST /generate-article-preview/generator-16 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50071 - "POST /generate-article-preview/generator-17 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50070 - "POST /generate-article-preview/generator-15 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50073 - "POST /generate-article-preview/generator-2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50072 - "POST /generate-article-preview/generator-19 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54937 - "POST /generate-article-preview/generator-4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54938 - "POST /generate-article-preview/generator-5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54941 - "POST /generate-article-preview/generator-20 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 289, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 291, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:54942 - "POST /generate-article-preview/generator-3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54939 - "POST /generate-article-preview/generator-21 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54940 - "POST /generate-article-preview/generator-6 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56827 - "POST /generate-article-preview/generator-8 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 289, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 291, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:56826 - "POST /generate-article-preview/generator-7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56828 - "POST /generate-article-preview/generator-9 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57141 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58068 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56721 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64969 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51222 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59812 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60208 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54110 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52973 - "GET /generators/generator-1/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52109 - "POST /generate-article-preview/generator-1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49748 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54222 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57521 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59339 - "GET /generators/generator-1/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49301 - "POST /generate-article-preview/generator-1 HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [9136]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:56334 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [4260]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [22508]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [19344]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [25392]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:55019 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57849 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51937 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [25636]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [8352]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50956 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [25016]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50624 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53098 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61057 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55467 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [2632]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:63184 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54932 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58317 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49674 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53554 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53978 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51891 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [27592]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:52795 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61875 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [11564]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:61405 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55595 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54001 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [25052]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [23980]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:63777 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62059 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55493 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55378 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61349 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [26300]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [8756]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [4064]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+
+--- Started ---
+INFO:     Started server process [16940]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:63782 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61079 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61404 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61021 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49940 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53154 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51839 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58461 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64353 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [2248]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:62008 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58377 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54377 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [22588]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60950 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52361 - "GET /generators HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [4116]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60152 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59613 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62162 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51441 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58812 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53694 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58573 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64239 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51893 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62259 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50693 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51780 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63459 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56717 - "GET /generators HTTP/1.1" 200 OK

@@ -5,6 +5,7 @@ import json
 import logging
 import openai
 from config import get_openai_client
+from keyutil import parse_groq_api_keys
 
 log = logging.getLogger(__name__)
 
@@ -85,7 +86,7 @@ def _fix_drink_board_mismatch(board_slug: str, recipe_val: dict, title: str, boa
     return board_slug
 
 
-def generate_image_prompts_for_title(title: str, categories_list: list = None, user_config: dict = None, ai_provider: str = None, openai_model: str = None, openrouter_model: str = None, local_model: str = None, llamacpp_model_id=None, pinterest_boards: list = None) -> dict:
+def generate_image_prompts_for_title(title: str, categories_list: list = None, user_config: dict = None, ai_provider: str = None, openai_model: str = None, openrouter_model: str = None, groq_model: str = None, local_model: str = None, llamacpp_model_id=None, pinterest_boards: list = None) -> dict:
     """Generate prompt, prompt_image_ingredients, recipe, course, and optionally board_slug for a recipe title via LLM.
     categories_list: domain's categories (strings or {categorie:...}). AI picks the best matching one.
     pinterest_boards: optional list of {name, slug, count} for RSS board assignment; AI picks one slug (prefer smallest count).
@@ -106,6 +107,68 @@ def generate_image_prompts_for_title(title: str, categories_list: list = None, u
                 return {"error": "OpenAI API key not configured"}
             client = openai.OpenAI(api_key=key)
             ai_model = openai_model or user_config.get("openai_model") or "gpt-4o-mini"
+        elif p == "groq":
+            gq_keys = user_config.get("groq_api_keys")
+            if not isinstance(gq_keys, list) or not gq_keys:
+                gq_keys = parse_groq_api_keys(user_config.get("groq_api_key"))
+            if not gq_keys:
+                return {"error": "Groq API key not configured"}
+            ai_model = groq_model or user_config.get("groq_model") or "llama-3.3-70b-versatile"
+            base_i = abs(hash(title or "")) % len(gq_keys)
+            last_err = None
+            max_tries = min(3, len(gq_keys))
+            for t in range(max_tries):
+                key = gq_keys[(base_i + t) % len(gq_keys)]
+                try:
+                    client = openai.OpenAI(base_url="https://api.groq.com/openai/v1", api_key=key)
+                    sys_prompt = _read_prompt_image_prompts() or """Generate image prompts, recipe, and category. Return JSON: {"prompt": "...", "prompt_image_ingredients": "...", "recipe": {...}, "course": "..."}"""
+                    cats = _normalize_categories_list(categories_list or [])
+                    cats_str = json.dumps(cats) if cats else "[]"
+                    user_msg = f"Recipe title: {title or 'Recipe'}\n\nCATEGORIES: {cats_str}"
+                    boards = pinterest_boards or []
+                    if boards:
+                        boards_str = json.dumps([{"name": b.get("name"), "slug": b.get("slug"), "count": b.get("count", 0)} for b in boards if b.get("slug")], ensure_ascii=False)
+                        user_msg += f"\n\nBOARDS: {boards_str}"
+                    log.info("[generate_image_prompts] Calling groq for: %s (key %s/%s)", (title or "Recipe")[:50], t + 1, max_tries)
+                    resp = client.chat.completions.create(
+                        model=ai_model,
+                        messages=[
+                            {"role": "system", "content": sys_prompt},
+                            {"role": "user", "content": user_msg},
+                        ],
+                        temperature=0.5,
+                        max_tokens=2500,
+                        timeout=120.0,
+                    )
+                    raw = resp.choices[0].message.content or ""
+                    result = _extract_json(raw)
+                    prompt = str(result.get("prompt", "") or "").strip()
+                    prompt_ing = str(result.get("prompt_image_ingredients", "") or "").strip()
+                    if not prompt or len(prompt) < 25:
+                        prompt = f"Professional food photography of {title or 'Recipe'}, overhead shot, natural lighting, editorial style --v 6.1"
+                    if not prompt_ing or len(prompt_ing) < 25:
+                        prompt_ing = f"Flat-lay of ingredients for {title or 'Recipe'}, white surface, natural light, editorial style --v 6.1"
+                    recipe_val = result.get("recipe")
+                    course_val = str(result.get("course") or (recipe_val.get("course") if isinstance(recipe_val, dict) else "") or "").strip()
+                    if isinstance(recipe_val, dict) and course_val and not recipe_val.get("course"):
+                        recipe_val["course"] = course_val
+                    elif not course_val and isinstance(recipe_val, dict) and recipe_val.get("course"):
+                        course_val = str(recipe_val["course"] or "").strip()
+                    if not course_val and cats:
+                        course_val = cats[0] if cats else ""
+                    recipe_str = json.dumps(recipe_val, ensure_ascii=False) if isinstance(recipe_val, dict) else ""
+                    out = {"prompt": prompt, "prompt_image_ingredients": prompt_ing, "recipe": recipe_str, "course": course_val}
+                    valid_slugs = {str(b.get("slug", "")).strip() for b in boards if b.get("slug")}
+                    board_slug = str(result.get("board_slug") or "").strip()
+                    if board_slug and board_slug in valid_slugs:
+                        board_slug = _fix_drink_board_mismatch(board_slug, recipe_val, title, boards)
+                        out["board_slug"] = board_slug
+                    return out
+                except Exception as e:
+                    last_err = e
+                    log.warning("[generate_image_prompts] Groq attempt %s/%s failed: %s", t + 1, max_tries, e)
+                    continue
+            return {"error": str(last_err) if last_err else "Groq generation failed after key retries"}
         elif p == "local":
             url = (user_config.get("local_api_url") or "http://localhost:11434").rstrip("/")
             if "/v1" not in url and "/api" not in url:
@@ -214,7 +277,15 @@ def generate_image_prompts_for_title(title: str, categories_list: list = None, u
             out["board_slug"] = board_slug
         return out
     except Exception as e:
-        return {"error": str(e)}
+        err = str(e)
+        # OpenRouter returns 401 with message "User not found" for invalid/revoked API keys (not "user" of this app).
+        if "401" in err and ("user not found" in err.lower() or "'code': 401" in err):
+            err = (
+                "OpenRouter rejected the API key (401). That message means the key is invalid, revoked, or not from "
+                "https://openrouter.ai/keys — not your app login. Create a new key there, paste it in Profile → "
+                "OpenRouter Key (no 'Bearer' prefix), Save, and retry."
+            )
+        return {"error": err}
 
 
 def _read_prompt_article_a() -> str:

@@ -8,6 +8,7 @@ POST /generate-article/{name}       - Generate content (payload: CONFIG, respons
 Run: uvicorn route:app --reload
 """
 import copy
+import inspect
 import json
 import logging
 import os
@@ -31,6 +32,10 @@ try:
     from ai_client import calculate_cost_from_usage
 except ImportError:
     calculate_cost_from_usage = None
+try:
+    from groq_keys_util import parse_groq_api_keys
+except ImportError:
+    parse_groq_api_keys = None
 
 # Round-robin OpenRouter models: each GROUP uses a different block of 4 models.
 # Group 0 → models 0,1,2,3; Group 1 → models 4,5,6,7; Group 2 → 8,0,1,2; etc.
@@ -168,7 +173,14 @@ def generate_article_preview(generator_name: str, config: dict = Body(...)):
     ArticleGenerator = getattr(module, "ArticleGenerator", None)
     if ArticleGenerator is not None:
         try:
-            generator = ArticleGenerator()
+            sig = inspect.signature(ArticleGenerator.__init__)
+            if "config_override" in sig.parameters:
+                generator = ArticleGenerator(config_override=merged_config)
+            elif "config" in sig.parameters:
+                generator = ArticleGenerator(config=merged_config)
+            else:
+                module.CONFIG = merged_config
+                generator = ArticleGenerator()
             if hasattr(generator, "run_preview"):
                 return generator.run_preview()
             
@@ -271,7 +283,6 @@ def generate_article_preview(generator_name: str, config: dict = Body(...)):
                     "recipe_calories": "350 kcal"
                 }
 
-                import inspect
                 html_method = getattr(generator, "generate_html", None) or getattr(generator, "build_html", None)
                 if html_method:
                     sig = inspect.signature(html_method)
@@ -350,6 +361,16 @@ def generate_article(generator_name: str, config: dict = Body(...)):
     # Keys must come from the request (multi-domain-clean Profile). Do not use generator .env so we never send a wrong key.
     openai_key = (merged.get("openai_api_key") or "").strip()
     openrouter_key = (merged.get("openrouter_api_key") or "").strip()
+    groq_key = (merged.get("groq_api_key") or "").strip()
+    groq_keys_list = merged.get("groq_api_keys")
+    if isinstance(groq_keys_list, list) and groq_keys_list:
+        groq_keys_list = [str(k).strip() for k in groq_keys_list if str(k).strip()]
+    elif parse_groq_api_keys:
+        groq_keys_list = parse_groq_api_keys(merged.get("groq_api_key") or "")
+    else:
+        groq_keys_list = [groq_key] if groq_key else []
+    if groq_keys_list:
+        groq_key = groq_keys_list[0]
     ai_provider = (merged.get("ai_provider") or os.getenv("AI_PROVIDER", "openrouter")).lower()
     if ai_provider == "openai" and not openai_key:
         raise HTTPException(
@@ -360,6 +381,11 @@ def generate_article(generator_name: str, config: dict = Body(...)):
         raise HTTPException(
             status_code=400,
             detail="OpenRouter API key not provided. Add it in multi-domain-clean → Profile and run again. The generator does not use its own .env for keys when called from multi-domain-clean.",
+        )
+    if ai_provider == "groq" and not groq_keys_list:
+        raise HTTPException(
+            status_code=400,
+            detail="Groq API key not provided. Add it in multi-domain-clean → Profile (https://console.groq.com/keys) and run again.",
         )
     if ai_provider == "llamacpp":
         llamacpp_manager_url = (merged.get("llamacpp_manager_url") or os.getenv("LLAMACPP_MANAGER_URL", "")).strip().rstrip("/")
@@ -372,9 +398,11 @@ def generate_article(generator_name: str, config: dict = Body(...)):
         merged["llamacpp_model_id"] = int(llamacpp_model_id)
     merged["openai_api_key"] = openai_key or None
     merged["openrouter_api_key"] = openrouter_key or None
+    merged["groq_api_key"] = groq_key or None
     has_openai_key = bool(merged.get("openai_api_key"))
     has_openrouter_key = bool(merged.get("openrouter_api_key"))
-    log.info("[generate-article] generator=%s ai_provider=%s has_openai_key=%s has_openrouter_key=%s", generator_name, ai_provider, has_openai_key, has_openrouter_key)
+    has_groq_key = bool(groq_keys_list)
+    log.info("[generate-article] generator=%s ai_provider=%s has_openai_key=%s has_openrouter_key=%s has_groq_key=%s", generator_name, ai_provider, has_openai_key, has_openrouter_key, has_groq_key)
     domain_index = merged.get("domain_index")
     openrouter_models = merged.get("openrouter_models")
     local_model = merged.get("local_model")
@@ -394,6 +422,34 @@ def generate_article(generator_name: str, config: dict = Body(...)):
         log.info("[generate-article] local provider with model=%s", local_model)
     elif ai_provider == "llamacpp":
         log.info("[generate-article] llamacpp provider with model_id=%s", merged.get("llamacpp_model_id"))
+    elif ai_provider == "groq":
+        gm = (merged.get("groq_model") or os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")).strip()
+        merged["groq_model"] = gm
+        n_gk = len(groq_keys_list) if groq_keys_list else 0
+        g_start = merged.get("groq_start_index")
+        title_s = str(merged.get("title") or "")
+        tid = merged.get("title_id")
+        g_base = 0
+        if n_gk:
+            if g_start is not None:
+                try:
+                    g_base = int(g_start) % n_gk
+                except (TypeError, ValueError):
+                    g_base = abs(hash(title_s)) % n_gk
+            elif domain_index is not None:
+                try:
+                    g_base = int(domain_index) % n_gk
+                except (TypeError, ValueError):
+                    g_base = abs(hash(title_s)) % n_gk
+            elif tid is not None:
+                try:
+                    g_base = int(tid) % n_gk
+                except (TypeError, ValueError):
+                    g_base = abs(hash(title_s)) % n_gk
+            else:
+                g_base = abs(hash(title_s)) % n_gk
+        merged["_groq_key_base_index"] = g_base
+        log.info("[generate-article] groq provider model=%s keys=%s start_index=%s", gm, n_gk, g_base)
 
     ArticleGenerator = getattr(module, "ArticleGenerator", None)
     if ArticleGenerator is None:
@@ -423,6 +479,18 @@ def generate_article(generator_name: str, config: dict = Body(...)):
                     model_idx,
                     chosen_model,
                 )
+            elif ai_provider == "groq" and groq_keys_list:
+                g_base = int(merged.get("_groq_key_base_index") or 0) % len(groq_keys_list)
+                g_idx = (g_base + attempt) % len(groq_keys_list)
+                merged["groq_api_key"] = groq_keys_list[g_idx]
+                module.CONFIG = dict(merged)
+                log.info(
+                    "[generate-article] groq attempt %s/%s key_index=%s/%s",
+                    attempt + 1,
+                    max_attempts,
+                    g_idx,
+                    len(groq_keys_list),
+                )
             else:
                 module.CONFIG = merged  # non-OpenRouter: config unchanged across attempts
 
@@ -442,11 +510,20 @@ def generate_article(generator_name: str, config: dict = Body(...)):
                         e,
                     )
                     continue
-                
+                if ai_provider == "groq" and groq_keys_list and attempt < max_attempts - 1:
+                    log.warning(
+                        "[generate-article] generation error (attempt %s/%s), retrying with next Groq key: %s",
+                        attempt + 1,
+                        max_attempts,
+                        e,
+                    )
+                    continue
                 if ai_provider == "openrouter":
                     log.warning("[generate-article] generation error on final attempt: %s", e)
                     break
-                    
+                if ai_provider == "groq":
+                    log.warning("[generate-article] Groq generation error on final key attempt: %s", e)
+                    break
                 raise
 
             # Add model_used for article_content table (provider -> model). Always use full format.
@@ -461,6 +538,9 @@ def generate_article(generator_name: str, config: dict = Body(...)):
                         content_data["model_used"] = f"local -> {model}"
                     elif ai_provider == "llamacpp":
                         content_data["model_used"] = f"llamacpp -> model_id {merged.get('llamacpp_model_id')}"
+                    elif ai_provider == "groq":
+                        model = merged.get("groq_model") or os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+                        content_data["model_used"] = f"groq -> {model}"
                     else:
                         model = merged.get("openai_model") or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
                         content_data["model_used"] = f"openai -> {model}"
@@ -470,11 +550,18 @@ def generate_article(generator_name: str, config: dict = Body(...)):
                 usage = content_data.get("usage")
                 if isinstance(usage, dict) and calculate_cost_from_usage:
                     provider = (ai_provider or "openai").lower()
-                    model = merged.get("openrouter_model") if provider == "openrouter" else merged.get("openai_model")
+                    if provider == "openrouter":
+                        model = merged.get("openrouter_model")
+                    elif provider == "groq":
+                        model = merged.get("groq_model")
+                    else:
+                        model = merged.get("openai_model")
                     if not model and provider == "openai":
                         model = merged.get("openai_model") or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
                     if not model and provider == "openrouter":
                         model = merged.get("openrouter_model") or os.getenv("OPENROUTER_MODEL", "openai/gpt-oss-120b")
+                    if not model and provider == "groq":
+                        model = merged.get("groq_model") or os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
                     if model:
                         cost = calculate_cost_from_usage(usage, str(model), provider)
                         if cost is not None:
@@ -484,19 +571,32 @@ def generate_article(generator_name: str, config: dict = Body(...)):
 
             if not _is_content_failure(content_data):
                 break
-            if ai_provider != "openrouter" or attempt >= max_attempts - 1:
-                log.warning("[generate-article] content failure and no more retries (provider=%s attempt=%s)", ai_provider, attempt + 1)
-                break
-            log.warning(
-                "[generate-article] content failure (placeholder or empty), retrying with different OpenRouter model (attempt %s/%s)",
-                attempt + 1,
-                max_attempts,
-            )
+            if ai_provider == "openrouter" and attempt < max_attempts - 1:
+                log.warning(
+                    "[generate-article] content failure (placeholder or empty), retrying with different OpenRouter model (attempt %s/%s)",
+                    attempt + 1,
+                    max_attempts,
+                )
+                continue
+            if ai_provider == "groq" and groq_keys_list and attempt < max_attempts - 1:
+                log.warning(
+                    "[generate-article] content failure, retrying with next Groq key (attempt %s/%s)",
+                    attempt + 1,
+                    max_attempts,
+                )
+                continue
+            log.warning("[generate-article] content failure and no more retries (provider=%s attempt=%s)", ai_provider, attempt + 1)
+            break
 
         if content_data is None:
             if ai_provider == "openrouter":
                 raise ValueError(
                     "Content generation failed after %s attempt(s). Last error: %s"
+                    % (max_attempts, last_error)
+                )
+            if ai_provider == "groq":
+                raise ValueError(
+                    "Content generation failed after %s Groq key attempt(s). Last error: %s"
                     % (max_attempts, last_error)
                 )
             raise RuntimeError(last_error or "Generator did not return data")
@@ -520,7 +620,7 @@ def generate_article(generator_name: str, config: dict = Body(...)):
                 content_data[k] = ""
         return content_data
     except ValueError as e:
-        log.warning("[generate-article] 400: %s (generator=%s ai_provider=%s has_openai_key=%s has_openrouter_key=%s)", e, generator_name, ai_provider, has_openai_key, has_openrouter_key)
+        log.warning("[generate-article] 400: %s (generator=%s ai_provider=%s has_openai_key=%s has_openrouter_key=%s has_groq_key=%s)", e, generator_name, ai_provider, has_openai_key, has_openrouter_key, has_groq_key)
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         tb = traceback.format_exc()
