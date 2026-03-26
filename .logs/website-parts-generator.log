@@ -40606,3 +40606,9 @@ INFO:     Started server process [7124]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+INFO:     127.0.0.1:53355 - "POST /generate/domain_page/theme_11/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58785 - "POST /generate/domain_page/theme_11/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60401 - "POST /generate/domain_page/theme_11/sidebar HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60246 - "POST /generate/domain_page/theme_11/header HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54178 - "POST /generate/domain_page/theme_11/footer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58592 - "POST /generate/domain_page/theme_11/sidebar HTTP/1.1" 200 OK

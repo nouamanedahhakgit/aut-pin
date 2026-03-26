@@ -4,8 +4,9 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install system deps for psycopg2, Pillow, etc.
+# Node.js + npm are required for Cloudflare deploy (wrangler via npx).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc libpq-dev \
+    gcc libpq-dev nodejs npm \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy and install Python dependencies
