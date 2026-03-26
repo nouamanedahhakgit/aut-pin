@@ -150,6 +150,21 @@ def _generate_texts_via_openai(title, prompt, field_prompts, config=None, field_
             return {}
         else:
             client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key)
+    elif provider == "groq":
+        api_key = (cfg.get("groq_api_key") or os.environ.get("GROQ_API_KEY", "")).strip()
+        model = (cfg.get("groq_model") or os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile"))
+        if not api_key:
+            log.warning("Groq skipped: no groq_api_key in config or env")
+            return {}
+        client = OpenAI(base_url="https://api.groq.com/openai/v1", api_key=api_key)
+    elif provider == "local":
+        base_raw = (cfg.get("local_api_url") or os.environ.get("LOCAL_API_URL", "http://127.0.0.1:11434/api/generate")).strip()
+        if "/api/generate" in base_raw:
+            base_url = base_raw.split("/api/generate")[0].rstrip("/") + "/v1"
+        else:
+            base_url = base_raw.rstrip("/") if base_raw.endswith("/v1") else (base_raw.rstrip("/") + "/v1")
+        model = (cfg.get("local_model") or os.environ.get("LOCAL_MODEL", "qwen3:8b")).strip()
+        client = OpenAI(base_url=base_url, api_key=(cfg.get("local_api_key") or "ollama"))
     else:
         api_key = (cfg.get("openai_api_key") or os.environ.get("OPENAI_API_KEY", "")).strip()
         model = (cfg.get("openai_model") or os.environ.get("OPENAI_MODEL", "gpt-4o-mini"))
@@ -261,18 +276,66 @@ def _html_to_screenshot_base64(html, width=600, height=1067):
     return ("data:image/png;base64," + base64.b64encode(raw).decode("utf-8")) if raw else None
 
 
-def _upload_png_to_r2(png_bytes):
+_R2_KEYS = ("r2_account_id", "r2_access_key_id", "r2_secret_access_key", "r2_bucket_name", "r2_public_url")
+
+
+def _normalize_r2_config(d):
+    """Return dict with all five R2 keys (multi-domain profile / Pin API JSON) or None if incomplete."""
+    if not isinstance(d, dict) or not d:
+        return None
+    out = {}
+    for k in _R2_KEYS:
+        v = d.get(k)
+        if v is None or (isinstance(v, str) and not str(v).strip()):
+            return None
+        out[k] = str(v).strip()
+    out["r2_public_url"] = out["r2_public_url"].rstrip("/")
+    return out
+
+
+def _r2_config_from_request_body(body):
+    """Build R2 config from POST JSON (flat keys and/or nested body.r2). Read-only."""
+    if not isinstance(body, dict):
+        return None
+    merged = {}
+    for k in _R2_KEYS:
+        v = body.get(k)
+        if v is not None and str(v).strip():
+            merged[k] = v
+    nested = body.get("r2")
+    if isinstance(nested, dict):
+        for k in _R2_KEYS:
+            if k not in merged and nested.get(k) is not None and str(nested.get(k)).strip():
+                merged[k] = nested[k]
+    return _normalize_r2_config(merged)
+
+
+def _upload_png_to_r2(png_bytes, r2_config=None):
     """
     Upload PNG bytes to Cloudflare R2. Returns public URL string or None on failure.
-    Expects env: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_PUBLIC_URL.
+    r2_config: optional dict with r2_account_id, r2_access_key_id, r2_secret_access_key,
+      r2_bucket_name, r2_public_url (same as multi-domain-clean profile). When set, used instead of env.
+    Fallback env: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_PUBLIC_URL.
     """
-    account_id = os.environ.get("R2_ACCOUNT_ID")
-    access_key = os.environ.get("R2_ACCESS_KEY_ID")
-    secret_key = os.environ.get("R2_SECRET_ACCESS_KEY")
-    bucket = os.environ.get("R2_BUCKET_NAME")
-    public_base = (os.environ.get("R2_PUBLIC_URL") or "").rstrip("/")
+    account_id = access_key = secret_key = bucket = public_base = None
+    norm = _normalize_r2_config(r2_config) if r2_config else None
+    if norm:
+        account_id = norm["r2_account_id"]
+        access_key = norm["r2_access_key_id"]
+        secret_key = norm["r2_secret_access_key"]
+        bucket = norm["r2_bucket_name"]
+        public_base = norm["r2_public_url"]
+    else:
+        account_id = os.environ.get("R2_ACCOUNT_ID")
+        access_key = os.environ.get("R2_ACCESS_KEY_ID")
+        secret_key = os.environ.get("R2_SECRET_ACCESS_KEY")
+        bucket = os.environ.get("R2_BUCKET_NAME")
+        public_base = (os.environ.get("R2_PUBLIC_URL") or "").strip().rstrip("/") or None
     if not all([account_id, access_key, secret_key, bucket, public_base]):
-        log.warning("R2 upload skipped: missing env (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_PUBLIC_URL)")
+        log.warning(
+            "R2 upload skipped: set R2_* env on the Pin API process, or pass r2_account_id, r2_access_key_id, "
+            "r2_secret_access_key, r2_bucket_name, r2_public_url in the JSON body (from your Profile)."
+        )
         return None
     size_k = (len(png_bytes) + 512) // 1024
     log.info("R2 upload | bucket=%s | size=%d KB", bucket, size_k)
@@ -579,7 +642,18 @@ def run_server(available_templates, host="0.0.0.0", port=5000):
         # Apply layout/position/domain overrides BEFORE AI, so AI-generated text is not overwritten (same as Python /generate)
         apply_overrides(merged, body)
         # OpenAI text for fields with field_prompts — runs after apply_overrides so generated text wins
-        ai_config = {k: body[k] for k in ("openai_api_key", "openrouter_api_key", "ai_provider", "openai_model", "openrouter_model") if k in body}
+        _ai_keys = (
+            "openai_api_key",
+            "openrouter_api_key",
+            "groq_api_key",
+            "ai_provider",
+            "openai_model",
+            "openrouter_model",
+            "groq_model",
+            "local_api_url",
+            "local_model",
+        )
+        ai_config = {k: body[k] for k in _ai_keys if k in body and body[k] is not None}
         title = (body.get("variables") or {}).get("title") or body.get("title") or body.get("name")
         domain = (body.get("variables") or {}).get("domain") or body.get("domain") or "example.com"
         if title and isinstance(title, str):
@@ -614,7 +688,9 @@ def run_server(available_templates, host="0.0.0.0", port=5000):
     def generate_from_html():
         """
         Generate a pin image from raw HTML (e.g. from JavaScript renderer).
-        Body (JSON): { "html": "<!DOCTYPE html>...", "width": 600, "height": 1067 }
+        Body (JSON): { "html": "<!DOCTYPE html>...", "width": 600, "height": 1067,
+          optional R2 (per-profile, same keys as multi-domain-clean): r2_account_id, r2_access_key_id,
+          r2_secret_access_key, r2_bucket_name, r2_public_url — or nested under "r2": { ... }.
         Returns: same shape as /generate (screenshot_base64, image_url).
         """
         try:
@@ -629,14 +705,15 @@ def run_server(available_templates, host="0.0.0.0", port=5000):
                 h = int(body.get("height") or 1067)
             except (TypeError, ValueError):
                 w, h = 600, 1067
-            log.info("POST /generate-from-html | %dx%d | html_len=%d", w, h, len(html))
+            r2_cfg = _r2_config_from_request_body(body)
+            log.info("POST /generate-from-html | %dx%d | html_len=%d | r2=%s", w, h, len(html), "profile/body" if r2_cfg else "env")
             screenshot_bytes = _html_to_screenshot_bytes(html, width=w, height=h)
             if not screenshot_bytes:
                 return jsonify({
                     "success": False,
                     "error": "Screenshot failed (install playwright + chromium: pip install playwright && playwright install chromium)",
                 }), 500
-            image_url = _upload_png_to_r2(screenshot_bytes)
+            image_url = _upload_png_to_r2(screenshot_bytes, r2_cfg)
             payload = {"success": True}
             if image_url:
                 payload["image_url"] = image_url
@@ -682,9 +759,30 @@ def run_server(available_templates, host="0.0.0.0", port=5000):
             variables = None
         # API keys from multi-domain-clean profile (passed in body)
         ai_config = {}
-        for k in ("openai_api_key", "openrouter_api_key", "ai_provider", "openai_model", "openrouter_model"):
+        _ai_keys_gen = (
+            "openai_api_key",
+            "openrouter_api_key",
+            "groq_api_key",
+            "ai_provider",
+            "openai_model",
+            "openrouter_model",
+            "groq_model",
+            "local_api_url",
+            "local_model",
+        )
+        for k in _ai_keys_gen:
             if k in body:
                 ai_config[k] = body.pop(k)
+        r2_upload_cfg = {}
+        for k in _R2_KEYS:
+            if k in body:
+                r2_upload_cfg[k] = body.pop(k)
+        nested_r2 = body.pop("r2", None)
+        if isinstance(nested_r2, dict):
+            for k in _R2_KEYS:
+                if k in nested_r2 and nested_r2[k] is not None:
+                    r2_upload_cfg.setdefault(k, nested_r2[k])
+        r2_upload_cfg = _normalize_r2_config(r2_upload_cfg)
         body_keys = list(body.keys()) if isinstance(body, dict) else []
         title_from_req = (variables or {}).get("title") or body.get("title") or body.get("name")
         log.info("  body keys=%s | variables.title=%s", body_keys, (title_from_req[:40] + "..." if isinstance(title_from_req, str) and len(title_from_req) > 40 else title_from_req))
@@ -803,7 +901,7 @@ def run_server(available_templates, host="0.0.0.0", port=5000):
                         pass
                 screenshot_bytes = _html_to_screenshot_bytes(index_html, width=w, height=h)
                 if screenshot_bytes:
-                    image_url = _upload_png_to_r2(screenshot_bytes)
+                    image_url = _upload_png_to_r2(screenshot_bytes, r2_upload_cfg)
                     if image_url:
                         payload["image_url"] = image_url
                         log.info("Response | success | image_url=%s", image_url)

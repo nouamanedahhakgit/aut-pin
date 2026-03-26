@@ -1195,7 +1195,7 @@ function _updateBulkModalAiHints(prefix) {{
     fetch('/api/ollama-models').then(function(r){{ return r.json(); }}).then(function(d){{
       var models = d.models || [];
       var current = window._profileLocalModel || '';
-      ['bulkModal','bulkGroupModal','bulkDomainModal','bulkAllGroupsModal'].forEach(function(p){{
+      ['bulkModal','bulkGroupModal','bulkDomainModal','bulkAllGroupsModal','pinPicker'].forEach(function(p){{
         var locSel = document.getElementById(p + 'LocalModel');
         if (locSel && models.length) {{
           locSel.innerHTML = '';
@@ -1210,7 +1210,7 @@ function _updateBulkModalAiHints(prefix) {{
     fetch('/api/llamacpp-models').then(function(r){{ return r.json(); }}).then(function(d){{
       var models = d.models || d.model_options || [];
       var current = (window._profileLlamaCppModelId || '') + '';
-      ['bulkModal','bulkGroupModal','bulkDomainModal','bulkAllGroupsModal'].forEach(function(p){{
+      ['bulkModal','bulkGroupModal','bulkDomainModal','bulkAllGroupsModal','pinPicker'].forEach(function(p){{
         var sel = document.getElementById(p + 'LlamaCppModel');
         if (sel && models.length) {{
           sel.innerHTML = '';
@@ -1231,7 +1231,7 @@ function _updateBulkModalAiHints(prefix) {{
       window._openRouterModelOptionsList = modelOptions;
       var blackMode = document.querySelector('input[name="bulkGroupModalOpenRouterMode"][value="rotation_blacklist"]');
       var useAllFree = blackMode && blackMode.checked;
-      ['bulkModal','bulkGroupModal','bulkDomainModal','bulkAllGroupsModal'].forEach(function(p){{
+      ['bulkModal','bulkGroupModal','bulkDomainModal','bulkAllGroupsModal','pinPicker'].forEach(function(p){{
         var m = document.getElementById(p + 'OpenRouterModels');
         if (m) {{
           m.innerHTML = '';
@@ -1263,7 +1263,7 @@ function _updateBulkModalAiHints(prefix) {{
       Promise.all([fetch('/api/openai-models').then(function(r){{ return r.json(); }}), fetch('/api/profile-ai-defaults').then(function(r){{ return r.json(); }})]).then(function(arr){{
         var modelOptions = arr[0].model_options || arr[0].models || [];
         var defaultOai = (arr[1] || {{}}).openai_model || 'gpt-4o-mini';
-        ['bulkModal','bulkGroupModal','bulkDomainModal','bulkAllGroupsModal'].forEach(function(p){{
+        ['bulkModal','bulkGroupModal','bulkDomainModal','bulkAllGroupsModal','pinPicker'].forEach(function(p){{
         var m = document.getElementById(p + 'OpenAIModel');
           if (m) {{ m.innerHTML = ''; modelOptions.forEach(function(item){{ var id = typeof item === 'string' ? item : item.id; var label = typeof item === 'string' ? item : (item.label || item.id); var o = document.createElement('option'); o.value = id; o.textContent = label; m.appendChild(o); }}); for (var i = 0; i < m.options.length; i++) {{ if (m.options[i].value === defaultOai) {{ m.selectedIndex = i; break; }} }} }}
         }});
@@ -1277,7 +1277,7 @@ function _updateBulkModalAiHints(prefix) {{
       Promise.all([fetch('/api/groq-models').then(function(r){{ return r.json(); }}), fetch('/api/profile-ai-defaults').then(function(r){{ return r.json(); }})]).then(function(arr){{
         var modelOptions = arr[0].model_options || arr[0].models || [];
         var defaultGq = (arr[1] || {{}}).groq_model || 'llama-3.3-70b-versatile';
-        ['bulkModal','bulkGroupModal','bulkDomainModal','bulkAllGroupsModal'].forEach(function(p){{
+        ['bulkModal','bulkGroupModal','bulkDomainModal','bulkAllGroupsModal','pinPicker'].forEach(function(p){{
           var m = document.getElementById(p + 'GroqModel');
           if (m) {{ m.innerHTML = ''; modelOptions.forEach(function(item){{ var id = typeof item === 'string' ? item : item.id; var label = typeof item === 'string' ? item : (item.label || item.id); var o = document.createElement('option'); o.value = id; o.textContent = label; m.appendChild(o); }}); for (var i = 0; i < m.options.length; i++) {{ if (m.options[i].value === defaultGq) {{ m.selectedIndex = i; break; }} }} }}
         }});
@@ -1313,7 +1313,7 @@ function _updateBulkModalAiHints(prefix) {{
       label = (prof.ai_provider || '') + ' / profile';
     }}
     var hint = 'AI: ' + label;
-    var btnIds = prefix === 'bulkModal' ? ['bulkModalBtnArticle','bulkModalBtnAll','bulkModalBtnPinterest'] : prefix === 'bulkGroupModal' ? ['bulkGroupBtnArticle','bulkGroupBtnAll','bulkGroupBtnPinterest'] : prefix === 'bulkDomainModal' ? ['bulkDomainBtnArticle','bulkDomainBtnAll','bulkDomainBtnPinterest'] : ['bulkAllGroupsBtnArticle','bulkAllGroupsBtnAll','bulkAllGroupsBtnPinterest'];
+    var btnIds = prefix === 'bulkModal' ? ['bulkModalBtnPrompts','bulkModalBtnArticle','bulkModalBtnAll','bulkModalBtnPinterest'] : prefix === 'bulkGroupModal' ? ['bulkGroupBtnPrompts','bulkGroupBtnArticle','bulkGroupBtnAll','bulkGroupBtnPinterest'] : prefix === 'bulkDomainModal' ? ['bulkDomainBtnPrompts','bulkDomainBtnArticle','bulkDomainBtnAll','bulkDomainBtnPinterest'] : ['bulkAllGroupsBtnPrompts','bulkAllGroupsBtnArticle','bulkAllGroupsBtnAll','bulkAllGroupsBtnPinterest'];
     btnIds.forEach(function(id) {{ var b = document.getElementById(id); if (b) b.title = (b.textContent || '').split(' — ')[0] + ' — ' + hint; }});
   }}).catch(function(){{}});
 }}
@@ -2788,10 +2788,25 @@ function generateForFilteredArticles() {{
   document.getElementById('progressBgBtn').style.display = 'none';
   new bootstrap.Modal(modal).show();
   
-  fetch('/api/bulk-run-filtered', {{
-    method: 'POST',
-    headers: {{ 'Content-Type': 'application/json' }},
-    body: JSON.stringify({{ domain_id: domainId, title_ids: titleIds, mode: mode, async: 1 }})
+  fetch('/api/profile-ai-defaults').then(function(r){{ return r.json(); }}).then(function(prof){{
+    var payload = {{ domain_id: domainId, title_ids: titleIds, mode: mode, async: 1 }};
+    if (prof && prof.ai_provider) payload.ai_provider = prof.ai_provider;
+    if (prof && prof.openai_model) payload.openai_model = prof.openai_model;
+    if (prof && prof.openrouter_model) payload.openrouter_model = prof.openrouter_model;
+    if (prof && prof.groq_model) payload.groq_model = prof.groq_model;
+    if (prof && prof.local_model) payload.local_model = prof.local_model;
+    if (prof && prof.llamacpp_model_id != null && prof.llamacpp_model_id !== '') payload.llamacpp_model_id = prof.llamacpp_model_id;
+    return fetch('/api/bulk-run-filtered', {{
+      method: 'POST',
+      headers: {{ 'Content-Type': 'application/json' }},
+      body: JSON.stringify(payload)
+    }});
+  }}).catch(function(){{
+    return fetch('/api/bulk-run-filtered', {{
+      method: 'POST',
+      headers: {{ 'Content-Type': 'application/json' }},
+      body: JSON.stringify({{ domain_id: domainId, title_ids: titleIds, mode: mode, async: 1 }})
+    }});
   }})
   .then(r=>r.json())
   .then(d=>{{
@@ -3068,6 +3083,43 @@ function openPinPickerModal(titleId) {{
   _pinPickerSelectedTemplateId = null;
   window.lastEditedTitleId = titleId;
   document.getElementById('pinPickerTitleId').value = titleId;
+  var actions = document.getElementById('pinPickerActions');
+  if (actions && !document.getElementById('pinPickerAiProviderWrap')) {{
+    var aiWrap = document.createElement('div');
+    aiWrap.id = 'pinPickerAiProviderWrap';
+    aiWrap.className = 'border-top pt-3 mt-3';
+    aiWrap.innerHTML =
+      '<p class="mb-2 fw-medium small">AI provider (for content):</p>' +
+      '<select id="pinPickerAiProvider" class="form-select form-select-sm mb-2" style="max-width:220px">' +
+        '<option value="openrouter">OpenRouter</option>' +
+        '<option value="openai">OpenAI</option>' +
+        '<option value="groq">Groq</option>' +
+        '<option value="local">Local (Ollama)</option>' +
+        '<option value="llamacpp">llama.cpp</option>' +
+      '</select>' +
+      '<div id="pinPickerOpenAIWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenAI model:</p><select id="pinPickerOpenAIModel" class="form-select form-select-sm" style="max-width:320px"></select></div>' +
+      '<div id="pinPickerGroqWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Groq model:</p><select id="pinPickerGroqModel" class="form-select form-select-sm" style="max-width:320px"></select></div>' +
+      '<div id="pinPickerLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model:</p><select id="pinPickerLocalModel" class="form-select form-select-sm" style="max-width:320px"></select></div>' +
+      '<div id="pinPickerLlamaCppWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">llama.cpp model:</p><select id="pinPickerLlamaCppModel" class="form-select form-select-sm" style="max-width:320px"></select></div>';
+    actions.parentNode.insertBefore(aiWrap, actions);
+  }}
+  var aiSel = document.getElementById('pinPickerAiProvider');
+  if (aiSel) aiSel.value = 'openrouter';
+  var gqSel = document.getElementById('pinPickerGroqModel');
+  if (gqSel) gqSel.innerHTML = '';
+  var oaiSel = document.getElementById('pinPickerOpenAIModel');
+  if (oaiSel) oaiSel.innerHTML = '';
+  var locSel = document.getElementById('pinPickerLocalModel');
+  if (locSel) locSel.innerHTML = '';
+  var llSel = document.getElementById('pinPickerLlamaCppModel');
+  if (llSel) llSel.innerHTML = '';
+  _updateBulkModalAiHints('pinPicker');
+  _applyProfileAiDefaults('pinPicker').catch(function(){{}});
+  if (!window._pinPickerAiWired) {{
+    window._pinPickerAiWired = true;
+    var pSel = document.getElementById('pinPickerAiProvider');
+    if (pSel) pSel.addEventListener('change', function(){{ _updateBulkModalAiHints('pinPicker'); }});
+  }}
   document.getElementById('pinPickerLoading').style.display = 'block';
   document.getElementById('pinPickerEmpty').style.display = 'none';
   document.getElementById('pinPickerGrid').style.display = 'none';
@@ -3131,6 +3183,21 @@ function runPinPicker(foreground) {{
   _hideBsModal('pinPickerModal');
   var data = {{ title_id: parseInt(titleId) }};
   if (templateId) data.domain_template_id = templateId;
+  var aiProvider = (document.getElementById('pinPickerAiProvider') || {{}}).value || '';
+  if (aiProvider) data.ai_provider = aiProvider;
+  if (aiProvider === 'groq') {{
+    var gq = document.getElementById('pinPickerGroqModel');
+    if (gq && gq.value) data.groq_model = gq.value;
+  }} else if (aiProvider === 'openai') {{
+    var oai = document.getElementById('pinPickerOpenAIModel');
+    if (oai && oai.value) data.openai_model = oai.value;
+  }} else if (aiProvider === 'local') {{
+    var loc = document.getElementById('pinPickerLocalModel');
+    if (loc && loc.value) data.local_model = loc.value;
+  }} else if (aiProvider === 'llamacpp') {{
+    var ll = document.getElementById('pinPickerLlamaCppModel');
+    if (ll && ll.value) data.llamacpp_model_id = ll.value;
+  }}
   var modal = document.getElementById('progressModal');
   var body = document.getElementById('progressModalBody');
   renderProgressBody({{ type: 'single', action: 'Pin image', status: 'running', message: 'Starting...', steps: [] }}, body);
@@ -3558,24 +3625,45 @@ if (window.location.pathname.indexOf('/admin/domains') >= 0) {{
 }}
 
 function refreshDomainsTable() {{
+  if (window._domainsRefreshInFlight) {{
+    window._domainsRefreshQueued = true;
+    return;
+  }}
   var urlParams = new URLSearchParams(window.location.search);
   var groupId = urlParams.get('group_id');
   var bulkJobId = urlParams.get('bulk_job_id') || '';
   var tbody = document.getElementById('adminDomainsTableBody');
   if (!tbody) {{ location.reload(); return; }}
   var qs = groupId ? '?group_id=' + groupId + (bulkJobId ? '&bulk_job_id=' + bulkJobId : '') + '&partial=1' : '?partial=1';
-  if (typeof showGlobalLoading === 'function') showGlobalLoading();
+  var progressModalOpen = false;
+  try {{
+    var pmEl = document.getElementById('progressModal');
+    progressModalOpen = !!(pmEl && pmEl.classList && pmEl.classList.contains('show'));
+  }} catch (e) {{}}
+  var hasActiveTaskPoll = (typeof _progressPollInterval !== 'undefined' && !!_progressPollInterval);
+  var useSilentRefresh = progressModalOpen || hasActiveTaskPoll;
+  window._domainsRefreshInFlight = true;
+  if (!useSilentRefresh && typeof showGlobalLoading === 'function') showGlobalLoading();
   fetch('/admin/domains' + qs)
     .then(function(r) {{ return r.json(); }})
     .then(function(data) {{
       if (data && data.rows !== undefined) {{
         tbody.innerHTML = data.rows;
       }} else {{
-        location.reload();
+        if (!useSilentRefresh) location.reload();
       }}
     }})
-    .catch(function() {{ location.reload(); }})
-    .finally(function() {{ if (typeof hideGlobalLoading === 'function') hideGlobalLoading(); }});
+    .catch(function() {{
+      if (!useSilentRefresh) location.reload();
+    }})
+    .finally(function() {{
+      window._domainsRefreshInFlight = false;
+      if (!useSilentRefresh && typeof hideGlobalLoading === 'function') hideGlobalLoading();
+      if (window._domainsRefreshQueued) {{
+        window._domainsRefreshQueued = false;
+        setTimeout(function() {{ refreshDomainsTable(); }}, 150);
+      }}
+    }});
 }}
 
 function clearAllGroups() {{
@@ -6533,6 +6621,8 @@ def api_bulk_run():
             llamacpp_model_id = None
     else:
         llamacpp_model_id = None
+    if not openrouter_model and openrouter_models:
+        openrouter_model = openrouter_models[0]
     if not title_id:
         return jsonify({"success": False, "error": "title_id required"}), 400
     title_id = int(title_id)
@@ -6690,9 +6780,10 @@ def api_bulk_run():
         with get_connection() as conn:
             skip_pins = scope_pins == "empty_only" and not _row_any_needs_pins(conn, title_id, scope_pins)
         if not skip_pins:
+            _pin_kw = _pin_ai_kwargs_from_params(ai_provider, openai_model, openrouter_model, groq_model, local_model, llamacpp_model_id)
             for tid in title_ids[:4]:
                 try:
-                    _do_generate_pin_image(tid, user_id=user_id)
+                    _do_generate_pin_image(tid, user_id=user_id, **_pin_kw)
                 except Exception as e:
                     return jsonify({"success": False, "error": f"Generate pin for title_id {tid}: {e}"}), 500
             done.append("pin_image")
@@ -7086,11 +7177,12 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                     if job_id and mode == "all":
                         _bulk_progress.get(job_id, {})["current_phase"] = 4
                     pin_ok = True
+                    _pin_kw = _pin_ai_kwargs_from_params(ai_provider, openai_model, openrouter_model, groq_model, local_model, llamacpp_model_id)
                     for tid in ids[:4]:
                         if job_id and _bulk_cancel.get(job_id):
                             break
                         try:
-                            _do_generate_pin_image(tid, user_id=user_id)
+                            _do_generate_pin_image(tid, user_id=user_id, **_pin_kw)
                         except Exception as e:
                             failed += 1
                             pin_ok = False
@@ -7613,13 +7705,14 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
                 with get_connection() as conn:
                     skip_pins = sp == "empty_only" and not _row_any_needs_pins(conn, title_id, sp)
                 if not skip_pins:
+                    _pin_kw = _pin_ai_kwargs_from_params(ai_provider, openai_model, openrouter_model, groq_model, local_model, llamacpp_model_id)
                     for idx, tid in enumerate(ids[:4]):
                         if cancel_check and cancel_check():
                             return 0, 0, None
                         letter = "ABCD"[idx]
                         try:
                             _on_dp(title_id, letter, "running")
-                            _do_generate_pin_image(tid, user_id=user_id)
+                            _do_generate_pin_image(tid, user_id=user_id, **_pin_kw)
                             _on_dp(title_id, letter, "done")
                         except Exception as e:
                             _on_dp(title_id, letter, "error")
@@ -8994,6 +9087,9 @@ def api_bulk_run_domain():
     else:
         llamacpp_model_id = None
     groq_model = _parse_groq_model(req)
+    if not openrouter_model and openrouter_models:
+        openrouter_model = openrouter_models[0]
+    _pin_kw_domain = _pin_ai_kwargs_from_params(ai_provider, openai_model, openrouter_model, groq_model, local_model, llamacpp_model_id)
     user = get_current_user()
     user_id = user["id"] if user else None
     job_id = str(uuid.uuid4())
@@ -9077,7 +9173,7 @@ def api_bulk_run_domain():
                     has_pin = row and (row.get("pin_image") or "").strip() and str(row.get("pin_image") or "").startswith("http")
                     need_pin = (scope_pins == "override") or not has_pin
                     if need_pin:
-                        _do_generate_pin_image(tid, user_id=user_id)
+                        _do_generate_pin_image(tid, user_id=user_id, **_pin_kw_domain)
                 total_ok += 1
                 steps = _bulk_progress[job_id].get("steps", [])
                 steps.append(f"✓ [{tid}] {title}")
@@ -9121,6 +9217,9 @@ def api_bulk_run_filtered():
     else:
         llamacpp_model_id = None
     groq_model = _parse_groq_model(req)
+    if not openrouter_model and openrouter_models:
+        openrouter_model = openrouter_models[0]
+    _pin_kw_filtered = _pin_ai_kwargs_from_params(ai_provider, openai_model, openrouter_model, groq_model, local_model, llamacpp_model_id)
 
     if not domain_id or not title_ids:
         return jsonify({"success": False, "error": "domain_id and title_ids required"}), 400
@@ -9166,7 +9265,7 @@ def api_bulk_run_filtered():
                     elif mode == "article":
                         _do_generate_article_external(tid, ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model, local_model=local_model, llamacpp_model_id=llamacpp_model_id, groq_model=groq_model, user_id=user_id)
                     elif mode == "pin_image":
-                        _do_generate_pin_image(tid, user_id=user_id)
+                        _do_generate_pin_image(tid, user_id=user_id, **_pin_kw_filtered)
                     elif mode == "main_image":
                         from imagine import generate_4_images_multi_channel
                         user_config = get_user_config_for_api(user_id) or {}
@@ -10328,10 +10427,21 @@ def _seed_html_templates_if_missing():
         log.warning("Seed HTML templates: %s", e)
 
 
-def _do_generate_pin_image(title_id, domain_template_id=None, user_id=None):
+def _do_generate_pin_image(
+    title_id,
+    domain_template_id=None,
+    user_id=None,
+    ai_provider=None,
+    openai_model=None,
+    openrouter_model=None,
+    groq_model=None,
+    local_model=None,
+    llamacpp_model_id=None,
+):
     """Generate pin image for this title: use its domain's template and article_content, call Pin API, save to this title's article_content only.
     If domain_template_id is given, use that specific template; otherwise auto-rotate.
-    user_id: pass to use Profile API keys (OpenAI/OpenRouter) for pin text generation."""
+    user_id: pass to use Profile API keys (OpenAI/OpenRouter) for pin text generation.
+    Optional ai_* args override profile defaults for Pin API template text (same as bulk-run modal)."""
     import re
     with get_connection() as conn:
         cur = db_execute(conn, "SELECT t.id, t.title, t.group_id, d.id AS domain_id, d.domain_index, d.last_pin_template_index FROM titles t JOIN domains d ON t.domain_id = d.id WHERE t.id = ?", (title_id,))
@@ -10481,6 +10591,32 @@ def _do_generate_pin_image(title_id, domain_template_id=None, user_id=None):
                 payload["openrouter_model"] = user_config.get("openrouter_model") or "openai/gpt-oss-120b"
             if user_config.get("ai_provider"):
                 payload["ai_provider"] = user_config["ai_provider"]
+            gq0 = user_config.get("groq_api_key") or ((user_config.get("groq_api_keys") or [None])[0] if user_config.get("groq_api_keys") else None)
+            if gq0:
+                payload["groq_api_key"] = gq0
+                payload.setdefault("groq_model", user_config.get("groq_model") or "llama-3.3-70b-versatile")
+            loc_url = (user_config.get("local_api_url") or "").strip()
+            if loc_url:
+                payload["local_api_url"] = loc_url
+                lm0 = (user_config.get("local_models") or "qwen3:8b").split(",")[0].strip()
+                payload.setdefault("local_model", lm0)
+        eff_ai = (ai_provider or "").strip().lower() if ai_provider else None
+        # Pin merge-template text generation supports these providers (see pin_generator.generator).
+        if eff_ai and eff_ai in ("openai", "openrouter", "groq", "local"):
+            payload["ai_provider"] = eff_ai
+        if openai_model and str(openai_model).strip():
+            payload["openai_model"] = str(openai_model).strip()
+        if openrouter_model and str(openrouter_model).strip():
+            payload["openrouter_model"] = str(openrouter_model).strip()
+        if groq_model and str(groq_model).strip():
+            payload["groq_model"] = str(groq_model).strip()
+            gqk = user_config.get("groq_api_key") or ((user_config.get("groq_api_keys") or [None])[0] if user_config.get("groq_api_keys") else None)
+            if gqk:
+                payload["groq_api_key"] = gqk
+        if local_model and str(local_model).strip():
+            payload["local_model"] = str(local_model).strip()
+            if user_config.get("local_api_url"):
+                payload["local_api_url"] = user_config["local_api_url"]
         # Pass domain colors/fonts so Pin API can style the pin to match the domain
         raw_colors = (dom_row.get("domain_colors") or "").strip()
         if raw_colors:
@@ -10586,7 +10722,11 @@ def _do_generate_pin_image(title_id, domain_template_id=None, user_id=None):
         w = int(canvas.get("width") or 736)
         h = int(canvas.get("height") or 1308)
         try:
-            r2 = requests_lib.post(pin_api_base + "/generate-from-html", json={"html": index_html, "width": w, "height": h}, timeout=90)
+            r2 = requests_lib.post(
+                pin_api_base + "/generate-from-html",
+                json=_pin_api_generate_from_html_body(index_html, w, h, user_config),
+                timeout=90,
+            )
             r2.raise_for_status()
             data = r2.json()
         except requests_lib.RequestException as e:
@@ -10678,9 +10818,19 @@ def api_generate_pin_image():
     user = get_current_user()
     user_id = user["id"]
     data = request.get_json(silent=True) or request.form or {}
-    title_id = data.get("title_id") or request.args.get("title_id")
-    domain_template_id = data.get("domain_template_id")
-    async_mode = str(data.get("async") or request.args.get("async", "") or "").lower() in ("1", "true", "yes")
+    req = {**data, **dict(request.args)}
+    title_id = req.get("title_id")
+    domain_template_id = req.get("domain_template_id")
+    async_mode = str(req.get("async") or "").lower() in ("1", "true", "yes")
+    ai = _parse_content_ai_params(req)
+    _pin_kw = _pin_ai_kwargs_from_params(
+        ai["ai_provider"],
+        ai["openai_model"],
+        ai["openrouter_model"],
+        ai["groq_model"],
+        ai["local_model"],
+        ai["llamacpp_model_id"],
+    )
     if not title_id:
         return jsonify({"success": False, "error": "title_id required"}), 400
     title_id = int(title_id)
@@ -10696,14 +10846,14 @@ def api_generate_pin_image():
         _bulk_progress[job_id] = {"status": "running", "message": "Generating pin image...", "current_title": "", "type": "single", "action": "Pin image", "title_id": title_id, "domain_id": domain_id, "created_at": time.time()}
         def task():
             try:
-                _do_generate_pin_image(title_id, domain_template_id=dt_id, user_id=user_id)
+                _do_generate_pin_image(title_id, domain_template_id=dt_id, user_id=user_id, **_pin_kw)
                 _bulk_progress[job_id].update({"status": "done", "message": "Pin image generated"})
             except Exception as e:
                 err = str(e)[:BULK_ERROR_DETAIL_MAX]
                 _bulk_progress[job_id].update({"status": "error", "message": err, "error_detail": err})
         threading.Thread(target=task, daemon=True).start()
         return jsonify({"success": True, "job_id": job_id})
-    _do_generate_pin_image(title_id, domain_template_id=dt_id, user_id=user_id)
+    _do_generate_pin_image(title_id, domain_template_id=dt_id, user_id=user_id, **_pin_kw)
     return jsonify({"success": True, "message": "Pin image generated"})
 
 
@@ -10882,6 +11032,18 @@ def _pin_api_url():
     return (PIN_API_URL or "http://localhost:5000").rstrip("/")
 
 
+def _pin_api_generate_from_html_body(html, w, h, user_config=None):
+    """JSON body for Pin API POST /generate-from-html. Includes per-profile Cloudflare R2 (S3 API) when configured."""
+    body = {"html": html, "width": int(w), "height": int(h)}
+    if user_config and r2_upload.is_r2_configured(user_config):
+        body["r2_account_id"] = user_config.get("r2_account_id")
+        body["r2_access_key_id"] = user_config.get("r2_access_key_id")
+        body["r2_secret_access_key"] = user_config.get("r2_secret_access_key")
+        body["r2_bucket_name"] = user_config.get("r2_bucket_name")
+        body["r2_public_url"] = (user_config.get("r2_public_url") or "").strip().rstrip("/")
+    return body
+
+
 def _pool_only_template_names():
     """Template names that exist only in pin_template_pool (no Python file). Used for Pin Editor list and JS path."""
     _seed_template_39_if_missing()
@@ -11034,7 +11196,15 @@ def api_pin_template_preview_img():
             "main_image": test_img,
         })
         pin_base = _pin_api_url().rstrip("/")
-        r = requests_lib.post(pin_base + "/generate-from-html", json={"html": html, "width": w, "height": h}, timeout=60)
+        uc = None
+        u = get_current_user()
+        if u:
+            uc = get_user_config_for_api(u["id"])
+        r = requests_lib.post(
+            pin_base + "/generate-from-html",
+            json=_pin_api_generate_from_html_body(html, w, h, uc),
+            timeout=60,
+        )
         r.raise_for_status()
         data = r.json()
         if data.get("image_url"):
@@ -11170,7 +11340,11 @@ def _do_pin_generate_pool(name_norm, body, user_id, template_only, pin_base=None
         if merged_tpl:
             out["template_data"] = merged_tpl
         return True, out
-    r2 = requests_lib.post(pin_base + "/generate-from-html", json={"html": html, "width": w, "height": h}, timeout=90)
+    r2 = requests_lib.post(
+        pin_base + "/generate-from-html",
+        json=_pin_api_generate_from_html_body(html, w, h, user_config),
+        timeout=90,
+    )
     r2.raise_for_status()
     return True, r2.json()
 
@@ -13953,12 +14127,24 @@ def api_pinterest_suggest_boards():
     """Generate N Pinterest board names by AI. Body: count (int), context (str, optional), existing (list of names/slugs to avoid)."""
     user = get_current_user()
     user_id = user["id"]
+    data = request.get_json(silent=True) or {}
+    req = {**data, **dict(request.args)}
+    ai = _parse_content_ai_params(req)
     user_config = get_user_config_for_api(user_id)
     openai_key = user_config.get("openai_api_key")
     openrouter_key = user_config.get("openrouter_api_key")
-    if not openai_key and not openrouter_key:
-        return jsonify({"success": False, "error": "OpenAI or OpenRouter API key not configured in your profile"}), 400
-    data = request.get_json(silent=True) or {}
+    groq_key = user_config.get("groq_api_key")
+    if not openai_key and not openrouter_key and not groq_key:
+        return jsonify({"success": False, "error": "OpenAI, OpenRouter, or Groq API key not configured in your profile"}), 400
+    ai_provider = (ai.get("ai_provider") or user_config.get("ai_provider") or "").strip().lower()
+    if ai_provider not in ("openrouter", "openai", "groq"):
+        ai_provider = "openrouter" if openrouter_key else ("groq" if groq_key else "openai")
+    if ai_provider == "openrouter" and not openrouter_key:
+        ai_provider = "groq" if groq_key else ("openai" if openai_key else "openrouter")
+    if ai_provider == "openai" and not openai_key:
+        ai_provider = "openrouter" if openrouter_key else ("groq" if groq_key else "openai")
+    if ai_provider == "groq" and not groq_key:
+        ai_provider = "openrouter" if openrouter_key else ("openai" if openai_key else "groq")
     count = data.get("count")
     try:
         count = int(count) if count is not None else 5
@@ -13978,12 +14164,15 @@ def api_pinterest_suggest_boards():
 
     try:
         import openai
-        if openrouter_key:
+        if ai_provider == "openrouter":
             client = openai.OpenAI(base_url="https://openrouter.ai/api/v1", api_key=openrouter_key)
-            ai_model = user_config.get("openrouter_model") or "openai/gpt-4o-mini"
+            ai_model = ai.get("openrouter_model") or user_config.get("openrouter_model") or "openai/gpt-4o-mini"
+        elif ai_provider == "groq":
+            client = openai.OpenAI(base_url="https://api.groq.com/openai/v1", api_key=groq_key)
+            ai_model = ai.get("groq_model") or user_config.get("groq_model") or "llama-3.3-70b-versatile"
         else:
             client = openai.OpenAI(api_key=openai_key)
-            ai_model = user_config.get("openai_model") or "gpt-4o-mini"
+            ai_model = ai.get("openai_model") or user_config.get("openai_model") or "gpt-4o-mini"
 
         existing_str = ", ".join(repr(x) for x in (existing[:50] or ["(none)"]))
         prompt = f"""Generate exactly {count} Pinterest board names for a food/recipe site. Theme/category: {context}.
@@ -15878,8 +16067,16 @@ def _generate_domain_template_preview(template_json_str: str, domain_colors: dic
                 "main_image": POOL_TEMPLATE_TEST_IMAGE,
             }
             try:
+                cfg = user_config or {}
+                if not cfg:
+                    user = get_current_user()
+                    cfg = get_user_config_for_api(user["id"]) if user else {}
                 html, w, h = _render_pool_template_to_html(template_name, merge_payload, pin_api_base=pin_base)
-                r = requests_lib.post(pin_base + "/generate-from-html", json={"html": html, "width": w, "height": h}, timeout=90)
+                r = requests_lib.post(
+                    pin_base + "/generate-from-html",
+                    json=_pin_api_generate_from_html_body(html, w, h, cfg),
+                    timeout=90,
+                )
                 r.raise_for_status()
                 data = r.json()
                 if data.get("image_url") and str(data["image_url"]).startswith("http"):
@@ -15893,10 +16090,6 @@ def _generate_domain_template_preview(template_json_str: str, domain_colors: dic
                     png_bytes = base64.b64decode(b64)
                     if png_bytes and len(png_bytes) >= 100:
                         import r2_upload
-                        cfg = user_config or {}
-                        if not cfg:
-                            user = get_current_user()
-                            cfg = get_user_config_for_api(user["id"]) if user else {}
                         return r2_upload.upload_bytes_to_r2(
                             png_bytes,
                             "template_preview",
@@ -18526,6 +18719,26 @@ def admin_domains():
                         <span class="btn-ai-loading d-none">Generating…</span>
                       </button>
                     </div>
+                    <div class="mt-2">
+                      <label class="form-label small mb-1">AI provider (for board names)</label>
+                      <select id="pinterestAiBoardsProvider" class="form-select form-select-sm" style="max-width:220px">
+                        <option value="openrouter">OpenRouter</option>
+                        <option value="openai">OpenAI</option>
+                        <option value="groq">Groq</option>
+                      </select>
+                    </div>
+                    <div id="pinterestAiBoardsOpenRouterWrap" class="mt-2" style="display:none">
+                      <label class="form-label small mb-1">OpenRouter model</label>
+                      <select id="pinterestAiBoardsOpenRouterModel" class="form-select form-select-sm" style="max-width:320px"></select>
+                    </div>
+                    <div id="pinterestAiBoardsOpenAIWrap" class="mt-2" style="display:none">
+                      <label class="form-label small mb-1">OpenAI model</label>
+                      <select id="pinterestAiBoardsOpenAIModel" class="form-select form-select-sm" style="max-width:320px"></select>
+                    </div>
+                    <div id="pinterestAiBoardsGroqWrap" class="mt-2" style="display:none">
+                      <label class="form-label small mb-1">Groq model</label>
+                      <select id="pinterestAiBoardsGroqModel" class="form-select form-select-sm" style="max-width:320px"></select>
+                    </div>
                     <p class="small text-muted mt-1 mb-0">AI will suggest names that do not duplicate your existing boards.</p>
                   </div>
                 </div>
@@ -20192,6 +20405,55 @@ def admin_domains():
       }});
       var pinterestSetupModal = document.getElementById('pinterestSetupModal');
       var pinterestSetupBsModal = pinterestSetupModal ? new bootstrap.Modal(pinterestSetupModal) : null;
+      function _updatePinterestAiBoardsProviderUI() {{
+        var p = (document.getElementById('pinterestAiBoardsProvider') || {{}}).value || 'openrouter';
+        var orWrap = document.getElementById('pinterestAiBoardsOpenRouterWrap');
+        var oaWrap = document.getElementById('pinterestAiBoardsOpenAIWrap');
+        var gqWrap = document.getElementById('pinterestAiBoardsGroqWrap');
+        if (orWrap) orWrap.style.display = p === 'openrouter' ? 'block' : 'none';
+        if (oaWrap) oaWrap.style.display = p === 'openai' ? 'block' : 'none';
+        if (gqWrap) gqWrap.style.display = p === 'groq' ? 'block' : 'none';
+      }}
+      function _setPinterestAiBoardsModelOptions(selectId, data, preferred) {{
+        var sel = document.getElementById(selectId);
+        if (!sel) return;
+        var modelOptions = (data && (data.model_options || data.models)) || [];
+        if (!Array.isArray(modelOptions)) modelOptions = [];
+        sel.innerHTML = '';
+        modelOptions.forEach(function(item) {{
+          var id = typeof item === 'string' ? item : (item && item.id);
+          var label = typeof item === 'string' ? item : ((item && (item.label || item.name || item.id)) || id);
+          if (!id) return;
+          var o = document.createElement('option');
+          o.value = id;
+          o.textContent = label || id;
+          sel.appendChild(o);
+        }});
+        if (preferred) sel.value = preferred;
+        if (!sel.value && sel.options.length) sel.selectedIndex = 0;
+      }}
+      function _ensurePinterestAiBoardsOptionsLoaded() {{
+        if (window._pinterestAiBoardsOptionsLoaded) {{
+          _updatePinterestAiBoardsProviderUI();
+          return Promise.resolve();
+        }}
+        return fetch('/api/profile-ai-defaults').then(function(r) {{ return r.json(); }}).then(function(profile) {{
+          profile = profile || {{}};
+          var pSel = document.getElementById('pinterestAiBoardsProvider');
+          if (pSel && profile.ai_provider && ['openrouter','openai','groq'].indexOf(profile.ai_provider) >= 0) pSel.value = profile.ai_provider;
+          return Promise.all([
+            fetch('/api/openrouter-models').then(function(r) {{ return r.json(); }}).catch(function() {{ return {{}}; }}),
+            fetch('/api/openai-models').then(function(r) {{ return r.json(); }}).catch(function() {{ return {{}}; }}),
+            fetch('/api/groq-models').then(function(r) {{ return r.json(); }}).catch(function() {{ return {{}}; }})
+          ]).then(function(all) {{
+            _setPinterestAiBoardsModelOptions('pinterestAiBoardsOpenRouterModel', all[0], profile.openrouter_model || '');
+            _setPinterestAiBoardsModelOptions('pinterestAiBoardsOpenAIModel', all[1], profile.openai_model || '');
+            _setPinterestAiBoardsModelOptions('pinterestAiBoardsGroqModel', all[2], profile.groq_model || '');
+            window._pinterestAiBoardsOptionsLoaded = true;
+            _updatePinterestAiBoardsProviderUI();
+          }});
+        }}).catch(function() {{ _updatePinterestAiBoardsProviderUI(); }});
+      }}
       function slugFromBoardName(name) {{
         var s = (name || '').trim().toLowerCase().replace(/\\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '');
         return s ? s.substring(0, 64) : 'board';
@@ -20311,13 +20573,25 @@ def admin_domains():
         var textEl = btn.querySelector('.btn-ai-text');
         var loadingEl = btn.querySelector('.btn-ai-loading');
         if (loadingEl && loadingEl.classList.contains('d-none') === false) return;
+        var aiProvider = (document.getElementById('pinterestAiBoardsProvider') || {{}}).value || 'openrouter';
+        var payload = {{ count: count, context: context, existing: existing, ai_provider: aiProvider }};
+        if (aiProvider === 'openrouter') {{
+          var orM = document.getElementById('pinterestAiBoardsOpenRouterModel');
+          if (orM && orM.value) payload.openrouter_model = orM.value;
+        }} else if (aiProvider === 'openai') {{
+          var oaM = document.getElementById('pinterestAiBoardsOpenAIModel');
+          if (oaM && oaM.value) payload.openai_model = oaM.value;
+        }} else if (aiProvider === 'groq') {{
+          var gqM = document.getElementById('pinterestAiBoardsGroqModel');
+          if (gqM && gqM.value) payload.groq_model = gqM.value;
+        }}
         if (textEl) textEl.classList.add('d-none');
         if (loadingEl) loadingEl.classList.remove('d-none');
         btn.disabled = true;
         fetch('/api/pinterest-suggest-boards', {{
           method: 'POST',
           headers: {{ 'Content-Type': 'application/json' }},
-          body: JSON.stringify({{ count: count, context: context, existing: existing }})
+          body: JSON.stringify(payload)
         }})
           .then(function(r) {{ return r.json(); }})
           .then(function(d) {{
@@ -20338,6 +20612,13 @@ def admin_domains():
             btn.disabled = false;
           }});
       }});
+      var pAiSel = document.getElementById('pinterestAiBoardsProvider');
+      if (pAiSel) pAiSel.addEventListener('change', _updatePinterestAiBoardsProviderUI);
+      if (pinterestSetupModal) {{
+        pinterestSetupModal.addEventListener('show.bs.modal', function() {{
+          _ensurePinterestAiBoardsOptionsLoaded();
+        }});
+      }}
       document.getElementById('pinterestBoardsList').addEventListener('input', function(e) {{
         var row = e.target && e.target.closest('.d-flex[data-name]');
         if (!row) return;

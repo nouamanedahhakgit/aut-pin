@@ -856,6 +856,7 @@
             <select id="genAiProvider" class="form-select form-select-sm" style="max-width:220px">
               <option value="openrouter">OpenRouter</option>
               <option value="openai">OpenAI</option>
+              <option value="groq">Groq</option>
               <option value="local">Local (Ollama)</option>
               <option value="llamacpp">llama.cpp</option>
             </select>
@@ -867,6 +868,10 @@
           <div id="genOpenRouterWrap" class="mb-3" style="display:none">
             <label class="form-label small">OpenRouter model</label>
             <select id="genOpenRouterModel" class="form-select form-select-sm"></select>
+          </div>
+          <div id="genGroqWrap" class="mb-3" style="display:none">
+            <label class="form-label small">Groq model</label>
+            <select id="genGroqModel" class="form-select form-select-sm"></select>
           </div>
           <div id="genLocalWrap" class="mb-3" style="display:none">
             <label class="form-label small">Local model</label>
@@ -2003,11 +2008,11 @@
 
     function updateGenAiProviderUI() {
       const p = (document.getElementById('genAiProvider') || {}).value || 'openrouter';
-      ['genOpenAIWrap','genOpenRouterWrap','genLocalWrap','genLlamaCppWrap'].forEach(id => {
+      ['genOpenAIWrap','genOpenRouterWrap','genGroqWrap','genLocalWrap','genLlamaCppWrap'].forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
         const show = (id === 'genOpenAIWrap' && p === 'openai') || (id === 'genOpenRouterWrap' && p === 'openrouter')
-          || (id === 'genLocalWrap' && p === 'local') || (id === 'genLlamaCppWrap' && p === 'llamacpp');
+          || (id === 'genGroqWrap' && p === 'groq') || (id === 'genLocalWrap' && p === 'local') || (id === 'genLlamaCppWrap' && p === 'llamacpp');
         el.style.display = show ? 'block' : 'none';
       });
     }
@@ -2062,6 +2067,21 @@
               }
             }
           } catch (e) { console.warn('OpenAI models:', e); }
+        }
+        if (!window._genGroqModelsLoaded) {
+          window._genGroqModelsLoaded = true;
+          try {
+            const data = await api('/api/groq-models');
+            const opts = buildModelOptions(data);
+            const selM = document.getElementById('genGroqModel');
+            if (selM) {
+              selM.innerHTML = opts || '<option value="">— No models —</option>';
+              if (selM.options.length) {
+                if (profile.groq_model) selM.value = profile.groq_model;
+                if (!selM.value) selM.selectedIndex = 0;
+              }
+            }
+          } catch (e) { console.warn('Groq models:', e); }
         }
         if (window._genLlamaModelsLoaded !== true) {
           window._genLlamaModelsLoaded = true;
@@ -2172,6 +2192,9 @@
       } else if (prov === 'openai') {
         const m = document.getElementById('genOpenAIModel');
         if (m && m.value) out.openai_model = out.model = m.value;
+      } else if (prov === 'groq') {
+        const m = document.getElementById('genGroqModel');
+        if (m && m.value) out.groq_model = out.model = m.value;
       } else if (prov === 'local') {
         const m = document.getElementById('genLocalModel');
         if (m && m.value) out.local_model = out.model = m.value;
