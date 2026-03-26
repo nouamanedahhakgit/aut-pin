@@ -19302,6 +19302,38 @@ def admin_domains():
       var cfDnsModal = document.getElementById('cloudflareDnsModal');
       var cfDnsBsModal = cfDnsModal ? new bootstrap.Modal(cfDnsModal) : null;
       var cfDnsDomainId = null;
+      function _copyTextSafe(text) {{
+        var val = (text || '').toString();
+        if (!val) return Promise.reject(new Error('Nothing to copy'));
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {{
+          return navigator.clipboard.writeText(val).catch(function() {{
+            var ta = document.createElement('textarea');
+            ta.value = val;
+            ta.setAttribute('readonly', 'readonly');
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            var ok = false;
+            try {{ ok = document.execCommand('copy'); }} catch (e) {{ ok = false; }}
+            document.body.removeChild(ta);
+            if (!ok) throw new Error('Clipboard unavailable');
+          }});
+        }}
+        return new Promise(function(resolve, reject) {{
+          var ta = document.createElement('textarea');
+          ta.value = val;
+          ta.setAttribute('readonly', 'readonly');
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          var ok = false;
+          try {{ ok = document.execCommand('copy'); }} catch (e) {{ ok = false; }}
+          document.body.removeChild(ta);
+          if (ok) resolve(); else reject(new Error('Clipboard unavailable'));
+        }});
+      }}
       document.querySelector('.domains-table') && document.querySelector('.domains-table').addEventListener('click', function(e) {{
         var btn = e.target.closest('.cf-dns-btn');
         if (!btn) return;
@@ -19351,7 +19383,13 @@ def admin_domains():
               document.getElementById('cfDnsCopyAll').setAttribute('data-ns-list', ns.join('\\n'));
               nsList.querySelectorAll('.copy-ns-btn').forEach(function(b) {{
                 b.addEventListener('click', function() {{
-                  navigator.clipboard.writeText(this.getAttribute('data-ns')).then(function() {{ b.textContent = 'Copied!'; setTimeout(function() {{ b.textContent = 'Copy'; }}, 800); }});
+                  _copyTextSafe(this.getAttribute('data-ns')).then(function() {{
+                    b.textContent = 'Copied!';
+                    setTimeout(function() {{ b.textContent = 'Copy'; }}, 1200);
+                  }}).catch(function() {{
+                    b.textContent = 'Copy failed';
+                    setTimeout(function() {{ b.textContent = 'Copy'; }}, 1400);
+                  }});
                 }});
               }});
             }}
@@ -19382,7 +19420,7 @@ def admin_domains():
       }});
       document.getElementById('cfDnsCopyAll') && document.getElementById('cfDnsCopyAll').addEventListener('click', function() {{
         var list = this.getAttribute('data-ns-list') || '';
-        if (list) navigator.clipboard.writeText(list).then(function() {{ alert('Copied nameservers!'); }});
+        if (list) _copyTextSafe(list).then(function() {{ alert('Copied nameservers!'); }}).catch(function() {{ alert('Copy failed.'); }});
       }});
       document.getElementById('cloudflareDnsModal') && document.getElementById('cloudflareDnsModal').addEventListener('click', function(e) {{
         var btn = e.target.closest('#cfDnsRetryBtn');
