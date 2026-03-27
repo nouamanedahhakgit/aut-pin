@@ -534,6 +534,14 @@ def _run_mysql_migrations_part2(cursor):
         cursor.execute("ALTER TABLE user_api_keys ADD COLUMN ui_cf_auto_refresh_domains TINYINT DEFAULT 0")
     except Exception:
         pass
+    try:
+        cursor.execute("ALTER TABLE user_api_keys ADD COLUMN ai_prompts_json LONGTEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE `groups` ADD COLUMN ai_prompt_overrides_json LONGTEXT")
+    except Exception:
+        pass
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS app_logs (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -708,6 +716,8 @@ def _init_supabase():
         _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS active_article_generators TEXT")
         _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS ui_poll_running_tasks SMALLINT DEFAULT 0")
         _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS ui_cf_auto_refresh_domains SMALLINT DEFAULT 0")
+        _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS ai_prompts_json TEXT")
+        _safe_execute(conn, cur, 'ALTER TABLE "groups" ADD COLUMN IF NOT EXISTS ai_prompt_overrides_json TEXT')
         cur.execute("""
             CREATE TABLE IF NOT EXISTS user_domains (
                 id SERIAL PRIMARY KEY,
@@ -892,6 +902,8 @@ def _run_supabase_migrations(conn, cur):
     """Add any columns that MySQL has, so Supabase schema stays in sync."""
     for col in ("pinterest_boards",):
         _safe_execute(conn, cur, f'ALTER TABLE domains ADD COLUMN IF NOT EXISTS {col} TEXT')
+    _safe_execute(conn, cur, "ALTER TABLE user_api_keys ADD COLUMN IF NOT EXISTS ai_prompts_json TEXT")
+    _safe_execute(conn, cur, 'ALTER TABLE "groups" ADD COLUMN IF NOT EXISTS ai_prompt_overrides_json TEXT')
 
 
 def _pg_compat_query(q):

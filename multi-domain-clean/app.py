@@ -42,6 +42,7 @@ import requests as requests_lib
 from db import get_connection, init_db, dict_row, execute as db_execute, last_insert_id, get_fk_children, DB_BACKEND
 from keyutil import parse_groq_api_keys
 from rewrite import rewrite, generate_article_content_for_a, generate_image_prompts_for_title
+from prompt_config import parse_ai_prompts_json, merge_prompt_layers, load_builtin_defaults
 from config import GENERATE_ARTICLE_API_URL, PIN_EDITOR_URL, PIN_API_URL, ARTICLE_GENERATORS_DIR, OPENAI_API_KEY, OPENAI_MODEL, WEBSITE_PARTS_API_URL, STATIC_PROJECT_OUTPUT_DIR, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, get_ai_config, LLAMACPP_MANAGER_URL, UPDATER_URL
 import imagine
 import r2_upload
@@ -400,6 +401,27 @@ def get_user_api_keys(user_id):
         return keys if keys else {}
 
 
+def get_effective_ai_prompts(user_id, group_id=None):
+    """Defaults (files) → profile ai_prompts_json → group ai_prompt_overrides_json."""
+    defaults = load_builtin_defaults()
+    profile = {}
+    if user_id:
+        profile = parse_ai_prompts_json((get_user_api_keys(user_id) or {}).get("ai_prompts_json"))
+    group_layer = {}
+    if group_id is not None:
+        try:
+            gid = int(group_id)
+        except (TypeError, ValueError):
+            gid = None
+        if gid is not None:
+            with get_connection() as conn:
+                cur = db_execute(conn, "SELECT ai_prompt_overrides_json FROM `groups` WHERE id = ?", (gid,))
+                row = dict_row(cur.fetchone())
+                if row:
+                    group_layer = parse_ai_prompts_json(row.get("ai_prompt_overrides_json"))
+    return merge_prompt_layers(defaults, profile, group_layer)
+
+
 def _normalize_cloudflare_api_token(raw):
     """
     Cloudflare API v4 expects: Authorization: Bearer <token>
@@ -612,6 +634,46 @@ def get_user_group_ids(user_id, is_admin=False):
             expanded.update(get_all_children(gid))
         
         return list(expanded)
+
+
+def _ai_prompts_dict_from_profile_form(form):
+    """Build ai_prompts_json dict from profile form fields. Empty = no profile overrides."""
+    if not form:
+        return None
+    out = {}
+    for json_key, form_key in (
+        ("recipe_system", "ai_prompt_recipe_system"),
+        ("recipe_user", "ai_prompt_recipe_user"),
+        ("article_system", "ai_prompt_article_system"),
+        ("article_user", "ai_prompt_article_user"),
+        ("pin_prompt", "ai_prompt_pin_prompt"),
+    ):
+        v = (form.get(form_key) or "").strip()
+        if v:
+            out[json_key] = v
+    fp = (form.get("ai_prompt_pin_field_prompts") or "").strip()
+    if fp:
+        try:
+            parsed = json.loads(fp)
+            if isinstance(parsed, dict):
+                out["pin_field_prompts"] = parsed
+        except json.JSONDecodeError:
+            out["pin_field_prompts"] = {}
+    return out if out else None
+
+
+def user_can_edit_group_prompts(user_id, group_id, is_admin=False):
+    if not group_id:
+        return False
+    if is_admin:
+        return True
+    try:
+        gid = int(group_id)
+    except (TypeError, ValueError):
+        return False
+    gids = get_user_group_ids(user_id, is_admin)
+    return gid in (gids or [])
+
 
 def get_user_config_for_api(user_id):
     """Get user's API configuration from database only."""
@@ -5449,6 +5511,8 @@ def _do_generate_article_external(title_id, recipe_from_a=None, ai_provider=None
         payload["domain_index"] = int(domain_index) if isinstance(domain_index, (int, float)) else 0
     if group_id is not None:
         payload["group_id"] = int(group_id) if isinstance(group_id, (int, float)) else 0
+    if user_id:
+        payload["ai_prompts"] = get_effective_ai_prompts(user_id, group_id)
     if categories_list:
         payload["categories_list"] = categories_list
     if ac_row:
@@ -6306,14 +6370,15 @@ def api_generate_article_external():
     return jsonify(resp)
 
 
-def _do_generate_article_a(title_id, prompt=""):
+def _do_generate_article_a(title_id, prompt="", user_id=None):
     """Legacy: generate Article A via rewrite module. Requires main_image and ingredient_image first."""
     with get_connection() as conn:
-        cur = db_execute(conn, "SELECT title FROM titles WHERE id = ?", (title_id,))
+        cur = db_execute(conn, "SELECT t.title, t.group_id, d.group_id AS d_group_id FROM titles t JOIN domains d ON t.domain_id = d.id WHERE t.id = ?", (title_id,))
         row = dict_row(cur.fetchone())
         if not row:
             raise ValueError("Title not found")
         title_text = row.get("title", "")
+        gid_val = row.get("group_id") if row.get("group_id") is not None else row.get("d_group_id")
         cur = db_execute(conn, "SELECT main_image, ingredient_image FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
         ac = dict_row(cur.fetchone())
         main_ok = bool(ac and (ac.get("main_image") or "").strip().startswith("http"))
@@ -6323,7 +6388,8 @@ def _do_generate_article_a(title_id, prompt=""):
         if not ing_ok:
             raise ValueError("Generate ingredient image first")
     t0 = time.time()
-    out = generate_article_content_for_a(title_text, prompt)
+    eff = get_effective_ai_prompts(user_id, gid_val) if user_id else get_effective_ai_prompts(None, gid_val)
+    out = generate_article_content_for_a(title_text, prompt, ai_prompts=eff)
     generation_time_seconds = int(round(time.time() - t0))
     if out.get("error"):
         raise ValueError(out["error"])
@@ -6371,6 +6437,8 @@ def api_generate_article_a():
     if not title_id:
         return jsonify({"success": False, "error": "title_id required"}), 400
     title_id = int(title_id)
+    u = get_current_user()
+    uid = u["id"] if u else None
     if async_mode:
         job_id = str(uuid.uuid4())
         domain_id = None
@@ -6382,14 +6450,14 @@ def api_generate_article_a():
         _bulk_progress[job_id] = {"status": "running", "message": "Starting Article A...", "current_title": "", "type": "single", "action": "Article A", "title_id": title_id, "domain_id": domain_id, "created_at": time.time()}
         def task():
             try:
-                _do_generate_article_a(title_id, prompt)
+                _do_generate_article_a(title_id, prompt, user_id=uid)
                 _bulk_progress[job_id].update({"status": "done", "message": "Article content generated"})
             except Exception as e:
                 err = str(e)[:BULK_ERROR_DETAIL_MAX]
                 _bulk_progress[job_id].update({"status": "error", "message": err, "error_detail": err})
         threading.Thread(target=task, daemon=True).start()
         return jsonify({"success": True, "job_id": job_id})
-    _do_generate_article_a(title_id, prompt)
+    _do_generate_article_a(title_id, prompt, user_id=uid)
     return jsonify({"success": True, "message": "Article content generated"})
 
 
@@ -9902,6 +9970,7 @@ def _do_generate_prompts(title_id, user_id=None, ai_provider=None, openai_model=
                 pinterest_boards = boards_with_count
     user_config = get_user_config_for_api(user_id) if user_id else {}
     provider = (ai_provider or "").strip().lower() or (user_config.get("ai_provider") or "openrouter")
+    ai_prompts_eff = get_effective_ai_prompts(user_id, gid_val) if user_id else get_effective_ai_prompts(None, gid_val)
     out = generate_image_prompts_for_title(
         title_text,
         categories_list=categories_list,
@@ -9913,6 +9982,7 @@ def _do_generate_prompts(title_id, user_id=None, ai_provider=None, openai_model=
         local_model=local_model or user_config.get("local_models", "qwen3:8b").split(",")[0].strip() if user_config.get("local_models") else None,
         llamacpp_model_id=llamacpp_model_id if llamacpp_model_id is not None else user_config.get("llamacpp_model_id"),
         pinterest_boards=pinterest_boards,
+        ai_prompts=ai_prompts_eff,
     )
     if out.get("error"):
         raise ValueError(out["error"])
@@ -9985,6 +10055,7 @@ def _do_assign_board_for_article(title_id_a, user_id=None, ai_provider=None, ope
         raise ValueError("Domain has no Pinterest boards; add boards in Pinterest setup first")
     user_config = get_user_config_for_api(user_id) if user_id else {}
     provider = (ai_provider or "").strip().lower() or (user_config.get("ai_provider") or "openrouter")
+    ai_prompts_eff = get_effective_ai_prompts(user_id, gid_val) if user_id else get_effective_ai_prompts(None, gid_val)
     out = generate_image_prompts_for_title(
         title_text,
         categories_list=[],
@@ -9996,6 +10067,7 @@ def _do_assign_board_for_article(title_id_a, user_id=None, ai_provider=None, ope
         local_model=local_model or user_config.get("local_models", "qwen3:8b").split(",")[0].strip() if user_config.get("local_models") else None,
         llamacpp_model_id=llamacpp_model_id if llamacpp_model_id is not None else user_config.get("llamacpp_model_id"),
         pinterest_boards=pinterest_boards,
+        ai_prompts=ai_prompts_eff,
     )
     if out.get("error"):
         raise ValueError(out["error"])
@@ -11237,23 +11309,70 @@ def _load_pin_generation_prompts():
 
 @app.route("/api/pin-generation-prompts", methods=["GET", "PUT"])
 def api_pin_generation_prompts():
-    """GET: return external prompts (prompt, field_prompts) for pin AI generation. PUT: update (login required)."""
+    """GET: merged pin prompts (files → profile → group). Query group_id for group context. PUT: save to profile or group (login)."""
     if request.method == "PUT":
-        if not get_current_user():
+        user = get_current_user()
+        if not user:
             return jsonify({"error": "Unauthorized"}), 401
         data = request.get_json(silent=True)
         if not data or not isinstance(data, dict):
-            return jsonify({"error": "JSON body with prompt and/or field_prompts required"}), 400
+            return jsonify({"error": "JSON body required"}), 400
         try:
-            existing = _load_pin_generation_prompts() or {}
-            existing.update({k: v for k, v in data.items() if k in ("prompt", "field_prompts")})
-            with open(PIN_GENERATION_PROMPTS_PATH, "w", encoding="utf-8") as f:
-                json.dump(existing, f, indent=2)
-            return jsonify({"success": True, "prompt": existing.get("prompt"), "field_prompts": existing.get("field_prompts")})
+            gid = data.get("group_id")
+            if gid is not None and gid != "":
+                try:
+                    gid = int(gid)
+                except (TypeError, ValueError):
+                    gid = None
+            else:
+                gid = None
+            if gid is not None:
+                if not user_can_edit_group_prompts(user["id"], gid, user.get("is_admin")):
+                    return jsonify({"error": "Forbidden"}), 403
+                with get_connection() as conn:
+                    cur = db_execute(conn, "SELECT ai_prompt_overrides_json FROM `groups` WHERE id = ?", (gid,))
+                    row = dict_row(cur.fetchone())
+                    if not row:
+                        return jsonify({"error": "Group not found"}), 404
+                    existing = parse_ai_prompts_json(row.get("ai_prompt_overrides_json"))
+                if "prompt" in data:
+                    existing["pin_prompt"] = data["prompt"]
+                if "field_prompts" in data and data["field_prompts"] is not None and isinstance(data["field_prompts"], dict):
+                    existing["pin_field_prompts"] = data["field_prompts"]
+                j = json.dumps(existing, ensure_ascii=False) if existing else None
+                with get_connection() as conn:
+                    db_execute(conn, "UPDATE `groups` SET ai_prompt_overrides_json = ? WHERE id = ?", (j, gid))
+                eff = get_effective_ai_prompts(user["id"], gid)
+                return jsonify({"success": True, "prompt": eff.get("pin_prompt"), "field_prompts": eff.get("pin_field_prompts"), "group_id": gid})
+            with get_connection() as conn:
+                cur = db_execute(conn, "SELECT id, ai_prompts_json FROM user_api_keys WHERE user_id = ?", (user["id"],))
+                row = dict_row(cur.fetchone())
+                existing = parse_ai_prompts_json(row.get("ai_prompts_json")) if row else {}
+            if "prompt" in data:
+                existing["pin_prompt"] = data["prompt"]
+            if "field_prompts" in data and data["field_prompts"] is not None and isinstance(data["field_prompts"], dict):
+                existing["pin_field_prompts"] = data["field_prompts"]
+            j = json.dumps(existing, ensure_ascii=False) if existing else None
+            with get_connection() as conn:
+                if row and row.get("id"):
+                    db_execute(conn, "UPDATE user_api_keys SET ai_prompts_json = ? WHERE user_id = ?", (j, user["id"]))
+                else:
+                    db_execute(conn, "INSERT INTO user_api_keys (user_id, ai_prompts_json) VALUES (?, ?)", (user["id"], j))
+            eff = get_effective_ai_prompts(user["id"], None)
+            return jsonify({"success": True, "prompt": eff.get("pin_prompt"), "field_prompts": eff.get("pin_field_prompts")})
         except Exception as e:
             return jsonify({"success": False, "error": str(e)}), 500
-    prompts = _load_pin_generation_prompts()
-    return jsonify(prompts or {"prompt": None, "field_prompts": None})
+    raw_gid = request.args.get("group_id")
+    try:
+        qgid = int(raw_gid) if raw_gid not in (None, "") else None
+    except (TypeError, ValueError):
+        qgid = None
+    u = get_current_user()
+    if u:
+        eff = get_effective_ai_prompts(u["id"], qgid)
+    else:
+        eff = get_effective_ai_prompts(None, qgid)
+    return jsonify({"prompt": eff.get("pin_prompt"), "field_prompts": eff.get("pin_field_prompts")})
 
 
 @app.route("/api/pin-template-example-raw", methods=["GET"])
@@ -11290,7 +11409,7 @@ def api_pin_template_example_raw():
         return f"Error: {e}", 502
 
 
-def _do_pin_generate_pool(name_norm, body, user_id, template_only, pin_base=None):
+def _do_pin_generate_pool(name_norm, body, user_id, template_only, pin_base=None, group_id=None):
     """Run pool-template pin generate. Returns (success, out_dict). out_dict has index_html, template_data on success; error on failure."""
     pin_base = (pin_base or _pin_api_url()).rstrip("/")
     user_config = get_user_config_for_api(user_id)
@@ -11302,17 +11421,24 @@ def _do_pin_generate_pool(name_norm, body, user_id, template_only, pin_base=None
         body.setdefault("openrouter_model", user_config.get("openrouter_model") or "openai/gpt-oss-120b")
     body.setdefault("ai_provider", user_config.get("ai_provider") or "openrouter")
     body_copy = dict(body)
-    ext = _load_pin_generation_prompts()
-    if ext and isinstance(ext, dict):
-        body_copy.setdefault("template_data", {})
-        td = body_copy["template_data"]
-        if not isinstance(td, dict):
-            td = {}
-            body_copy["template_data"] = td
-        if ext.get("prompt"):
-            td["prompt"] = ext["prompt"]
-        if ext.get("field_prompts") and isinstance(ext["field_prompts"], dict):
-            td["field_prompts"] = ext["field_prompts"]
+    gid = group_id
+    if gid is None and isinstance(body_copy, dict):
+        raw = body_copy.get("group_id")
+        if raw is not None and raw != "":
+            try:
+                gid = int(raw)
+            except (TypeError, ValueError):
+                gid = None
+    eff = get_effective_ai_prompts(user_id, gid) if user_id else get_effective_ai_prompts(None, gid)
+    body_copy.setdefault("template_data", {})
+    td = body_copy["template_data"]
+    if not isinstance(td, dict):
+        td = {}
+        body_copy["template_data"] = td
+    if eff.get("pin_prompt"):
+        td["prompt"] = eff["pin_prompt"]
+    if eff.get("pin_field_prompts") and isinstance(eff["pin_field_prompts"], dict):
+        td["field_prompts"] = eff["pin_field_prompts"]
     vars_in = body_copy.get("variables") or {}
     if not isinstance(vars_in, dict):
         vars_in = {}
@@ -17710,10 +17836,12 @@ def admin_domains():
         return jsonify({"rows": rows_html})
 
     run_this_group_btn_html = ""
+    group_prompts_link_html = ""
     if filter_group_id:
         gname_raw = next((g["name"] for g in all_groups if g["id"] == filter_group_id), "Current Group")
         gname_js = json.dumps(gname_raw).replace('"', '&quot;')
         run_this_group_btn_html = f'<button type="button" class="btn btn-primary btn-sm" onclick="openBulkGroupModal({filter_group_id}, {gname_js})" title="Run for all rows in this group">Run this group</button>'
+        group_prompts_link_html = f'<a href="/admin/groups/{filter_group_id}/prompts" class="btn btn-outline-dark btn-sm" title="Override AI prompts for this group (merged on top of your profile)">🧠 Group AI prompts</a>'
 
     # Build group checkboxes for distribute titles (groups with domains in current view)
     dist_group_checkboxes = ""  # used in distribute form when filter_group_id is set
@@ -17941,6 +18069,7 @@ def admin_domains():
       {('<button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="collapse" data-bs-target="#multiGroupActionsCard" title="Ungroup, Clear articles, Delete titles/domains for all or selected groups">🔧 Multi-group actions</button>') if multi_group_checkboxes else ''}
       {('<button type="button" class="btn btn-primary btn-sm" onclick="openBulkAllGroupsModal()" title="Run for all groups (same as Database Management)">Run all groups</button>') if not filter_group_id and any(d.get("group_id") for d in domains) else ""}
       {run_this_group_btn_html}
+      {group_prompts_link_html}
       <button type="button" class="btn btn-outline-primary btn-sm" onclick="openAllArticlesModal()" title="List all articles (filter by domain, default not validated)">Articles</button>
     </div>
 
@@ -27372,6 +27501,52 @@ def admin_titles_delete(pk):
     return redirect(url_for("admin_titles"))
 
 
+@app.route("/admin/groups/<int:group_id>/prompts", methods=["GET", "POST"])
+@login_required
+def admin_group_prompts(group_id):
+    """Per-group AI prompt overrides (merged: files → profile → group)."""
+    user = get_current_user()
+    user_id = user["id"]
+    is_admin = bool(user.get("is_admin", 0))
+    if not user_can_edit_group_prompts(user_id, group_id, is_admin):
+        return base_layout("<div class='alert alert-danger'>Access denied</div>", "Group AI prompts")
+    if request.method == "POST":
+        patch = _ai_prompts_dict_from_profile_form(request.form)
+        j = json.dumps(patch, ensure_ascii=False) if patch else None
+        with get_connection() as conn:
+            db_execute(conn, "UPDATE `groups` SET ai_prompt_overrides_json = ? WHERE id = ?", (j, group_id))
+        return redirect(url_for("admin_group_prompts", group_id=group_id) + "?saved=1")
+    with get_connection() as conn:
+        cur = db_execute(conn, "SELECT name, ai_prompt_overrides_json FROM `groups` WHERE id = ?", (group_id,))
+        row = dict_row(cur.fetchone())
+    if not row:
+        return base_layout("<div class='alert alert-danger'>Group not found</div>", "Group AI prompts")
+    gname = html.escape(str(row.get("name") or group_id))
+    go = parse_ai_prompts_json(row.get("ai_prompt_overrides_json"))
+    _pin_fp_g = go.get("pin_field_prompts") if isinstance(go.get("pin_field_prompts"), dict) else {}
+    _g_pin_fp_str = json.dumps(_pin_fp_g, indent=2, ensure_ascii=False) if _pin_fp_g else ""
+    saved = '<div class="alert alert-success">Saved.</div>' if request.args.get("saved") else ""
+    back = f'<a href="/admin/domains?group_id={group_id}" class="btn btn-outline-secondary btn-sm mb-3">← Back to Domains</a>'
+    content = f"""
+    {back}
+    <h2>Group AI prompt overrides</h2>
+    <p class="text-muted">Group: <strong>{gname}</strong> (id {group_id}). Values here override your profile and built-in defaults for titles in this group.</p>
+    {saved}
+    <div class="card mb-4" style="max-width:900px"><div class="card-body">
+    <form method="post">
+    <div class="mb-2"><label class="form-label">Recipe / image — system</label><textarea name="ai_prompt_recipe_system" class="form-control font-monospace small" rows="4">{html.escape(str(go.get("recipe_system") or ""))}</textarea></div>
+    <div class="mb-2"><label class="form-label">Recipe / image — user message</label><textarea name="ai_prompt_recipe_user" class="form-control font-monospace small" rows="3">{html.escape(str(go.get("recipe_user") or ""))}</textarea></div>
+    <div class="mb-2"><label class="form-label">Article — system</label><textarea name="ai_prompt_article_system" class="form-control font-monospace small" rows="3">{html.escape(str(go.get("article_system") or ""))}</textarea></div>
+    <div class="mb-2"><label class="form-label">Article — user message</label><textarea name="ai_prompt_article_user" class="form-control font-monospace small" rows="2">{html.escape(str(go.get("article_user") or ""))}</textarea></div>
+    <div class="mb-2"><label class="form-label">Pin — main prompt</label><textarea name="ai_prompt_pin_prompt" class="form-control font-monospace small" rows="2">{html.escape(str(go.get("pin_prompt") or ""))}</textarea></div>
+    <div class="mb-2"><label class="form-label">Pin — field_prompts JSON</label><textarea name="ai_prompt_pin_field_prompts" class="form-control font-monospace small" rows="4">{html.escape(_g_pin_fp_str)}</textarea></div>
+    <button type="submit" class="btn btn-primary">Save overrides</button>
+    </form>
+    </div></div>
+    """
+    return base_layout(content, "Group AI prompts")
+
+
 # --- Admin: Groups ---
 @app.route("/admin/groups")
 @login_required
@@ -28621,6 +28796,8 @@ def profile(target_user_id=None):
                 "ui_cf_auto_refresh_domains": 1 if request.form.get("ui_cf_auto_refresh_domains") in ("on", "1", "true") else 0,
                 "pin_generator_type": (request.form.get("pin_generator_type") or "python").strip().lower() or "python",
             }
+            _ap = _ai_prompts_dict_from_profile_form(request.form)
+            keys_data["ai_prompts_json"] = json.dumps(_ap, ensure_ascii=False) if _ap else None
             
             if exists:
                 set_clause = ", ".join(f"{k} = ?" for k in keys_data.keys())
@@ -28792,6 +28969,9 @@ Complete these required fields: {labels_html}.<br>
         _pinterest_rss_domain_urls = f'<div class="mb-3"><label class="form-label">RSS feed URLs</label><div class="table-responsive"><table class="table table-sm"><thead><tr><th>Domain</th><th>Feed URL</th><th></th></tr></thead><tbody>{"".join(rss_rows)}</tbody></table></div></div>'
     _profile_ai_provider = (keys.get("ai_provider") or "openai").strip().lower() or "openai"
     _profile_pin_generator = (keys.get("pin_generator_type") or "python").strip().lower() or "python"
+    _ap_json = parse_ai_prompts_json(keys.get("ai_prompts_json"))
+    _pin_fp = _ap_json.get("pin_field_prompts") if isinstance(_ap_json.get("pin_field_prompts"), dict) else {}
+    _ai_prompt_pin_fp_str = json.dumps(_pin_fp, indent=2, ensure_ascii=False) if _pin_fp else ""
     _is_self = target_user_id is None
     _pw_html = '<div class="mb-3"><label class="form-label">Current password</label><input type="password" name="current_password" class="form-control" placeholder="Required"></div>' if _is_self else '<p class="text-muted small">Admin: set new password. Leave blank to keep current.</p>'
     _password_section = f'<div class="card mb-4" style="max-width:800px"><div class="card-header">Change Password</div><div class="card-body"><form method="post">{_pw_html}<div class="mb-3"><label class="form-label">New password</label><input type="password" name="new_password" class="form-control" placeholder="Min 4 chars"></div><div class="mb-3"><label class="form-label">Confirm</label><input type="password" name="new_password_confirm" class="form-control"></div><button type="submit" name="action" value="password_only" class="btn btn-outline-primary">Change password</button></form></div></div>'
@@ -28852,7 +29032,15 @@ Complete these required fields: {labels_html}.<br>
     {field("r2_account_id","Account ID","")}{field("r2_access_key_id","Access Key","")}{field("r2_secret_access_key","Secret","",type_="password")}{field("r2_bucket_name","Bucket","")}{field("r2_public_url","Public URL","")}
     <h5 class="mb-3">Optional</h5><div class="mb-3"><label class="form-label">AI provider</label><select name="ai_provider" class="form-select"><option value="openai"{" selected" if _profile_ai_provider=="openai" else ""}>OpenAI</option><option value="openrouter"{" selected" if _profile_ai_provider=="openrouter" else ""}>OpenRouter</option><option value="groq"{" selected" if _profile_ai_provider=="groq" else ""}>Groq</option><option value="local"{" selected" if _profile_ai_provider=="local" else ""}>Local</option><option value="llamacpp"{" selected" if _profile_ai_provider=="llamacpp" else ""}>llama.cpp</option></select></div>
     {field("openrouter_api_key","OpenRouter Key","")}{_openrouter_model_select}{field("local_api_url","Local API URL","")}{field("llamacpp_manager_url","llama.cpp URL","")}
-    <h5 class="mb-3">RSS</h5><div class="mb-3"><label class="form-label">Base URL</label><input type="url" name="rss_base_url" class="form-control" value="{html.escape(str(keys.get("rss_base_url") or ""))}"></div>    {_pinterest_rss_domain_urls}
+    <h5 class="mb-3">RSS</h5>    <div class="mb-3"><label class="form-label">Base URL</label><input type="url" name="rss_base_url" class="form-control" value="{html.escape(str(keys.get("rss_base_url") or ""))}"></div>    {_pinterest_rss_domain_urls}
+    <h5 class="mb-3">AI prompts (profile)</h5>
+    <p class="small text-muted">Optional overrides. Empty fields use built-in defaults from the repo. Per-group: Domains → <strong>Group AI prompts</strong>. Placeholders: <code>{{{{title}}}}</code>, <code>{{{{categories_json}}}}</code>, <code>{{{{boards_json}}}}</code> (recipe user); <code>{{{{title}}}}</code>, <code>{{{{prompt_text}}}}</code> (article user).</p>
+    <div class="mb-2"><label class="form-label">Recipe / image prompts — system</label><textarea name="ai_prompt_recipe_system" class="form-control font-monospace small" rows="4" placeholder="First step: generate prompts before images">{html.escape(str(_ap_json.get("recipe_system") or ""))}</textarea></div>
+    <div class="mb-2"><label class="form-label">Recipe / image prompts — user message (optional)</label><textarea name="ai_prompt_recipe_user" class="form-control font-monospace small" rows="3" placeholder="Leave empty for default CATEGORIES / BOARDS layout">{html.escape(str(_ap_json.get("recipe_user") or ""))}</textarea></div>
+    <div class="mb-2"><label class="form-label">Article (legacy A) — system</label><textarea name="ai_prompt_article_system" class="form-control font-monospace small" rows="3">{html.escape(str(_ap_json.get("article_system") or ""))}</textarea></div>
+    <div class="mb-2"><label class="form-label">Article (legacy A) — user message (optional)</label><textarea name="ai_prompt_article_user" class="form-control font-monospace small" rows="2">{html.escape(str(_ap_json.get("article_user") or ""))}</textarea></div>
+    <div class="mb-2"><label class="form-label">Pin text — main prompt</label><textarea name="ai_prompt_pin_prompt" class="form-control font-monospace small" rows="2">{html.escape(str(_ap_json.get("pin_prompt") or ""))}</textarea></div>
+    <div class="mb-2"><label class="form-label">Pin text — field_prompts (JSON object)</label><textarea name="ai_prompt_pin_field_prompts" class="form-control font-monospace small" rows="4" placeholder="{{}}">{html.escape(_ai_prompt_pin_fp_str)}</textarea></div>
     <h5 class="mb-3">UI preferences</h5>
     <p class="small text-muted">Optional background requests. You can also change these from the bar under the main navigation on any admin page.</p>
     <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="ui_poll_running_tasks" id="profile_ui_poll_running_tasks" value="1"{" checked" if int(keys.get("ui_poll_running_tasks") or 0) else ""}><label class="form-check-label" for="profile_ui_poll_running_tasks">Poll running tasks every 5 seconds (<code>/api/bulk-run-jobs</code>)</label></div>
@@ -29120,12 +29308,42 @@ def api_users_clone_profile():
     return jsonify({"success": True})
 
 
+def _seed_all_profiles_ai_prompts_if_missing():
+    """Backfill existing profiles with current built-in prompts when ai_prompts_json is empty."""
+    defaults = load_builtin_defaults() or {}
+    if not defaults:
+        return
+    seed_json = json.dumps(defaults, ensure_ascii=False)
+    with get_connection() as conn:
+        cur = db_execute(conn, "SELECT id FROM users")
+        user_ids = [dict_row(r).get("id") for r in (cur.fetchall() or []) if dict_row(r).get("id")]
+        if not user_ids:
+            return
+        cur = db_execute(conn, "SELECT user_id, ai_prompts_json FROM user_api_keys")
+        rows = [dict_row(r) for r in (cur.fetchall() or [])]
+        by_user = {int(r.get("user_id")): (r.get("ai_prompts_json") or "") for r in rows if r.get("user_id") is not None}
+        inserted = 0
+        updated = 0
+        for uid in user_ids:
+            existing = str(by_user.get(int(uid)) or "").strip()
+            if int(uid) not in by_user:
+                db_execute(conn, "INSERT INTO user_api_keys (user_id, ai_prompts_json) VALUES (?, ?)", (uid, seed_json))
+                inserted += 1
+                continue
+            if not existing or existing == "{}":
+                db_execute(conn, "UPDATE user_api_keys SET ai_prompts_json = ? WHERE user_id = ?", (seed_json, uid))
+                updated += 1
+        if inserted or updated:
+            log.info("[seed-ai-prompts] inserted=%s updated=%s", inserted, updated)
+
+
 def _run_startup_seeds():
     """Run DB init and seed HTML templates on app load. Ensures deploy auto-seeds from html_templates.json."""
     try:
         init_db()
         _seed_template_39_if_missing()
         _seed_html_templates_if_missing()
+        _seed_all_profiles_ai_prompts_if_missing()
     except Exception as e:
         log.warning("Startup seed: %s", e)
 

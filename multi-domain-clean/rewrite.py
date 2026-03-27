@@ -6,6 +6,11 @@ import logging
 import openai
 from config import get_openai_client
 from keyutil import parse_groq_api_keys
+from prompt_config import (
+    apply_prompt_placeholders,
+    build_recipe_user_message,
+    recipe_system_fallback,
+)
 
 log = logging.getLogger(__name__)
 
@@ -19,6 +24,12 @@ def _read_prompt_image_prompts() -> str:
         return ""
     with open(PROMPT_IMAGE_PROMPTS_PATH, "r", encoding="utf-8") as f:
         return f.read().strip()
+
+
+def _effective_recipe_system(ai_prompts: dict = None) -> str:
+    if ai_prompts and (ai_prompts.get("recipe_system") or "").strip():
+        return (ai_prompts.get("recipe_system") or "").strip()
+    return _read_prompt_image_prompts() or recipe_system_fallback()
 
 
 def _normalize_categories_list(cats) -> list:
@@ -86,7 +97,7 @@ def _fix_drink_board_mismatch(board_slug: str, recipe_val: dict, title: str, boa
     return board_slug
 
 
-def generate_image_prompts_for_title(title: str, categories_list: list = None, user_config: dict = None, ai_provider: str = None, openai_model: str = None, openrouter_model: str = None, groq_model: str = None, local_model: str = None, llamacpp_model_id=None, pinterest_boards: list = None) -> dict:
+def generate_image_prompts_for_title(title: str, categories_list: list = None, user_config: dict = None, ai_provider: str = None, openai_model: str = None, openrouter_model: str = None, groq_model: str = None, local_model: str = None, llamacpp_model_id=None, pinterest_boards: list = None, ai_prompts: dict = None) -> dict:
     """Generate prompt, prompt_image_ingredients, recipe, course, and optionally board_slug for a recipe title via LLM.
     categories_list: domain's categories (strings or {categorie:...}). AI picks the best matching one.
     pinterest_boards: optional list of {name, slug, count} for RSS board assignment; AI picks one slug (prefer smallest count).
@@ -121,14 +132,10 @@ def generate_image_prompts_for_title(title: str, categories_list: list = None, u
                 key = gq_keys[(base_i + t) % len(gq_keys)]
                 try:
                     client = openai.OpenAI(base_url="https://api.groq.com/openai/v1", api_key=key)
-                    sys_prompt = _read_prompt_image_prompts() or """Generate image prompts, recipe, and category. Return JSON: {"prompt": "...", "prompt_image_ingredients": "...", "recipe": {...}, "course": "..."}"""
-                    cats = _normalize_categories_list(categories_list or [])
-                    cats_str = json.dumps(cats) if cats else "[]"
-                    user_msg = f"Recipe title: {title or 'Recipe'}\n\nCATEGORIES: {cats_str}"
+                    sys_prompt = _effective_recipe_system(ai_prompts)
+                    user_msg = build_recipe_user_message(title, categories_list, pinterest_boards, ai_prompts)
                     boards = pinterest_boards or []
-                    if boards:
-                        boards_str = json.dumps([{"name": b.get("name"), "slug": b.get("slug"), "count": b.get("count", 0)} for b in boards if b.get("slug")], ensure_ascii=False)
-                        user_msg += f"\n\nBOARDS: {boards_str}"
+                    cats = _normalize_categories_list(categories_list or [])
                     log.info("[generate_image_prompts] Calling groq for: %s (key %s/%s)", (title or "Recipe")[:50], t + 1, max_tries)
                     resp = client.chat.completions.create(
                         model=ai_model,
@@ -186,15 +193,11 @@ def generate_image_prompts_for_title(title: str, categories_list: list = None, u
                     if not models:
                         return {"error": "No llama.cpp model available"}
                     mid = models[0].get("id") or models[0]
-                cats = _normalize_categories_list(categories_list or [])
-                cats_str = json.dumps(cats) if cats else "[]"
-                user_content = f"Recipe title: {title or 'Recipe'}\n\nCATEGORIES: {cats_str}"
+                user_content = build_recipe_user_message(title, categories_list, pinterest_boards, ai_prompts)
                 boards = pinterest_boards or []
-                if boards:
-                    boards_str = json.dumps([{"name": b.get("name"), "slug": b.get("slug"), "count": b.get("count", 0)} for b in boards if b.get("slug")], ensure_ascii=False)
-                    user_content += f"\n\nBOARDS: {boards_str}"
+                cats = _normalize_categories_list(categories_list or [])
                 r = requests.post(f"{mgr.rstrip('/')}/api/chat", json={"model_id": mid, "messages": [
-                    {"role": "system", "content": _read_prompt_image_prompts() or "Generate image prompts, recipe, and category. Return JSON: {\"prompt\": \"...\", \"prompt_image_ingredients\": \"...\", \"recipe\": {...}, \"course\": \"...\"}"},
+                    {"role": "system", "content": _effective_recipe_system(ai_prompts)},
                     {"role": "user", "content": user_content}
                 ]}, timeout=180)
                 data = r.json() or {}
@@ -231,14 +234,10 @@ def generate_image_prompts_for_title(title: str, categories_list: list = None, u
             client, ai_model = get_openai_client(ai_provider or None)
         except ValueError as e:
             return {"error": str(e)}
-    sys_prompt = _read_prompt_image_prompts() or """Generate image prompts, recipe, and category. Return JSON: {"prompt": "...", "prompt_image_ingredients": "...", "recipe": {...}, "course": "..."}"""
-    cats = _normalize_categories_list(categories_list or [])
-    cats_str = json.dumps(cats) if cats else "[]"
-    user_msg = f"Recipe title: {title or 'Recipe'}\n\nCATEGORIES: {cats_str}"
+    sys_prompt = _effective_recipe_system(ai_prompts)
+    user_msg = build_recipe_user_message(title, categories_list, pinterest_boards, ai_prompts)
     boards = pinterest_boards or []
-    if boards:
-        boards_str = json.dumps([{"name": b.get("name"), "slug": b.get("slug"), "count": b.get("count", 0)} for b in boards if b.get("slug")], ensure_ascii=False)
-        user_msg += f"\n\nBOARDS: {boards_str}"
+    cats = _normalize_categories_list(categories_list or [])
     try:
         log.info("[generate_image_prompts] Calling %s for: %s", (ai_model or "LLM"), (title or "Recipe")[:50])
         resp = client.chat.completions.create(
@@ -439,14 +438,23 @@ Article:
         return ""
 
 
-def generate_article_content_for_a(title: str, prompt_text: str = "") -> dict:
+def generate_article_content_for_a(title: str, prompt_text: str = "", ai_prompts: dict = None) -> dict:
     """Generate article_content for Domain A via OpenAI using external prompt. Returns A.4-style fields in one call."""
     try:
         client, ai_model = get_openai_client()
     except ValueError as e:
         return {"error": str(e)}
     system_prompt = _read_prompt_article_a()
+    if ai_prompts and (ai_prompts.get("article_system") or "").strip():
+        system_prompt = (ai_prompts.get("article_system") or "").strip()
     user_payload = f"Recipe title: {title or 'Recipe'}"
+    if ai_prompts and (ai_prompts.get("article_user") or "").strip():
+        user_payload = apply_prompt_placeholders(
+            (ai_prompts.get("article_user") or "").strip(),
+            {"title": title or "Recipe", "prompt_text": prompt_text or ""},
+        )
+    elif prompt_text:
+        user_payload += f"\n\nAdditional context: {prompt_text}"
     try:
         resp = client.chat.completions.create(
             model=ai_model,
