@@ -1,4 +1,4 @@
- 10#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Production-Ready Recipe Article Generator
 Clones the exact structure and design from video analysis.
@@ -7,11 +7,25 @@ Clones the exact structure and design from video analysis.
 import os
 import json
 import re
+import sys
 from typing import Dict, List, Any, Optional
 from dotenv import load_dotenv
 from openai import OpenAI
 
 load_dotenv()
+
+
+def _safe_print(*args, **kwargs):
+    """Print without crashing on Windows cp1252 consoles when text has emoji."""
+    text = " ".join(str(a) for a in args)
+    end = kwargs.get("end", "\n")
+    stream = kwargs.get("file", sys.stdout)
+    try:
+        stream.write(text + end)
+    except UnicodeEncodeError:
+        enc = getattr(stream, "encoding", None) or "utf-8"
+        safe = text.encode(enc, errors="replace").decode(enc, errors="replace")
+        stream.write(safe + end)
 
 CONFIG = {
     "title": "",
@@ -241,15 +255,15 @@ class RecipeArticleGenerator:
             f"All content must be only about {title}. Return ONLY the raw JSON object—no ```json, no explanation."
         )
 
-        print("[*] Generating all sections in a single JSON API call...")
+        _safe_print("[*] Generating all sections in a single JSON API call...")
         raw = ai_chat(self, user, max_tokens=5000, system=system)
         data = extract_json_robust(raw)
         
         if not data:
-            print("[WARN] Failed to parse JSON, falling back to sequential generation...")
+            _safe_print("[WARN] Failed to parse JSON, falling back to sequential generation...")
             return self._generate_all_content_sequential()
 
-        print("[*] Generated content via single JSON.")
+        _safe_print("[*] Generated content via single JSON.")
 
         sections_content = {
             "intro": self._strip_markdown(str(data.get("intro", ""))),
@@ -284,39 +298,39 @@ class RecipeArticleGenerator:
         wc = self.config["structure_template"]["word_counts"]
         sections_content = {}
         
-        print("[*] Generating intro...")
+        _safe_print("[*] Generating intro...")
         sections_content["intro"] = self._generate_content_with_openai(f"Write a warm, engaging intro paragraph (~{wc['intro']} words) for a recipe article about {title}.")
         
-        print("[*] Generating why-love items...")
+        _safe_print("[*] Generating why-love items...")
         sections_content["why_i_love"] = [
             self._generate_content_with_openai(f"Write reason {i+1} of 4 why someone will love {title} (~{wc.get(f'why_i_love_item_{i+1}', 20)} words).") 
             for i in range(4)
         ]
         
-        print("[*] Generating ingredients intro...")
+        _safe_print("[*] Generating ingredients intro...")
         sections_content["ingredients_intro"] = self._generate_content_with_openai(f"Write a short intro (~{wc['ingredients_intro']} words) about the ingredients for {title}.")
         sections_content["ingredient_quality"] = self._generate_content_with_openai(f"Write notes on ingredient quality (~{wc['ingredient_quality_notes']} words) for {title}.")
         
-        print("[*] Generating tips...")
+        _safe_print("[*] Generating tips...")
         sections_content["tips_texture"] = self._generate_content_with_openai(f"Write tips on getting the perfect texture (~{wc['tips_texture']} words) for {title}.")
         sections_content["tips_mistakes"] = self._generate_content_with_openai(f"Write tips on avoiding common mistakes (~{wc['tips_mistakes']} words) for {title}.")
         
-        print("[*] Generating serving suggestions...")
+        _safe_print("[*] Generating serving suggestions...")
         sections_content["serving"] = self._generate_content_with_openai(f"Write serving suggestions (~{wc.get('serving_intro', 15)} words) for {title}.")
         
-        print("[*] Generating pro tips...")
+        _safe_print("[*] Generating pro tips...")
         sections_content["pro_tips"] = [
             self._generate_content_with_openai(f"Write pro tip {i+1} of 4 for {title} (~{wc.get(f'pro_tips_item_{i+1}', 25)} words).") 
             for i in range(4)
         ]
         
-        print("[*] Generating FAQs...")
+        _safe_print("[*] Generating FAQs...")
         sections_content["faqs"] = [
             self._generate_content_with_openai(f"Write FAQ {i+1} of 4 for {title} (Question and Answer combined, ~{wc.get(f'faq_{i+1}', 45)} words total).") 
             for i in range(4)
         ]
         
-        print("[*] Generating conclusion...")
+        _safe_print("[*] Generating conclusion...")
         sections_content["conclusion"] = self._generate_content_with_openai(f"Write a conclusion paragraph (~{wc['conclusion']} words) for {title}.")
         
         return sections_content
@@ -600,7 +614,7 @@ h2 {{color: var(--primary);font-size: {f['heading']['sizes']['h2']};margin-top: 
     def run(self, return_content_only: bool = False) -> Dict[str, Any]:
         self._validate_config()
         title = self.config["title"]
-        print(f"Generating: {title}")
+        _safe_print(f"Generating: {title}")
         
         sections_content = self.generate_all_content()
         recipe_data = self._generate_recipe_data()
@@ -628,7 +642,7 @@ h2 {{color: var(--primary);font-size: {f['heading']['sizes']['h2']};margin-top: 
             return content_data
         
         self._save_files(content_data, html_content, css_content)
-        print("Complete!")
+        _safe_print("Complete!")
         return content_data
     
     def _save_files(self, content_data: Dict, html_content: str, css_content: str):
@@ -642,7 +656,7 @@ h2 {{color: var(--primary);font-size: {f['heading']['sizes']['h2']};margin-top: 
         with open(os.path.join(slug, "css.css"), "w", encoding="utf-8") as f:
             f.write(css_content)
         
-        print(f"Saved to: {slug}/")
+        _safe_print(f"Saved to: {slug}/")
 
 
 ArticleGenerator = RecipeArticleGenerator  # alias for route API compatibility

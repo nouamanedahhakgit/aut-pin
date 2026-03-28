@@ -342,6 +342,58 @@ def _log_request():
 
 _bulk_progress = {}  # job_id -> { status, message, error_detail?, current_title, ok, failed, type, group_id?, mode, created_at }
 BULK_ERROR_DETAIL_MAX = 2000  # max chars for error_detail so user can copy and send to support
+BULK_FAIL_REASON_MAX = 1200  # per-row failure text (step + message) for bulk failed_rows
+
+
+def _bulk_fail_reason(step: str, msg: str, max_len: int = BULK_FAIL_REASON_MAX) -> str:
+    """Format bulk failure as 'Step | message' for UI (split on ' | ' in progress modal)."""
+    m = (msg or "").strip()
+    if m:
+        return f"{step} | {m}"[:max_len]
+    return (step or "Error")[:max_len]
+
+
+def _bulk_append_failed_row(job_id, group_id, row_index, title_id, title, reason):
+    """Record a failed row for the workflow progress modal (sequential + concurrent bulk)."""
+    if not job_id:
+        return
+    p = _bulk_progress.setdefault(job_id, {})
+    fr = list(p.get("failed_rows") or [])
+    fr.append(
+        {
+            "group_id": group_id,
+            "row_index": row_index,
+            "title_id": title_id,
+            "title": (title or "")[:120],
+            "reason": str(reason)[:BULK_FAIL_REASON_MAX],
+        }
+    )
+    p["failed_rows"] = fr[-120:]
+
+
+def _summarize_article_generator_http_error_body(err_body: str, max_len: int = 1000) -> str:
+    """Make article-website-generator HTTP error bodies readable (JSON fields, strip HTML)."""
+    s = (err_body or "").strip()
+    if not s:
+        return "(empty response body)"
+    if s.startswith("{") or s.startswith("["):
+        try:
+            j = json.loads(s)
+            if isinstance(j, dict):
+                bits = []
+                for k in ("error", "message", "detail", "msg", "description", "exception", "traceback"):
+                    v = j.get(k)
+                    if v is not None and str(v).strip():
+                        bits.append(f"{k}={str(v)[:600]}")
+                if bits:
+                    return " ".join(bits)[:max_len]
+        except json.JSONDecodeError:
+            pass
+    plain = re.sub(r"<[^>]+>", " ", s)
+    plain = " ".join(plain.split())
+    return (plain or s)[:max_len]
+
+
 _BULK_HISTORY_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bulk_jobs_history.json")
 
 # Authentication helpers
@@ -662,6 +714,24 @@ def _ai_prompts_dict_from_profile_form(form):
     return out if out else None
 
 
+def _compute_group_prompt_overrides_from_form(form, user_id):
+    """Only store keys changed from user's profile/base defaults (inherit-by-default)."""
+    posted = _ai_prompts_dict_from_profile_form(form) or {}
+    baseline = merge_prompt_layers(load_builtin_defaults(), parse_ai_prompts_json((get_user_api_keys(user_id) or {}).get("ai_prompts_json")), {})
+    out = {}
+    for key in ("recipe_system", "recipe_user", "article_system", "article_user", "pin_prompt"):
+        pv = (posted.get(key) or "").strip()
+        bv = (baseline.get(key) or "").strip()
+        if pv and pv != bv:
+            out[key] = pv
+    if "pin_field_prompts" in posted and isinstance(posted.get("pin_field_prompts"), dict):
+        pf = posted.get("pin_field_prompts") or {}
+        bf = baseline.get("pin_field_prompts") if isinstance(baseline.get("pin_field_prompts"), dict) else {}
+        if pf != bf:
+            out["pin_field_prompts"] = pf
+    return out if out else None
+
+
 def user_can_edit_group_prompts(user_id, group_id, is_admin=False):
     if not group_id:
         return False
@@ -974,7 +1044,51 @@ def base_layout(content, title, nav_extra=None):
   .progress-row-bar {{ height: 10px; background: #e9ecef; border-radius: 5px; overflow: hidden; margin: 0.5rem 0; }}
   .progress-row-bar .progress-row-fill {{ height: 100%; background: #0d6efd; border-radius: 5px; transition: width 0.3s ease; }}
   .progress-row-bar.done .progress-row-fill {{ background: #198754; }}
-  #viewModal.modal {{ z-index: 1065 !important; }}
+  /* Preview / detail modal must stack above progress so clicks from workflow summary (inside progress) are visible */
+  #viewModal.modal {{ z-index: 1095 !important; }}
+  /* Progress above most UI; below #viewModal when both open */
+  #progressModal.modal {{ z-index: 1080 !important; }}
+  /* Workflow summary table: compact error cell + readable hover panel */
+  .workflow-summary-wrap {{ overflow: visible !important; }}
+  .workflow-summary-err {{ position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 3px; cursor: help; color: #b91c1c; }}
+  .workflow-summary-err-pop {{ position: absolute; left: 50%; top: calc(100% + 8px); transform: translateX(-50%); padding: 8px 10px; background: #0f172a; color: #e2e8f0; font-size: 0.62rem; font-weight: 400; line-height: 1.45; border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,0.35); white-space: normal; width: max-content; max-width: min(340px, 78vw); max-height: 220px; overflow-y: auto; word-break: break-word; text-align: left; z-index: 10600; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.14s ease, visibility 0.14s ease; }}
+  .workflow-summary-err-pop::after {{ content: ''; position: absolute; bottom: 100%; left: 50%; margin-left: -7px; border: 7px solid transparent; border-bottom-color: #0f172a; }}
+  .workflow-summary-err:hover .workflow-summary-err-pop,
+  .workflow-summary-err:focus-within .workflow-summary-err-pop {{ opacity: 1; visibility: visible; pointer-events: auto; }}
+  .workflow-summary-err:focus {{ outline: 2px solid #f87171; outline-offset: 2px; border-radius: 4px; }}
+  /* Live spotlight — at-a-glance: where the job is, which articles, time on row */
+  .progress-live-spotlight {{ border: 1px solid #b6d4fe; border-radius: 10px; background: linear-gradient(165deg, #f0f7ff 0%, #fff 50%, #f8fbff 100%); margin: 0 0 0.65rem; overflow: hidden; box-shadow: 0 2px 14px rgba(13,110,253,0.09); }}
+  .progress-live-spotlight .pls-meta-bar {{ display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; padding: 8px 12px; background: linear-gradient(92deg, #0d6efd 0%, #3d8bfd 55%, #6366f1 100%); color: #fff; font-size: 0.68rem; font-weight: 600; line-height: 1.4; }}
+  .progress-live-spotlight .pls-meta-bar .pls-pill {{ background: rgba(255,255,255,0.22); padding: 2px 8px; border-radius: 999px; font-size: 0.62rem; letter-spacing: 0.03em; }}
+  .progress-live-spotlight .pls-cards {{ display: grid; gap: 8px; padding: 10px 12px 12px; }}
+  .progress-live-spotlight .pls-cards.pls-multi {{ grid-template-columns: 1fr; }}
+  @media (min-width: 520px) {{
+    .progress-live-spotlight .pls-cards.pls-multi {{ grid-template-columns: 1fr 1fr; }}
+  }}
+  .progress-live-spotlight .pls-card {{ display: flex; gap: 10px; align-items: flex-start; border: 1px solid #cfe2ff; border-radius: 8px; padding: 10px 10px 10px 8px; background: #fff; }}
+  .progress-live-spotlight .pls-live-dot {{ width: 10px; height: 10px; border-radius: 50%; background: #22c55e; margin-top: 5px; flex-shrink: 0; box-shadow: 0 0 0 3px rgba(34,197,94,0.28); animation: workflow-pulse 1.4s ease-in-out infinite; }}
+  .progress-live-spotlight .pls-card-title {{ font-size: 0.8rem; font-weight: 700; color: #0a3d91; line-height: 1.3; word-break: break-word; }}
+  .progress-live-spotlight .pls-card-sub {{ font-size: 0.64rem; color: #64748b; margin-top: 3px; line-height: 1.35; }}
+  .progress-live-spotlight .pls-card-activity {{ font-size: 0.7rem; color: #1e3a5f; margin-top: 6px; padding: 6px 8px; background: linear-gradient(90deg,#eef6ff,#f5f9ff); border-radius: 6px; border-left: 3px solid #0d6efd; line-height: 1.4; }}
+  .progress-live-spotlight .pls-card-time {{ font-size: 0.62rem; color: #64748b; margin-top: 5px; }}
+  .progress-domain-workboard {{ margin: 0.5rem 0 0.65rem; border: 1px solid #c4b5fd; border-radius: 10px; overflow: hidden; background: linear-gradient(180deg, #faf5ff 0%, #fff 48%); box-shadow: 0 2px 12px rgba(124, 58, 237, 0.08); }}
+  .progress-domain-workboard .pwd-head {{ background: linear-gradient(92deg, #6d28d9 0%, #7c3aed 45%, #a78bfa 100%); color: #fff; padding: 7px 12px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.02em; }}
+  .progress-domain-workboard .pwd-domain-label {{ padding: 6px 10px; font-size: 0.66rem; font-weight: 700; color: #5b21b6; background: #ede9fe; border-bottom: 1px solid #ddd6fe; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px; }}
+  .progress-domain-workboard .pwd-article {{ margin: 6px 8px 10px; padding: 8px 10px; background: #fff; border: 1px solid #e9d5ff; border-radius: 8px; }}
+  .progress-domain-workboard .pwd-where {{ font-size: 0.65rem; color: #1e1b4b; line-height: 1.45; margin-bottom: 6px; padding: 5px 8px; background: #f5f3ff; border-radius: 6px; border-left: 3px solid #7c3aed; }}
+  .progress-domain-workboard .pwd-letters-row {{ display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }}
+  .modal-api-loading-layer {{ flex-direction: column; gap: 0; }}
+  /* Article HTML previews often include <link href="css.css"> + global button rules — keep admin modal chrome normal */
+  #viewModal .modal-header .btn-close {{
+    width: 1em !important; height: 1em !important; padding: 0.5em !important; margin: -0.5em -0.5em -0.5em auto !important;
+    font-size: 1rem !important; opacity: 0.5;
+  }}
+  #viewModal .article-preview, #viewModal .article-preview-isolated {{ contain: content; max-width: 100%; overflow: auto; }}
+  #viewModal .article-preview button:not(.btn-close),
+  #viewModal .article-preview .btn:not(.btn-close) {{
+    font-size: max(0.8rem, 12px) !important; padding: 0.25rem 0.5rem !important; line-height: 1.4 !important;
+    min-height: unset !important; transform: none !important;
+  }}
 </style></head>
 <body class="bg-light">
 <nav class="navbar navbar-expand navbar-dark bg-dark mb-0">
@@ -995,7 +1109,7 @@ def base_layout(content, title, nav_extra=None):
   </div>
 </nav>
 <div class="container-fluid page-body py-4">{content}</div>
-<div id="globalLoadingOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;align-items:center;justify-content:center;">
+<div id="globalLoadingOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1035;align-items:center;justify-content:center;">
   <div class="spinner-border text-light" role="status" style="width:3rem;height:3rem;"><span class="visually-hidden">Loading...</span></div>
 </div>
 <script>
@@ -1019,7 +1133,7 @@ function viewContent(tid) {{
   showGlobalLoading();
   fetch('/api/article-content/' + tid).then(r=>r.json()).then(d=>{{
     if(d.error) {{ alert(d.error); return; }}
-    var raw = (d.article_html || '').toString();
+    var raw = _sanitizeArticleHtmlForModal((d.article_html || '').toString());
     var html = raw.startsWith('<') ? raw : raw.replace(/\\n/g, '<br>');
     var css = (d.article_css || '').toString().trim();
     if(css) html = '<style>' + css + '</style><div class="article-preview">' + (html || '') + '</div>';
@@ -1039,7 +1153,7 @@ function viewContent(tid) {{
     else contentHtml += '<div class="mb-3"><strong>Pin image</strong><div class="text-muted">None</div></div>';
     document.getElementById('viewModalBody').innerHTML = contentHtml;
     document.getElementById('viewModalTitle').textContent = 'Content & Images';
-    new bootstrap.Modal(document.getElementById('viewModal')).show();
+    _showViewModalOnTop();
   }}).finally(function() {{ hideGlobalLoading(); }});
 }}
 function viewRecipe(tid) {{
@@ -1049,7 +1163,7 @@ function viewRecipe(tid) {{
     var r = d.recipe || '';
     document.getElementById('viewModalBody').innerHTML = (typeof r==='string' && r.startsWith('{{')) ? '<pre>' + r + '</pre>' : r.replace(/\\n/g, '<br>') || '<em>Empty</em>';
     document.getElementById('viewModalTitle').textContent = 'Recipe';
-    new bootstrap.Modal(document.getElementById('viewModal')).show();
+    _showViewModalOnTop();
   }}).finally(function() {{ hideGlobalLoading(); }});
 }}
 function viewPrompts(tid) {{
@@ -1062,7 +1176,7 @@ function viewPrompts(tid) {{
     html += '<div class="mb-3"><strong>Ingredient prompt</strong><div class="border rounded p-2" style="white-space:pre-wrap;word-break:break-word">' + (p2 ? p2.replace(/</g,'&lt;').replace(/>/g,'&gt;') : '<em>Empty</em>') + '</div></div>';
     document.getElementById('viewModalBody').innerHTML = html;
     document.getElementById('viewModalTitle').textContent = 'Prompts';
-    new bootstrap.Modal(document.getElementById('viewModal')).show();
+    _showViewModalOnTop();
   }}).finally(function() {{ hideGlobalLoading(); }});
 }}
 function viewPin(tid) {{
@@ -1073,15 +1187,126 @@ function viewPin(tid) {{
     var html = pinUrl && pinUrl.startsWith('http') ? '<div class="text-center"><img src="'+pinUrl.replace(/"/g,'&quot;')+'" style="max-width:100%;height:auto" alt="Pin"></div>' : '<p class="text-muted">No pin image</p>';
     document.getElementById('viewModalBody').innerHTML = html;
     document.getElementById('viewModalTitle').textContent = 'Pinterest Pin';
-    new bootstrap.Modal(document.getElementById('viewModal')).show();
+    _showViewModalOnTop();
   }}).finally(function() {{ hideGlobalLoading(); }});
+}}
+function _initViewModalStacking() {{
+  var vm = document.getElementById('viewModal');
+  if (!vm || vm._viewModalStackFix) return;
+  vm._viewModalStackFix = true;
+  vm.addEventListener('show.bs.modal', function() {{ vm.style.zIndex = '1095'; }});
+  vm.addEventListener('shown.bs.modal', function() {{
+    var backs = document.querySelectorAll('.modal-backdrop');
+    if (backs.length) backs[backs.length - 1].style.zIndex = '1094';
+  }});
+}}
+function _sanitizeArticleHtmlForModal(html) {{
+  if (!html || typeof html !== 'string') return html || '';
+  return html
+    .replace(/<link[^>]*\bhref\s*=\s*["']([^"']*css\.css[^"']*)["'][^>]*>/gi, '')
+    .replace(/<link[^>]*\bhref\s*=\s*css\.css[^>]*>/gi, '');
+}}
+function _blurFocusInsideModal(modalEl) {{
+  try {{
+    if (!modalEl || !document.activeElement) return;
+    if (modalEl.contains(document.activeElement)) document.activeElement.blur();
+  }} catch (e) {{}}
+}}
+function _initModalHideBlur() {{
+  ['viewModal', 'progressModal'].forEach(function(id) {{
+    var el = document.getElementById(id);
+    if (!el || el._hideBlurOk) return;
+    el._hideBlurOk = true;
+    el.addEventListener('hide.bs.modal', function() {{ _blurFocusInsideModal(el); }});
+  }});
+}}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function() {{ _initViewModalStacking(); _initModalHideBlur(); }});
+else {{ _initViewModalStacking(); _initModalHideBlur(); }}
+function _showViewModalOnTop() {{
+  var vm = document.getElementById('viewModal');
+  if (!vm) return;
+  vm.style.zIndex = '1095';
+  bootstrap.Modal.getOrCreateInstance(vm).show();
+  setTimeout(function() {{
+    var backs = document.querySelectorAll('.modal-backdrop');
+    if (backs.length) backs[backs.length - 1].style.zIndex = '1094';
+  }}, 10);
+}}
+function _formatDomainGenerationHtml(d, letter, titleId) {{
+  if (d.error) return '<div class="alert alert-warning py-2 mb-0"><strong>Domain ' + letter + '</strong> (#' + titleId + '): ' + String(d.error).replace(/</g,'&lt;') + '</div>';
+  var html = '';
+  if (d.model_used || d.generated_at || d.generation_time_seconds != null || d.generation_cost_usd != null || (d.website_template || '').trim()) {{
+    var mu = (d.model_used || '').trim();
+    var modelLabel = mu ? (mu.indexOf(' -> ') >= 0 ? mu.split(' -> ').pop() + ' (' + mu.split(' -> ')[0] + ')' : mu) : '-';
+    html += '<div class="mb-2 small text-muted">' + ((d.website_template || '').trim() ? 'Generator: ' + (d.website_template || '').replace(/</g,'&lt;') + ' · ' : '') + 'Model: ' + modelLabel.replace(/</g,'&lt;') + (d.generated_at ? ' · ' + d.generated_at : '') + (d.generation_time_seconds != null ? ' · ' + d.generation_time_seconds + 's' : '') + (d.generation_cost_usd != null && d.generation_cost_usd !== '' ? ' · $' + Number(d.generation_cost_usd).toFixed(4) : '') + '</div>';
+  }}
+  var raw = _sanitizeArticleHtmlForModal((d.article_html || '').toString());
+  var adisp = raw.startsWith('<') ? raw : raw.replace(/\\n/g, '<br>') || '<em>Empty</em>';
+  var css = (d.article_css || '').toString().trim();
+  if (css) adisp = '<style>' + css + '</style><div class="article-preview">' + adisp + '</div>';
+  html += '<div class="mb-2"><strong class="small">Article HTML</strong><div class="border rounded p-2 small">' + adisp + '</div></div>';
+  var r = (d.recipe || '').toString();
+  var rdisp = (r.startsWith('{{') ? '<pre class="small mb-0">'+r.replace(/</g,'&lt;')+'</pre>' : '<div class="small">' + r.replace(/\\n/g, '<br>').replace(/</g,'&lt;') + '</div>') || '<em>Empty</em>';
+  html += '<div class="mb-2"><strong class="small">Recipe</strong><div class="border rounded p-2">' + rdisp + '</div></div>';
+  var mainUrl = (d.main_image || '').trim();
+  html += '<div class="mb-2"><strong class="small">Main image</strong><div class="border rounded p-1">' + (mainUrl && mainUrl.startsWith('http') ? '<img src="'+mainUrl.replace(/"/g,'&quot;')+'" style="max-width:100%;height:auto" alt="">' : '<span class="text-muted small">None</span>') + '</div></div>';
+  var ingUrl = (d.ingredient_image || '').trim();
+  html += '<div class="mb-2"><strong class="small">Ingredient image</strong><div class="border rounded p-1">' + (ingUrl && ingUrl.startsWith('http') ? '<img src="'+ingUrl.replace(/"/g,'&quot;')+'" style="max-width:100%;height:auto" alt="">' : '<span class="text-muted small">None</span>') + '</div></div>';
+  var pinUrl = (d.pin_image || '').trim();
+  html += '<div class="mb-0"><strong class="small">Pin image</strong><div class="border rounded p-1">' + (pinUrl && pinUrl.startsWith('http') ? '<img src="'+pinUrl.replace(/"/g,'&quot;')+'" style="max-width:100%;height:auto" alt="">' : '<span class="text-muted small">None</span>') + '</div></div>';
+  return html;
+}}
+function viewWorkflowRowDomainsFromEnc(mode, baseTid, enc) {{
+  var dti = {{}};
+  try {{ dti = JSON.parse(decodeURIComponent(enc || '%7B%7D')); }} catch (e1) {{ dti = {{}}; }}
+  var order = ['A','B','C','D'];
+  var jobs = [];
+  order.forEach(function(L) {{
+    var id = dti[L] || dti[String(L).toLowerCase()];
+    if (!id && L === 'A' && baseTid) id = baseTid;
+    if (id) jobs.push({{ L: L, id: String(id) }});
+  }});
+  if (!jobs.length && baseTid) jobs.push({{ L: 'A', id: String(baseTid) }});
+  if (!jobs.length) {{ alert('No title IDs for domains'); return; }}
+  showGlobalLoading();
+  Promise.all(jobs.map(function(j) {{ return fetch('/api/article-content/' + j.id).then(function(r) {{ return r.json(); }}); }}))
+    .then(function(results) {{
+      var html = '';
+      results.forEach(function(d, i) {{
+        var L = jobs[i].L;
+        var id = jobs[i].id;
+        if (mode === 'prompts') {{
+          var p1 = (d.prompt || '').toString().trim();
+          var p2 = (d.prompt_image_ingredients || '').toString().trim();
+          var mu = (d.model_used || '').trim();
+          var meta = mu ? '<div class="small text-muted mb-2">' + mu.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>' : '';
+          html += '<div class="card mb-3 shadow-sm border-primary"><div class="card-header bg-primary text-white py-2"><strong>Domain ' + L + '</strong> <span class="fw-normal opacity-75">· title #' + id + '</span></div><div class="card-body">' + meta;
+          if (d.error) {{ html += '<p class="text-danger mb-0">' + String(d.error).replace(/</g,'&lt;') + '</p></div></div>'; return; }}
+          html += '<h6 class="text-muted small text-uppercase mb-1">Main image prompt</h6><div class="border rounded p-2 mb-3 bg-light" style="white-space:pre-wrap;word-break:break-word">' + (p1 ? p1.replace(/</g,'&lt;').replace(/>/g,'&gt;') : '<em class="text-muted">Empty</em>') + '</div>';
+          html += '<h6 class="text-muted small text-uppercase mb-1">Ingredient prompt</h6><div class="border rounded p-2 bg-light" style="white-space:pre-wrap;word-break:break-word">' + (p2 ? p2.replace(/</g,'&lt;').replace(/>/g,'&gt;') : '<em class="text-muted">Empty</em>') + '</div></div></div>';
+        }} else {{
+          var p1d = (d.prompt || '').toString().trim();
+          var p2d = (d.prompt_image_ingredients || '').toString().trim();
+          var promptsBlock = '';
+          if (!d.error && (p1d || p2d)) {{
+            promptsBlock = '<details class="mb-3 border rounded p-2 bg-light"><summary class="small fw-semibold" style="cursor:pointer">📝 Prompts (main + ingredient)</summary><div class="mt-2"><div class="small text-uppercase text-muted mb-1">Main image prompt</div><div class="border rounded p-2 small mb-2" style="white-space:pre-wrap;word-break:break-word">' + (p1d ? p1d.replace(/</g,'&lt;').replace(/>/g,'&gt;') : '<em class="text-muted">Empty</em>') + '</div><div class="small text-uppercase text-muted mb-1">Ingredient prompt</div><div class="border rounded p-2 small" style="white-space:pre-wrap;word-break:break-word">' + (p2d ? p2d.replace(/</g,'&lt;').replace(/>/g,'&gt;') : '<em class="text-muted">Empty</em>') + '</div></div></details>';
+          }}
+          html += '<div class="card mb-4 border-secondary"><div class="card-header py-2 bg-light"><strong>Domain ' + L + '</strong> <span class="text-muted small">· title #' + id + '</span></div><div class="card-body">' + promptsBlock + _formatDomainGenerationHtml(d, L, id) + '</div></div>';
+        }}
+      }});
+      document.getElementById('viewModalBody').innerHTML = html || '<p class="text-muted">No data</p>';
+      document.getElementById('viewModalTitle').textContent = mode === 'prompts' ? 'Prompts by domain (A–D)' : 'Generated content by domain (A–D)';
+      _showViewModalOnTop();
+    }})
+    .catch(function(e) {{ alert('Error: ' + e); }})
+    .finally(function() {{ hideGlobalLoading(); }});
 }}
 function viewDomainSingle(tid, label) {{
   showGlobalLoading();
   fetch('/api/article-content/' + tid).then(r=>r.json()).then(d=>{{
     if(d.error) {{ alert(d.error); return; }}
     var html = '';
-    var raw = (d.article_html || '').toString();
+    var raw = _sanitizeArticleHtmlForModal((d.article_html || '').toString());
     var adisp = raw.startsWith('<') ? raw : raw.replace(/\\n/g,'<br>') || '<em>Empty</em>';
     var css = (d.article_css || '').toString().trim();
     if(css) adisp = '<style>' + css + '</style><div class="article-preview">' + adisp + '</div>';
@@ -1105,14 +1330,14 @@ function viewDomainSingle(tid, label) {{
     else html += '<div class="mb-3"><strong>Pin image</strong><div class="text-muted">None</div></div>';
     document.getElementById('viewModalBody').innerHTML = html;
     document.getElementById('viewModalTitle').textContent = 'Domain ' + (label||'') + ' – Article, Recipe, Images';
-    new bootstrap.Modal(document.getElementById('viewModal')).show();
+    _showViewModalOnTop();
   }}).finally(function() {{ hideGlobalLoading(); }});
 }}
 function viewImage(url, title) {{
   if(!url || !url.startsWith('http')) {{ alert('No image'); return; }}
   document.getElementById('viewModalBody').innerHTML = '<img src="'+url.replace(/"/g,'&quot;')+'" style="max-width:100%; height:auto;" alt="">';
   document.getElementById('viewModalTitle').textContent = title || 'Image';
-  new bootstrap.Modal(document.getElementById('viewModal')).show();
+  _showViewModalOnTop();
 }}
 function viewImagesAll(urls, title, labelsStr) {{
   var arr = (typeof urls==='string') ? (urls ? urls.split('|||') : []) : (urls||[]);
@@ -1129,7 +1354,7 @@ function viewImagesAll(urls, title, labelsStr) {{
   html += '</div>';
   document.getElementById('viewModalBody').innerHTML = html;
   document.getElementById('viewModalTitle').textContent = title || 'Images';
-  new bootstrap.Modal(document.getElementById('viewModal')).show();
+  _showViewModalOnTop();
 }}
 function viewContentAll(idsStr, labelsStr) {{
   var ids = (idsStr||'').split(',').filter(function(x){{ return x; }});
@@ -1140,7 +1365,7 @@ function viewContentAll(idsStr, labelsStr) {{
     .then(function(results){{
       var html = '';
       results.forEach(function(d,i){{
-        var raw = (d.article_html || '').toString();
+        var raw = _sanitizeArticleHtmlForModal((d.article_html || '').toString());
         var disp = raw.startsWith('<') ? raw : raw.replace(/\\n/g,'<br>') || '<em>Empty</em>';
         var css = (d.article_css || '').toString().trim();
         if(css) disp = '<style>' + css + '</style><div class="article-preview">' + disp + '</div>';
@@ -1152,7 +1377,7 @@ function viewContentAll(idsStr, labelsStr) {{
       }});
       document.getElementById('viewModalBody').innerHTML = html || '<em>Empty</em>';
       document.getElementById('viewModalTitle').textContent = 'Article / Content';
-      new bootstrap.Modal(document.getElementById('viewModal')).show();
+      _showViewModalOnTop();
     }})
     .catch(function(e){{ alert('Error: '+e); }})
     .finally(function() {{ hideGlobalLoading(); }});
@@ -1173,7 +1398,7 @@ function viewRecipeAll(idsStr, labelsStr) {{
       }});
       document.getElementById('viewModalBody').innerHTML = html || '<em>Empty</em>';
       document.getElementById('viewModalTitle').textContent = 'Recipe';
-      new bootstrap.Modal(document.getElementById('viewModal')).show();
+      _showViewModalOnTop();
     }})
     .catch(function(e){{ alert('Error: '+e); }})
     .finally(function() {{ hideGlobalLoading(); }});
@@ -1466,18 +1691,299 @@ function _updateBulkModalButtons(d) {{
   if (btnPinterest) btnPinterest.textContent = 'Run Pinterest (' + np + ')';
   if (btnAll) btnAll.textContent = 'Run all (' + nc + ', ' + ni + ', ' + np + ')';
 }}
+/** Console debug for modal/bulk UI: set localStorage aut_pin_ui_debug=1, or ?ui_debug=1 in URL, or window.__AUT_PIN_UI_DEBUG = true */
+function _autPinUiDebugOn() {{
+  try {{
+    if (typeof window !== 'undefined' && window.__AUT_PIN_UI_DEBUG) return true;
+    if (typeof localStorage !== 'undefined' && localStorage.getItem('aut_pin_ui_debug') === '1') return true;
+    if (typeof location !== 'undefined' && location.search && location.search.indexOf('ui_debug=1') >= 0) return true;
+  }} catch (e) {{}}
+  return false;
+}}
+function _uiDbg(tag, detail) {{
+  if (!_autPinUiDebugOn()) return;
+  try {{
+    if (detail !== undefined) console.log('[aut-pin-ui]', tag, detail);
+    else console.log('[aut-pin-ui]', tag);
+  }} catch (e) {{}}
+}}
+(function() {{
+  try {{
+    if (typeof location !== 'undefined' && location.search && location.search.indexOf('ui_debug=1') >= 0 && typeof console !== 'undefined' && console.info) {{
+      console.info('[aut-pin-ui] Debug ON: add ?ui_debug=1 or localStorage.setItem("aut_pin_ui_debug","1") then reload.');
+    }}
+  }} catch (e) {{}}
+}})();
+/** True if any .modal.show is actually visible (not display:none leftover from a stuck hide). */
+function _anyModalTrulyVisible() {{
+  var modals = document.querySelectorAll('.modal.show');
+  for (var i = 0; i < modals.length; i++) {{
+    try {{
+      var st = window.getComputedStyle(modals[i]);
+      if (st.display === 'none') continue;
+      return true;
+    }} catch (e) {{ return true; }}
+  }}
+  return false;
+}}
+/** Remove .show from modals that are not displayed (breaks cleanup if we only querySelector .modal.show). */
+function _stripPhantomModalShowClass() {{
+  document.querySelectorAll('.modal.show').forEach(function(m) {{
+    try {{
+      if (window.getComputedStyle(m).display === 'none') m.classList.remove('show');
+    }} catch (e) {{}}
+  }});
+}}
+/**
+ * Clear body scroll lock and orphan backdrops when no modal is visible.
+ * Bootstrap 5 adds .modal-backdrop BEFORE .modal.show (async). Defer up to a few passes so we do not rip
+ * the new backdrop during open; use _anyModalTrulyVisible so phantom .show does not block cleanup.
+ * (A global time-based guard was removed — it blocked cleanup for seconds and broke other dialogs.)
+ */
+function _syncBodyAfterModalClose(attempt) {{
+  if (typeof attempt !== 'number') attempt = 0;
+  var maxDefer = 5;
+  _stripPhantomModalShowClass();
+  if (_anyModalTrulyVisible()) {{
+    _uiDbg('syncBodyAfterModalClose_skip', {{ reason: 'a modal is truly visible' }});
+    return;
+  }}
+  var backs = document.querySelectorAll('.modal-backdrop');
+  if (backs.length > 0 && attempt < maxDefer) {{
+    _uiDbg('syncBodyAfterModalClose_defer', {{ reason: 'backdrop before .show or transition', backdrops: backs.length, attempt: attempt }});
+    setTimeout(function() {{ _syncBodyAfterModalClose(attempt + 1); }}, 300);
+    return;
+  }}
+  _uiDbg('syncBodyAfterModalClose', {{ cleared: true, attempt: attempt, backdropsRemoved: document.querySelectorAll('.modal-backdrop').length }});
+  document.body.classList.remove('modal-open');
+  document.body.style.removeProperty('overflow');
+  document.body.style.removeProperty('padding-right');
+  document.querySelectorAll('.modal-backdrop').forEach(function(b) {{ b.remove(); }});
+}}
+/** Immediate orphan cleanup when we know no modal open is in progress (e.g. progress modal retry path). */
+function _syncBodyHardClearModals() {{
+  _stripPhantomModalShowClass();
+  if (_anyModalTrulyVisible()) return;
+  document.body.classList.remove('modal-open');
+  document.body.style.removeProperty('overflow');
+  document.body.style.removeProperty('padding-right');
+  document.querySelectorAll('.modal-backdrop').forEach(function(b) {{ b.remove(); }});
+}}
+/** After any modal hides, re-run cleanup — spaced out so we do not fight an opening modal. */
+function _scheduleModalBackdropCleanup() {{
+  [0, 500, 1100].forEach(function(ms) {{
+    setTimeout(function() {{ _syncBodyAfterModalClose(0); }}, ms);
+  }});
+}}
+/** Strip visible state when Bootstrap instance is missing or hide() is a no-op. */
+function _forceUnstickModalEl(el) {{
+  if (!el) return;
+  el.classList.remove('show');
+  el.style.display = 'none';
+  el.setAttribute('aria-hidden', 'true');
+  el.removeAttribute('aria-modal');
+  el.removeAttribute('role');
+}}
 /** Blur focus inside modal before hide() so aria-hidden is not set while a button still has focus (a11y / Chrome warning). */
 function _hideBsModal(elOrId) {{
   var el = typeof elOrId === 'string' ? document.getElementById(elOrId) : elOrId;
   if (!el) return;
+  _uiDbg('hideBsModal', {{ id: el.id || '(no-id)', hadShow: el.classList.contains('show') }});
   try {{
     var ae = document.activeElement;
     if (ae && el.contains(ae) && typeof ae.blur === 'function') ae.blur();
   }} catch (e) {{}}
+  if (typeof bootstrap === 'undefined' || !bootstrap.Modal) {{
+    _forceUnstickModalEl(el);
+    _syncBodyAfterModalClose();
+    return;
+  }}
   var inst = bootstrap.Modal.getInstance(el);
-  if (inst) inst.hide();
+  if (inst) {{
+    inst.hide();
+    setTimeout(function() {{
+      if (el.classList.contains('show')) {{
+        _forceUnstickModalEl(el);
+        _syncBodyAfterModalClose();
+      }}
+    }}, 500);
+    return;
+  }}
+  if (el.classList.contains('show')) {{
+    _forceUnstickModalEl(el);
+    _syncBodyAfterModalClose();
+  }}
+}}
+/**
+ * Run fn only after a bulk chooser modal has fully hidden. Opening #progressModal in the same tick as hide()
+ * stacks Bootstrap backdrops and often leaves a grey sheet with no dialog after close.
+ */
+function _runAfterBulkModalHidden(modalIdOrEl, fn) {{
+  if (typeof fn !== 'function') return;
+  var el = typeof modalIdOrEl === 'string' ? document.getElementById(modalIdOrEl) : modalIdOrEl;
+  if (!el || !el.classList.contains('show')) {{
+    fn();
+    return;
+  }}
+  var ran = false;
+  function once() {{
+    if (ran) return;
+    ran = true;
+    try {{ fn(); }} catch (e) {{}}
+  }}
+  el.addEventListener('hidden.bs.modal', once, {{ once: true }});
+  _hideBsModal(el);
+  setTimeout(once, 900);
+}}
+if (!window._bsModalBodySyncBound) {{
+  window._bsModalBodySyncBound = true;
+  document.addEventListener('hidden.bs.modal', function() {{
+    _scheduleModalBackdropCleanup();
+  }});
+}}
+if (!window._bsDismissUnstickBound) {{
+  window._bsDismissUnstickBound = true;
+  document.addEventListener('click', function(ev) {{
+    var btn = ev.target.closest('[data-bs-dismiss="modal"]');
+    if (!btn) return;
+    var modal = btn.closest('.modal');
+    if (!modal) return;
+    setTimeout(function() {{
+      if (modal.classList.contains('show')) {{
+        _forceUnstickModalEl(modal);
+        _syncBodyAfterModalClose();
+      }}
+    }}, 500);
+  }}, true);
+}}
+/** Delegated clicks: works even if innerHTML refresh races; capture phase runs before orphaned backdrops eat the event in some stuck states */
+if (!window._runTaskProgressDelegateBound) {{
+  window._runTaskProgressDelegateBound = true;
+  document.addEventListener('click', function(ev) {{
+    var btn = ev.target.closest('.run-task-view-btn');
+    if (!btn) return;
+    var panel = document.getElementById('running-tasks-panel');
+    if (!panel || !panel.contains(btn)) return;
+    var jid = btn.getAttribute('data-job-id');
+    if (!jid || typeof openProgressModalForJob !== 'function') return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    openProgressModalForJob(jid);
+  }}, true);
+  document.addEventListener('click', function(ev) {{
+    var row = ev.target.closest('.run-task-row[data-job-id]');
+    if (!row) return;
+    var panel = document.getElementById('running-tasks-panel');
+    if (!panel || !panel.contains(row)) return;
+    if (ev.target.closest('button') || ev.target.closest('a')) return;
+    var jid = row.getAttribute('data-job-id');
+    if (!jid || typeof openProgressModalForJob !== 'function') return;
+    openProgressModalForJob(jid);
+  }});
+}}
+/** One instance per #progressModal — avoids stacked backdrops from repeated new bootstrap.Modal(...).show() */
+function _showProgressBsModal() {{
+  var el = document.getElementById('progressModal');
+  if (!el) {{
+    _uiDbg('showProgressBsModal', {{ err: 'no #progressModal' }});
+    return;
+  }}
+  _uiDbg('showProgressBsModal', {{ hadShow: el.classList.contains('show'), hasBs: typeof bootstrap !== 'undefined' && !!bootstrap.Modal }});
+  el.style.removeProperty('display');
+  function tryShow() {{
+    if (typeof bootstrap === 'undefined' || !bootstrap.Modal) return false;
+    try {{
+      /** If DOM was force-unstuck but Bootstrap still thinks modal is shown, show() is a no-op and page stays blocked */
+      var inst = bootstrap.Modal.getInstance(el);
+      if (inst && !el.classList.contains('show')) {{
+        _uiDbg('showProgressBsModal_dispose_stale', {{ reason: 'instance without .show' }});
+        inst.dispose();
+      }}
+      bootstrap.Modal.getOrCreateInstance(el).show();
+      return true;
+    }} catch (err) {{
+      _uiDbg('showProgressBsModal_show_error', {{ err: String(err && err.message ? err.message : err) }});
+      return false;
+    }}
+  }}
+  if (tryShow()) {{
+    /** Optional second show() only if .show never appeared — never dispose() here (async show was still running at 150ms before). */
+    setTimeout(function() {{
+      if (!el.classList.contains('show')) {{
+        _uiDbg('showProgressBsModal_noshow_soft_retry', {{}});
+        try {{ bootstrap.Modal.getOrCreateInstance(el).show(); }} catch (e2) {{}}
+      }}
+    }}, 500);
+    return;
+  }}
+  var n = 0;
+  var iv = setInterval(function() {{
+    n++;
+    if (tryShow() || n >= 40) clearInterval(iv);
+  }}, 50);
+}}
+/** After closing #progressModal, hide then force body/backdrop cleanup (fixes scroll lock when hide() is flaky). */
+function _hideProgressModalAndUnlock(elOrId, delayMs) {{
+  var el = typeof elOrId === 'string' ? document.getElementById(elOrId) : elOrId;
+  if (!el) return;
+  var d = typeof delayMs === 'number' ? delayMs : 0;
+  _uiDbg('hideProgressModalAndUnlock', {{ delayMs: d, id: el.id || '(no-id)' }});
+  setTimeout(function() {{
+    _hideBsModal(el);
+    setTimeout(function() {{
+      _forceUnstickModalEl(el);
+      _syncBodyAfterModalClose();
+      _scheduleModalBackdropCleanup();
+    }}, 650);
+    setTimeout(function() {{
+      if (!_anyModalTrulyVisible()) {{
+        _syncBodyHardClearModals();
+        _forceUnstickModalEl(el);
+      }}
+    }}, 1150);
+  }}, d);
+}}
+function _modalEnsureLoadingLayer(modalEl) {{
+  if (!modalEl) return null;
+  var body = modalEl.querySelector('.modal-body');
+  if (!body) return null;
+  body.classList.add('position-relative');
+  var id = modalEl.id ? (modalEl.id + 'ApiLoadingLayer') : 'modalApiLoadingLayer';
+  var el = document.getElementById(id);
+  if (!el) {{
+    el = document.createElement('div');
+    el.id = id;
+    el.className = 'modal-api-loading-layer';
+    el.setAttribute('role', 'status');
+    el.style.cssText = 'position:absolute;inset:0;z-index:1055;background:rgba(255,255,255,0.93);display:none;align-items:center;justify-content:center;';
+    el.innerHTML = '<div class="d-flex flex-column align-items-center px-3 py-4 w-100"><div class="spinner-border spinner-border-sm text-primary" aria-hidden="true"></div><div class="small text-muted mt-2 text-center modal-api-loading-text">Loading…</div><div class="progress w-100 mt-2" style="max-width:220px;height:4px"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div></div></div>';
+    body.insertBefore(el, body.firstChild);
+  }}
+  return el;
+}}
+function _modalSetLoading(modalEl, show, message) {{
+  var layer = _modalEnsureLoadingLayer(modalEl);
+  if (!layer) return;
+  var t = layer.querySelector('.modal-api-loading-text');
+  if (t && message) t.textContent = message;
+  layer.style.display = show ? 'flex' : 'none';
+}}
+function _modalPrepareBlockingDuringLoad(modalEl) {{
+  if (!modalEl || typeof bootstrap === 'undefined' || !bootstrap.Modal) return;
+  modalEl.setAttribute('data-bs-backdrop', 'static');
+  modalEl.setAttribute('data-bs-keyboard', 'false');
+  var inst = bootstrap.Modal.getOrCreateInstance(modalEl);
+  if (inst && inst._config) {{ inst._config.backdrop = 'static'; inst._config.keyboard = false; }}
+}}
+function _modalReleaseBlockingAfterLoad(modalEl) {{
+  if (!modalEl || typeof bootstrap === 'undefined' || !bootstrap.Modal) return;
+  modalEl.removeAttribute('data-bs-backdrop');
+  modalEl.removeAttribute('data-bs-keyboard');
+  var inst = bootstrap.Modal.getInstance(modalEl);
+  if (inst && inst._config) {{ inst._config.backdrop = true; inst._config.keyboard = true; }}
 }}
 function openBulkModal(taId) {{
+  var bm = document.getElementById('bulkModal');
   document.getElementById('bulkModalTitleId').value = taId;
   var btnArticle = document.getElementById('bulkModalBtnArticle');
   var btnImages = document.getElementById('bulkModalBtnImages');
@@ -1487,6 +1993,12 @@ function openBulkModal(taId) {{
   if (btnImages) btnImages.textContent = 'Run images';
   if (btnPinterest) btnPinterest.textContent = 'Run Pinterest';
   if (btnAll) btnAll.textContent = 'Run all (content, images, Pinterest)';
+  _modalSetLoading(bm, true, 'Loading row options…');
+  _modalPrepareBlockingDuringLoad(bm);
+  if (bm && typeof bootstrap !== 'undefined' && bootstrap.Modal) {{
+    _uiDbg('openBulkModal.show');
+    bootstrap.Modal.getOrCreateInstance(bm).show();
+  }}
   var applyP = _applyProfileAiDefaults('bulkModal').catch(function(){{}});
   var countsP = fetch('/api/bulk-row-counts?title_id=' + encodeURIComponent(taId)).then(function(r){{ return r.json(); }}).catch(function(){{ return {{}}; }});
   Promise.all([applyP, countsP]).then(function(results) {{
@@ -1506,7 +2018,8 @@ function openBulkModal(taId) {{
     if (aiSel) aiSel.addEventListener('change', function(){{ _updateBulkModalAiHints('bulkModal'); }});
     document.querySelectorAll('input[name="bulkModalOpenRouterMode"]').forEach(function(r){{ r.addEventListener('change', function(){{ _updateBulkModalAiHints('bulkModal'); }}); }});
   }}).finally(function() {{
-    new bootstrap.Modal(document.getElementById('bulkModal')).show();
+    _modalSetLoading(bm, false);
+    _modalReleaseBlockingAfterLoad(bm);
   }});
 }}
 function runBulk(mode) {{
@@ -1567,7 +2080,7 @@ function _setupBulkGroupModalSubgroups(groupId) {{
   var listEl = document.getElementById('bulkGroupSubgroupsList');
   var scopeAll = document.getElementById('bulkGroupModalScopeAll');
   var scopeSelected = document.getElementById('bulkGroupModalScopeSelected');
-  if (!wrap || !listEl) return;
+  if (!wrap || !listEl) return Promise.resolve();
   wrap.style.display = 'none';
   listEl.innerHTML = '';
   if (scopeSelected) scopeSelected.disabled = false;
@@ -1580,7 +2093,7 @@ function _setupBulkGroupModalSubgroups(groupId) {{
   wrap.addEventListener('change', function(e) {{
     if (e.target && e.target.classList.contains('bulk-group-subgroup-cb')) _refreshBulkGroupModalCounts();
   }});
-  fetch('/api/group-subgroups?group_id=' + encodeURIComponent(groupId)).then(function(r){{ return r.json(); }}).then(function(d){{
+  return fetch('/api/group-subgroups?group_id=' + encodeURIComponent(groupId)).then(function(r){{ return r.json(); }}).then(function(d){{
     var subs = d.subgroups || [];
     if (subs.length === 0) {{
       listEl.innerHTML = '<span class="text-muted small">No subgroups with domains</span>';
@@ -1597,9 +2110,9 @@ function _setupBulkGroupModalSubgroups(groupId) {{
   }}).catch(function(){{ listEl.innerHTML = '<span class="text-muted small">Could not load subgroups</span>'; }});
 }}
 function runBulkGroupFromModal(mode) {{
+  _uiDbg('runBulkGroupFromModal', {{ mode: mode }});
   var gid = document.getElementById('bulkGroupModalGroupId').value;
   if(!gid) return;
-  _hideBsModal('bulkGroupModal');
   var sprEl = document.querySelector('input[name="bulkGroupModalScopePrompts"]:checked');
   var scEl = document.querySelector('input[name="bulkGroupModalScopeContent"]:checked');
   var siEl = document.querySelector('input[name="bulkGroupModalScopeImages"]:checked');
@@ -1610,7 +2123,10 @@ function runBulkGroupFromModal(mode) {{
   var scopePins = (spEl && spEl.value) || 'override';
   var aiProvider = (document.getElementById('bulkGroupModalAiProvider') || {{}}).value || '';
   var preset = (document.querySelector('input[name="bulkGroupConcurrencyPreset"]:checked') || {{}}).value || 'low';
+  var workflowStrategy = (document.querySelector('input[name="bulkGroupWorkflowStrategy"]:checked') || {{}}).value || 'row';
   var n = preset === 'low' ? 1 : preset === 'medium' ? 2 : Math.max(1, Math.min(parseInt((document.getElementById('bulkGroupConcurrencyN')||{{}}).value, 10) || 6, 20));
+  var delayInput = document.getElementById('bulkGroupImageDelaySec');
+  var imageDelaySec = Math.max(0, Math.min(parseInt((delayInput && delayInput.value) || '15', 10) || 15, 180));
   var groupIdsParam = '';
   var scopeEl = document.querySelector('input[name="bulkGroupModalRunScope"]:checked');
   if (scopeEl && scopeEl.value === 'selected') {{
@@ -1619,45 +2135,50 @@ function runBulkGroupFromModal(mode) {{
     if (ids.length === 0) {{ alert('Select at least one subgroup, or choose "All subgroups in this group"'); return; }}
     groupIdsParam = '&group_ids=' + encodeURIComponent(ids.join(','));
   }}
-  var url = '/api/bulk-run-group?group_id=' + gid + '&mode=' + mode + '&scope_prompts=' + scopePrompts + '&scope_content=' + scopeContent + '&scope_images=' + scopeImages + '&scope_pins=' + scopePins + '&concurrency_n=' + n + groupIdsParam + (aiProvider ? '&ai_provider=' + encodeURIComponent(aiProvider) : '') + _getOpenRouterModelsParam('bulkGroupModal') + _getOpenRouterModeParam('bulkGroupModal') + _getAiModelParams('bulkGroupModal');
+  var url = '/api/bulk-run-group?group_id=' + gid + '&mode=' + mode + '&scope_prompts=' + scopePrompts + '&scope_content=' + scopeContent + '&scope_images=' + scopeImages + '&scope_pins=' + scopePins + '&concurrency_n=' + n + '&workflow_strategy=' + encodeURIComponent(workflowStrategy) + '&image_delay_sec=' + imageDelaySec + groupIdsParam + (aiProvider ? '&ai_provider=' + encodeURIComponent(aiProvider) : '') + _getOpenRouterModelsParam('bulkGroupModal') + _getOpenRouterModeParam('bulkGroupModal') + _getAiModelParams('bulkGroupModal');
   var asyncUrl = url + (url.indexOf('?')>=0 ? '&' : '?') + 'async=1';
-  if (typeof requestTaskNotificationPermission==='function') requestTaskNotificationPermission();
-  var modal = document.getElementById('progressModal');
-  var body = document.getElementById('progressModalBody');
-  if (modal && body) {{
-    renderProgressBodyFromMode(mode, 'running', 'Starting job...', '', []);
-    document.getElementById('progressBgBtn').style.display = 'none';
-    new bootstrap.Modal(modal).show();
-  }}
-  fetch(asyncUrl, {{ method: 'POST' }}).then(r=>r.json()).then(function(d){{
-    if (d.error) {{ if (body) body.innerHTML = '<p class="text-danger">' + d.error + '</p>'; return; }}
-    var jobId = d.job_id;
-    if (d.success && jobId) {{
-      if (typeof refreshRunningTasks==='function') refreshRunningTasks();
-      if (modal && body) {{
-        window._currentProgressJobId = jobId;
-        document.getElementById('progressBgBtn').style.display = 'inline-block';
-        function poll() {{
-          fetch('/api/bulk-run-status?job_id=' + encodeURIComponent(jobId)).then(r=>r.json()).then(function(s){{
-            if (body) renderProgressBody(s, body);
-            if (s.status === 'done' || s.status === 'error' || s.status === 'cancelled') {{
-              if (_progressPollInterval) {{ clearInterval(_progressPollInterval); _progressPollInterval = null; }}
-              document.getElementById('progressBgBtn').style.display = 'none';
-              if (typeof notifyTaskComplete==='function') notifyTaskComplete(workflowStepsFromStatus(s)[0] || 'Run', s.status, s.message);
-              if (typeof refreshAfterRun==='function') refreshAfterRun();
-              if (typeof refreshRunningTasks==='function') refreshRunningTasks();
-              setTimeout(function(){{ _hideBsModal(modal); }}, 2000);
-            }}
-          }}).catch(function(){{}});
-        }}
-        poll();
-        _progressPollInterval = setInterval(poll, 800);
-      }}
+  function _runGroupJob() {{
+    if (typeof requestTaskNotificationPermission==='function') requestTaskNotificationPermission();
+    var modal = document.getElementById('progressModal');
+    var body = document.getElementById('progressModalBody');
+    if (modal && body) {{
+      renderProgressBodyFromMode(mode, 'running', 'Starting job...', '', []);
+      document.getElementById('progressBgBtn').style.display = 'none';
+      _showProgressBsModal();
     }}
-  }}).catch(function(e){{
-    if (body) body.innerHTML = '<p class="text-danger">Error: ' + (e.message || e) + '</p>';
-  }});
-  if (typeof refreshRunningTasks==='function') setTimeout(refreshRunningTasks, 500);
+    fetch(asyncUrl, {{ method: 'POST' }}).then(r=>r.json()).then(function(d){{
+      _uiDbg('runBulkGroupFromModal fetch response', {{ success: d.success, job_id: d.job_id, error: d.error || null }});
+      if (d.error) {{ if (body) body.innerHTML = '<p class="text-danger">' + d.error + '</p>'; return; }}
+      var jobId = d.job_id;
+      if (d.success && jobId) {{
+        if (typeof refreshRunningTasks==='function') refreshRunningTasks();
+        if (modal && body) {{
+          window._currentProgressJobId = jobId;
+          document.getElementById('progressBgBtn').style.display = 'inline-block';
+          function poll() {{
+            fetch('/api/bulk-run-status?job_id=' + encodeURIComponent(jobId)).then(r=>r.json()).then(function(s){{
+              if (body) renderProgressBody(s, body);
+              if (s.status === 'done' || s.status === 'error' || s.status === 'cancelled') {{
+                if (_progressPollInterval) {{ clearInterval(_progressPollInterval); _progressPollInterval = null; }}
+                document.getElementById('progressBgBtn').style.display = 'none';
+                if (typeof notifyTaskComplete==='function') notifyTaskComplete(workflowStepsFromStatus(s)[0] || 'Run', s.status, s.message);
+                if (typeof refreshAfterRun==='function') refreshAfterRun();
+                if (typeof refreshRunningTasks==='function') refreshRunningTasks();
+                _hideProgressModalAndUnlock(modal, 2000);
+              }}
+            }}).catch(function(){{}});
+          }}
+          poll();
+          _progressPollInterval = setInterval(poll, 800);
+        }}
+      }}
+    }}).catch(function(e){{
+      _uiDbg('runBulkGroupFromModal fetch catch', {{ err: String(e && e.message ? e.message : e) }});
+      if (body) body.innerHTML = '<p class="text-danger">Error: ' + (e.message || e) + '</p>';
+    }});
+    if (typeof refreshRunningTasks==='function') setTimeout(refreshRunningTasks, 500);
+  }}
+  _runAfterBulkModalHidden('bulkGroupModal', _runGroupJob);
 }}
 function runBulkGroupDeployCloudflare() {{
   var gid = document.getElementById('bulkGroupModalGroupId').value;
@@ -1711,7 +2232,14 @@ function openBulkDomainModal(domainId, filter, domainLabel) {{
   if (btnAll) btnAll.textContent = 'Run all';
   var dmModal = document.getElementById('domainArticlesModal');
   if (dmModal) _hideBsModal(dmModal);
+  var bdm = document.getElementById('bulkDomainModal');
   var url = '/api/bulk-domain-counts?domain_id=' + encodeURIComponent(domainId) + '&filter=' + encodeURIComponent(filter || 'all');
+  _modalSetLoading(bdm, true, 'Loading domain counts…');
+  _modalPrepareBlockingDuringLoad(bdm);
+  if (bdm && typeof bootstrap !== 'undefined' && bootstrap.Modal) {{
+    _uiDbg('openBulkDomainModal.show');
+    bootstrap.Modal.getOrCreateInstance(bdm).show();
+  }}
   var applyP = _applyProfileAiDefaults('bulkDomainModal').catch(function(){{}});
   var countsP = fetch(url).then(function(r){{ return r.json(); }}).catch(function(){{ return {{ error: 'Failed to load counts' }}; }});
   Promise.all([applyP, countsP]).then(function(results) {{
@@ -1732,14 +2260,15 @@ function openBulkDomainModal(domainId, filter, domainLabel) {{
     if (aiSel) aiSel.addEventListener('change', function(){{ _updateBulkModalAiHints('bulkDomainModal'); }});
     document.querySelectorAll('input[name="bulkDomainModalOpenRouterMode"]').forEach(function(r){{ r.addEventListener('change', function(){{ _updateBulkModalAiHints('bulkDomainModal'); }}); }});
   }}).finally(function() {{
-    new bootstrap.Modal(document.getElementById('bulkDomainModal')).show();
+    _modalSetLoading(bdm, false);
+    _modalReleaseBlockingAfterLoad(bdm);
   }});
 }}
 function runBulkDomainFromModal(mode) {{
+  _uiDbg('runBulkDomainFromModal', {{ mode: mode }});
   var domainId = document.getElementById('bulkDomainModalDomainId').value;
   var filter = document.getElementById('bulkDomainModalFilter').value || 'all';
   if (!domainId) {{ alert('No domain selected'); return; }}
-  _hideBsModal('bulkDomainModal');
   var sprEl = document.querySelector('input[name="bulkDomainModalScopePrompts"]:checked');
   var scEl = document.querySelector('input[name="bulkDomainModalScopeContent"]:checked');
   var siEl = document.querySelector('input[name="bulkDomainModalScopeImages"]:checked');
@@ -1752,45 +2281,51 @@ function runBulkDomainFromModal(mode) {{
   var preset = (document.querySelector('input[name="bulkDomainConcurrencyPreset"]:checked') || {{}}).value || 'low';
   var n = preset === 'low' ? 1 : preset === 'medium' ? 2 : Math.max(1, Math.min(parseInt((document.getElementById('bulkDomainConcurrencyN')||{{}}).value, 10) || 6, 20));
   var url = '/api/bulk-run-domain?domain_id=' + domainId + '&filter=' + encodeURIComponent(filter) + '&mode=' + mode + '&scope_prompts=' + scopePrompts + '&scope_content=' + scopeContent + '&scope_images=' + scopeImages + '&scope_pins=' + scopePins + '&concurrency_n=' + n + '&async=1' + (aiProvider ? '&ai_provider=' + encodeURIComponent(aiProvider) : '') + _getOpenRouterModelsParam('bulkDomainModal') + _getOpenRouterModeParam('bulkDomainModal') + _getAiModelParams('bulkDomainModal');
-  if (typeof requestTaskNotificationPermission==='function') requestTaskNotificationPermission();
-  var modal = document.getElementById('progressModal');
-  var body = document.getElementById('progressModalBody');
-  if (modal && body) {{
-    renderProgressBodyFromMode(mode, 'running', 'Starting job...', '', []);
-    document.getElementById('progressBgBtn').style.display = 'none';
-    new bootstrap.Modal(modal).show();
-  }}
-  fetch(url, {{ method: 'POST' }}).then(r=>r.json()).then(function(d){{
-    if (d.error) {{ if (body) body.innerHTML = '<p class="text-danger">' + d.error + '</p>'; return; }}
-    var jobId = d.job_id;
-    if (d.success && jobId) {{
-      if (typeof refreshRunningTasks==='function') refreshRunningTasks();
-      if (modal && body) {{
-        window._currentProgressJobId = jobId;
-        document.getElementById('progressBgBtn').style.display = 'inline-block';
-        function poll() {{
-          fetch('/api/bulk-run-status?job_id=' + encodeURIComponent(jobId)).then(r=>r.json()).then(function(s){{
-            if (body) renderProgressBody(s, body);
-            if (s.status === 'done' || s.status === 'error' || s.status === 'cancelled') {{
-              if (_progressPollInterval) {{ clearInterval(_progressPollInterval); _progressPollInterval = null; }}
-              document.getElementById('progressBgBtn').style.display = 'none';
-              if (typeof notifyTaskComplete==='function') notifyTaskComplete(workflowStepsFromStatus(s)[0] || 'Run', s.status, s.message);
-              if (typeof refreshAfterRun==='function') refreshAfterRun();
-              if (typeof refreshRunningTasks==='function') refreshRunningTasks();
-              setTimeout(function(){{ _hideBsModal(modal); }}, 2000);
-            }}
-          }}).catch(function(){{}});
-        }}
-        poll();
-        _progressPollInterval = setInterval(poll, 800);
-      }}
+  function _runDomainJob() {{
+    if (typeof requestTaskNotificationPermission==='function') requestTaskNotificationPermission();
+    var modal = document.getElementById('progressModal');
+    var body = document.getElementById('progressModalBody');
+    if (modal && body) {{
+      renderProgressBodyFromMode(mode, 'running', 'Starting job...', '', []);
+      document.getElementById('progressBgBtn').style.display = 'none';
+      _showProgressBsModal();
     }}
-  }}).catch(function(e){{
-    if (body) body.innerHTML = '<p class="text-danger">Error: ' + (e.message || e) + '</p>';
-  }});
-  if (typeof refreshRunningTasks==='function') setTimeout(refreshRunningTasks, 500);
+    fetch(url, {{ method: 'POST' }}).then(r=>r.json()).then(function(d){{
+      _uiDbg('runBulkDomainFromModal fetch response', {{ success: d.success, job_id: d.job_id, error: d.error || null }});
+      if (d.error) {{ if (body) body.innerHTML = '<p class="text-danger">' + d.error + '</p>'; return; }}
+      var jobId = d.job_id;
+      if (d.success && jobId) {{
+        if (typeof refreshRunningTasks==='function') refreshRunningTasks();
+        if (modal && body) {{
+          window._currentProgressJobId = jobId;
+          document.getElementById('progressBgBtn').style.display = 'inline-block';
+          function poll() {{
+            fetch('/api/bulk-run-status?job_id=' + encodeURIComponent(jobId)).then(r=>r.json()).then(function(s){{
+              if (body) renderProgressBody(s, body);
+              if (s.status === 'done' || s.status === 'error' || s.status === 'cancelled') {{
+                if (_progressPollInterval) {{ clearInterval(_progressPollInterval); _progressPollInterval = null; }}
+                document.getElementById('progressBgBtn').style.display = 'none';
+                if (typeof notifyTaskComplete==='function') notifyTaskComplete(workflowStepsFromStatus(s)[0] || 'Run', s.status, s.message);
+                if (typeof refreshAfterRun==='function') refreshAfterRun();
+                if (typeof refreshRunningTasks==='function') refreshRunningTasks();
+                _hideProgressModalAndUnlock(modal, 2000);
+              }}
+            }}).catch(function(){{}});
+          }}
+          poll();
+          _progressPollInterval = setInterval(poll, 800);
+        }}
+      }}
+    }}).catch(function(e){{
+      _uiDbg('runBulkDomainFromModal fetch catch', {{ err: String(e && e.message ? e.message : e) }});
+      if (body) body.innerHTML = '<p class="text-danger">Error: ' + (e.message || e) + '</p>';
+    }});
+    if (typeof refreshRunningTasks==='function') setTimeout(refreshRunningTasks, 500);
+  }}
+  _runAfterBulkModalHidden('bulkDomainModal', _runDomainJob);
 }}
 function _updateBulkAllGroupsModalButtons(d) {{
+  var btnPrompts = document.getElementById('bulkAllGroupsBtnPrompts');
   var btnArticle = document.getElementById('bulkAllGroupsBtnArticle');
   var btnImages = document.getElementById('bulkAllGroupsBtnImages');
   var btnPinterest = document.getElementById('bulkAllGroupsBtnPinterest');
@@ -1798,15 +2333,19 @@ function _updateBulkAllGroupsModalButtons(d) {{
   var sc = (document.querySelector('input[name="bulkAllGroupsModalScopeContent"]:checked') || {{}}).value || 'empty_only';
   var si = (document.querySelector('input[name="bulkAllGroupsModalScopeImages"]:checked') || {{}}).value || 'empty_only';
   var sp = (document.querySelector('input[name="bulkAllGroupsModalScopePins"]:checked') || {{}}).value || 'empty_only';
+  var npr = (d.rows_needs_prompts != null ? d.rows_needs_prompts : 0);
   var nc = sc === 'override' ? (d.total || 0) : (d.rows_needs_content != null ? d.rows_needs_content : d.no_html_css || 0);
   var ni = si === 'override' ? (d.total || 0) : (d.rows_needs_images != null ? d.rows_needs_images : d.no_images || 0);
   var np = sp === 'override' ? (d.total_rows != null ? d.total_rows : d.total || 0) : (d.rows_needs_pins != null ? d.rows_needs_pins : d.no_pins || 0);
+  if (btnPrompts) btnPrompts.textContent = 'Run prompts (' + npr + ')';
   if (btnArticle) btnArticle.textContent = 'Run content (' + nc + ')';
   if (btnImages) btnImages.textContent = 'Run images (' + ni + ')';
   if (btnPinterest) btnPinterest.textContent = 'Run Pinterest (' + np + ')';
-  if (btnAll) btnAll.textContent = 'Run all (' + nc + ', ' + ni + ', ' + np + ')';
+  if (btnAll) btnAll.textContent = 'Run all (' + npr + ', ' + nc + ', ' + ni + ', ' + np + ')';
 }}
 function openBulkGroupModal(groupId, groupName) {{
+  _ensureBulkGroupWorkflowOptions();
+  _uiDbg('openBulkGroupModal', {{ groupId: groupId }});
   var modal = document.getElementById('bulkGroupModal');
   var gname = (groupName !== undefined && groupName !== null) ? String(groupName) : '';
   document.getElementById('bulkGroupModalTitle').textContent = gname ? ('Run for group: ' + gname) : 'Run for group';
@@ -1821,10 +2360,16 @@ function openBulkGroupModal(groupId, groupName) {{
   if (btnImages) btnImages.textContent = 'Run images';
   if (btnPinterest) btnPinterest.textContent = 'Run Pinterest';
   if (btnAll) btnAll.textContent = 'Run all';
-  _setupBulkGroupModalSubgroups(groupId);
+  _modalSetLoading(modal, true, 'Loading group…');
+  _modalPrepareBlockingDuringLoad(modal);
+  if (modal && typeof bootstrap !== 'undefined' && bootstrap.Modal) {{
+    _uiDbg('openBulkGroupModal.show');
+    bootstrap.Modal.getOrCreateInstance(modal).show();
+  }}
+  var subP = _setupBulkGroupModalSubgroups(groupId);
   var applyP = _applyProfileAiDefaults('bulkGroupModal').catch(function(){{}});
   var countsP = fetch('/api/bulk-group-counts?group_id=' + encodeURIComponent(groupId)).then(function(r){{ return r.json(); }}).catch(function(){{ return {{}}; }});
-  Promise.all([applyP, countsP]).then(function(results) {{
+  Promise.all([applyP, countsP, subP]).then(function(results) {{
     var d = results[1] || {{}};
     window._bulkGroupModalCounts = d;
     _updateBulkGroupModalButtons(d);
@@ -1841,20 +2386,44 @@ function openBulkGroupModal(groupId, groupName) {{
     if (aiSel) aiSel.addEventListener('change', function(){{ _updateBulkModalAiHints('bulkGroupModal'); }});
     document.querySelectorAll('input[name="bulkGroupModalOpenRouterMode"]').forEach(function(r){{ r.addEventListener('change', function(){{ _updateBulkModalAiHints('bulkGroupModal'); }}); }});
   }}).finally(function() {{
-    new bootstrap.Modal(modal).show();
+    _modalSetLoading(modal, false);
+    _modalReleaseBlockingAfterLoad(modal);
   }});
+}}
+function _ensureBulkGroupWorkflowOptions() {{
+  var phaseOpt = document.getElementById('bgmWorkflowPhase');
+  if (!phaseOpt) return;
+  var phaseBlock = phaseOpt.closest ? phaseOpt.closest('.mb-2') : null;
+  if (!phaseBlock) return;
+  if (document.getElementById('bgmWorkflowRowSerial')) return;
+  var rowSerial = document.createElement('div');
+  rowSerial.className = 'mb-2';
+  rowSerial.innerHTML = '<div class="form-check mb-0"><input class="form-check-input" type="radio" name="bulkGroupWorkflowStrategy" id="bgmWorkflowRowSerial" value="row_serial"><label class="form-check-label small" for="bgmWorkflowRowSerial">Row pipeline (strict serial: 1 row end-to-end at a time)</label></div><div class="form-text text-muted small ms-4 mb-0">Example: 3 rows — finish row 1 (prompts through Pinterest), then row 2, then row 3. No overlap; concurrency is treated as 1.</div>';
+  var phaseSerial = document.createElement('div');
+  phaseSerial.className = 'mb-3';
+  phaseSerial.innerHTML = '<div class="form-check mb-0"><input class="form-check-input" type="radio" name="bulkGroupWorkflowStrategy" id="bgmWorkflowPhaseSerial" value="phase_serial"><label class="form-check-label small" for="bgmWorkflowPhaseSerial">Phase pipeline (strict serial: one row at a time inside each phase)</label></div><div class="form-text text-muted small ms-4 mb-0">Example: 3 rows — prompts: 1, then 2, then 3; then images: 1, 2, 3; then content; then Pinterest — one row at a time within each phase (concurrency treated as 1).</div>';
+  phaseBlock.insertAdjacentElement('afterend', rowSerial);
+  rowSerial.insertAdjacentElement('afterend', phaseSerial);
 }}
 
 function openBulkAllGroupsModal() {{
   var modal = document.getElementById('bulkAllGroupsModal');
+  var btnPrompts = document.getElementById('bulkAllGroupsBtnPrompts');
   var btnArticle = document.getElementById('bulkAllGroupsBtnArticle');
   var btnImages = document.getElementById('bulkAllGroupsBtnImages');
   var btnPinterest = document.getElementById('bulkAllGroupsBtnPinterest');
   var btnAll = document.getElementById('bulkAllGroupsBtnAll');
+  if (btnPrompts) btnPrompts.textContent = 'Run prompts';
   if (btnArticle) btnArticle.textContent = 'Run content';
   if (btnImages) btnImages.textContent = 'Run images';
   if (btnPinterest) btnPinterest.textContent = 'Run Pinterest';
   if (btnAll) btnAll.textContent = 'Run all (content, images, Pinterest)';
+  _modalSetLoading(modal, true, 'Loading all groups…');
+  _modalPrepareBlockingDuringLoad(modal);
+  if (modal && typeof bootstrap !== 'undefined' && bootstrap.Modal) {{
+    _uiDbg('openBulkAllGroupsModal.show');
+    bootstrap.Modal.getOrCreateInstance(modal).show();
+  }}
   var applyP = _applyProfileAiDefaults('bulkAllGroupsModal').catch(function(){{}});
   var countsP = fetch('/api/bulk-all-groups-counts').then(function(r){{ return r.json(); }}).catch(function(){{ return {{}}; }});
   Promise.all([applyP, countsP]).then(function(results) {{
@@ -1874,10 +2443,12 @@ function openBulkAllGroupsModal() {{
     if (aiSel) aiSel.addEventListener('change', function(){{ _updateBulkModalAiHints('bulkAllGroupsModal'); }});
     document.querySelectorAll('input[name="bulkAllGroupsModalOpenRouterMode"]').forEach(function(r){{ r.addEventListener('change', function(){{ _updateBulkModalAiHints('bulkAllGroupsModal'); }}); }});
   }}).finally(function() {{
-    new bootstrap.Modal(modal).show();
+    _modalSetLoading(modal, false);
+    _modalReleaseBlockingAfterLoad(modal);
   }});
 }}
 function runBulkAllGroups(mode) {{
+  _uiDbg('runBulkAllGroups', {{ mode: mode }});
   _hideBsModal('bulkAllGroupsModal');
   var preset = (document.querySelector('input[name="allGroupsConcurrencyPreset"]:checked') || {{}}).value || 'low';
   var concurrencyType = preset === 'group' ? 'group' : 'row';
@@ -1896,6 +2467,7 @@ function runBulkAllGroups(mode) {{
   var url = '/api/bulk-run-all-groups?mode=' + mode + '&concurrency_type=' + concurrencyType + '&concurrency_n=' + n + '&scope_content=' + scopeContent + '&scope_images=' + scopeImages + '&scope_pins=' + scopePins + (aiProvider ? '&ai_provider=' + encodeURIComponent(aiProvider) : '') + _getOpenRouterModelsParam('bulkAllGroupsModal') + _getOpenRouterModeParam('bulkAllGroupsModal') + _getAiModelParams('bulkAllGroupsModal');
   var asyncUrl = url + (url.indexOf('?')>=0 ? '&' : '?') + 'async=1';
   fetch(asyncUrl, {{ method: 'POST' }}).then(r=>r.json()).then(function(d){{
+    _uiDbg('runBulkAllGroups response', {{ success: d.success, job_id: d.job_id, error: d.error || null }});
     if (d.error) {{ alert('Error: ' + d.error); return; }}
     if (d.success && d.job_id && typeof refreshRunningTasks==='function') refreshRunningTasks();
   }}).catch(function(e){{ alert('Error: ' + e); }});
@@ -1905,16 +2477,18 @@ function runBulkWithProgressChoice(baseUrl, mode) {{
   document.getElementById('bulkChoiceUrl').value = baseUrl;
   document.getElementById('bulkChoiceMode').value = mode || 'all';
   document.getElementById('bulkChoiceModal').querySelector('.modal-title').textContent = 'Run (mode: ' + (mode||'all').toUpperCase() + ')';
-  new bootstrap.Modal(document.getElementById('bulkChoiceModal')).show();
+  var bcm = document.getElementById('bulkChoiceModal');
+  if (bcm && typeof bootstrap !== 'undefined' && bootstrap.Modal) new bootstrap.Modal(bcm).show();
 }}
 function runBulkChoice(foreground) {{
   var baseUrl = document.getElementById('bulkChoiceUrl').value;
   var mode = document.getElementById('bulkChoiceMode').value || 'all';
-  _hideBsModal('bulkChoiceModal');
   var url = baseUrl + (baseUrl.indexOf('?')>=0 ? '&' : '?') + 'async=1';
+  _uiDbg('runBulkChoice', {{ foreground: !!foreground, mode: mode }});
   if (foreground) {{
-    runBulkWithProgress(url, mode);
+    _runAfterBulkModalHidden('bulkChoiceModal', function() {{ runBulkWithProgress(url, mode); }});
   }} else {{
+    _hideBsModal('bulkChoiceModal');
     if (typeof requestTaskNotificationPermission==='function') requestTaskNotificationPermission();
     fetch(url, {{ method: 'POST' }}).then(r=>r.json()).then(function(d){{
       if (d.error) {{ alert('Error: ' + d.error); return; }}
@@ -1973,6 +2547,17 @@ function workflowState(st, i, steps, currentPhase) {{
   return i===0?'running':'pending';
 }}
 function renderProgressBody(s, body) {{
+  // Keep text copy/select stable: skip render while user highlights text in modal.
+  try {{
+    var __sel = window.getSelection ? window.getSelection() : null;
+    if (__sel && __sel.rangeCount > 0 && String(__sel).length > 0) {{
+      var __anchor = __sel.anchorNode || null;
+      if (__anchor && body && body.contains(__anchor)) {{
+        window._progressPendingData = s;
+        return;
+      }}
+    }}
+  }} catch(_copyLockErr) {{}}
   var wSteps = workflowStepsFromStatus(s);
   var st = s.status || '';
   var currentPhase = s.current_phase;
@@ -2043,6 +2628,8 @@ function renderProgressBody(s, body) {{
   }}
   var phaseName = (wSteps.length && typeof currentPhase === 'number' && currentPhase >= 1) ? (wSteps[currentPhase - 1] || '') : '';
   var articlesHtml = '';
+  var liveSpotlightHtml = '';
+  var domainWorkboardHtml = '';
   var completedArticles = s.completed_articles || [];
   if (activeTitles.length > 0 || activeArticles.length > 0 || completedSteps.length > 0 || completedArticles.length > 0 || (remaining !== null && remaining > 0) || (processedCount !== undefined && processedCount > 0)) {{
     articlesHtml = '<div class="progress-workflow-section" style="margin-top:0.5rem;">';
@@ -2052,6 +2639,7 @@ function renderProgressBody(s, body) {{
       articlesHtml += '<div style="display:grid;gap:4px;margin-bottom:6px">';
       if (activeArticles.length > 0) {{
         var currentPhase = (typeof s.current_phase === 'number' ? s.current_phase : 1);
+        var spotlightChunks = [];
         activeArticles.forEach(function(a) {{
           var tid = a.tid || '';
           var title = (a.title || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -2079,10 +2667,10 @@ function renderProgressBody(s, body) {{
           var s2 = hasDomainProgress || (mainDone && ingDone) ? 'done' : (imgError ? 'error' : (mainRun || ingRun || (hasImgProgress && currentPhase === 2) ? 'running' : 'pending'));
           var s3 = currentPhase >= 4 ? 'done' : (anyDomainError ? 'error' : (anyDomainRunning || (hasDomainProgress && currentPhase === 3) ? 'running' : (allDomainsDone && hasDomainProgress ? 'done' : 'pending')));
           var s4 = currentPhase === 4 ? 'running' : 'pending';
-          var wSteps = [{{n:1,l:'Prompts',st:s1}},{{n:2,l:'Images',st:s2}},{{n:3,l:'Content',st:s3}},{{n:4,l:'Pinterest',st:s4}}];
+          var rowWSteps = [{{n:1,l:'Prompts',st:s1}},{{n:2,l:'Images',st:s2}},{{n:3,l:'Content',st:s3}},{{n:4,l:'Pinterest',st:s4}}];
           var wHtml = '<div class="card-workflow">';
-          wSteps.forEach(function(x,i){{
-            var conn = i > 0 ? '<span class="card-conn ' + (wSteps[i-1].st === 'done' ? 'active' : '') + '"></span>' : '';
+          rowWSteps.forEach(function(x,i){{
+            var conn = i > 0 ? '<span class="card-conn ' + (rowWSteps[i-1].st === 'done' ? 'active' : '') + '"></span>' : '';
             wHtml += conn + '<span class="card-node state-' + x.st + '" title="' + x.l + '">' + x.n + '.' + x.l + '</span>';
           }});
           wHtml += '</div>';
@@ -2156,7 +2744,24 @@ function renderProgressBody(s, body) {{
             + (artElapsed ? '<span style="font-size:0.58rem;color:#888;white-space:nowrap">⏱ ' + artElapsed + '</span>' : '')
             + '</div>'
             + '</div>';
+          spotlightChunks.push({{ tid: tid, titleEsc: title, urlEsc: url, letters: letters, gid: gid, artElapsed: artElapsed, artModel: artModel, statusIcon: statusIcon, statusText: statusText }});
         }});
+        if (st === 'running' && spotlightChunks.length > 0) {{
+          var _plsPipe = workflowStepsFromStatus(s);
+          var cpSpot = typeof s.current_phase === 'number' ? s.current_phase : 1;
+          var totPhSpot = _plsPipe.length || 4;
+          var phLabelSpot = (_plsPipe[cpSpot - 1] || phaseName || '—').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          var concSpot = s.concurrency_n != null ? String(s.concurrency_n) : '';
+          var metaParts = [];
+          metaParts.push('<span class="pls-pill">⏱ Job ' + (jobElapsed || '…') + '</span>');
+          metaParts.push('<span>Pipeline · Step ' + cpSpot + ' / ' + totPhSpot + '</span>');
+          metaParts.push('<span style="opacity:0.95">' + phLabelSpot + '</span>');
+          if (concSpot) metaParts.push('<span class="pls-pill">Parallel · ' + concSpot + ' rows</span>');
+          if (remaining !== null) metaParts.push('<span class="pls-pill">Queue · ' + remaining + ' waiting</span>');
+          var cardsClass = spotlightChunks.length > 1 ? 'pls-cards pls-multi' : 'pls-cards';
+          var cardsInner = spotlightChunks.map(function(sc){{ return '<div class="pls-card"><span class="pls-live-dot" aria-hidden="true"></span><div style="min-width:0;flex:1"><div class="pls-card-title">[' + sc.tid + '] ' + sc.titleEsc + '</div><div class="pls-card-sub">' + (sc.urlEsc || '—') + (sc.letters ? ' · <b>' + sc.letters + '</b>' : '') + (sc.gid ? ' · ' + sc.gid : '') + '</div>' + (sc.artModel ? '<div class="pls-card-sub" style="margin-top:2px">🤖 ' + sc.artModel + '</div>' : '') + '<div class="pls-card-activity">' + sc.statusIcon + ' ' + (String(sc.statusText).replace(/</g,'&lt;').replace(/>/g,'&gt;')) + '</div>' + (sc.artElapsed ? '<div class="pls-card-time">⏳ On this article: <strong>' + sc.artElapsed + '</strong> (since picked up)</div>' : '') + '</div></div>'; }}).join('');
+          liveSpotlightHtml = '<div class="progress-live-spotlight" role="status" aria-live="polite"><div class="pls-meta-bar">' + metaParts.join('') + '</div><div class="' + cardsClass + '">' + cardsInner + '</div></div>';
+        }}
       }} else {{
         activeTitles.forEach(function(t) {{
           var parts = String(t).split(':');
@@ -2167,6 +2772,27 @@ function renderProgressBody(s, body) {{
             + '<span style="font-size:0.6rem;background:#0d6efd;color:#fff;border-radius:3px;padding:1px 5px;margin-left:6px">⟳ ' + (phaseName || 'running') + '</span>'
             + '</div>';
         }});
+        if (st === 'running' && activeTitles.length > 0) {{
+          var _plsPipeT = workflowStepsFromStatus(s);
+          var cpT = typeof s.current_phase === 'number' ? s.current_phase : 1;
+          var totPhT = _plsPipeT.length || 1;
+          var phLabelT = (_plsPipeT[cpT - 1] || phaseName || '—').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          var concT = s.concurrency_n != null ? String(s.concurrency_n) : '';
+          var metaT = [];
+          metaT.push('<span class="pls-pill">⏱ Job ' + (jobElapsed || '…') + '</span>');
+          metaT.push('<span>Pipeline · Step ' + cpT + ' / ' + totPhT + '</span>');
+          metaT.push('<span style="opacity:0.95">' + phLabelT + '</span>');
+          if (concT) metaT.push('<span class="pls-pill">Parallel · ' + concT + ' rows</span>');
+          if (remaining !== null) metaT.push('<span class="pls-pill">Queue · ' + remaining + ' waiting</span>');
+          var titlesOnlyCards = activeTitles.map(function(t) {{
+            var parts = String(t).split(':');
+            var tid = parts[0] || '';
+            var tit = parts.slice(1).join(':').trim().replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            return '<div class="pls-card"><span class="pls-live-dot" aria-hidden="true"></span><div style="min-width:0;flex:1"><div class="pls-card-title">' + (tid ? '[' + tid + '] ' : '') + (tit || String(t).replace(/</g,'&lt;').replace(/>/g,'&gt;')) + '</div><div class="pls-card-activity">⟳ Working in phase: <strong>' + phLabelT + '</strong></div><div class="pls-card-time">Detailed domain + activity appear when the server sends full row state.</div></div></div>';
+          }}).join('');
+          var clsT = activeTitles.length > 1 ? 'pls-cards pls-multi' : 'pls-cards';
+          liveSpotlightHtml = '<div class="progress-live-spotlight" role="status" aria-live="polite"><div class="pls-meta-bar">' + metaT.join('') + '</div><div class="' + clsT + '">' + titlesOnlyCards + '</div></div>';
+        }}
       }}
       articlesHtml += '</div>';
     }}
@@ -2196,7 +2822,7 @@ function renderProgressBody(s, body) {{
           var contentDone = Object.keys(dp).length === 0 || Object.keys(dp).every(function(l){{ return dp[l]==='done'||dp[l]==='skipped'; }});
           if (contentDone) totalContentOk++; else if (Object.keys(dp).some(function(l){{ return dp[l]==='error'; }})) totalContentFail++;
         }});
-        articlesHtml += '<div style="margin:6px 0 8px;border:1px solid #d1d5db;border-radius:6px;overflow:hidden;font-size:0.65rem">'
+        articlesHtml += '<div class="workflow-summary-wrap" style="margin:6px 0 8px;border:1px solid #d1d5db;border-radius:6px;overflow:visible;font-size:0.65rem">'
           + '<div style="background:linear-gradient(135deg,#1e293b,#334155);color:#fff;padding:6px 10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px">'
           + '<span style="font-weight:700;font-size:0.72rem">📊 Workflow Summary</span>'
           + '<div style="display:flex;gap:6px;flex-wrap:wrap">'
@@ -2215,13 +2841,13 @@ function renderProgressBody(s, body) {{
           + '<th style="padding:4px 6px;text-align:left;font-weight:700;color:#475569;width:24px">#</th>'
           + '<th style="padding:4px 6px;text-align:left;font-weight:700;color:#475569;width:40px">TID</th>'
           + '<th style="padding:4px 6px;text-align:left;font-weight:700;color:#475569">Title</th>'
-          + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:52px" title="Per-domain content status">A B C D</th>'
-          + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:70px">Prompts</th>'
+          + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:52px" title="Click ✓ row: article + recipe + images per domain A–D">A B C D</th>'
+          + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:70px" title="Click ✓: prompts per domain">Prompts</th>'
           + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:75px">Main</th>'
           + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:75px">Ing</th>'
           + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:80px">Content</th>'
           + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:70px">Pin</th>'
-          + '<th style="padding:4px 6px;text-align:left;font-weight:700;color:#475569">Error</th>'
+          + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:44px" title="Hover icon for full error text">Err</th>'
           + '</tr></thead><tbody>';
         completedArticles.forEach(function(a, idx){{
           var tid = a.tid || '';
@@ -2249,21 +2875,33 @@ function renderProgressBody(s, body) {{
           Object.keys(dt || {{}}).forEach(function(l){{ var t=dt[l]; if(t.started_at && t.done_at) contentTotalSec += (t.done_at - t.started_at); }});
           var contentElapsed = contentTotalSec > 0 ? Math.round(contentTotalSec) + 's' : '';
           var firstLetterTid = dti.A || dti.B || dti.C || dti.D || tid;
-          var promptsClick = tid && typeof viewPrompts === 'function' ? 'cursor:pointer' : '';
-          var contentClick = firstLetterTid && typeof viewContent === 'function' ? 'cursor:pointer' : '';
+          var dtiEnc = encodeURIComponent(JSON.stringify(dti || {{}}));
+          var promptsClick = tid && typeof viewWorkflowRowDomainsFromEnc === 'function' ? 'cursor:pointer' : '';
+          var contentClick = tid && typeof viewWorkflowRowDomainsFromEnc === 'function' ? 'cursor:pointer' : '';
           var pinClick = tid && typeof viewPin === 'function' ? 'cursor:pointer' : '';
-          var promptsHtml = '<span style="' + promptsClick + '" onclick="' + (promptsClick ? 'event.stopPropagation();viewPrompts(' + tid + ')' : '') + '" title="Click to view prompts">✓</span>';
+          var promptsHtml = '<span style="' + promptsClick + '" onclick="' + (promptsClick ? 'event.stopPropagation();viewWorkflowRowDomainsFromEnc(\\'prompts\\',' + tid + ',\\'' + dtiEnc + '\\')' : '') + '" title="Main + ingredient prompts for each domain (A–D)">✓</span>';
           var contentLabel = contentDone ? '✓' : (contentErr ? '✗' : '-');
-          var contentHtml = '<span style="' + contentClick + ';color:' + (contentDone ? '#198754' : (contentErr ? '#dc3545' : '#6b7280')) + '" onclick="' + (contentClick ? 'event.stopPropagation();viewContent(' + firstLetterTid + ')' : '') + '" title="' + (contentElapsed ? contentElapsed + ' — Click to view' : 'Click to view') + '">' + contentLabel + (contentElapsed ? ' ' + contentElapsed : '') + '</span>';
+          var contentHtml = '<span style="' + contentClick + ';color:' + (contentDone ? '#198754' : (contentErr ? '#dc3545' : '#6b7280')) + '" onclick="' + (contentClick ? 'event.stopPropagation();viewWorkflowRowDomainsFromEnc(\\'domains\\',' + tid + ',\\'' + dtiEnc + '\\')' : '') + '" title="' + (contentElapsed ? contentElapsed + ' — Article, recipe & images per domain' : 'Article, recipe & images per domain') + '">' + contentLabel + (contentElapsed ? ' ' + contentElapsed : '') + '</span>';
           var pinHtml = '<span style="' + pinClick + ';color:#9333ea" onclick="' + (pinClick ? 'event.stopPropagation();viewPin(' + tid + ')' : '') + '" title="Click to view pin">📌</span>';
           var mainRetries = ret.main ? '(' + ret.main + ')' : '';
           var ingRetries = ret.ingredient ? '(' + ret.ingredient + ')' : '';
-          var errParts = [];
-          (retryErrs.main || []).forEach(function(e){{ errParts.push('🖼 ' + String(e).replace(/\\n/g,' ').substring(0,100)); }});
-          (retryErrs.ingredient || []).forEach(function(e){{ errParts.push('🥗 ' + String(e).replace(/\\n/g,' ').substring(0,100)); }});
-          if (mainErr && ir.main) errParts.push('main: ' + String(ir.main).replace(/\\n/g,' ').substring(0,80));
-          if (ingErr && ir.ingredient) errParts.push('ing: ' + String(ir.ingredient).replace(/\\n/g,' ').substring(0,80));
-          var errDisplay = errParts.length > 0 ? errParts.map(function(e){{ return '<div style="margin-bottom:1px">' + (e.replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0,80)) + '</div>'; }}).join('') : '<span style="color:#9ca3af">—</span>';
+          var errTipLines = [];
+          (retryErrs.main || []).forEach(function(e){{ errTipLines.push('🖼 ' + String(e).replace(/\\n/g,' ').trim()); }});
+          (retryErrs.ingredient || []).forEach(function(e){{ errTipLines.push('🥗 ' + String(e).replace(/\\n/g,' ').trim()); }});
+          if (mainErr && ir.main) errTipLines.push('Main: ' + String(ir.main).replace(/\\n/g,' ').trim());
+          if (ingErr && ir.ingredient) errTipLines.push('Ingredient: ' + String(ir.ingredient).replace(/\\n/g,' ').trim());
+          var errPopHtml = errTipLines.map(function(line){{ return String(line).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }}).join('<br>');
+          var errDisplay;
+          if (errTipLines.length === 0) {{
+            errDisplay = '<span style="color:#9ca3af">—</span>';
+          }} else {{
+            var errN = errTipLines.length;
+            errDisplay = '<span class="workflow-summary-err" tabindex="0" role="button" aria-label="Error details">'
+              + '<span style="font-size:1rem;line-height:1" aria-hidden="true">⚠️</span>'
+              + (errN > 1 ? '<span style="font-size:0.55rem;font-weight:700;background:#fecaca;color:#7f1d1d;border-radius:999px;min-width:15px;height:15px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px">' + errN + '</span>' : '')
+              + '<span class="workflow-summary-err-pop">' + errPopHtml + '</span>'
+              + '</span>';
+          }}
           var rowBg = (mainErr || ingErr || contentErr) ? '#fef2f2' : (idx % 2 === 0 ? '#fff' : '#f8fafc');
           var rowBorder = (mainErr || ingErr || contentErr) ? 'border-left:3px solid #ef4444;' : '';
           var letterList = ('A,B,C,D').split(',');
@@ -2274,7 +2912,7 @@ function renderProgressBody(s, body) {{
             if (st === 'running' || st === 'pending') return '<span style="color:#ca8a04" title="' + l + ': pending">⏳</span>';
             return '<span style="color:#9ca3af" title="' + l + '">—</span>';
           }}).join(' ');
-          var domainCell = '<span style="font-size:0.7rem;letter-spacing:0.5px">' + domainIcons + '</span>';
+          var domainCell = '<span style="font-size:0.7rem;letter-spacing:0.5px;cursor:pointer" onclick="event.stopPropagation();viewWorkflowRowDomainsFromEnc(\\'domains\\',' + tid + ',\\'' + dtiEnc + '\\')" title="Open all domains A–D — full generation detail">' + domainIcons + '</span>';
           var mainCell = mainSt !== '-' ? '<span style="' + (tid && typeof viewContent === 'function' ? 'cursor:pointer' : '') + '" onclick="' + (tid ? 'event.stopPropagation();viewContent(' + tid + ')' : '') + '" title="Click to view">' + mainIcon + ' ' + mainSt + (mainElapsed ? ' ' + mainElapsed : '') + (mainRetries ? ' ' + mainRetries : '') + '</span>' : '—';
           var ingCell = ingSt !== '-' ? '<span style="' + (tid && typeof viewContent === 'function' ? 'cursor:pointer' : '') + '" onclick="' + (tid ? 'event.stopPropagation();viewContent(' + tid + ')' : '') + '" title="Click to view">' + ingIcon + ' ' + ingSt + (ingElapsed ? ' ' + ingElapsed : '') + (ingRetries ? ' ' + ingRetries : '') + '</span>' : '—';
           articlesHtml += '<tr style="background:' + rowBg + ';border-bottom:1px solid #e2e8f0;' + rowBorder + '">'
@@ -2287,7 +2925,7 @@ function renderProgressBody(s, body) {{
             + '<td style="padding:3px 6px;text-align:center">' + ingCell + '</td>'
             + '<td style="padding:3px 6px;text-align:center">' + contentHtml + '</td>'
             + '<td style="padding:3px 6px;text-align:center">' + pinHtml + '</td>'
-            + '<td style="padding:3px 6px;color:#991b1b;font-size:0.58rem;max-width:200px;overflow:hidden;white-space:normal;word-break:break-word">' + errDisplay + '</td>'
+            + '<td style="padding:3px 6px;text-align:center;vertical-align:middle;white-space:nowrap">' + errDisplay + '</td>'
             + '</tr>';
         }});
         articlesHtml += '</tbody></table></div>';
@@ -2361,6 +2999,92 @@ function renderProgressBody(s, body) {{
     }}
     articlesHtml += '</div>';
   }}
+  if (activeArticles.length > 0 && st === 'running') {{
+    var _cpW = typeof s.current_phase === 'number' ? s.current_phase : 1;
+    function _pwdEsc(t) {{ return String(t == null ? '' : t).replace(/</g,'&lt;').replace(/>/g,'&gt;'); }}
+    function _pwdImgLine(kind, ip, it) {{
+      var stv = (ip && ip[kind]) || '';
+      var tm = (it && it[kind]) || {{}};
+      var lab = kind === 'main' ? 'Main image' : 'Ingredient image';
+      var sym = stv === 'done' || stv === 'skipped' ? '✓' : stv === 'error' ? '✗' : stv === 'running' ? '⟳' : '○';
+      var cls = stv === 'done' || stv === 'skipped' ? '#15803d' : stv === 'error' ? '#b91c1c' : stv === 'running' ? '#1d4ed8' : '#94a3b8';
+      var el = '';
+      if (tm.started_at && tm.done_at) el = Math.round(tm.done_at - tm.started_at) + 's';
+      else if (tm.started_at && stv === 'running') el = Math.round(nowTs - tm.started_at) + 's';
+      return '<div class="pwd-img-line" style="display:flex;align-items:center;gap:6px;font-size:0.62rem;color:#334155"><span style="font-weight:600;min-width:92px">' + lab + '</span><span style="color:' + cls + ';font-weight:700">' + sym + '</span><span style="color:#64748b">' + (stv || 'pending') + (el ? ' · ' + el : '') + '</span></div>';
+    }}
+    function _pwdWhereLine(a) {{
+      var title = String(a.title || '');
+      var titShort = title.length > 42 ? title.slice(0, 40) + '…' : title;
+      var dp = a.domain_progress || {{}};
+      var ip = a.image_progress || {{}};
+      var letterList = ((a.domain_letters || 'A,B,C,D') + '').split(/[,\\s]+/).filter(function(x){{ return x; }});
+      var mainDone = ip.main === 'done' || ip.main === 'skipped';
+      var ingDone = ip.ingredient === 'done' || ip.ingredient === 'skipped';
+      var mainRun = ip.main === 'running';
+      var ingRun = ip.ingredient === 'running';
+      var imgError = ip.main === 'error' || ip.ingredient === 'error';
+      var hasDomainProgress = Object.keys(dp).length > 0;
+      var allDomainsDone = letterList.length > 0 && letterList.every(function(l){{ var stx = dp[l]; return stx === 'done' || stx === 'skipped'; }});
+      var runningLetters = Object.keys(dp).filter(function(l){{ return dp[l] === 'running'; }});
+      var doneLetters = Object.keys(dp).filter(function(l){{ return dp[l] === 'done' || dp[l] === 'skipped'; }});
+      var url = a.domain_url || '';
+      if (_cpW === 1) return '📝 <b>Prompts</b> — A–D prompts for «' + _pwdEsc(titShort) + '»';
+      if (_cpW === 2) {{
+        if (mainRun && !ingDone) return '🎨 <b>Images</b> — <strong>main / hero</strong> slot active';
+        if (mainDone && ingRun) return '🎨 <b>Images</b> — <strong>ingredient</strong> slot active';
+        if (imgError) return '🎨 <b>Images</b> — error on an image step';
+        if (mainDone && ingDone) return '🎨 <b>Images</b> — both slots finished, finishing phase';
+        return '🎨 <b>Images</b> — generating or queued';
+      }}
+      if (_cpW === 3) {{
+        if (runningLetters.length) return '🌐 <b>Content (HTML)</b> — letter(s) <strong>' + _pwdEsc(runningLetters.join(', ')) + '</strong> running' + (url ? ' · ' + _pwdEsc(url) : '');
+        if (doneLetters.length && letterList.length && doneLetters.length < letterList.length) return '🌐 <b>Content</b> — ' + doneLetters.length + '/' + letterList.length + ' domain letters done';
+        if (allDomainsDone && hasDomainProgress) return '🌐 <b>Content</b> — all letters done, deploy/upload';
+        return '🌐 <b>Content</b> — pages for ' + letterList.length + ' domain slot(s)';
+      }}
+      if (_cpW === 4) return '📌 <b>Pinterest</b> — pin for «' + _pwdEsc(titShort) + '»';
+      return '⚙️ <b>Pipeline</b> — step ' + _cpW;
+    }}
+    function _pwdLetterCell(L, dp, dt, dti, defaultTid) {{
+      var dst = dp[L] || 'pending';
+      var letterTid = dti[L] || (L === 'A' ? defaultTid : null);
+      var sym = dst === 'done' || dst === 'skipped' ? '✓' : dst === 'running' ? '⟳' : dst === 'error' ? '✗' : '·';
+      var cls = dst === 'done' || dst === 'skipped' ? '#15803d' : dst === 'running' ? '#1d4ed8' : dst === 'error' ? '#b91c1c' : '#9ca3af';
+      var t0 = (dt[L] || {{}}).started_at;
+      var t1 = (dt[L] || {{}}).done_at;
+      var el = (t1 && t0) ? Math.round(t1 - t0) + 's' : (t0 && dst === 'running' ? Math.round(nowTs - t0) + 's' : '');
+      var click = (dst === 'done' || dst === 'skipped') && letterTid && typeof viewContent === 'function';
+      var oc = click ? ' onclick="event.stopPropagation();viewContent(' + letterTid + ')" style="cursor:pointer"' : '';
+      return '<div class="pwd-letter-pill"' + oc + ' style="display:inline-flex;flex-direction:column;align-items:center;min-width:46px;padding:4px 6px;border-radius:6px;background:#f8fafc;border:1px solid #e2e8f0;font-size:0.58rem"><span style="font-weight:800;color:#475569">' + L + '</span><span style="color:' + cls + ';font-weight:700">' + sym + '</span>' + (el ? '<span style="color:#64748b;font-size:0.54rem">' + el + '</span>' : '') + (letterTid ? '<span style="color:#94a3b8;font-size:0.5rem">#' + letterTid + '</span>' : '') + '</div>';
+    }}
+    var _byDom = {{}};
+    activeArticles.forEach(function(a) {{
+      var k = String((a.domain_url || '')).trim() || '(unknown domain)';
+      if (!_byDom[k]) _byDom[k] = [];
+      _byDom[k].push(a);
+    }});
+    var _domKeys = Object.keys(_byDom).sort(function(a, b){{ return a.localeCompare(b); }});
+    var _domBlocks = _domKeys.map(function(domKey) {{
+      var arts = _byDom[domKey];
+      var artsInner = arts.map(function(a) {{
+        var tid = a.tid || '';
+        var title = _pwdEsc(a.title || '');
+        var gid = a.group_id != null ? 'G' + a.group_id : '';
+        var ip = a.image_progress || {{}};
+        var it = a.image_timings || {{}};
+        var dp = a.domain_progress || {{}};
+        var dt = a.domain_timings || {{}};
+        var dti = a.domain_title_ids || {{}};
+        var letters = ((a.domain_letters || 'A,B,C,D') + '').split(/[,\\s]+/).filter(function(x){{ return x; }});
+        var artEl = a.started_at ? _elapsed(a.started_at) : '';
+        var letterHtml = letters.map(function(L){{ return _pwdLetterCell(L, dp, dt, dti, tid); }}).join('');
+        return '<div class="pwd-article"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;flex-wrap:wrap"><div style="min-width:0"><div style="font-size:0.72rem;font-weight:700;color:#4c1d95">[' + tid + '] ' + title + '</div><div style="font-size:0.6rem;color:#64748b;margin-top:2px">' + (gid || '') + (artEl ? ' · row ⏱ ' + artEl : '') + '</div></div><span class="badge rounded-pill" style="font-size:0.58rem;background:#ede9fe;color:#5b21b6">active</span></div><div class="pwd-where">' + _pwdWhereLine(a) + '</div><div style="font-size:0.58rem;font-weight:600;color:#64748b;margin:2px 0 3px">Image slots (this article)</div>' + _pwdImgLine('main', ip, it) + _pwdImgLine('ingredient', ip, it) + '<div style="font-size:0.58rem;font-weight:600;color:#64748b;margin:8px 0 3px">HTML / content by domain letter (click ✓ when done)</div><div class="pwd-letters-row">' + letterHtml + '</div></div>';
+      }}).join('');
+      return '<div class="pwd-domain"><div class="pwd-domain-label"><span>' + _pwdEsc(domKey) + '</span><span class="badge bg-light text-dark border" style="font-size:0.6rem">' + arts.length + ' article(s) working</span></div>' + artsInner + '</div>';
+    }}).join('');
+    domainWorkboardHtml = '<div class="progress-domain-workboard" role="region" aria-label="Detail by domain"><div class="pwd-head">By domain — which article is active, image slots, and A–D HTML progress</div>' + _domBlocks + '</div>';
+  }}
   
   var actionBtns = '';
   if (s.type === 'test_content' && (st === 'done' || st === 'error')) {{
@@ -2385,6 +3109,29 @@ function renderProgressBody(s, body) {{
   var stepsLabel = s.type==='deploy' ? 'Domains' : ('Steps (' + steps.length + ')');
   var failedSteps = steps.filter(function(x){{ return String(x).indexOf('✗') >= 0; }});
   var okSteps = steps.filter(function(x){{ return String(x).indexOf('✓') >= 0; }});
+  var failedRows = s.failed_rows || [];
+  var failedRowsHtml = '';
+  if (failedRows.length > 0) {{
+    failedRowsHtml = '<div class="progress-workflow-section mt-2 border border-danger rounded p-2">'
+      + '<div class="d-flex justify-content-between align-items-center mb-1">'
+      + '<span class="workflow-label text-danger">Failed rows details (' + failedRows.length + ')</span>'
+      + '<button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" onclick="_copyFailedRowsDetails()">Copy failed details</button>'
+      + '</div>'
+      + '<div class="small font-monospace" style="max-height:22vh;overflow-y:auto;background:#fff5f5;border-radius:4px;padding:6px;line-height:1.45">';
+    failedRows.forEach(function(r){{
+      var gid = (r.group_id != null ? ('G' + r.group_id + ' ') : '');
+      var ridx = (r.row_index != null ? ('R' + r.row_index + ': ') : '');
+      var tid = (r.title_id != null ? ('[' + r.title_id + '] ') : '');
+      var title = String(r.title || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      var rawReason = String(r.reason || '');
+      var sep = rawReason.indexOf(' | ');
+      var stepLabel = (sep >= 0 ? rawReason.slice(0, sep) : '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      var restReason = (sep >= 0 ? rawReason.slice(sep + 3) : rawReason).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      var stepBadge = stepLabel ? ('<span class="badge bg-danger me-1" style="font-size:0.65rem;vertical-align:middle">' + stepLabel + '</span>') : '';
+      failedRowsHtml += '<div style="margin-bottom:8px;border-left:3px solid #dc3545;padding-left:8px"><div style="font-weight:600;color:#991b1b">' + gid + ridx + tid + title + '</div><div class="mt-1" style="white-space:pre-wrap;word-break:break-word;color:#7f1d1d">' + stepBadge + (sep >= 0 ? restReason : rawReason.replace(/</g,'&lt;').replace(/>/g,'&gt;')) + '</div></div>';
+    }});
+    failedRowsHtml += '</div></div>';
+  }}
   var stepsHtml = showSteps ? '<div class="progress-workflow-section mt-2"><div class="d-flex justify-content-between align-items-center mb-1"><div class="d-flex align-items-center gap-2"><span class="workflow-label mb-0">' + stepsLabel + (failedSteps.length ? ' <span class="badge bg-danger" style="font-size:0.6rem">' + failedSteps.length + ' failed</span>' : '') + (okSteps.length ? ' <span class="badge bg-success" style="font-size:0.6rem">' + okSteps.length + ' ok</span>' : '') + '</span></div><div class="d-flex gap-1"><button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1" style="font-size:0.65rem" onclick="_copyProgressSteps()">Copy steps</button><button type="button" class="btn btn-outline-primary btn-sm py-0 px-1" style="font-size:0.65rem" onclick="_copyProgressDebugReport()">Copy debug report</button></div></div><div class="progress-steps-log small font-monospace" id="progressStepsLog" style="font-size:0.65rem;max-height:35vh;overflow-y:auto;background:#f8f9fa;border-radius:4px;padding:4px 6px">' + steps.map(function(st){{ var isErr = String(st).indexOf('✗') >= 0; return '<div style="white-space:pre-wrap;word-break:break-word;line-height:1.4;padding:1px 0;' + (isErr ? 'color:#dc3545;background:#fff5f5;border-radius:2px;padding:2px 3px;margin-bottom:1px;' : '') + '">' + String(st).replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>'; }}).join('') + '</div></div>' : '';
   
   var createdStr = s.created_at ? (new Date(s.created_at * 1000)).toLocaleString() : '';
@@ -2401,7 +3148,7 @@ function renderProgressBody(s, body) {{
   var debugHtml = '<div class="progress-workflow-section mt-2" style="background:#f0f4ff;border:1px solid #c7d8f5"><div class="d-flex justify-content-between align-items-center gap-1 mb-1 flex-wrap"><span class="workflow-label mb-0" style="color:#0d6efd">Debug info</span><div class="d-flex gap-1"><button type="button" class="btn btn-primary btn-sm py-0 px-2" style="font-size:0.65rem" onclick="_copyProgressDebugReport()">Copy report</button><button type="button" class="btn btn-success btn-sm py-0 px-2" style="font-size:0.65rem;background:#25D366;border-color:#25D366" onclick="_sendDebugToWhatsApp()">&#128232; WhatsApp dev</button></div></div><div class="small font-monospace" style="font-size:0.65rem;white-space:pre-wrap;word-break:break-word;line-height:1.6">' + debugInfoParts.map(function(x){{ return x.replace(/</g,'&lt;').replace(/>/g,'&gt;'); }}).join('\\n') + '</div></div>';
   
   var current = (s.current_title||'') && activeTitles.length === 0 && !articlesHtml ? '<span class="text-info">' + String(s.current_title).replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>' : '';
-  body.innerHTML = '<div class="progress-summary">' + nowBanner + progressBarHtml + wHtml + '<div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mt-1"><span class="fw-medium text-secondary" style="font-size:0.8rem">' + (s.status||'') + '</span><span class="badge bg-secondary" style="font-size:0.7rem">' + (s.message||'').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span></div>' + (current ? '<div class="mt-1 text-truncate" style="font-size:0.75rem">' + current + '</div>' : '') + articlesHtml + stepsHtml + errorBlock + debugHtml + actionBtns + '</div>';
+  body.innerHTML = '<div class="progress-summary">' + nowBanner + progressBarHtml + liveSpotlightHtml + domainWorkboardHtml + wHtml + '<div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mt-1"><span class="fw-medium text-secondary" style="font-size:0.8rem">' + (s.status||'') + '</span><span class="badge bg-secondary" style="font-size:0.7rem">' + (s.message||'').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span></div>' + (current ? '<div class="mt-1 text-truncate" style="font-size:0.75rem">' + current + '</div>' : '') + articlesHtml + failedRowsHtml + stepsHtml + errorBlock + debugHtml + actionBtns + '</div>';
   var logEl = body.querySelector('.progress-steps-log');
   if(logEl) logEl.scrollTop = logEl.scrollHeight;
   var titleEl = document.getElementById('progressModalTitle');
@@ -2412,6 +3159,21 @@ function renderProgressBodyFromMode(mode, status, message, currentTitle, steps) 
   var body = document.getElementById('progressModalBody');
   if(body) renderProgressBody(s, body);
 }}
+function _flushPendingProgressRender() {{
+  var body = document.getElementById('progressModalBody');
+  if(!body) return;
+  var pending = window._progressPendingData;
+  if(!pending) return;
+  window._progressPendingData = null;
+  renderProgressBody(pending, body);
+}}
+document.addEventListener('mouseup', function() {{
+  setTimeout(_flushPendingProgressRender, 120);
+}});
+document.addEventListener('keyup', function(ev) {{
+  if(!ev) return;
+  if(ev.key === 'Escape' || ev.key === 'Enter') setTimeout(_flushPendingProgressRender, 120);
+}});
 function _copyProgressSteps() {{
   var s = window._currentProgressData;
   if(!s) return;
@@ -2460,6 +3222,17 @@ function _copyProgressDebugReport() {{
     lines.push('--- Error Detail ---');
     lines.push(s.error_detail);
   }}
+  var failedRows = s.failed_rows || [];
+  if (failedRows.length) {{
+    lines.push('');
+    lines.push('--- Failed Rows Details (' + failedRows.length + ') ---');
+    failedRows.forEach(function(r) {{
+      var gid = (r.group_id != null ? ('G' + r.group_id + ' ') : '');
+      var ridx = (r.row_index != null ? ('R' + r.row_index + ': ') : '');
+      var tid = (r.title_id != null ? ('[' + r.title_id + '] ') : '');
+      lines.push(gid + ridx + tid + (r.title || '-') + ' | ' + (r.reason || '-'));
+    }});
+  }}
   var steps = s.steps || [];
   if (steps.length) {{
     lines.push('');
@@ -2497,6 +3270,34 @@ function _copyProgressDebugReport() {{
     alert('Debug report copied!');
   }});
 }}
+function _copyFailedRowsDetails() {{
+  var s = window._currentProgressData;
+  if(!s) return;
+  var rows = s.failed_rows || [];
+  if(!rows.length) {{
+    alert('No failed rows details.');
+    return;
+  }}
+  var lines = rows.map(function(r){{
+    var gid = (r.group_id != null ? ('G' + r.group_id + ' ') : '');
+    var ridx = (r.row_index != null ? ('R' + r.row_index + ': ') : '');
+    var tid = (r.title_id != null ? ('[' + r.title_id + '] ') : '');
+    var title = (r.title || '').trim();
+    var reason = (r.reason || '').trim();
+    return gid + ridx + tid + title + (reason ? (' | ' + reason) : '');
+  }}).join('\\n');
+  navigator.clipboard.writeText(lines).then(function() {{
+    alert('Failed rows details copied! (' + rows.length + ')');
+  }}).catch(function() {{
+    var ta = document.createElement('textarea');
+    ta.value = lines;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    alert('Failed rows details copied! (' + rows.length + ')');
+  }});
+}}
 function _sendDebugToWhatsApp() {{
   var s = window._currentProgressData;
   if(!s) return;
@@ -2521,19 +3322,21 @@ function _sendDebugToWhatsApp() {{
   window.open(waUrl, '_blank');
 }}
 function runBulkWithProgress(url, mode) {{
+  _uiDbg('runBulkWithProgress', {{ mode: mode }});
   var modal = document.getElementById('progressModal');
   var body = document.getElementById('progressModalBody');
   if (typeof requestTaskNotificationPermission==='function') requestTaskNotificationPermission();
   renderProgressBodyFromMode(mode, 'running', 'Starting...', '', []);
   document.getElementById('progressBgBtn').style.display = 'none';
-  new bootstrap.Modal(modal).show();
+  _showProgressBsModal();
   fetch(url, {{ method: 'POST' }}).then(r=>r.json()).then(d=>{{
+    _uiDbg('runBulkWithProgress response', {{ success: d.success, job_id: d.job_id, error: d.error || null }});
     if(d.error) {{ body.innerHTML = '<p class="text-danger">' + d.error + '</p>'; return; }}
     var jobId = d.job_id;
     if(!jobId) {{
       renderProgressBodyFromMode(mode, 'done', d.message||'Done', '', []);
       if(typeof refreshAfterRun==='function') refreshAfterRun();
-      setTimeout(function(){{ _hideBsModal(modal); }}, 1500);
+      _hideProgressModalAndUnlock(modal, 1500);
       return;
     }}
     window._currentProgressJobId = jobId;
@@ -2549,7 +3352,7 @@ function runBulkWithProgress(url, mode) {{
           if (typeof notifyTaskComplete==='function') notifyTaskComplete(workflowStepsFromStatus(s)[0] || 'Run', s.status, s.message);
           if(typeof refreshAfterRun==='function') refreshAfterRun();
           if(typeof refreshRunningTasks==='function') refreshRunningTasks();
-          setTimeout(function(){{ _hideBsModal(modal); }}, 2000);
+          _hideProgressModalAndUnlock(modal, 2000);
         }}
       }}).catch(function(){{ clearInterval(iv); }});
     }}
@@ -2562,10 +3365,16 @@ function runInBackground() {{
   if(_progressPollInterval) clearInterval(_progressPollInterval);
   _progressPollInterval = null;
   var modal = document.getElementById('progressModal');
-  _hideBsModal(modal);
+  _hideProgressModalAndUnlock(modal, 0);
   if(typeof refreshRunningTasks==='function') refreshRunningTasks();
 }}
 function openProgressModalForJob(jobId) {{
+  jobId = (jobId == null ? '' : String(jobId)).trim();
+  if (!jobId) return;
+  _uiDbg('openProgressModalForJob', {{ jobId: jobId }});
+  if (!_anyModalTrulyVisible()) {{
+    _syncBodyAfterModalClose();
+  }}
   var modal = document.getElementById('progressModal');
   var body = document.getElementById('progressModalBody');
   if(!modal || !body) return;
@@ -2573,7 +3382,7 @@ function openProgressModalForJob(jobId) {{
   body.innerHTML = '<p class="text-muted">Loading...</p>';
   var bgBtn = document.getElementById('progressBgBtn');
   if(bgBtn) bgBtn.style.display = 'none';
-  new bootstrap.Modal(modal).show();
+  _showProgressBsModal();
   window._currentProgressJobId = jobId;
   var iv = null;
   function poll() {{
@@ -2713,9 +3522,6 @@ function refreshRunningTasks() {{
         sel.value = domainFilter || '';
       }}
     }}).catch(function(){{}});
-    el.querySelectorAll('.run-task-view-btn').forEach(function(btn){{
-      btn.addEventListener('click', function(e){{ e.stopPropagation(); openProgressModalForJob(this.getAttribute('data-job-id')); }});
-    }});
     el.querySelectorAll('.run-task-view-article').forEach(function(btn){{
       btn.addEventListener('click', function(e){{ e.stopPropagation(); var tid = this.getAttribute('data-title-id'); if(tid && typeof viewContent==='function') viewContent(tid); }});
     }});
@@ -2724,14 +3530,6 @@ function refreshRunningTasks() {{
     }});
     el.querySelectorAll('.run-task-stop').forEach(function(btn){{
       btn.addEventListener('click', function(e){{ e.stopPropagation(); cancelBulkJob(btn.getAttribute('data-job-id'), btn); }});
-    }});
-    el.querySelectorAll('.run-task-row[data-job-id]').forEach(function(row){{
-      var jid = row.getAttribute('data-job-id');
-      if(!jid) return;
-      row.addEventListener('click', function(e){{
-        if(e.target.closest('button')) return;
-        openProgressModalForJob(jid);
-      }});
     }});
   }}).catch(function(){{}});
 }}
@@ -2800,7 +3598,7 @@ function cancelBulkJob(jobId, stopBtn) {{
     body.innerHTML = '<div class="progress-summary"><p class="mb-2"><span class="spinner-border spinner-border-sm me-2" role="status"></span><strong>Stopping job…</strong></p><p class="text-muted small mb-0">Request sent. The task will stop as soon as the current work finishes.</p></div>';
     var bgBtn = document.getElementById('progressBgBtn');
     if(bgBtn) bgBtn.style.display = 'none';
-    new bootstrap.Modal(modal).show();
+    _showProgressBsModal();
   }}
   fetch('/api/bulk-run-cancel?job_id=' + encodeURIComponent(jobId), {{ method: 'POST' }}).then(r=>r.json()).then(function(d){{
     if(d.success) {{
@@ -2814,7 +3612,7 @@ function cancelBulkJob(jobId, stopBtn) {{
             if(iv) clearInterval(iv);
             if (typeof refreshAfterRun==='function') refreshAfterRun();
             if(typeof refreshRunningTasks==='function') refreshRunningTasks();
-            setTimeout(function(){{ _hideBsModal(modal); }}, 2000);
+            _hideProgressModalAndUnlock(modal, 2000);
           }}
         }}).catch(function(){{}});
       }}
@@ -2840,15 +3638,15 @@ function generateForFilteredArticles() {{
   
   var mode = (stype === 'prompt' || stype === 'no_prompt') ? 'prompts' : (stype.indexOf('html_css') >= 0 ? 'article' : (stype.indexOf('main_img') >= 0 ? 'main_image' : (stype.indexOf('ing_img') >= 0 ? 'ingredient_image' : (stype.indexOf('pin_img') >= 0 ? 'pin_image' : 'images'))));
   var titleIds = arts.map(function(a) {{ return a.id; }});
-  
+  var label = 'Generate';
+  _uiDbg('generateForFilteredArticles', {{ domainId: domainId, mode: mode, n: titleIds.length }});
   var sm = document.getElementById('statsArticlesModal');
   if (sm) _hideBsModal(sm);
-  
   var modal = document.getElementById('progressModal');
   var body = document.getElementById('progressModalBody');
   renderProgressBody({{ type: 'filtered', action: 'Generate', status: 'running', message: 'Starting...', steps: [] }}, body);
   document.getElementById('progressBgBtn').style.display = 'none';
-  new bootstrap.Modal(modal).show();
+  _showProgressBsModal();
   
   fetch('/api/profile-ai-defaults').then(function(r){{ return r.json(); }}).then(function(prof){{
     var payload = {{ domain_id: domainId, title_ids: titleIds, mode: mode, async: 1 }};
@@ -2891,7 +3689,7 @@ function generateForFilteredArticles() {{
           if (typeof notifyTaskComplete === 'function') notifyTaskComplete(label, s.status, s.message);
           if (typeof refreshAfterRun === 'function') refreshAfterRun();
           if (typeof refreshRunningTasks === 'function') refreshRunningTasks();
-          setTimeout(function() {{ _hideBsModal(modal); }}, 2000);
+          _hideProgressModalAndUnlock(modal, 2000);
         }}
       }}).catch(function() {{ clearInterval(iv); }});
     }}
@@ -3041,7 +3839,17 @@ function openSingleActionModal(url, data, label) {{
   }}
   var wrap = document.getElementById('singleActionAiProviderWrap');
   if (wrap) wrap.style.display = 'block';
-  function _showSingleActionModal() {{ new bootstrap.Modal(document.getElementById('singleActionModal')).show(); }}
+  function _showSingleActionModalImmediate() {{
+    var m = document.getElementById('singleActionModal');
+    _modalSetLoading(m, true, 'Loading AI options…');
+    _modalPrepareBlockingDuringLoad(m);
+    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(m).show();
+  }}
+  function _finishSingleActionModalLoad() {{
+    var m = document.getElementById('singleActionModal');
+    _modalSetLoading(m, false);
+    _modalReleaseBlockingAfterLoad(m);
+  }}
   function _applySingleActionProfileAi() {{
     return fetch('/api/profile-ai-defaults').then(function(r){{ return r.json(); }}).then(function(d){{
       var s = document.getElementById('singleActionAiProvider');
@@ -3122,6 +3930,7 @@ function openSingleActionModal(url, data, label) {{
       document.querySelectorAll('input[name="singleActionOpenRouterMode"]').forEach(function(r){{ r.addEventListener('change', _updateSingleActionOpenRouterOptions); }});
     }}
     if (!window._openRouterModelsList && document.getElementById('singleActionOpenRouterModels').options.length === 0) {{
+      _showSingleActionModalImmediate();
       fetch('/api/openrouter-models').then(function(r){{ return r.json(); }}).then(function(d){{
         window._openRouterModelOptionsList = d.model_options || (d.models || []).map(function(id){{ return {{id: id, label: id}}; }});
         window._openRouterModelsList = d.models || [];
@@ -3132,11 +3941,12 @@ function openSingleActionModal(url, data, label) {{
           if (m) {{ m.innerHTML = ''; (window._openRouterModelOptionsList || []).forEach(function(item){{ var id = typeof item === 'string' ? item : item.id; var label = typeof item === 'string' ? item : (item.label || item.id); var isFree = item.free === true || (typeof id === 'string' && id.endsWith(':free')); var o = document.createElement('option'); o.value = id; o.textContent = label; o.setAttribute('data-free', isFree ? 'true' : 'false'); m.appendChild(o); }}); }}
         }});
         return _applySingleActionProfileAi();
-      }}).then(function(){{ _showSingleActionModal(); }}).catch(function(){{ _showSingleActionModal(); }});
+      }}).catch(function(){{}}).finally(function(){{ _finishSingleActionModalLoad(); }});
       return;
     }}
+    _showSingleActionModalImmediate();
     _updateSingleActionOpenRouterOptions();
-    _applySingleActionProfileAi().then(function(){{ _showSingleActionModal(); }}).catch(function(){{ _showSingleActionModal(); }});
+    _applySingleActionProfileAi().catch(function(){{}}).finally(function(){{ _finishSingleActionModalLoad(); }});
     return;
   }}
 }}
@@ -3182,15 +3992,18 @@ function openPinPickerModal(titleId) {{
     var pSel = document.getElementById('pinPickerAiProvider');
     if (pSel) pSel.addEventListener('change', function(){{ _updateBulkModalAiHints('pinPicker'); }});
   }}
-  document.getElementById('pinPickerLoading').style.display = 'block';
+  var pinM = document.getElementById('pinPickerModal');
+  var pl = document.getElementById('pinPickerLoading');
+  if (pl) {{ pl.style.display = 'none'; pl.innerHTML = '<div class="spinner-border spinner-border-sm"></div> Loading templates...'; }}
   document.getElementById('pinPickerEmpty').style.display = 'none';
   document.getElementById('pinPickerGrid').style.display = 'none';
   document.getElementById('pinPickerActions').style.display = 'none';
-  new bootstrap.Modal(document.getElementById('pinPickerModal')).show();
+  _modalSetLoading(pinM, true, 'Loading templates…');
+  _modalPrepareBlockingDuringLoad(pinM);
+  if (typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(pinM).show();
   fetch('/api/title-pin-templates?title_id=' + titleId)
     .then(function(r) {{ return r.json(); }})
     .then(function(d) {{
-      document.getElementById('pinPickerLoading').style.display = 'none';
       var templates = d.templates || [];
       if (!templates.length) {{
         document.getElementById('pinPickerEmpty').style.display = 'block';
@@ -3224,24 +4037,31 @@ function openPinPickerModal(titleId) {{
       }});
     }})
     .catch(function(e) {{
-      document.getElementById('pinPickerLoading').innerHTML = '<span class="text-danger">Error: ' + e + '</span>';
+      var pe = document.getElementById('pinPickerEmpty');
+      if (pe) {{ pe.innerHTML = '<span class="text-danger">Error: ' + e + '</span>'; pe.style.display = 'block'; }}
+    }})
+    .finally(function() {{
+      _modalSetLoading(pinM, false);
+      _modalReleaseBlockingAfterLoad(pinM);
     }});
 }}
 function openPinToPinterest(titleId) {{
   if (!titleId) return;
+  const win = window.open('about:blank', 'pinterest', 'width=750,height=600');
   fetch('/api/pinterest-pin-url?title_id=' + titleId)
     .then(function(r) {{ return r.json(); }})
     .then(function(d) {{
-      if (d.url) window.open(d.url, 'pinterest', 'width=750,height=600');
-      else alert(d.error || 'No pin image. Generate pin first (P button).');
+      if (d.url) win.location.href = d.url;
+      else {{ win.close(); alert(d.error || 'No pin image. Generate pin first (P button).'); }}
     }})
-    .catch(function(e) {{ alert('Error: ' + e); }});
+    .catch(function(e) {{ win.close(); alert('Error: ' + e); }});
 }}
 function runPinPicker(foreground) {{
   if (typeof requestTaskNotificationPermission==='function') requestTaskNotificationPermission();
   var titleId = document.getElementById('pinPickerTitleId').value;
   var templateId = _pinPickerSelectedTemplateId;
   var postAfter = !!(document.getElementById('pinPickerPostToPinterest') || {{}}).checked;
+  _uiDbg('runPinPicker', {{ foreground: !!foreground, titleId: titleId }});
   _hideBsModal('pinPickerModal');
   var data = {{ title_id: parseInt(titleId) }};
   if (templateId) data.domain_template_id = templateId;
@@ -3264,7 +4084,7 @@ function runPinPicker(foreground) {{
   var body = document.getElementById('progressModalBody');
   renderProgressBody({{ type: 'single', action: 'Pin image', status: 'running', message: 'Starting...', steps: [] }}, body);
   document.getElementById('progressBgBtn').style.display = 'none';
-  new bootstrap.Modal(modal).show();
+  _showProgressBsModal();
   function _openPinterestAfter() {{
     if (!postAfter) return;
     setTimeout(function() {{ openPinToPinterest(parseInt(titleId)); }}, 600);
@@ -3279,7 +4099,7 @@ function runPinPicker(foreground) {{
         if (typeof notifyTaskComplete==='function') notifyTaskComplete('Pin image', st, msg);
         if (d.success && typeof refreshAfterRun === 'function') refreshAfterRun();
         if (d.success) _openPinterestAfter();
-        setTimeout(function() {{ _hideBsModal(modal); }}, 1500);
+        _hideProgressModalAndUnlock(modal, 1500);
       }})
       .catch(function(e) {{ body.innerHTML = '<p class="text-danger">Error: ' + e + '</p>'; }});
   }} else {{
@@ -3298,7 +4118,7 @@ function runPinPicker(foreground) {{
               if (typeof notifyTaskComplete==='function') notifyTaskComplete('Pin image', j.status, j.message);
               if (j.status === 'done' && typeof refreshAfterRun === 'function') refreshAfterRun();
               if (j.status === 'done') _openPinterestAfter();
-              setTimeout(function() {{ _hideBsModal(modal); }}, 1500);
+              _hideProgressModalAndUnlock(modal, 1500);
             }} else {{ setTimeout(poll, 2000); }}
           }}).catch(function() {{ setTimeout(poll, 3000); }});
         }}
@@ -3335,12 +4155,13 @@ function runSingleAction(foreground) {{
   }}
   var label = document.getElementById('singleActionLabel').value || 'Task';
   if (typeof requestTaskNotificationPermission==='function') requestTaskNotificationPermission();
+  _uiDbg('runSingleAction', {{ foreground: !!foreground, label: label }});
   _hideBsModal('singleActionModal');
   var modal = document.getElementById('progressModal');
   var body = document.getElementById('progressModalBody');
   renderProgressBody({{ type: 'single', action: label, status: 'running', message: 'Starting...', steps: [] }}, body);
   document.getElementById('progressBgBtn').style.display = 'none';
-  new bootstrap.Modal(modal).show();
+  _showProgressBsModal();
   if(foreground) {{
     fetch(url, {{ method: 'POST', headers: {{'Content-Type':'application/json'}}, body: JSON.stringify(data) }})
       .then(r=>r.json())
@@ -3349,7 +4170,7 @@ function runSingleAction(foreground) {{
         renderProgressBody({{ type: 'single', action: label, status: st, message: d.success ? 'Done.' : (d.error||''), steps: [] }}, body);
         if (typeof notifyTaskComplete==='function') notifyTaskComplete(label, st, d.success ? 'Done' : d.error);
         if(d.success && typeof refreshAfterRun==='function') refreshAfterRun();
-        setTimeout(function(){{ _hideBsModal(modal); }}, 1500);
+        _hideProgressModalAndUnlock(modal, 1500);
       }})
       .catch(function(e){{ body.innerHTML = '<p class="text-danger">Error: ' + e + '</p>'; }});
   }} else {{
@@ -3364,7 +4185,7 @@ function runSingleAction(foreground) {{
           renderProgressBody({{ type: 'single', action: label, status: 'done', message: d.message||'Done', steps: [] }}, body);
           if (typeof notifyTaskComplete==='function') notifyTaskComplete(label, 'done', d.message);
           if(d.success && typeof refreshAfterRun==='function') refreshAfterRun();
-          setTimeout(function(){{ _hideBsModal(modal); }}, 1500);
+          _hideProgressModalAndUnlock(modal, 1500);
           return;
         }}
         window._currentProgressJobId = jobId;
@@ -3382,7 +4203,7 @@ function runSingleAction(foreground) {{
               if (typeof notifyTaskComplete==='function') notifyTaskComplete(label, s.status, s.message);
               if(typeof refreshAfterRun==='function') refreshAfterRun();
               if(typeof refreshRunningTasks==='function') refreshRunningTasks();
-              setTimeout(function(){{ _hideBsModal(modal); }}, 2000);
+              _hideProgressModalAndUnlock(modal, 2000);
             }}
           }}).catch(function(){{ clearInterval(iv); }});
         }}
@@ -3397,7 +4218,7 @@ function runSingleAction(foreground) {{
 <div id="viewModal" class="modal fade" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="viewModalTitle">View</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body" id="viewModalBody"></div></div></div></div>
 <div id="bulkModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Run for this row</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="bulkModalTitleId"><p class="mb-2">What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkModalBtnPrompts" class="btn btn-outline-secondary" onclick="runBulk('prompts')">Run prompts</button><button type="button" id="bulkModalBtnImages" class="btn btn-outline-info" onclick="runBulk('images')">Run images</button><button type="button" id="bulkModalBtnArticle" class="btn btn-outline-success" onclick="runBulk('article')">Run content</button><button type="button" id="bulkModalBtnPinterest" class="btn btn-outline-danger" onclick="runBulk('pin_image')">Run Pinterest</button><button type="button" id="bulkModalBtnAll" class="btn btn-primary" onclick="runBulk('all')">Run all (prompts, images, content, Pinterest)</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option><option value="groq">Groq</option><option value="local">Local (Ollama)</option><option value="llamacpp">llama.cpp</option></select><div id="bulkModalLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model (≤15B):</p><select id="bulkModalLocalModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkModalLlamaCppWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">llama.cpp model:</p><select id="bulkModalLlamaCppModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkModalOpenAIWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenAI model:</p><select id="bulkModalOpenAIModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkModalGroqWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Groq model:</p><select id="bulkModalGroqModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkModalOpenRouterWrap" class="mb-3" style="display:none"><p class="mb-1 fw-medium small">OpenRouter:</p><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalOpenRouterMode" value="rotation"> Rotation (try next on failure)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalOpenRouterMode" value="select"> Select model(s)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalOpenRouterMode" value="rotation_blacklist" checked> Rotation (exclude failed for next)</label></div><div class="d-flex align-items-center gap-2 mb-1"><div class="btn-group btn-group-sm"><button type="button" id="bulkModalOrFilterAll" class="btn btn-primary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkModal','all')">All</button><button type="button" id="bulkModalOrFilterFree" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkModal','free')">Free</button><button type="button" id="bulkModalOrFilterPaid" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkModal','paid')">Paid</button></div></div><select id="bulkModalOpenRouterModels" class="form-select form-select-sm" multiple style="max-height:100px;width:100%"></select></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeContent" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeContent" value="empty_only" checked> Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for images (main+ingredient):</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeImages" value="override"> Override existing</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopeImages" value="empty_only" checked> Only rows without main+ingredient images</label></div><p class="mb-2 fw-medium small">Scope for Pinterest:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopePins" value="override"> Override existing</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkModalScopePins" value="empty_only" checked> Only rows without pin images</label></div><p class="small text-muted mt-2 mb-0">Note: Articles without article_html will be skipped for image generation.</p></div></div></div></div>
 <div id="bulkDomainModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="bulkDomainModalTitle">Run for domain</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="bulkDomainModalDomainId"><input type="hidden" id="bulkDomainModalFilter"><p class="mb-2 fw-medium small" id="bulkDomainModalFilterLabel">Filter: —</p><p class="mb-2">What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkDomainBtnPrompts" class="btn btn-outline-secondary" onclick="runBulkDomainFromModal('prompts')">Run prompts</button><button type="button" id="bulkDomainBtnImages" class="btn btn-outline-info" onclick="runBulkDomainFromModal('images')">Run images</button><button type="button" id="bulkDomainBtnArticle" class="btn btn-outline-success" onclick="runBulkDomainFromModal('article')">Run content</button><button type="button" id="bulkDomainBtnPinterest" class="btn btn-outline-danger" onclick="runBulkDomainFromModal('pin_image')">Run Pinterest</button><button type="button" id="bulkDomainBtnAll" class="btn btn-primary" onclick="runBulkDomainFromModal('all')">Run all</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkDomainModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option><option value="groq">Groq</option><option value="local">Local (Ollama)</option><option value="llamacpp">llama.cpp</option></select><div id="bulkDomainModalLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model (≤15B):</p><select id="bulkDomainModalLocalModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkDomainModalLlamaCppWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">llama.cpp model:</p><select id="bulkDomainModalLlamaCppModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkDomainModalOpenAIWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenAI model:</p><select id="bulkDomainModalOpenAIModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkDomainModalGroqWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Groq model:</p><select id="bulkDomainModalGroqModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkDomainModalOrOpts" class="mb-3 p-2 bg-light border rounded small" style="display:none;"><div class="fw-medium mb-1">OpenRouter:</div><div class="mb-2"><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkDomainModalOpenRouterMode" id="bulkDomainModalOrModeRot" value="rotation"><label class="form-check-label" for="bulkDomainModalOrModeRot">Rotation (try next on failure)</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkDomainModalOpenRouterMode" id="bulkDomainModalOrModeFall" value="fallback"><label class="form-check-label" for="bulkDomainModalOrModeFall">Fallback</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkDomainModalOpenRouterMode" id="bulkDomainModalOrModeBlack" value="rotation_blacklist" checked><label class="form-check-label" for="bulkDomainModalOrModeBlack">Rotation (exclude failed)</label></div></div><div class="d-flex align-items-center gap-2 mb-1"><span class="fw-medium">Select model(s)</span><div class="btn-group btn-group-sm"><button type="button" id="bulkDomainModalOrFilterAll" class="btn btn-primary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkDomainModal','all')">All</button><button type="button" id="bulkDomainModalOrFilterFree" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkDomainModal','free')">Free</button><button type="button" id="bulkDomainModalOrFilterPaid" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkDomainModal','paid')">Paid</button></div></div><select id="bulkDomainModalOpenRouterModels" class="form-select form-select-sm mb-1" multiple style="max-height:120px;width:100%"></select><button type="button" class="btn btn-outline-secondary btn-sm" onclick="_resetOpenRouterModels('bulkDomainModal')">Reset to defaults</button></div><p class="mb-2 fw-medium small">Scope for prompts:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkDomainModalScopePrompts" id="bdmScopePrompts1" value="override"><label class="form-check-label small" for="bdmScopePrompts1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkDomainModalScopePrompts" id="bdmScopePrompts2" value="empty_only" checked><label class="form-check-label small" for="bdmScopePrompts2">Only rows without prompts</label></div><p class="mb-2 fw-medium small">Scope for images:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkDomainModalScopeImages" id="bdmScopeImages1" value="override"><label class="form-check-label small" for="bdmScopeImages1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkDomainModalScopeImages" id="bdmScopeImages2" value="empty_only" checked><label class="form-check-label small" for="bdmScopeImages2">Only rows without images</label></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkDomainModalScopeContent" id="bdmScopeContent1" value="override"><label class="form-check-label small" for="bdmScopeContent1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkDomainModalScopeContent" id="bdmScopeContent2" value="empty_only" checked><label class="form-check-label small" for="bdmScopeContent2">Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for Pinterest:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkDomainModalScopePins" id="bdmScopePins1" value="override"><label class="form-check-label small" for="bdmScopePins1">Override existing</label></div><div class="form-check mb-2"><input class="form-check-input" type="radio" name="bulkDomainModalScopePins" id="bdmScopePins2" value="empty_only" checked><label class="form-check-label small" for="bdmScopePins2">Only rows without pin images</label></div><p class="small text-muted mb-2">Workflow order (Run all): prompts → images → content → Pinterest.</p><hr class="my-3"><p class="mb-2 fw-medium">Concurrency:</p><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkDomainConcurrencyPreset" value="low"> Low — 1 row</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkDomainConcurrencyPreset" value="medium"> Medium — 2 rows</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkDomainConcurrencyPreset" value="max" checked> Max — <input type="number" id="bulkDomainConcurrencyN" value="6" min="1" max="20" class="form-control form-control-sm d-inline-block" style="width:55px"> rows</label></div></div></div></div></div>
-<div id="bulkGroupModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="bulkGroupModalTitle">Run for group</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="bulkGroupModalGroupId"><p class="mb-2 fw-medium small">Run scope:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalRunScope" id="bulkGroupModalScopeAll" value="all" checked><label class="form-check-label small" for="bulkGroupModalScopeAll">All subgroups in this group</label></div><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalRunScope" id="bulkGroupModalScopeSelected" value="selected"><label class="form-check-label small" for="bulkGroupModalScopeSelected">Selected subgroups only</label></div><div id="bulkGroupSubgroupsWrap" class="border rounded p-2 mb-2" style="max-height:140px;overflow-y:auto;display:none"><div class="d-flex gap-2 mb-1"><button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.querySelectorAll('#bulkGroupSubgroupsWrap .bulk-group-subgroup-cb').forEach(function(cb){{cb.checked=true}})">Select all</button><button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.querySelectorAll('#bulkGroupSubgroupsWrap .bulk-group-subgroup-cb').forEach(function(cb){{cb.checked=false}})">Deselect all</button></div><div id="bulkGroupSubgroupsList"></div></div><p class="mb-2">What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkGroupBtnPrompts" class="btn btn-outline-secondary" onclick="runBulkGroupFromModal('prompts')">Run prompts</button><button type="button" id="bulkGroupBtnImages" class="btn btn-outline-info" onclick="runBulkGroupFromModal('images')">Run images</button><button type="button" id="bulkGroupBtnArticle" class="btn btn-outline-success" onclick="runBulkGroupFromModal('article')">Run content</button><button type="button" id="bulkGroupBtnPinterest" class="btn btn-outline-danger" onclick="runBulkGroupFromModal('pin_image')">Run Pinterest</button><button type="button" id="bulkGroupBtnAll" class="btn btn-primary" onclick="runBulkGroupFromModal('all')">Run all</button><hr class="my-2"><button type="button" id="bulkGroupBtnDeployCf" class="btn btn-info" onclick="runBulkGroupDeployCloudflare()">☁️ Deploy all to Cloudflare</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkGroupModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option><option value="groq">Groq</option><option value="local">Local (Ollama)</option><option value="llamacpp">llama.cpp</option></select><div id="bulkGroupModalLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model (≤15B):</p><select id="bulkGroupModalLocalModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkGroupModalLlamaCppWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">llama.cpp model:</p><select id="bulkGroupModalLlamaCppModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkGroupModalOpenAIWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenAI model:</p><select id="bulkGroupModalOpenAIModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkGroupModalGroqWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Groq model:</p><select id="bulkGroupModalGroqModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkGroupModalOrOpts" class="mb-3 p-2 bg-light border rounded small" style="display:none;"><div class="fw-medium mb-1">OpenRouter:</div><div class="mb-2"><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeRot" value="rotation"><label class="form-check-label" for="bulkGroupModalOrModeRot">Rotation (try next on failure)</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeFall" value="fallback"><label class="form-check-label" for="bulkGroupModalOrModeFall">Fallback (run all simultaneously, use first success)</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeBlack" value="rotation_blacklist" checked><label class="form-check-label" for="bulkGroupModalOrModeBlack">Rotation (exclude failed for next articles)</label></div></div><div class="d-flex align-items-center gap-2 mb-1"><span class="fw-medium">Select model(s)</span><div class="btn-group btn-group-sm"><button type="button" id="bulkGroupModalOrFilterAll" class="btn btn-primary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkGroupModal','all')">All</button><button type="button" id="bulkGroupModalOrFilterFree" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkGroupModal','free')">Free</button><button type="button" id="bulkGroupModalOrFilterPaid" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkGroupModal','paid')">Paid</button></div></div><select id="bulkGroupModalOpenRouterModels" class="form-select form-select-sm mb-1" multiple style="max-height:120px;width:100%"></select><button type="button" class="btn btn-outline-secondary btn-sm" onclick="_resetOpenRouterModels('bulkGroupModal')">Reset to defaults</button></div><p class="mb-2 fw-medium small">Scope for prompts (main+ingredient):</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopePrompts" id="bgmScopePrompts1" value="override"><label class="form-check-label small" for="bgmScopePrompts1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkGroupModalScopePrompts" id="bgmScopePrompts2" value="empty_only" checked><label class="form-check-label small" for="bgmScopePrompts2">Only rows without main+ingredient prompts</label></div><p class="mb-2 fw-medium small">Scope for images:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopeImages" id="bgmScopeImages1" value="override"><label class="form-check-label small" for="bgmScopeImages1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkGroupModalScopeImages" id="bgmScopeImages2" value="empty_only" checked><label class="form-check-label small" for="bgmScopeImages2">Only rows without main+ingredient images</label></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopeContent" id="bgmScopeContent1" value="override"><label class="form-check-label small" for="bgmScopeContent1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkGroupModalScopeContent" id="bgmScopeContent2" value="empty_only" checked><label class="form-check-label small" for="bgmScopeContent2">Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for Pinterest:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopePins" id="bgmScopePins1" value="override"><label class="form-check-label small" for="bgmScopePins1">Override existing</label></div><div class="form-check mb-2"><input class="form-check-input" type="radio" name="bulkGroupModalScopePins" id="bgmScopePins2" value="empty_only" checked><label class="form-check-label small" for="bgmScopePins2">Only rows without pin images</label></div><p class="small text-muted mb-2">Workflow order (Run all): prompts → images (main, ingredient) → content → Pinterest.</p><hr class="my-3"><p class="mb-2 fw-medium">Concurrency:</p><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkGroupConcurrencyPreset" value="low"> Low — 1 row</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkGroupConcurrencyPreset" value="medium"> Medium — 2 rows</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkGroupConcurrencyPreset" value="max" checked> Max — <input type="number" id="bulkGroupConcurrencyN" value="6" min="1" max="20" class="form-control form-control-sm d-inline-block" style="width:55px"> rows</label></div></div></div></div></div>
+<div id="bulkGroupModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="bulkGroupModalTitle">Run for group</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="bulkGroupModalGroupId"><p class="mb-2 fw-medium small">Run scope:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalRunScope" id="bulkGroupModalScopeAll" value="all" checked><label class="form-check-label small" for="bulkGroupModalScopeAll">All subgroups in this group</label></div><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalRunScope" id="bulkGroupModalScopeSelected" value="selected"><label class="form-check-label small" for="bulkGroupModalScopeSelected">Selected subgroups only</label></div><div id="bulkGroupSubgroupsWrap" class="border rounded p-2 mb-2" style="max-height:140px;overflow-y:auto;display:none"><div class="d-flex gap-2 mb-1"><button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.querySelectorAll('#bulkGroupSubgroupsWrap .bulk-group-subgroup-cb').forEach(function(cb){{cb.checked=true}})">Select all</button><button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.querySelectorAll('#bulkGroupSubgroupsWrap .bulk-group-subgroup-cb').forEach(function(cb){{cb.checked=false}})">Deselect all</button></div><div id="bulkGroupSubgroupsList"></div></div><p class="mb-2">What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkGroupBtnPrompts" class="btn btn-outline-secondary" onclick="runBulkGroupFromModal('prompts')">Run prompts</button><button type="button" id="bulkGroupBtnImages" class="btn btn-outline-info" onclick="runBulkGroupFromModal('images')">Run images</button><button type="button" id="bulkGroupBtnArticle" class="btn btn-outline-success" onclick="runBulkGroupFromModal('article')">Run content</button><button type="button" id="bulkGroupBtnPinterest" class="btn btn-outline-danger" onclick="runBulkGroupFromModal('pin_image')">Run Pinterest</button><button type="button" id="bulkGroupBtnAll" class="btn btn-primary" onclick="runBulkGroupFromModal('all')">Run all</button><hr class="my-2"><button type="button" id="bulkGroupBtnDeployCf" class="btn btn-info" onclick="runBulkGroupDeployCloudflare()">☁️ Deploy all to Cloudflare</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkGroupModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option><option value="groq">Groq</option><option value="local">Local (Ollama)</option><option value="llamacpp">llama.cpp</option></select><div id="bulkGroupModalLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model (≤15B):</p><select id="bulkGroupModalLocalModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkGroupModalLlamaCppWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">llama.cpp model:</p><select id="bulkGroupModalLlamaCppModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkGroupModalOpenAIWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenAI model:</p><select id="bulkGroupModalOpenAIModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkGroupModalGroqWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Groq model:</p><select id="bulkGroupModalGroqModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkGroupModalOrOpts" class="mb-3 p-2 bg-light border rounded small" style="display:none;"><div class="fw-medium mb-1">OpenRouter:</div><div class="mb-2"><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeRot" value="rotation"><label class="form-check-label" for="bulkGroupModalOrModeRot">Rotation (try next on failure)</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeFall" value="fallback"><label class="form-check-label" for="bulkGroupModalOrModeFall">Fallback (run all simultaneously, use first success)</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="bulkGroupModalOpenRouterMode" id="bulkGroupModalOrModeBlack" value="rotation_blacklist" checked><label class="form-check-label" for="bulkGroupModalOrModeBlack">Rotation (exclude failed for next articles)</label></div></div><div class="d-flex align-items-center gap-2 mb-1"><span class="fw-medium">Select model(s)</span><div class="btn-group btn-group-sm"><button type="button" id="bulkGroupModalOrFilterAll" class="btn btn-primary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkGroupModal','all')">All</button><button type="button" id="bulkGroupModalOrFilterFree" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkGroupModal','free')">Free</button><button type="button" id="bulkGroupModalOrFilterPaid" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkGroupModal','paid')">Paid</button></div></div><select id="bulkGroupModalOpenRouterModels" class="form-select form-select-sm mb-1" multiple style="max-height:120px;width:100%"></select><button type="button" class="btn btn-outline-secondary btn-sm" onclick="_resetOpenRouterModels('bulkGroupModal')">Reset to defaults</button></div><p class="mb-2 fw-medium small">Scope for prompts (main+ingredient):</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopePrompts" id="bgmScopePrompts1" value="override"><label class="form-check-label small" for="bgmScopePrompts1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkGroupModalScopePrompts" id="bgmScopePrompts2" value="empty_only" checked><label class="form-check-label small" for="bgmScopePrompts2">Only rows without main+ingredient prompts</label></div><p class="mb-2 fw-medium small">Scope for images:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopeImages" id="bgmScopeImages1" value="override"><label class="form-check-label small" for="bgmScopeImages1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkGroupModalScopeImages" id="bgmScopeImages2" value="empty_only" checked><label class="form-check-label small" for="bgmScopeImages2">Only rows without main+ingredient images</label></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopeContent" id="bgmScopeContent1" value="override"><label class="form-check-label small" for="bgmScopeContent1">Override existing</label></div><div class="form-check mb-3"><input class="form-check-input" type="radio" name="bulkGroupModalScopeContent" id="bgmScopeContent2" value="empty_only" checked><label class="form-check-label small" for="bgmScopeContent2">Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for Pinterest:</p><div class="form-check mb-1"><input class="form-check-input" type="radio" name="bulkGroupModalScopePins" id="bgmScopePins1" value="override"><label class="form-check-label small" for="bgmScopePins1">Override existing</label></div><div class="form-check mb-2"><input class="form-check-input" type="radio" name="bulkGroupModalScopePins" id="bgmScopePins2" value="empty_only" checked><label class="form-check-label small" for="bgmScopePins2">Only rows without pin images</label></div><p class="small text-muted mb-2">Workflow order (Run all): prompts → main image → ingredient image → content → Pinterest.</p><hr class="my-3"><p class="mb-2 fw-medium">Workflow strategy (Run all):</p><div class="mb-2"><div class="form-check mb-0"><input class="form-check-input" type="radio" name="bulkGroupWorkflowStrategy" id="bgmWorkflowRow" value="row" checked><label class="form-check-label small" for="bgmWorkflowRow">Row pipeline (per row: prompts → images → content → Pinterest)</label></div><div class="form-text text-muted small ms-4 mb-0">Example: 3 rows — each row completes the full pipeline for itself. With concurrency above 1, different rows can be at different steps at the same time (fastest overall).</div></div><div class="mb-2"><div class="form-check mb-0"><input class="form-check-input" type="radio" name="bulkGroupWorkflowStrategy" id="bgmWorkflowPhase" value="phase"><label class="form-check-label small" for="bgmWorkflowPhase">Phase pipeline (all prompts first, then all images, then all content, then all Pinterest)</label></div><div class="form-text text-muted small ms-4 mb-0">Example: 3 rows — all prompts first (rows 1–3), then all images, then all content, then all Pinterest. Within each phase, up to N rows run in parallel (your concurrency setting).</div></div><p class="mb-2 fw-medium">Concurrency:</p><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkGroupConcurrencyPreset" value="low"> Low — 1 row</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkGroupConcurrencyPreset" value="medium"> Medium — 2 rows</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="bulkGroupConcurrencyPreset" value="max" checked> Max — <input type="number" id="bulkGroupConcurrencyN" value="6" min="1" max="20" class="form-control form-control-sm d-inline-block" style="width:55px"> rows</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><span>Wait before each image request (seconds):</span><input type="number" id="bulkGroupImageDelaySec" value="15" min="0" max="180" class="form-control form-control-sm d-inline-block" style="width:70px"></label><div class="form-text small">Waits immediately before each Midjourney/image request is sent (including the first). Not after a request returns. Higher delay = fewer rate-limit/banning risks.</div></div></div></div></div></div></div></div>
 
 <div id="bulkAllGroupsModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Run for all groups</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><p class="mb-2">Run for all rows in all groups. What do you want to run?</p><div class="d-flex flex-column gap-2 mb-3"><button type="button" id="bulkAllGroupsBtnPrompts" class="btn btn-outline-secondary" onclick="runBulkAllGroups('prompts')">Run prompts</button><button type="button" id="bulkAllGroupsBtnImages" class="btn btn-outline-info" onclick="runBulkAllGroups('images')">Run images</button><button type="button" id="bulkAllGroupsBtnArticle" class="btn btn-outline-success" onclick="runBulkAllGroups('article')">Run content</button><button type="button" id="bulkAllGroupsBtnPinterest" class="btn btn-outline-danger" onclick="runBulkAllGroups('pin_image')">Run Pinterest</button><button type="button" id="bulkAllGroupsBtnAll" class="btn btn-primary" onclick="runBulkAllGroups('all')">Run all (prompts, images, content, Pinterest)</button></div><p class="mb-2 fw-medium small">AI provider (for content):</p><select id="bulkAllGroupsModalAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option><option value="groq">Groq</option><option value="local">Local (Ollama)</option><option value="llamacpp">llama.cpp</option></select><div id="bulkAllGroupsModalLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model (≤15B):</p><select id="bulkAllGroupsModalLocalModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkAllGroupsModalLlamaCppWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">llama.cpp model:</p><select id="bulkAllGroupsModalLlamaCppModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkAllGroupsModalOpenAIWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenAI model:</p><select id="bulkAllGroupsModalOpenAIModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkAllGroupsModalGroqWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Groq model:</p><select id="bulkAllGroupsModalGroqModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="bulkAllGroupsModalOpenRouterWrap" class="mb-3" style="display:none"><p class="mb-1 fw-medium small">OpenRouter:</p><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalOpenRouterMode" value="rotation"> Rotation (try next on failure)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalOpenRouterMode" value="select"> Select model(s)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalOpenRouterMode" value="rotation_blacklist" checked> Rotation (exclude failed for next articles)</label></div><div class="d-flex align-items-center gap-2 mb-1"><div class="btn-group btn-group-sm"><button type="button" id="bulkAllGroupsModalOrFilterAll" class="btn btn-primary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkAllGroupsModal','all')">All</button><button type="button" id="bulkAllGroupsModalOrFilterFree" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkAllGroupsModal','free')">Free</button><button type="button" id="bulkAllGroupsModalOrFilterPaid" class="btn btn-outline-secondary" style="font-size:0.7rem;padding:1px 6px" onclick="_filterOrModels('bulkAllGroupsModal','paid')">Paid</button></div></div><select id="bulkAllGroupsModalOpenRouterModels" class="form-select form-select-sm" multiple style="max-height:100px;width:100%"></select></div><p class="mb-2 fw-medium small">Scope for content:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeContent" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeContent" value="empty_only" checked> Only rows without HTML+CSS</label></div><p class="mb-2 fw-medium small">Scope for images:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeImages" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopeImages" value="empty_only" checked> Only rows without main+ingredient images</label></div><p class="mb-2 fw-medium small">Scope for Pinterest:</p><div class="mb-2"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopePins" value="override"> Override existing</label></div><div class="mb-3"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="bulkAllGroupsModalScopePins" value="empty_only" checked> Only rows without pin images</label></div><hr class="my-3"><p class="mb-2 fw-medium">Concurrency (rows A B C D at a time):</p><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrencyPreset" value="low"> Low — 1 row at a time</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrencyPreset" value="medium"> Medium — 2 rows at a time</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrencyPreset" value="max" checked> Max — <input type="number" id="allGroupsConcurrencyN" value="6" min="1" max="20" class="form-control form-control-sm d-inline-block" style="width:55px"> rows at a time</label></div><div class="mb-2"><label class="d-flex align-items-center gap-2"><input type="radio" name="allGroupsConcurrencyPreset" value="group"> Group — max <input type="number" id="allGroupsGroupN" value="2" min="1" max="10" class="form-control form-control-sm d-inline-block" style="width:55px"> groups in parallel</label></div><p class="small text-muted mt-2 mb-0">Note: Articles without article_html will be skipped for image generation.</p></div></div></div></div>
 <div id="singleActionModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="singleActionModalTitle">Run</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="singleActionUrl"><input type="hidden" id="singleActionData"><input type="hidden" id="singleActionLabel"><div id="singleActionAiProviderWrap" class="mb-3" style="display:none"><p class="mb-2 fw-medium small">AI provider:</p><select id="singleActionAiProvider" class="form-select form-select-sm mb-2" style="max-width:200px"><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option><option value="groq">Groq</option><option value="local">Local</option><option value="llamacpp">llama.cpp</option></select><div id="singleActionOpenAIWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenAI model:</p><select id="singleActionOpenAIModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="singleActionOpenRouterWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">OpenRouter:</p><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="singleActionOpenRouterMode" value="rotation" checked> Rotation (try next on failure)</label></div><div class="mb-1"><label class="d-flex align-items-center gap-2 small"><input type="radio" name="singleActionOpenRouterMode" value="select"> Select model(s)</label></div><select id="singleActionOpenRouterModels" class="form-select form-select-sm" multiple style="max-height:100px;width:100%"></select></div><div id="singleActionGroqWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Groq model:</p><select id="singleActionGroqModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="singleActionLocalWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">Local model:</p><select id="singleActionLocalModel" class="form-select form-select-sm" style="width:100%"></select></div><div id="singleActionLlamaCppWrap" class="mb-2" style="display:none"><p class="mb-1 fw-medium small">llama.cpp model:</p><select id="singleActionLlamaCppModel" class="form-select form-select-sm" style="width:100%"></select></div></div><p class="mb-3" id="singleActionPrompt">Run in background?</p><div class="d-flex gap-2"><button type="button" class="btn btn-primary" onclick="runSingleAction(false)">Background</button></div></div></div></div></div>
@@ -3405,7 +4226,7 @@ function runSingleAction(foreground) {{
 <div id="bulkChoiceModal" class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Run</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="bulkChoiceUrl"><input type="hidden" id="bulkChoiceMode"><p class="mb-3">Run in foreground or background?</p><div class="d-flex gap-2"><button type="button" class="btn btn-primary" onclick="runBulkChoice(true)">Foreground</button><button type="button" class="btn btn-outline-secondary" onclick="runBulkChoice(false)">Background</button></div></div></div></div></div>
 <div id="progressModal" class="modal fade" tabindex="-1" data-bs-backdrop="static"><div class="modal-dialog modal-dialog-scrollable" style="max-width:680px"><div class="modal-content"><div class="modal-header py-1"><h6 class="modal-title mb-0" id="progressModalTitle">Workflow progress</h6><button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body py-2" id="progressModalBody" style="max-height:65vh"><p class="mb-0 small">Please wait.</p></div><div class="modal-footer py-1"><button type="button" class="btn btn-outline-secondary btn-sm" id="progressBgBtn" onclick="runInBackground()" style="display:none" title="Dismiss modal — task continues, see floating indicator">Dismiss (task continues)</button></div></div></div></div>
 <div id="taskArticlesModal" class="modal fade" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content"><div class="modal-header py-2 d-flex align-items-center gap-2"><h6 class="modal-title mb-0" id="taskArticlesModalTitle">Articles in task</h6><select id="taskArticlesDomainFilter" class="form-select form-select-sm" style="width:auto;max-width:180px" title="Filter by domain"><option value="">All domains</option></select><button type="button" class="btn-close btn-close-sm ms-auto" data-bs-dismiss="modal"></button></div><div class="modal-body py-2"><ul class="list-group list-group-flush" id="taskArticlesModalList"></ul></div></div></div></div>
-<div id="floating-task-indicator" style="display:none;position:fixed;bottom:16px;right:16px;z-index:99999;background:#0d6efd;color:#fff;padding:8px 14px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.25);cursor:pointer;font-size:0.85rem;font-weight:600;align-items:center;gap:8px;animation:workflow-pulse 2s ease-in-out infinite;flex-direction:row;" onclick="var j=document.getElementById('floating-task-indicator').getAttribute('data-job-id');if(j&&typeof openProgressModalForJob==='function')openProgressModalForJob(j);"><span class="spinner-border spinner-border-sm" style="width:1rem;height:1rem;border-width:2px;flex-shrink:0;"></span><span id="floating-task-text">1 running</span></div>
+<div id="floating-task-indicator" style="display:none;position:fixed;bottom:16px;right:16px;z-index:1040;background:#0d6efd;color:#fff;padding:8px 14px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.25);cursor:pointer;font-size:0.85rem;font-weight:600;align-items:center;gap:8px;animation:workflow-pulse 2s ease-in-out infinite;flex-direction:row;" onclick="var j=document.getElementById('floating-task-indicator').getAttribute('data-job-id');if(j&&typeof openProgressModalForJob==='function')openProgressModalForJob(j);"><span class="spinner-border spinner-border-sm" style="width:1rem;height:1rem;border-width:2px;flex-shrink:0;"></span><span id="floating-task-text">1 running</span></div>
 <script src="/static/js/bootstrap.bundle.min.js"></script>
 <script>
 window._runningTasksPollInterval = null;
@@ -5685,7 +6506,14 @@ def _do_generate_article_external(title_id, recipe_from_a=None, ai_provider=None
                 log.info("[generate-article-external] response=%s", json.dumps(resp_log, ensure_ascii=False, default=str)[:2000])
                 break  # success — exit attempt loop
             except urllib.error.HTTPError as e:
-                err_body = e.read().decode() if e.fp else str(e)
+                err_body = e.read().decode(errors="replace") if e.fp else str(e)
+                log.error(
+                    "[generate-article-external] HTTP %s url=%s template=%s response (first 4000 chars): %s",
+                    e.code,
+                    url,
+                    template,
+                    err_body[:4000],
+                )
                 log.warning("[generate-article-external] external API HTTP %s response: %s", e.code, err_body[:1500])
                 if e.code == 401 or "invalid_api_key" in err_body.lower() or "incorrect api key" in err_body.lower():
                     _app_log("article", False, "API key invalid or expired", reason=err_body[:300], title_id=title_id)
@@ -5710,8 +6538,19 @@ def _do_generate_article_external(title_id, recipe_from_a=None, ai_provider=None
                     time.sleep(wait)
                     req = urllib.request.Request(url, data=body, method="POST", headers={"Content-Type": "application/json"})
                     continue
-                _app_log("article", False, f"External API error {e.code}", reason=err_body[:300], title_id=title_id)
-                raise ValueError(f"External API error {e.code}: {err_body[:500]}")
+                _summ = _summarize_article_generator_http_error_body(err_body)
+                _app_log("article", False, f"Article generator HTTP {e.code} {url}", reason=_summ[:500], title_id=title_id)
+                raise ValueError(
+                    "Article generator returned HTTP "
+                    + str(e.code)
+                    + " for POST "
+                    + url
+                    + " (domain template "
+                    + repr(template)
+                    + "). Body: "
+                    + _summ
+                    + " — The real Python traceback is on the articles-website-generator process (GENERATE_ARTICLE_API_URL, e.g. localhost:5002), not in multi-domain-clean logs."
+                )
             except (urllib.error.URLError, OSError) as e:
                 log.warning("[generate-article-external] connection/timeout error: %s", e)
                 if _attempt < _MAX_RETRIES:
@@ -6758,6 +7597,9 @@ def api_bulk_run():
             main_ok = False
             if prompt:
                 cfg = get_user_config_for_api(user_id) or {}
+                delay_sec = max(0, int(cfg.get("image_request_delay_sec", 15)))
+                if delay_sec > 0:
+                    time.sleep(delay_sec)
                 urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", user_config=cfg)
                 if not err:
                     from imagine import flip_image_vertical_and_upload
@@ -6863,7 +7705,11 @@ def api_bulk_run():
         prompt = (row.get("prompt") or "").strip() if row else ""
         if not prompt:
             return jsonify({"success": False, "error": "Generate prompts first"}), 400
-        urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", user_config={})
+        cfg = get_user_config_for_api(user_id) or {}
+        delay_sec = max(0, int(cfg.get("image_request_delay_sec", 15)))
+        if delay_sec > 0:
+            time.sleep(delay_sec)
+        urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", user_config=cfg)
         if err:
             return jsonify({"success": False, "error": err}), 500
         from imagine import flip_image_vertical_and_upload
@@ -6895,7 +7741,11 @@ def api_bulk_run():
         prompt_ing = (row.get("prompt_image_ingredients") or "").strip() if row else ""
         if not prompt_ing:
             return jsonify({"success": False, "error": "Generate prompts first"}), 400
-        urls2, err2, _ = generate_4_images_multi_channel(prompt_ing, key_prefix="ingredient_image", user_config={})
+        cfg = get_user_config_for_api(user_id) or {}
+        delay_sec = max(0, int(cfg.get("image_request_delay_sec", 15)))
+        if delay_sec > 0:
+            time.sleep(delay_sec)
+        urls2, err2, _ = generate_4_images_multi_channel(prompt_ing, key_prefix="ingredient_image", user_config=cfg)
         if err2:
             return jsonify({"success": False, "error": err2}), 500
         with get_connection() as conn:
@@ -6939,8 +7789,8 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
     ok, failed = 0, 0
     failed_models = set() if openrouter_mode == "rotation_blacklist" else None
     rotation_index = [0] if openrouter_mode == "rotation_blacklist" else None
-    need_delay_before_image = False  # delay between each image request to avoid Midjourney rate limits
     for idx, title_id in enumerate(title_a_ids):
+        title_text = ""
         if job_id and _bulk_cancel.get(job_id):
             break
         with get_connection() as conn:
@@ -6952,6 +7802,8 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                 t = dict_row(cur.fetchone())
                 if not t:
                     failed += 1
+                    if job_id:
+                        _bulk_append_failed_row(job_id, group_id, idx + 1, title_id, "-", _bulk_fail_reason("Preflight", "Title row not found"))
                     continue
                 gid_val = t.get("group_id") if t.get("group_id") is not None else t.get("d_group_id")
                 domain_url = (t.get("domain_url") or t.get("domain_name") or "").strip() or "-"
@@ -6967,6 +7819,8 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                     progress_updater(title_id, title_text, idx, total, ok, failed, extra={"domain_url": domain_url, "group_id": gid_val, "domain_letters": "A,B,C,D", "domain_title_ids": domain_title_ids, "website_template": website_template})
             if not ids:
                 failed += 1
+                if job_id:
+                    _bulk_append_failed_row(job_id, group_id, idx + 1, title_id, (title_text or "-")[:60], _bulk_fail_reason("Preflight", "No sibling titles for this recipe in the group"))
                 continue
             if mode in ("prompts", "all"):
                 if job_id and _bulk_cancel.get(job_id):
@@ -6992,6 +7846,8 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                         log.warning("[bulk-group] prompts failed tid=%s: %s", title_id, e)
                         if mode == "prompts":
                             failed += 1
+                            if job_id:
+                                _bulk_append_failed_row(job_id, group_id, idx + 1, title_id, (title_text or "-")[:60], _bulk_fail_reason("Prompts (recipe + image prompts)", str(e)))
                             continue
             if mode in ("images", "all"):
                 if job_id and _bulk_cancel.get(job_id):
@@ -7009,14 +7865,13 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                     if job_id:
                         _bulk_progress.get(job_id, {})["current_phase"] = 2 if mode == "all" else 1
                     if prompt:
-                        delay_sec = user_config.get("image_request_delay_sec", 15)
-                        if need_delay_before_image and delay_sec > 0:
+                        delay_sec = max(0, int(user_config.get("image_request_delay_sec", 15)))
+                        if delay_sec > 0:
                             time.sleep(delay_sec)
                         urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", cancel_check=cancel_check, user_config=user_config)
                         if err and err == "Cancelled":
                             break
                         if not err:
-                            need_delay_before_image = True
                             from imagine import flip_image_vertical_and_upload
                             BOTTOM_SOURCE_INDEX = (1, 0, 3, 2)
                             bottom_urls = [None] * 4
@@ -7049,14 +7904,13 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                         row = dict_row(cur.fetchone())
                         main_ok = bool(row and (row.get("main_image") or "").strip().startswith("http"))
                     if prompt_ing and main_ok and not (job_id and _bulk_cancel.get(job_id)):
-                        delay_sec = user_config.get("image_request_delay_sec", 15)
-                        if need_delay_before_image and delay_sec > 0:
+                        delay_sec = max(0, int(user_config.get("image_request_delay_sec", 15)))
+                        if delay_sec > 0:
                             time.sleep(delay_sec)
                         urls2, err2, _ = generate_4_images_multi_channel(prompt_ing, key_prefix="ingredient_image", cancel_check=cancel_check, user_config=user_config)
                         if err2 == "Cancelled":
                             break
                         if not err2:
-                            need_delay_before_image = True
                             with get_connection() as conn:
                                 for i, tid in enumerate(ids[:4]):
                                     if i < len(urls2):
@@ -7087,6 +7941,8 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                     if not main_ok or not ing_ok:
                         if mode == "article":
                             failed += 1
+                            if job_id:
+                                _bulk_append_failed_row(job_id, group_id, idx + 1, title_id, (title_text or "-")[:60], _bulk_fail_reason("Article (needs images)", "Main and ingredient images must be HTTP URLs before content generation"))
                             continue
                     else:
                         article_ok = True
@@ -7120,9 +7976,11 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                                 article_ok = False
                                 log.error("[bulk-group] article A failed tid=%s: %s", ids[0], e)
                                 _app_log("article", False, f"Article A failed: {e}", title_id=ids[0], group_id=group_id, job_id=job_id)
+                                if job_id:
+                                    _bulk_append_failed_row(job_id, group_id, idx + 1, ids[0], (title_text or "-")[:60], _bulk_fail_reason("Article (domain A)", str(e)))
                                 if progress_updater:
                                     pe = _bulk_progress.get(job_id, {})
-                                    pe["_last_error"] = str(e)[:200]
+                                    pe["_last_error"] = _bulk_fail_reason("Article (domain A)", str(e))[:220]
                                     pe["error_detail"] = str(e)[:BULK_ERROR_DETAIL_MAX]
                         if article_ok:
                             recipe_a = None
@@ -7138,7 +7996,8 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                                             recipe_a = json.loads(rv)
                                         except json.JSONDecodeError:
                                             pass
-                            for tid in ids[1:4]:
+                            for j, tid in enumerate(ids[1:4]):
+                                letter_bcd = "BCD"[j]
                                 if job_id and _bulk_cancel.get(job_id):
                                     break
                                 with get_connection() as conn:
@@ -7172,9 +8031,11 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                                     article_ok = False
                                     log.error("[bulk-group] article BCD failed tid=%s: %s", tid, e)
                                     _app_log("article", False, f"Article BCD failed: {e}", title_id=tid, group_id=group_id, job_id=job_id)
+                                    if job_id:
+                                        _bulk_append_failed_row(job_id, group_id, idx + 1, tid, (title_text or "-")[:60], _bulk_fail_reason(f"Article (domain {letter_bcd})", str(e)))
                                     if progress_updater:
                                         pe = _bulk_progress.get(job_id, {})
-                                        pe["_last_error"] = str(e)[:200]
+                                        pe["_last_error"] = _bulk_fail_reason(f"Article (domain {letter_bcd})", str(e))[:220]
                                         pe["error_detail"] = str(e)[:BULK_ERROR_DETAIL_MAX]
                                     break
             if mode == "main_image":
@@ -7187,6 +8048,9 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                     row = dict_row(cur.fetchone())
                 prompt = (row.get("prompt") or "").strip() if row else ""
                 if prompt:
+                    delay_sec = max(0, int(user_config.get("image_request_delay_sec", 15)))
+                    if delay_sec > 0:
+                        time.sleep(delay_sec)
                     urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", cancel_check=cancel_check, user_config=user_config)
                     if err == "Cancelled":
                         break
@@ -7222,6 +8086,9 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                     row = dict_row(cur.fetchone())
                 prompt_ing = (row.get("prompt_image_ingredients") or "").strip() if row else ""
                 if prompt_ing:
+                    delay_sec = max(0, int(user_config.get("image_request_delay_sec", 15)))
+                    if delay_sec > 0:
+                        time.sleep(delay_sec)
                     urls2, err2, _ = generate_4_images_multi_channel(prompt_ing, key_prefix="ingredient_image", cancel_check=cancel_check, user_config=user_config)
                     if err2 == "Cancelled":
                         break
@@ -7246,7 +8113,8 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                         _bulk_progress.get(job_id, {})["current_phase"] = 4
                     pin_ok = True
                     _pin_kw = _pin_ai_kwargs_from_params(ai_provider, openai_model, openrouter_model, groq_model, local_model, llamacpp_model_id)
-                    for tid in ids[:4]:
+                    for j, tid in enumerate(ids[:4]):
+                        letter_pin = "ABCD"[j]
                         if job_id and _bulk_cancel.get(job_id):
                             break
                         try:
@@ -7256,6 +8124,8 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                             pin_ok = False
                             log.error("[bulk-group] pin_image failed tid=%s: %s", tid, e)
                             _app_log("pin", False, f"Pin image failed: {e}", title_id=tid, group_id=group_id, job_id=job_id)
+                            if job_id:
+                                _bulk_append_failed_row(job_id, group_id, idx + 1, tid, (title_text or "-")[:60], _bulk_fail_reason(f"Pin (domain {letter_pin})", str(e)))
                             break
                     if not pin_ok:
                         continue
@@ -7265,9 +8135,11 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
             err_str = str(e)
             log.error("[bulk-group] row failed tid=%s: %s", title_id, err_str)
             _app_log("run", False, f"Bulk row failed: {err_str[:200]}", title_id=title_id, group_id=group_id, job_id=job_id)
+            if job_id:
+                _bulk_append_failed_row(job_id, group_id, idx + 1, title_id, (title_text or "-")[:60], _bulk_fail_reason("Unexpected (bulk row)", err_str))
             if progress_updater:
                 pe = _bulk_progress.get(job_id, {})
-                pe["_last_error"] = err_str[:200]
+                pe["_last_error"] = _bulk_fail_reason("Unexpected (bulk row)", err_str)[:220]
                 pe["error_detail"] = err_str[:BULK_ERROR_DETAIL_MAX]
             if "quota exceeded" in err_str.lower():
                 log.error("[bulk-group] FATAL: quota exceeded, stopping bulk run")
@@ -7275,7 +8147,7 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
     return ok, failed
 
 
-def _run_bulk_group_async(job_id, group_id, mode, concurrency_n=1, scope="override", scope_content=None, scope_images=None, scope_pins=None, scope_prompts=None, ai_provider=None, openrouter_models=None, openai_model=None, openrouter_model=None, user_id=None, openrouter_mode=None, local_model=None, llamacpp_model_id=None, groq_model=None, group_ids_override=None):
+def _run_bulk_group_async(job_id, group_id, mode, concurrency_n=1, scope="override", scope_content=None, scope_images=None, scope_pins=None, scope_prompts=None, ai_provider=None, openrouter_models=None, openai_model=None, openrouter_model=None, user_id=None, openrouter_mode=None, local_model=None, llamacpp_model_id=None, groq_model=None, group_ids_override=None, workflow_strategy=None, image_delay_sec_override=None):
     """scope_content/scope_images/scope_pins passed through. When group_ids_override is set, use those groups; else group_id+descendants."""
     try:
         sc = scope_content if scope_content is not None else scope
@@ -7283,6 +8155,101 @@ def _run_bulk_group_async(job_id, group_id, mode, concurrency_n=1, scope="overri
         sp = scope_pins if scope_pins is not None else si
         spr = scope_prompts if scope_prompts is not None else scope
         n = max(1, min(int(concurrency_n), 20))
+        workflow_strategy = (workflow_strategy or "row").strip().lower()
+        if workflow_strategy not in ("row", "row_serial", "phase", "phase_serial"):
+            workflow_strategy = "row"
+        if workflow_strategy == "row_serial":
+            n = 1
+            workflow_strategy = "row"
+        elif workflow_strategy == "phase_serial":
+            n = 1
+            workflow_strategy = "phase"
+        if workflow_strategy == "phase" and mode == "all":
+            _progress_lock = threading.Lock()
+            row_queue = []
+            with get_connection() as conn:
+                def get_all_group_descendants(gid):
+                    result = [gid]
+                    cur = db_execute(conn, "SELECT id FROM `groups` WHERE parent_group_id = ?", (gid,))
+                    for r in cur.fetchall():
+                        cid = dict_row(r).get("id")
+                        if cid:
+                            result.extend(get_all_group_descendants(cid))
+                    return result
+                all_gids = group_ids_override if group_ids_override else get_all_group_descendants(group_id)
+                cur = db_execute(conn, """SELECT t.id, t.title FROM titles t JOIN domains d ON t.domain_id = d.id
+                    WHERE COALESCE(t.group_id, d.group_id) IN (""" + ",".join(["?"]*len(all_gids)) + ") AND COALESCE(d.domain_index, 0) = 0 ORDER BY t.id""", tuple(all_gids))
+                for r in cur.fetchall():
+                    row = dict_row(r)
+                    tid = row.get("id")
+                    if not tid:
+                        continue
+                    if (sc == "empty_only" or si == "empty_only" or sp == "empty_only" or spr == "empty_only"):
+                        needs_prompts = _row_any_needs_prompts(conn, tid, spr)
+                        needs_c = sc != "empty_only" or _row_any_needs_content(conn, tid, sc)
+                        needs_i = si != "empty_only" or _row_any_needs_images(conn, tid, si)
+                        needs_p = sp != "empty_only" or _row_any_needs_pins(conn, tid, sp)
+                        if not needs_prompts and not needs_c and not needs_i and not needs_p:
+                            continue
+                    row_queue.append((group_id, tid, (row.get("title") or "")[:45]))
+            total_rows = len(row_queue)
+            _bulk_progress[job_id]["total_rows"] = total_rows
+            _bulk_progress[job_id]["processed_count"] = 0
+            _bulk_progress[job_id]["done"] = 0
+            if total_rows == 0:
+                _bulk_progress[job_id].update({"status": "done", "message": "0 rows (none to process)", "ok": 0, "failed": 0})
+                return
+            total_failed = 0
+            active = row_queue[:]
+            phase_defs = [("prompts", 1, "Prompts"), ("images", 2, "Images"), ("article", 3, "Content"), ("pin_image", 4, "Pinterest")]
+            for phase_mode, phase_num, phase_label in phase_defs:
+                if _bulk_cancel.get(job_id):
+                    break
+                _bulk_progress[job_id]["current_phase"] = phase_num
+                if not active:
+                    break
+                _bulk_progress[job_id]["message"] = f"{phase_label}: 0/{len(active)} rows"
+                next_active = []
+                with ThreadPoolExecutor(max_workers=n) as ex:
+                    futures = {ex.submit(_bulk_run_one_row, tid, phase_mode, job_id, None, None, None, scope, sc, si, sp, spr, ai_provider, openrouter_models, openai_model, openrouter_model, user_id, openrouter_mode, None, None, None, local_model, llamacpp_model_id, groq_model, image_delay_sec_override): (gid, tid, title) for gid, tid, title in active}
+                    phase_done = 0
+                    for future in as_completed(futures):
+                        if _bulk_cancel.get(job_id):
+                            for f in futures:
+                                f.cancel()
+                            break
+                        gid, tid, title = futures[future]
+                        phase_done += 1
+                        try:
+                            o, f, reason = future.result()
+                            if f == 0:
+                                next_active.append((gid, tid, title))
+                            else:
+                                total_failed += 1
+                                st = f"G{gid} R{_bulk_progress[job_id].get('processed_count', 0)+1}: [{tid}] {title} ✗ | {reason or _bulk_fail_reason('Phase failure', phase_label)}"
+                                steps = _bulk_progress[job_id].get("steps", [])
+                                steps.append(st)
+                                _bulk_progress[job_id]["steps"] = steps[-80:]
+                                _bulk_progress[job_id]["processed_count"] = (_bulk_progress[job_id].get("processed_count", 0) + 1)
+                                _bulk_append_failed_row(job_id, gid, _bulk_progress[job_id]["processed_count"], tid, title, reason or _bulk_fail_reason(phase_label, "Failed"))
+                        except Exception as e:
+                            total_failed += 1
+                            _bulk_progress[job_id]["processed_count"] = (_bulk_progress[job_id].get("processed_count", 0) + 1)
+                            _bulk_append_failed_row(job_id, gid, _bulk_progress[job_id]["processed_count"], tid, title, _bulk_fail_reason(phase_label, str(e)))
+                        _bulk_progress[job_id].update({
+                            "status": "running",
+                            "message": f"{phase_label}: {phase_done}/{len(active)} rows",
+                            "failed": total_failed,
+                            "ok": total_rows - total_failed,
+                            "done": _bulk_progress[job_id].get("processed_count", 0),
+                        })
+                active = next_active
+            total_ok = max(0, total_rows - total_failed)
+            if _bulk_cancel.get(job_id):
+                _bulk_progress[job_id].update({"status": "cancelled", "message": f"Cancelled. {total_ok} rows done" + (f", {total_failed} failed" if total_failed else ""), "ok": total_ok, "failed": total_failed, "done": _bulk_progress[job_id].get("processed_count", 0)})
+            else:
+                _bulk_progress[job_id].update({"status": "done", "message": f"{total_ok} rows done" + (f", {total_failed} failed" if total_failed else ""), "ok": total_ok, "failed": total_failed, "done": _bulk_progress[job_id].get("processed_count", 0)})
+            return
         if n > 1:
             _progress_lock = threading.Lock()
             row_queue = []
@@ -7380,7 +8347,7 @@ def _run_bulk_group_async(job_id, group_id, mode, concurrency_n=1, scope="overri
             failed_models_lock = threading.Lock() if failed_models is not None else None
             rotation_index = [0] if openrouter_mode == "rotation_blacklist" else None
             with ThreadPoolExecutor(max_workers=n) as ex:
-                futures = {ex.submit(_bulk_run_one_row, tid, mode, job_id, on_active, on_domain_progress, on_image_progress, scope, sc, si, sp, spr, ai_provider, openrouter_models, openai_model, openrouter_model, user_id, openrouter_mode, failed_models, failed_models_lock, rotation_index, local_model, llamacpp_model_id, groq_model): (group_id, tid, title) for _, tid, title in row_queue}
+                futures = {ex.submit(_bulk_run_one_row, tid, mode, job_id, on_active, on_domain_progress, on_image_progress, scope, sc, si, sp, spr, ai_provider, openrouter_models, openai_model, openrouter_model, user_id, openrouter_mode, failed_models, failed_models_lock, rotation_index, local_model, llamacpp_model_id, groq_model, image_delay_sec_override): (group_id, tid, title) for _, tid, title in row_queue}
                 for future in as_completed(futures):
                     if _bulk_cancel.get(job_id):
                         for f in futures:
@@ -7397,7 +8364,16 @@ def _run_bulk_group_async(job_id, group_id, mode, concurrency_n=1, scope="overri
                             sym = "✓" if o else "✗"
                             st = f"G{group_id} R{processed_count}: [{tid}] {title} {sym}"
                             if not o and reason:
-                                st += " | " + (reason[:80] if len(str(reason)) > 80 else str(reason))
+                                st += " | " + (reason[:140] if len(str(reason)) > 140 else str(reason))
+                                fr = _bulk_progress[job_id].get("failed_rows", [])
+                                fr.append({
+                                    "group_id": group_id,
+                                    "row_index": processed_count,
+                                    "title_id": tid,
+                                    "title": title,
+                                    "reason": str(reason)[:BULK_FAIL_REASON_MAX],
+                                })
+                                _bulk_progress[job_id]["failed_rows"] = fr[-120:]
                             steps = _bulk_progress[job_id].get("steps", [])
                             steps.append(st)
                             _bulk_progress[job_id]["steps"] = steps[-80:]
@@ -7409,6 +8385,15 @@ def _run_bulk_group_async(job_id, group_id, mode, concurrency_n=1, scope="overri
                             steps = _bulk_progress[job_id].get("steps", [])
                             steps.append(f"G{group_id} R{processed_count}: [{tid}] {title} ✗ | {str(e)[:80]}")
                             _bulk_progress[job_id]["steps"] = steps[-80:]
+                            fr = _bulk_progress[job_id].get("failed_rows", [])
+                            fr.append({
+                                "group_id": group_id,
+                                "row_index": processed_count,
+                                "title_id": tid,
+                                "title": title,
+                                "reason": str(e)[:BULK_FAIL_REASON_MAX],
+                            })
+                            _bulk_progress[job_id]["failed_rows"] = fr[-120:]
                             _bulk_progress[job_id].update({"status": "running", "message": f"Row {processed_count}/{total_rows}", "ok": total_ok, "failed": total_failed, "processed_count": processed_count, "done": processed_count})
             if _bulk_cancel.get(job_id):
                 _bulk_progress[job_id].update({"status": "cancelled", "message": f"Cancelled. {total_ok} rows done" + (f", {total_failed} failed" if total_failed else ""), "ok": total_ok, "failed": total_failed, "processed_count": processed_count, "done": processed_count})
@@ -7461,7 +8446,14 @@ def _run_bulk_group_async(job_id, group_id, mode, concurrency_n=1, scope="overri
         _bulk_progress[job_id].update({"status": "error", "message": err, "error_detail": err})
 
 
-def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_progress=None, on_image_progress=None, scope="override", scope_content=None, scope_images=None, scope_pins=None, scope_prompts=None, ai_provider=None, openrouter_models=None, openai_model=None, openrouter_model=None, user_id=None, openrouter_mode=None, failed_models=None, failed_models_lock=None, rotation_index=None, local_model=None, llamacpp_model_id=None, groq_model=None):
+def _effective_image_delay_sec(user_config, image_delay_sec_override=None):
+    """Seconds to wait immediately before each image API request. Bulk-group override replaces profile delay."""
+    if image_delay_sec_override is not None:
+        return max(0, min(180, int(image_delay_sec_override)))
+    return max(0, int((user_config or {}).get("image_request_delay_sec", 15)))
+
+
+def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_progress=None, on_image_progress=None, scope="override", scope_content=None, scope_images=None, scope_pins=None, scope_prompts=None, ai_provider=None, openrouter_models=None, openai_model=None, openrouter_model=None, user_id=None, openrouter_mode=None, failed_models=None, failed_models_lock=None, rotation_index=None, local_model=None, llamacpp_model_id=None, groq_model=None, image_delay_sec_override=None):
     """Run bulk for a single row (Domain A title). Returns (ok, failed, reason). When openrouter_mode=rotation_blacklist, uses round-robin over models (each article gets next model) and blacklists failed models."""
     sc = scope_content if scope_content is not None else scope
     si = scope_images if scope_images is not None else scope
@@ -7476,7 +8468,7 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
             cur = db_execute(conn, "SELECT t.id, t.title, t.group_id, d.group_id as d_group_id, d.domain_index, d.domain_url, d.domain_name, d.website_template FROM titles t JOIN domains d ON t.domain_id = d.id WHERE t.id = ?", (title_id,))
             t = dict_row(cur.fetchone())
             if not t or t.get("domain_index") != 0:
-                return 0, 1, "Use Domain A title"
+                return 0, 1, _bulk_fail_reason("Preflight", "Use Domain A title (domain_index must be 0)")
             gid_val = t.get("group_id") if t.get("group_id") is not None else t.get("d_group_id")
             domain_url = (t.get("domain_url") or t.get("domain_name") or "").strip() or "-"
             website_template = (t.get("website_template") or "").strip() or "-"
@@ -7488,7 +8480,7 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
                 WHERE COALESCE(t.group_id, d.group_id) = ? AND t.title = ? AND d.domain_index IN (0,1,2,3) ORDER BY d.domain_index""", (gid_val, t["title"]))
             ids = [dict_row(r).get("id") for r in cur.fetchall()]
         if len(ids) < 1:
-            return 0, 1, "No titles found for this recipe in the group"
+            return 0, 1, _bulk_fail_reason("Preflight", "No titles found for this recipe in the group")
         # Run for 1–4 domains (A only, A+B, A+B+C, or A+B+C+D). Build domain_letters for progress display.
         domain_letters = ",".join("ABCD"[i] for i in range(min(4, len(ids))))
         title_text = (title_row.get("title") or "")[:50] if title_row else ""
@@ -7516,7 +8508,7 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
                         llamacpp_model_id=llamacpp_model_id,
                     )
                 except Exception as e:
-                    return 0, 1, str(e)[:200]
+                    return 0, 1, _bulk_fail_reason("Prompts (recipe + image prompts)", str(e))
             if mode == "all":
                 with get_connection() as conn:
                     skip_images = _should_skip_images(conn, title_id, si)
@@ -7539,7 +8531,7 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
                             )
                             ran_prompts_this_row = True
                         except Exception as e:
-                            return 0, 1, str(e)[:200]
+                            return 0, 1, _bulk_fail_reason("Prompts (recipe + image prompts)", str(e))
             if mode in ("images", "all"):
                 if cancel_check and cancel_check():
                     return 0, 0, None
@@ -7564,6 +8556,9 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
                     if not prompt and title_text:
                         prompt = f"Professional food photography of {title_text}, overhead shot, natural lighting, editorial style --v 6.1"
                     if prompt:
+                        delay_sec = _effective_image_delay_sec(user_config, image_delay_sec_override)
+                        if delay_sec > 0:
+                            time.sleep(delay_sec)
                         _on_img(title_id, "main", "running")
                         urls, err, used_ch = None, None, None
                         max_attempts = 3
@@ -7610,7 +8605,7 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
                     if not prompt_ing and title_text:
                         prompt_ing = f"Flat-lay of ingredients for {title_text}, white surface, natural light, editorial style --v 6.1"
                     if prompt_ing and not (cancel_check and cancel_check()):
-                        delay_sec = user_config.get("image_request_delay_sec", 15)
+                        delay_sec = _effective_image_delay_sec(user_config, image_delay_sec_override)
                         if delay_sec > 0:
                             time.sleep(delay_sec)
                         _on_img(title_id, "ingredient", "running")
@@ -7648,8 +8643,10 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
                         _update_article_html_images(tid)
                     if mode == "images" and (err or err2):
                         if err and err2:
-                            return 0, 1, f"main_image: {err}; ingredient_image: {err2}"[:200]
-                        return 0, 1, (err or err2)[:200]
+                            return 0, 1, _bulk_fail_reason("Images (main + ingredient)", f"main: {err}; ingredient: {err2}")
+                        if err:
+                            return 0, 1, _bulk_fail_reason("Images (main)", str(err))
+                        return 0, 1, _bulk_fail_reason("Images (ingredient)", str(err2))
             if mode in ("article", "all"):
                 if cancel_check and cancel_check():
                     return 0, 0, None
@@ -7662,7 +8659,7 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
                     main_ok = bool(ac and (ac.get("main_image") or "").strip().startswith("http"))
                     ing_ok = bool(ac and (ac.get("ingredient_image") or "").strip().startswith("http"))
                     if not main_ok:
-                        return 0, 1, "Images required for content; main image generation failed"
+                        return 0, 1, _bulk_fail_reason("Article (needs images)", "Main image missing or not HTTP; run Images first or fix Midjourney errors")
                     if not ing_ok:
                         log.warning("[bulk] tid=%s ingredient_image missing but main_image OK — proceeding with content generation", ids[0])
                     with get_connection() as conn:
@@ -7674,7 +8671,7 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
                             if openrouter_mode == "rotation_blacklist" and openrouter_models:
                                 available = [m for m in openrouter_models if failed_models is None or m not in failed_models]
                                 if not available:
-                                    return 0, 1, "No models available (all blacklisted)"
+                                    return 0, 1, _bulk_fail_reason("Article (domain A)", "No models available (all blacklisted)")
                                 if failed_models_lock:
                                     with failed_models_lock:
                                         start_idx = rotation_index[0] % len(available)
@@ -7699,12 +8696,12 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
                                             else:
                                                 failed_models.add(m)
                                 else:
-                                    return 0, 1, (str(last_err)[:200] if last_err else "No models available (all blacklisted)")
+                                    return 0, 1, _bulk_fail_reason("Article (domain A)", str(last_err) if last_err else "No models available (all blacklisted)")
                             else:
                                 _do_generate_article_external(ids[0], ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model, local_model=local_model, llamacpp_model_id=llamacpp_model_id, groq_model=groq_model, user_id=user_id)
                                 _on_dp(title_id, "A", "done", ai_model=openrouter_model)
                         except Exception as e:
-                            return 0, 1, str(e)[:200]
+                            return 0, 1, _bulk_fail_reason("Article (domain A)", str(e))
                     recipe_a = None
                     with get_connection() as conn:
                         cur = db_execute(conn, "SELECT recipe FROM article_content WHERE title_id = ? AND language_code = 'en'", (ids[0],))
@@ -7734,7 +8731,7 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
                             elif openrouter_mode == "rotation_blacklist" and openrouter_models:
                                 available = [m for m in openrouter_models if failed_models is None or m not in failed_models]
                                 if not available:
-                                    return 0, 1, "No models available (all blacklisted)"
+                                    return 0, 1, _bulk_fail_reason(f"Article (domain {letter})", "No models available (all blacklisted)")
                                 if failed_models_lock and rotation_index is not None:
                                     with failed_models_lock:
                                         start_idx = rotation_index[0] % len(available)
@@ -7761,12 +8758,12 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
                                             else:
                                                 failed_models.add(m)
                                 else:
-                                    return 0, 1, (str(last_err)[:200] if last_err else "No models available (all blacklisted)")
+                                    return 0, 1, _bulk_fail_reason(f"Article (domain {letter})", str(last_err) if last_err else "No models available (all blacklisted)")
                             else:
                                 _do_generate_article_external(tid, recipe_from_a=recipe_a, ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model, local_model=local_model, llamacpp_model_id=llamacpp_model_id, groq_model=groq_model, user_id=user_id)
                                 _on_dp(title_id, letter, "done", ai_model=openrouter_model)
                         except Exception as e:
-                            return 0, 1, str(e)[:200]
+                            return 0, 1, _bulk_fail_reason(f"Article (domain {letter})", str(e))
             if mode in ("pin_image", "all"):
                 if cancel_check and cancel_check():
                     return 0, 0, None
@@ -7784,13 +8781,13 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
                             _on_dp(title_id, letter, "done")
                         except Exception as e:
                             _on_dp(title_id, letter, "error")
-                            return 0, 1, str(e)[:200]
+                            return 0, 1, _bulk_fail_reason(f"Pin (domain {letter})", str(e))
             return 1, 0, None
         finally:
             if on_active:
                 on_active(title_id, title_text, False, None)
     except Exception as e:
-        return 0, 1, str(e)[:200]
+        return 0, 1, _bulk_fail_reason("Unexpected (row worker)", str(e))
 
 
 def _run_bulk_all_groups_async(job_id, mode, concurrency_type="row", concurrency_n=1, scope="override", scope_content=None, scope_images=None, scope_pins=None, ai_provider=None, openrouter_models=None, openai_model=None, openrouter_model=None, user_id=None, openrouter_mode=None, local_model=None, llamacpp_model_id=None, groq_model=None):
@@ -7947,7 +8944,16 @@ def _run_bulk_all_groups_async(job_id, mode, concurrency_type="row", concurrency
                                 sym = "✓" if ok else "✗"
                                 st = f"G{gid} R{processed_count}: [{tid}] {title} {sym}"
                                 if not ok and reason:
-                                    st += " | " + (reason[:80] if len(reason) > 80 else reason)
+                                    st += " | " + (reason[:140] if len(reason) > 140 else reason)
+                                    fr = _bulk_progress[job_id].get("failed_rows", [])
+                                    fr.append({
+                                        "group_id": gid,
+                                        "row_index": processed_count,
+                                        "title_id": tid,
+                                        "title": title,
+                                        "reason": str(reason)[:BULK_FAIL_REASON_MAX],
+                                    })
+                                    _bulk_progress[job_id]["failed_rows"] = fr[-120:]
                                 steps = _bulk_progress[job_id].get("steps", [])
                                 steps.append(st)
                                 _bulk_progress[job_id]["steps"] = steps[-80:]
@@ -7972,6 +8978,15 @@ def _run_bulk_all_groups_async(job_id, mode, concurrency_type="row", concurrency
                             steps = _bulk_progress[job_id].get("steps", [])
                             steps.append(st)
                             _bulk_progress[job_id]["steps"] = steps[-80:]
+                            fr = _bulk_progress[job_id].get("failed_rows", [])
+                            fr.append({
+                                "group_id": gid,
+                                "row_index": processed_count,
+                                "title_id": tid,
+                                "title": title,
+                                "reason": str(e)[:BULK_FAIL_REASON_MAX],
+                            })
+                            _bulk_progress[job_id]["failed_rows"] = fr[-120:]
         if _bulk_cancel.get(job_id):
             _bulk_progress[job_id].update({"status": "cancelled", "message": f"Cancelled. {total_ok} rows done" + (f", {total_failed} failed" if total_failed else ""), "ok": total_ok, "failed": total_failed})
         else:
@@ -8344,6 +9359,16 @@ def api_bulk_run_group():
             scope = scope_content = scope_images = scope_pins = scope_prompts = "override"
             break
     async_mode = str(req.get("async", "") or "").lower() in ("1", "true", "yes")
+    workflow_strategy = str(req.get("workflow_strategy") or "row").strip().lower()
+    if workflow_strategy not in ("row", "row_serial", "phase", "phase_serial"):
+        workflow_strategy = "row"
+    _delay_raw = req.get("image_delay_sec")
+    image_delay_sec_override = None
+    if _delay_raw is not None and str(_delay_raw).strip() != "":
+        try:
+            image_delay_sec_override = max(0, min(int(_delay_raw), 180))
+        except (TypeError, ValueError):
+            image_delay_sec_override = None
     # Concurrency can be in query string (GET-style POST) or body; prefer args for URL params
     _cn = request.args.get("concurrency_n") or req.get("concurrency_n") or 1
     try:
@@ -8368,10 +9393,10 @@ def api_bulk_run_group():
                 WHERE COALESCE(t.group_id, d.group_id) = ?""", (group_id,))
             domain_ids = [dict_row(r).get("id") for r in cur.fetchall() if dict_row(r).get("id")]
         total_phases = 4 if mode == "all" else (1 if mode == "article" else 2)
-        _bulk_progress[job_id] = {"status": "running", "message": f"Starting... (up to {concurrency_n} rows in parallel)" if concurrency_n > 1 else "Starting...", "current_title": "", "type": "group", "group_id": group_id, "mode": mode, "domain_ids": domain_ids, "created_at": time.time(), "steps": [], "current_phase": 1, "total_phases": total_phases, "concurrency_n": concurrency_n, "request_url": request.url, "ai_provider": ai_provider or "openai", "ai_model": openrouter_model or openai_model or ""}
+        _bulk_progress[job_id] = {"status": "running", "message": f"Starting... (up to {concurrency_n} rows in parallel)" if concurrency_n > 1 else "Starting...", "current_title": "", "type": "group", "group_id": group_id, "mode": mode, "domain_ids": domain_ids, "created_at": time.time(), "steps": [], "current_phase": 1, "total_phases": total_phases, "concurrency_n": concurrency_n, "workflow_strategy": workflow_strategy, "image_delay_sec": image_delay_sec_override, "request_url": request.url, "ai_provider": ai_provider or "openai", "ai_model": openrouter_model or openai_model or ""}
         user = get_current_user()
         user_id = user["id"] if user else None
-        threading.Thread(target=_run_bulk_group_async, args=(job_id, group_id, mode, concurrency_n, scope, scope_content, scope_images, scope_pins, scope_prompts, ai_provider, openrouter_models, openai_model, openrouter_model, user_id, openrouter_mode, local_model, llamacpp_model_id, groq_model, group_ids_override), daemon=True).start()
+        threading.Thread(target=_run_bulk_group_async, args=(job_id, group_id, mode, concurrency_n, scope, scope_content, scope_images, scope_pins, scope_prompts, ai_provider, openrouter_models, openai_model, openrouter_model, user_id, openrouter_mode, local_model, llamacpp_model_id, groq_model, group_ids_override, workflow_strategy, image_delay_sec_override), daemon=True).start()
         return jsonify({"success": True, "job_id": job_id})
     ok, failed = _bulk_run_one_group(group_id, mode, scope=scope, scope_content=scope_content, scope_images=scope_images, scope_pins=scope_pins, scope_prompts=scope_prompts, ai_provider=ai_provider, openrouter_models=openrouter_models, openai_model=openai_model, openrouter_model=openrouter_model, openrouter_mode=openrouter_mode, local_model=local_model, llamacpp_model_id=llamacpp_model_id, groq_model=groq_model, group_ids_override=group_ids_override)
     if ok == 0 and failed == 0:
@@ -9175,7 +10200,6 @@ def api_bulk_run_domain():
     }
 
     def task():
-        need_delay_before_image = False
         user_config = get_user_config_for_api(user_id) or {}
         total_ok, total_failed = 0, 0
         for idx, tid in enumerate(title_ids):
@@ -9205,26 +10229,24 @@ def api_bulk_run_domain():
                         skip = False
                     if not skip:
                         from imagine import generate_4_images_multi_channel
-                        delay_sec = user_config.get("image_request_delay_sec", 15)
-                        if need_delay_before_image and delay_sec > 0:
-                            time.sleep(delay_sec)
+                        delay_sec = max(0, int(user_config.get("image_request_delay_sec", 15)))
                         with get_connection() as conn:
                             cur = db_execute(conn, "SELECT prompt, prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (tid,))
                             row = dict_row(cur.fetchone())
                         prompt = (row.get("prompt") or "").strip() if row else ""
                         prompt_ing = (row.get("prompt_image_ingredients") or "").strip() if row else ""
                         if prompt:
+                            if delay_sec > 0:
+                                time.sleep(delay_sec)
                             urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", user_config=user_config)
                             if not err and urls:
-                                need_delay_before_image = True
                                 with get_connection() as conn:
                                     db_execute(conn, "UPDATE article_content SET main_image = ?, top_image = ? WHERE title_id = ? AND language_code = 'en'", (urls[0], urls[0], tid))
                         if prompt_ing:
-                            if need_delay_before_image and delay_sec > 0:
+                            if delay_sec > 0:
                                 time.sleep(delay_sec)
                             urls2, err2, _ = generate_4_images_multi_channel(prompt_ing, key_prefix="ingredient_image", user_config=user_config)
                             if not err2 and urls2:
-                                need_delay_before_image = True
                                 with get_connection() as conn:
                                     db_execute(conn, "UPDATE article_content SET ingredient_image = ? WHERE title_id = ? AND language_code = 'en'", (urls2[0], tid))
                 if mode in ("article", "all"):
@@ -9296,7 +10318,6 @@ def api_bulk_run_filtered():
         return jsonify({"success": False, "error": "Only async mode supported for filtered runs"}), 400
     
     job_id = str(uuid.uuid4())
-    need_delay_before_image = False
     _bulk_progress[job_id] = {
         "status": "running",
         "message": "Starting...",
@@ -9311,7 +10332,6 @@ def api_bulk_run_filtered():
     }
     
     def task():
-        nonlocal need_delay_before_image
         try:
             total_ok, total_failed = 0, 0
             for idx, tid in enumerate(title_ids):
@@ -9337,58 +10357,54 @@ def api_bulk_run_filtered():
                     elif mode == "main_image":
                         from imagine import generate_4_images_multi_channel
                         user_config = get_user_config_for_api(user_id) or {}
-                        delay_sec = user_config.get("image_request_delay_sec", 15)
-                        if need_delay_before_image and delay_sec > 0:
-                            time.sleep(delay_sec)
+                        delay_sec = max(0, int(user_config.get("image_request_delay_sec", 15)))
                         with get_connection() as conn:
                             cur = db_execute(conn, "SELECT prompt FROM article_content WHERE title_id = ? AND language_code = 'en'", (tid,))
                             row = dict_row(cur.fetchone())
                         prompt = (row.get("prompt") or "").strip() if row else ""
                         if prompt:
+                            if delay_sec > 0:
+                                time.sleep(delay_sec)
                             urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", user_config=user_config)
                             if not err and urls:
-                                need_delay_before_image = True
                                 with get_connection() as conn:
                                     db_execute(conn, "UPDATE article_content SET main_image = ?, top_image = ? WHERE title_id = ? AND language_code = 'en'", (urls[0], urls[0], tid))
                     elif mode == "ingredient_image":
                         from imagine import generate_4_images_multi_channel
                         user_config = get_user_config_for_api(user_id) or {}
-                        delay_sec = user_config.get("image_request_delay_sec", 15)
-                        if need_delay_before_image and delay_sec > 0:
-                            time.sleep(delay_sec)
+                        delay_sec = max(0, int(user_config.get("image_request_delay_sec", 15)))
                         with get_connection() as conn:
                             cur = db_execute(conn, "SELECT prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (tid,))
                             row = dict_row(cur.fetchone())
                         prompt = (row.get("prompt_image_ingredients") or "").strip() if row else ""
                         if prompt:
+                            if delay_sec > 0:
+                                time.sleep(delay_sec)
                             urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="ingredient_image", user_config=user_config)
                             if not err and urls:
-                                need_delay_before_image = True
                                 with get_connection() as conn:
                                     db_execute(conn, "UPDATE article_content SET ingredient_image = ? WHERE title_id = ? AND language_code = 'en'", (urls[0], tid))
                     elif mode == "images":
                         from imagine import generate_4_images_multi_channel
                         user_config = get_user_config_for_api(user_id) or {}
-                        delay_sec = user_config.get("image_request_delay_sec", 15)
-                        if need_delay_before_image and delay_sec > 0:
-                            time.sleep(delay_sec)
+                        delay_sec = max(0, int(user_config.get("image_request_delay_sec", 15)))
                         with get_connection() as conn:
                             cur = db_execute(conn, "SELECT prompt, prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (tid,))
                             row = dict_row(cur.fetchone())
                         prompt = (row.get("prompt") or "").strip() if row else ""
                         prompt_ing = (row.get("prompt_image_ingredients") or "").strip() if row else ""
                         if prompt:
+                            if delay_sec > 0:
+                                time.sleep(delay_sec)
                             urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", user_config=user_config)
                             if not err and urls:
-                                need_delay_before_image = True
                                 with get_connection() as conn:
                                     db_execute(conn, "UPDATE article_content SET main_image = ?, top_image = ? WHERE title_id = ? AND language_code = 'en'", (urls[0], urls[0], tid))
                         if prompt_ing:
-                            if need_delay_before_image and delay_sec > 0:
+                            if delay_sec > 0:
                                 time.sleep(delay_sec)
                             urls2, err2, _ = generate_4_images_multi_channel(prompt_ing, key_prefix="ingredient_image", user_config=user_config)
                             if not err2 and urls2:
-                                need_delay_before_image = True
                                 with get_connection() as conn:
                                     db_execute(conn, "UPDATE article_content SET ingredient_image = ? WHERE title_id = ? AND language_code = 'en'", (urls2[0], tid))
                     
@@ -10137,6 +11153,9 @@ def _do_generate_main_image(title_id, user_id=None):
     if len(title_ids) < 1:
         raise ValueError("No titles found for this recipe in the group.")
     user_config = get_user_config_for_api(user_id) if user_id else {}
+    delay_sec = _effective_image_delay_sec(user_config, None)
+    if delay_sec > 0:
+        time.sleep(delay_sec)
     urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", user_config=user_config)
     if err:
         err_msg = f"main_image failed: {err}"
@@ -10196,14 +11215,14 @@ def api_generate_main_image():
         _bulk_progress[job_id] = {"status": "running", "message": "Generating main images...", "current_title": "", "type": "single", "action": "Main image", "title_id": title_id, "domain_id": domain_id, "created_at": time.time()}
         def task():
             try:
-                _do_generate_main_image(title_id)
+                _do_generate_main_image(title_id, user_id=user_id)
                 _bulk_progress[job_id].update({"status": "done", "message": "Main images generated"})
             except Exception as e:
                 err = str(e)[:BULK_ERROR_DETAIL_MAX]
                 _bulk_progress[job_id].update({"status": "error", "message": err, "error_detail": err})
         threading.Thread(target=task, daemon=True).start()
         return jsonify({"success": True, "job_id": job_id})
-    _do_generate_main_image(title_id)
+    _do_generate_main_image(title_id, user_id=user_id)
     return jsonify({"success": True, "message": "Main images generated"})
 
 
@@ -10229,6 +11248,9 @@ def _do_generate_ingredient_image(title_id, user_id=None):
     if len(title_ids) < 1:
         raise ValueError("No titles found for this recipe in the group.")
     user_config = get_user_config_for_api(user_id) if user_id else {}
+    delay_sec = _effective_image_delay_sec(user_config, None)
+    if delay_sec > 0:
+        time.sleep(delay_sec)
     urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="ingredient_image", user_config=user_config)
     if err:
         err_msg = f"ingredient_image failed: {err}"
@@ -11334,11 +12356,22 @@ def api_pin_generation_prompts():
                     row = dict_row(cur.fetchone())
                     if not row:
                         return jsonify({"error": "Group not found"}), 404
-                    existing = parse_ai_prompts_json(row.get("ai_prompt_overrides_json"))
+                baseline = merge_prompt_layers(load_builtin_defaults(), parse_ai_prompts_json((get_user_api_keys(user["id"]) or {}).get("ai_prompts_json")), {})
+                existing = parse_ai_prompts_json(row.get("ai_prompt_overrides_json"))
                 if "prompt" in data:
-                    existing["pin_prompt"] = data["prompt"]
+                    pv = str(data.get("prompt") or "").strip()
+                    bv = str(baseline.get("pin_prompt") or "").strip()
+                    if pv and pv != bv:
+                        existing["pin_prompt"] = pv
+                    else:
+                        existing.pop("pin_prompt", None)
                 if "field_prompts" in data and data["field_prompts"] is not None and isinstance(data["field_prompts"], dict):
-                    existing["pin_field_prompts"] = data["field_prompts"]
+                    pf = data["field_prompts"] or {}
+                    bf = baseline.get("pin_field_prompts") if isinstance(baseline.get("pin_field_prompts"), dict) else {}
+                    if pf != bf:
+                        existing["pin_field_prompts"] = pf
+                    else:
+                        existing.pop("pin_field_prompts", None)
                 j = json.dumps(existing, ensure_ascii=False) if existing else None
                 with get_connection() as conn:
                     db_execute(conn, "UPDATE `groups` SET ai_prompt_overrides_json = ? WHERE id = ?", (j, gid))
@@ -13137,6 +14170,7 @@ def article_editor_page():
 
 
 @app.route("/article-html-editor")
+@login_required
 def article_html_editor_page():
     """Edit article HTML and CSS directly without AI regeneration. Add ads, sections, scripts."""
     static_dir = os.path.join(os.path.dirname(__file__), "static")
@@ -13144,6 +14178,7 @@ def article_html_editor_page():
 
 
 @app.route("/article-snippet-editor")
+@login_required
 def article_snippet_editor_page():
     """Edit domain snippets (scripts, ads) per section. Bulk apply to all articles in domain."""
     static_dir = os.path.join(os.path.dirname(__file__), "static")
@@ -16837,6 +17872,16 @@ def _build_group_filter_alert(group_hierarchy_path, domain_count):
     return f"<div class='alert alert-info alert-dismissible'><strong>Filtered by group:</strong> {path_str} <span class='badge bg-primary'>{domain_count} domain(s)</span> <button type='button' class='btn-close' onclick='{close_onclick}'></button></div>"
 
 
+@app.route("/admin/css.css", methods=["GET"])
+def admin_css_placeholder():
+    """Site-export HTML uses <link href=\"css.css\">; on /admin/domains that resolves here. Avoid 404 + layout thrash."""
+    r = make_response(
+        "/* Placeholder: admin UI uses /static/css/bootstrap.min.css; exported articles may reference this path. */\n"
+    )
+    r.headers["Content-Type"] = "text/css; charset=utf-8"
+    return r
+
+
 @app.route("/admin/domains")
 @login_required
 def admin_domains():
@@ -17821,11 +18866,11 @@ def admin_domains():
         f'<td class="stats-td{(" stats-td-needs-attention" if ((d.get("stats_no_prompt") or 0) > 0 or (d.get("stats_no_html_css") or 0) > 0 or (d.get("stats_no_main_img") or 0) > 0 or (d.get("stats_no_ing_img") or 0) > 0 or (d.get("stats_no_pin_img") or 0) > 0) else "")}">{stats_cell(d)}</td>'
         f'<td class="last-deploy-td">{last_deploy_cell(d)}</td>'
         f'<td class="actions-cell"><div class="btn-group btn-group-sm" role="group">'
-        f'<a href="/preview-website/{d["id"]}" class="btn btn-success" target="_blank" title="View site">👁</a>'
-        f'<button type="button" class="btn btn-outline-primary list-domain-articles-btn" data-domain-id="{d["id"]}" data-domain-url="{html.escape((d.get("domain_url") or "").strip() or "-")}" title="List all articles in this domain">Articles</button>'
-        f'<button type="button" class="btn btn-outline-warning clear-articles-domain-btn" data-domain-id="{d["id"]}" data-domain-url="{html.escape((d.get("domain_url") or "").strip() or "-", quote=True)}" title="Clear all article content in this domain">🧹 Clear</button>'
-        f'<a href="/database-management?domain_id={d["id"]}" class="btn btn-outline-info" title="View in Database Management">📊</a>'
-        f'<button type="button" class="btn btn-outline-danger delete-domain-btn" data-domain-id="{d["id"]}" title="Delete">🗑</button>'
+        f'<a href="/preview-website/{d["id"]}" class="btn btn-success btn-sm" target="_blank" title="View site">👁</a>'
+        f'<button type="button" class="btn btn-outline-primary btn-sm list-domain-articles-btn" data-domain-id="{d["id"]}" data-domain-url="{html.escape((d.get("domain_url") or "").strip() or "-")}" title="List all articles in this domain">Articles</button>'
+        f'<button type="button" class="btn btn-outline-warning btn-sm clear-articles-domain-btn" data-domain-id="{d["id"]}" data-domain-url="{html.escape((d.get("domain_url") or "").strip() or "-", quote=True)}" title="Clear all article content in this domain">🧹 Clear</button>'
+        f'<a href="/database-management?domain_id={d["id"]}" class="btn btn-outline-info btn-sm" title="View in Database Management">📊</a>'
+        f'<button type="button" class="btn btn-outline-danger btn-sm delete-domain-btn" data-domain-id="{d["id"]}" title="Delete">🗑</button>'
         f'</div></td></tr>'
         )
     rows_html = "".join(row_parts)
@@ -17837,11 +18882,32 @@ def admin_domains():
 
     run_this_group_btn_html = ""
     group_prompts_link_html = ""
+    group_prompts_panel_html = ""
     if filter_group_id:
         gname_raw = next((g["name"] for g in all_groups if g["id"] == filter_group_id), "Current Group")
         gname_js = json.dumps(gname_raw).replace('"', '&quot;')
         run_this_group_btn_html = f'<button type="button" class="btn btn-primary btn-sm" onclick="openBulkGroupModal({filter_group_id}, {gname_js})" title="Run for all rows in this group">Run this group</button>'
-        group_prompts_link_html = f'<a href="/admin/groups/{filter_group_id}/prompts" class="btn btn-outline-dark btn-sm" title="Override AI prompts for this group (merged on top of your profile)">🧠 Group AI prompts</a>'
+        group_prompts_link_html = '<button type="button" class="btn btn-outline-dark btn-sm" data-bs-toggle="collapse" data-bs-target="#groupPromptsCollapse" title="Open effective prompts for this group (inherits from profile by default)">🧠 Group AI prompts</button>'
+        group_prompts_panel_html = f'''
+        <div class="collapse mb-3{(" show" if request.args.get("prompts_saved") == "1" else "")}" id="groupPromptsCollapse">
+          <div class="card border-dark">
+            <div class="card-header py-2"><strong>Group prompt overrides</strong> <span class="text-muted small">({html.escape(gname_raw)} / id {filter_group_id})</span></div>
+            <div class="card-body py-2">
+              {('<div class="alert alert-success py-1 mb-2 small">Group prompt overrides saved.</div>' if request.args.get("prompts_saved") else '')}
+              <form method="post" action="/admin/groups/{filter_group_id}/prompts?return_to_domains=1" id="groupPromptInlineForm">
+                <div class="mb-2"><label class="form-label small">Recipe system</label><textarea class="form-control form-control-sm font-monospace" name="ai_prompt_recipe_system" id="gp_recipe_system" rows="3"></textarea></div>
+                <div class="mb-2"><label class="form-label small">Recipe user</label><textarea class="form-control form-control-sm font-monospace" name="ai_prompt_recipe_user" id="gp_recipe_user" rows="2"></textarea></div>
+                <div class="mb-2"><label class="form-label small">Article system</label><textarea class="form-control form-control-sm font-monospace" name="ai_prompt_article_system" id="gp_article_system" rows="2"></textarea></div>
+                <div class="mb-2"><label class="form-label small">Article user</label><textarea class="form-control form-control-sm font-monospace" name="ai_prompt_article_user" id="gp_article_user" rows="2"></textarea></div>
+                <div class="mb-2"><label class="form-label small">Pin prompt</label><textarea class="form-control form-control-sm font-monospace" name="ai_prompt_pin_prompt" id="gp_pin_prompt" rows="2"></textarea></div>
+                <div class="mb-2"><label class="form-label small">Pin field_prompts JSON</label><textarea class="form-control form-control-sm font-monospace" name="ai_prompt_pin_field_prompts" id="gp_pin_field_prompts" rows="3"></textarea></div>
+                <button type="submit" class="btn btn-sm btn-dark">Save group overrides</button>
+                <span class="small text-muted ms-2">Inputs load effective prompts (profile/default + group). Saving stores only changed fields.</span>
+              </form>
+            </div>
+          </div>
+        </div>
+        '''
 
     # Build group checkboxes for distribute titles (groups with domains in current view)
     dist_group_checkboxes = ""  # used in distribute form when filter_group_id is set
@@ -18072,6 +19138,111 @@ def admin_domains():
       {group_prompts_link_html}
       <button type="button" class="btn btn-outline-primary btn-sm" onclick="openAllArticlesModal()" title="List all articles (filter by domain, default not validated)">Articles</button>
     </div>
+    {group_prompts_panel_html}
+    <script>
+    (function(){{
+      var gid = {json.dumps(filter_group_id)};
+      var _promptCache = null;
+      function ensurePromptModal(){{
+        if (document.getElementById('promptPreviewModal')) return;
+        var wrap = document.createElement('div');
+        wrap.innerHTML = '<div class="modal fade" id="promptPreviewModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content"><div class="modal-header py-2"><h5 class="modal-title">Prompt preview</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><pre id="promptPreviewText" class="small mb-0" style="white-space:pre-wrap"></pre></div></div></div></div>';
+        document.body.appendChild(wrap.firstChild);
+      }}
+      function promptByAction(action){{
+        if(!_promptCache) return '';
+        var p = _promptCache || {{}};
+        if(action === 'group-run') return ('Recipe:\\n' + (p.recipe_system || '') + '\\n\\nArticle:\\n' + (p.article_system || '') + '\\n\\nPin:\\n' + (p.pin_prompt || ''));
+        if(action === 'generate-prompts' || action === 'generate-main-image' || action === 'generate-ingredient-image') return p.recipe_system || '';
+        if(action === 'generate-article-external' || action === 'generate-article-a' || action === 'generate-article-bcd') return p.article_system || '';
+        if(action === 'pin') return p.pin_prompt || '';
+        return '';
+      }}
+      function openPromptPreview(action){{
+        var txt = promptByAction(action) || 'No prompt configured.';
+        ensurePromptModal();
+        var el = document.getElementById('promptPreviewText');
+        if (el) el.textContent = txt;
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('promptPreviewModal')).show();
+      }}
+      function enhancePromptButtons(){{
+        var nodes = document.querySelectorAll('button, a');
+        nodes.forEach(function(el){{
+          if(el.dataset.promptEnhanced === '1') return;
+          var raw = (el.getAttribute('onclick') || '') + ' ' + (el.getAttribute('href') || '');
+          var action = null;
+          if(raw.indexOf('openBulkGroupModal(') >= 0) action = 'group-run';
+          else if(raw.indexOf('/api/generate-prompts') >= 0) action = 'generate-prompts';
+          else if(raw.indexOf('/api/generate-main-image') >= 0) action = 'generate-main-image';
+          else if(raw.indexOf('/api/generate-ingredient-image') >= 0) action = 'generate-ingredient-image';
+          else if(raw.indexOf('/api/generate-article-external') >= 0) action = 'generate-article-external';
+          else if(raw.indexOf('/api/generate-article-a') >= 0) action = 'generate-article-a';
+          else if(raw.indexOf('/api/generate-article-bcd') >= 0) action = 'generate-article-bcd';
+          else if(raw.indexOf('openPinPickerModal') >= 0 || raw.indexOf('/api/pin-generate') >= 0) action = 'pin';
+          if(!action) return;
+          var txt = promptByAction(action);
+          if(txt){{
+            var shortTxt = (txt.length > 180 ? txt.slice(0, 180) + '...' : txt);
+            el.setAttribute('title', shortTxt);
+          }}
+          var parent = el.parentElement;
+          if(parent && !parent.querySelector('.prompt-preview-btn[data-for-action="' + action + '"]')){{
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'btn btn-sm btn-outline-dark prompt-preview-btn';
+            b.dataset.forAction = action;
+            b.innerHTML = '🧠';
+            b.title = 'Show full prompt';
+            b.style.marginLeft = '2px';
+            b.onclick = function(ev){{ ev.preventDefault(); ev.stopPropagation(); openPromptPreview(action); }};
+            parent.appendChild(b);
+          }}
+          el.dataset.promptEnhanced = '1';
+        }});
+      }}
+      function dedupeRunGroupButtons(){{
+        // Defensive cleanup: if the toolbar is re-rendered and duplicates appear,
+        // keep only the first identical "Run this group" button.
+        var seen = {{}};
+        document.querySelectorAll('button').forEach(function(btn){{
+          var txt = (btn.textContent || '').trim();
+          if (txt !== 'Run this group') return;
+          var oc = btn.getAttribute('onclick') || '';
+          if (oc.indexOf('openBulkGroupModal(') < 0) return;
+          var key = txt + '|' + oc;
+          if (seen[key]) {{
+            var p = btn.parentElement;
+            if (p && p.contains(btn)) p.removeChild(btn);
+          }} else {{
+            seen[key] = true;
+          }}
+        }});
+      }}
+      function loadEffectivePrompts(){{
+        var url = '/api/prompts/effective' + (gid ? ('?group_id=' + encodeURIComponent(gid)) : '');
+        fetch(url).then(function(r){{ return r.json(); }}).then(function(d){{
+          _promptCache = (d && d.prompts) ? d.prompts : {{}};
+          var map = {{
+            gp_recipe_system: _promptCache.recipe_system || '',
+            gp_recipe_user: _promptCache.recipe_user || '',
+            gp_article_system: _promptCache.article_system || '',
+            gp_article_user: _promptCache.article_user || '',
+            gp_pin_prompt: _promptCache.pin_prompt || '',
+            gp_pin_field_prompts: (_promptCache.pin_field_prompts ? JSON.stringify(_promptCache.pin_field_prompts, null, 2) : '')
+          }};
+          Object.keys(map).forEach(function(id){{
+            var el = document.getElementById(id);
+            if(el) el.value = map[id];
+          }});
+          dedupeRunGroupButtons();
+          enhancePromptButtons();
+        }}).catch(function(){{ dedupeRunGroupButtons(); enhancePromptButtons(); }});
+      }}
+      if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadEffectivePrompts);
+      else loadEffectivePrompts();
+      setInterval(enhancePromptButtons, 2000);
+    }})();
+    </script>
 
     <div class="collapse mb-4{' show' if request.args.get('bulk_add') == '1' else ''}" id="bulkAddCard">
       <div class="card">
@@ -19391,7 +20562,7 @@ def admin_domains():
                           html += '</div>';
                           document.getElementById('deployCfResult').innerHTML = html;
                           document.getElementById('deployCfResult').style.display = 'block';
-                          if (url) window.open(url, '_blank');
+                          if (url) {{ /* browser pop-up block bypass: rely on link in alert above */ }}
                         }} else {{
                           document.getElementById('deployCfProgressBar').classList.add('bg-danger');
                           document.getElementById('deployCfResult').innerHTML = '<div class="alert alert-danger py-2 mb-0">'+ (s.error || s.message || 'Failed').replace(/</g,'&lt;') + '</div>';
@@ -27511,10 +28682,12 @@ def admin_group_prompts(group_id):
     if not user_can_edit_group_prompts(user_id, group_id, is_admin):
         return base_layout("<div class='alert alert-danger'>Access denied</div>", "Group AI prompts")
     if request.method == "POST":
-        patch = _ai_prompts_dict_from_profile_form(request.form)
+        patch = _compute_group_prompt_overrides_from_form(request.form, user_id)
         j = json.dumps(patch, ensure_ascii=False) if patch else None
         with get_connection() as conn:
             db_execute(conn, "UPDATE `groups` SET ai_prompt_overrides_json = ? WHERE id = ?", (j, group_id))
+        if request.args.get("return_to_domains") == "1":
+            return redirect(f"/admin/domains?group_id={group_id}&prompts_saved=1")
         return redirect(url_for("admin_group_prompts", group_id=group_id) + "?saved=1")
     with get_connection() as conn:
         cur = db_execute(conn, "SELECT name, ai_prompt_overrides_json FROM `groups` WHERE id = ?", (group_id,))
@@ -27523,28 +28696,43 @@ def admin_group_prompts(group_id):
         return base_layout("<div class='alert alert-danger'>Group not found</div>", "Group AI prompts")
     gname = html.escape(str(row.get("name") or group_id))
     go = parse_ai_prompts_json(row.get("ai_prompt_overrides_json"))
-    _pin_fp_g = go.get("pin_field_prompts") if isinstance(go.get("pin_field_prompts"), dict) else {}
+    eff = get_effective_ai_prompts(user_id, group_id)
+    _pin_fp_g = eff.get("pin_field_prompts") if isinstance(eff.get("pin_field_prompts"), dict) else {}
     _g_pin_fp_str = json.dumps(_pin_fp_g, indent=2, ensure_ascii=False) if _pin_fp_g else ""
     saved = '<div class="alert alert-success">Saved.</div>' if request.args.get("saved") else ""
     back = f'<a href="/admin/domains?group_id={group_id}" class="btn btn-outline-secondary btn-sm mb-3">← Back to Domains</a>'
     content = f"""
     {back}
     <h2>Group AI prompt overrides</h2>
-    <p class="text-muted">Group: <strong>{gname}</strong> (id {group_id}). Values here override your profile and built-in defaults for titles in this group.</p>
+    <p class="text-muted">Group: <strong>{gname}</strong> (id {group_id}). Inputs show effective values (profile/default + group overrides). Saving stores only fields changed from your profile/default, so other groups are not affected.</p>
     {saved}
     <div class="card mb-4" style="max-width:900px"><div class="card-body">
     <form method="post">
-    <div class="mb-2"><label class="form-label">Recipe / image — system</label><textarea name="ai_prompt_recipe_system" class="form-control font-monospace small" rows="4">{html.escape(str(go.get("recipe_system") or ""))}</textarea></div>
-    <div class="mb-2"><label class="form-label">Recipe / image — user message</label><textarea name="ai_prompt_recipe_user" class="form-control font-monospace small" rows="3">{html.escape(str(go.get("recipe_user") or ""))}</textarea></div>
-    <div class="mb-2"><label class="form-label">Article — system</label><textarea name="ai_prompt_article_system" class="form-control font-monospace small" rows="3">{html.escape(str(go.get("article_system") or ""))}</textarea></div>
-    <div class="mb-2"><label class="form-label">Article — user message</label><textarea name="ai_prompt_article_user" class="form-control font-monospace small" rows="2">{html.escape(str(go.get("article_user") or ""))}</textarea></div>
-    <div class="mb-2"><label class="form-label">Pin — main prompt</label><textarea name="ai_prompt_pin_prompt" class="form-control font-monospace small" rows="2">{html.escape(str(go.get("pin_prompt") or ""))}</textarea></div>
+    <div class="mb-2"><label class="form-label">Recipe / image — system</label><textarea name="ai_prompt_recipe_system" class="form-control font-monospace small" rows="4">{html.escape(str(eff.get("recipe_system") or ""))}</textarea></div>
+    <div class="mb-2"><label class="form-label">Recipe / image — user message</label><textarea name="ai_prompt_recipe_user" class="form-control font-monospace small" rows="3">{html.escape(str(eff.get("recipe_user") or ""))}</textarea></div>
+    <div class="mb-2"><label class="form-label">Article — system</label><textarea name="ai_prompt_article_system" class="form-control font-monospace small" rows="3">{html.escape(str(eff.get("article_system") or ""))}</textarea></div>
+    <div class="mb-2"><label class="form-label">Article — user message</label><textarea name="ai_prompt_article_user" class="form-control font-monospace small" rows="2">{html.escape(str(eff.get("article_user") or ""))}</textarea></div>
+    <div class="mb-2"><label class="form-label">Pin — main prompt</label><textarea name="ai_prompt_pin_prompt" class="form-control font-monospace small" rows="2">{html.escape(str(eff.get("pin_prompt") or ""))}</textarea></div>
     <div class="mb-2"><label class="form-label">Pin — field_prompts JSON</label><textarea name="ai_prompt_pin_field_prompts" class="form-control font-monospace small" rows="4">{html.escape(_g_pin_fp_str)}</textarea></div>
     <button type="submit" class="btn btn-primary">Save overrides</button>
     </form>
     </div></div>
     """
     return base_layout(content, "Group AI prompts")
+
+
+@app.route("/api/prompts/effective", methods=["GET"])
+@login_required
+def api_effective_prompts():
+    """Return effective prompts for current user and optional group_id."""
+    user = get_current_user()
+    raw_gid = request.args.get("group_id")
+    try:
+        gid = int(raw_gid) if raw_gid not in (None, "") else None
+    except (TypeError, ValueError):
+        gid = None
+    eff = get_effective_ai_prompts(user["id"], gid)
+    return jsonify({"success": True, "group_id": gid, "prompts": eff})
 
 
 # --- Admin: Groups ---
@@ -28991,7 +30179,7 @@ Complete these required fields: {labels_html}.<br>
     <div class="card mb-4" style="max-width:800px"><div class="card-header">API Keys</div><div class="card-body">{error_msg}{saved_msg}<form method="post">
     <h5 class="mb-3">Default</h5><div class="mb-3"><label class="form-label">Default Categories</label><textarea name="default_categories" class="form-control" rows="6">{default_cats_value}</textarea></div>
     <h5 class="mb-3">OpenAI</h5>{field("openai_api_key","API Key","sk-")}{field("openai_model","Model","gpt-4o-mini")}
-    <h5 class="mb-3">Groq</h5><p class="small text-muted mb-2">Fast inference at <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com</a>. Keys are stored per user, not in the repo.</p>{_groq_keys_textarea}{_groq_model_select}
+    <h5 class="mb-3">Groq</h5><p class="small text-muted mb-2">Fast inference at <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com</a>. Keys are stored per user, not in the repo.</p><p class="small text-secondary mb-2 border-start border-3 ps-2" style="border-color:#fd7e14!important">Bulk runs and this admin UI use keys from <strong>Profile</strong> only. They do <strong>not</strong> load the repo <code>.env</code> or local <code>article_generator</code> configs. If you see &quot;Add your Groq API key in Profile&quot;, paste your key here.</p>{_groq_keys_textarea}{_groq_model_select}
     <h5 class="mb-3">Midjourney</h5>{field("midjourney_api_token","API Token","")}<div class="mb-3"><label class="form-label">Channel IDs</label><textarea name="midjourney_channel_id" class="form-control" rows="2">{html.escape(str(keys.get("midjourney_channel_id") or ""))}</textarea></div>
     <h5 class="mb-3">Cloudflare</h5>
     <details class="small mb-3 border border-primary rounded p-2"><summary class="fw-medium text-body" style="cursor:pointer;"><strong>Easy — one API token for all features</strong> (deploy ☁️, DNS, add site via API)</summary>

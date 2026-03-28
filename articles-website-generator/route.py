@@ -19,6 +19,17 @@ from pathlib import Path
 
 from fastapi import APIRouter, Body, FastAPI, HTTPException
 
+# Windows-safe console output:
+# generators often print recipe titles containing emoji; default cp1252 console
+# can raise UnicodeEncodeError ("charmap"). Force UTF-8 with replacement.
+try:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 app = FastAPI(title="Article Generator API", version="1.0.0")
 router = APIRouter(tags=["generators"])
 log = logging.getLogger(__name__)
