@@ -18,6 +18,9 @@ env
 !.env.example.docker
 .dockerhub.env
 
+# Local Supabase URL for scripts/deploy-supabase-remote.bat (never commit)
+scripts/supabase-url.local.env
+
 # Local image hosting fallback (multi-domain-clean, when R2 not used)
 multi-domain-clean/data/
 

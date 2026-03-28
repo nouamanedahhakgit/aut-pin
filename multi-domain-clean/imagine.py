@@ -36,6 +36,20 @@ _channel_cooldown_lock = threading.Lock()
 _channel_cooldowns: dict[str, int] = {}
 
 
+def _sleep_before_imagine_request(user_config=None, image_delay_sec_override=None):
+    """Pause immediately before sending a Midjourney /imagine job (profile setting or bulk-run override)."""
+    user_config = user_config or {}
+    if image_delay_sec_override is not None:
+        d = max(0, min(180, int(image_delay_sec_override)))
+    else:
+        try:
+            d = max(0, int(user_config.get("image_request_delay_sec", 15)))
+        except (TypeError, ValueError):
+            d = 15
+    if d > 0:
+        time.sleep(d)
+
+
 def _normalize_prompt(p: str) -> str:
     if not p or not str(p).strip():
         return ""
@@ -248,13 +262,21 @@ def process_grid_to_r2(grid_url: str, key_prefix: str, user_config: dict = None)
         return [], str(e)
 
 
-def generate_4_images(prompt: str, key_prefix: str = "multi-domain", cancel_check=None, user_config: dict = None) -> tuple:
+def generate_4_images(
+    prompt: str,
+    key_prefix: str = "multi-domain",
+    cancel_check=None,
+    user_config: dict = None,
+    image_delay_sec_override=None,
+) -> tuple:
     """
     Create Midjourney job, poll until done, get 4 images, upload to R2 or local hosted storage.
     Returns ([url1, url2, url3, url4], error_or_None).
     Image 1 -> A, 2 -> B, 3 -> C, 4 -> D.
     cancel_check: optional callable; if it returns True, abort and return ([], "Cancelled").
     """
+    user_config = user_config or {}
+    _sleep_before_imagine_request(user_config, image_delay_sec_override)
     jobid, err = create_imagine_task(prompt, user_config=user_config)
     if err:
         return [], err
@@ -339,11 +361,15 @@ def generate_4_images_multi_channel(
     key_prefix: str = "multi-domain",
     cancel_check=None,
     user_config: dict = None,
+    image_delay_sec_override=None,
 ) -> tuple:
     """
     Like generate_4_images but rotates through multiple Discord channels.
     If a channel errors, it is skipped for CHANNEL_COOLDOWN_ROUNDS successful
     uses of other channels before being retried.
+
+    Before each channel attempt, waits image_request_delay_sec from user_config (or
+    image_delay_sec_override when set by bulk group runs), then sends /imagine.
 
     Returns ([url1, url2, url3, url4], error_or_None, used_channel_id_or_None).
     """
@@ -379,7 +405,13 @@ def generate_4_images_multi_channel(
         log.info("[imagine] Trying channel ..%s (%d/%d available, %d total)",
                  channel_id[-4:], channels_tried, len(available), len(all_channels))
 
-        urls, err = generate_4_images(prompt, key_prefix, cancel_check, cfg)
+        urls, err = generate_4_images(
+            prompt,
+            key_prefix,
+            cancel_check,
+            cfg,
+            image_delay_sec_override=image_delay_sec_override,
+        )
 
         if not err:
             # Success — tick cooldowns for other channels

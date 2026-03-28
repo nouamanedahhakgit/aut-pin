@@ -1056,6 +1056,10 @@ def base_layout(content, title, nav_extra=None):
   .workflow-summary-err:hover .workflow-summary-err-pop,
   .workflow-summary-err:focus-within .workflow-summary-err-pop {{ opacity: 1; visibility: visible; pointer-events: auto; }}
   .workflow-summary-err:focus {{ outline: 2px solid #f87171; outline-offset: 2px; border-radius: 4px; }}
+  .workflow-summary-table-scroll {{ overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; border-radius: 0 0 6px 6px; }}
+  .workflow-main-detail-table {{ width: 100%; min-width: 960px; border-collapse: collapse; font-size: 0.62rem; }}
+  .workflow-main-detail-table th, .workflow-main-detail-table td {{ padding: 4px 5px; vertical-align: middle; }}
+  .workflow-subrow td {{ background: #f1f5f9 !important; border-bottom: 1px solid #e2e8f0 !important; }}
   /* Live spotlight — at-a-glance: where the job is, which articles, time on row */
   .progress-live-spotlight {{ border: 1px solid #b6d4fe; border-radius: 10px; background: linear-gradient(165deg, #f0f7ff 0%, #fff 50%, #f8fbff 100%); margin: 0 0 0.65rem; overflow: hidden; box-shadow: 0 2px 14px rgba(13,110,253,0.09); }}
   .progress-live-spotlight .pls-meta-bar {{ display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; padding: 8px 12px; background: linear-gradient(92deg, #0d6efd 0%, #3d8bfd 55%, #6366f1 100%); color: #fff; font-size: 0.68rem; font-weight: 600; line-height: 1.4; }}
@@ -2836,18 +2840,20 @@ function renderProgressBody(s, body) {{
           + '<span style="background:rgba(168,85,247,.2);color:#c084fc;padding:1px 8px;border-radius:99px;font-weight:600">Pinterest</span>'
           + '<span style="background:rgba(96,165,250,.2);color:#93c5fd;padding:1px 8px;border-radius:99px;font-weight:600">⟳ ' + totalRetries + ' img attempts</span>'
           + '</div></div>'
-          + '<table style="width:100%;border-collapse:collapse;font-size:0.63rem">'
+          + '<div class="workflow-summary-table-scroll">'
+          + '<table class="workflow-main-detail-table">'
           + '<thead><tr style="background:#f1f5f9;border-bottom:2px solid #cbd5e1">'
-          + '<th style="padding:4px 6px;text-align:left;font-weight:700;color:#475569;width:24px">#</th>'
-          + '<th style="padding:4px 6px;text-align:left;font-weight:700;color:#475569;width:40px">TID</th>'
-          + '<th style="padding:4px 6px;text-align:left;font-weight:700;color:#475569">Title</th>'
-          + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:52px" title="Click ✓ row: article + recipe + images per domain A–D">A B C D</th>'
-          + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:70px" title="Click ✓: prompts per domain">Prompts</th>'
-          + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:75px">Main</th>'
-          + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:75px">Ing</th>'
-          + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:80px">Content</th>'
-          + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:70px">Pin</th>'
-          + '<th style="padding:4px 6px;text-align:center;font-weight:700;color:#475569;width:44px" title="Hover icon for full error text">Err</th>'
+          + '<th style="text-align:left;font-weight:700;color:#475569;width:22px">#</th>'
+          + '<th style="text-align:left;font-weight:700;color:#475569;width:36px">TID</th>'
+          + '<th style="text-align:left;font-weight:700;color:#475569;min-width:120px">Title</th>'
+          + '<th style="text-align:left;font-weight:700;color:#475569;min-width:88px" title="Primary domain URL + group">Domain</th>'
+          + '<th style="text-align:center;font-weight:700;color:#475569;min-width:72px" title="HTML/content per domain letter (Domain A–D title IDs)">A B C D</th>'
+          + '<th style="text-align:center;font-weight:700;color:#475569;width:56px" title="Recipe + image prompts">Pr.</th>'
+          + '<th style="text-align:center;font-weight:700;color:#475569;min-width:108px">Main</th>'
+          + '<th style="text-align:center;font-weight:700;color:#475569;min-width:108px">Ing</th>'
+          + '<th style="text-align:center;font-weight:700;color:#475569;min-width:72px">Content</th>'
+          + '<th style="text-align:center;font-weight:700;color:#475569;width:36px">Pin</th>'
+          + '<th style="text-align:center;font-weight:700;color:#475569;width:40px" title="Hover for errors">Err</th>'
           + '</tr></thead><tbody>';
         completedArticles.forEach(function(a, idx){{
           var tid = a.tid || '';
@@ -2865,31 +2871,52 @@ function renderProgressBody(s, body) {{
           var ingOk = ingSt === 'done';
           var mainErr = mainSt === 'error';
           var ingErr = ingSt === 'error';
-          var mainIcon = mainOk ? '✅' : (mainErr ? '❌' : '⏳');
-          var ingIcon = ingOk ? '✅' : (ingErr ? '❌' : '⏳');
           var mainElapsed = (it.main && it.main.done_at && it.main.started_at) ? Math.round(it.main.done_at - it.main.started_at) + 's' : '';
           var ingElapsed = (it.ingredient && it.ingredient.done_at && it.ingredient.started_at) ? Math.round(it.ingredient.done_at - it.ingredient.started_at) + 's' : '';
+          var rm = (ret.main != null && ret.main > 0) ? ret.main : null;
+          var ri = (ret.ingredient != null && ret.ingredient > 0) ? ret.ingredient : null;
+          function _fmtImgCell(st, elapsed, attempts) {{
+            if (st === '-' || st === '') return '<span style="color:#9ca3af">—</span>';
+            var att = (attempts != null && attempts > 0) ? ' (' + attempts + ')' : '';
+            if (st === 'done' || st === 'skipped') return '<span style="color:#15803d;white-space:nowrap">✅ ' + (st === 'skipped' ? 'skip' : 'done') + (elapsed ? ' ' + elapsed : '') + att + '</span>';
+            if (st === 'error') return '<span style="color:#b91c1c;white-space:nowrap">❌ error' + (elapsed ? ' ' + elapsed : '') + att + '</span>';
+            if (st === 'running') return '<span style="color:#1d4ed8;white-space:nowrap">⏳ run' + (elapsed ? ' ' + elapsed : '') + '</span>';
+            return '<span style="color:#64748b">' + String(st).replace(/</g,'&lt;') + att + '</span>';
+          }}
+          var mainCell = '<span style="' + (tid && typeof viewContent === 'function' && (mainOk || mainErr) ? 'cursor:pointer' : '') + '" onclick="' + (tid && (mainOk || mainErr) ? 'event.stopPropagation();viewContent(' + tid + ')' : '') + '">' + _fmtImgCell(mainSt, mainElapsed, rm) + '</span>';
+          var ingCell = '<span style="' + (tid && typeof viewContent === 'function' && (ingOk || ingErr) ? 'cursor:pointer' : '') + '" onclick="' + (tid && (ingOk || ingErr) ? 'event.stopPropagation();viewContent(' + tid + ')' : '') + '">' + _fmtImgCell(ingSt, ingElapsed, ri) + '</span>';
           var contentDone = Object.keys(dp).length === 0 || Object.keys(dp).every(function(l){{ return dp[l]==='done'||dp[l]==='skipped'; }});
           var contentErr = Object.keys(dp).some(function(l){{ return dp[l]==='error'; }});
+          var letterListWS = ((a.domain_letters || 'A,B,C,D') + '').split(/[,\\s]+/).filter(function(x){{ return x; }});
+          if (letterListWS.length === 0) letterListWS = ['A','B','C','D'];
+          var contentDoneCount = letterListWS.filter(function(l){{ var s = dp[l]; return s === 'done' || s === 'skipped'; }}).length;
+          var contentTotalLetters = letterListWS.length;
           var contentTotalSec = 0;
           Object.keys(dt || {{}}).forEach(function(l){{ var t=dt[l]; if(t.started_at && t.done_at) contentTotalSec += (t.done_at - t.started_at); }});
           var contentElapsed = contentTotalSec > 0 ? Math.round(contentTotalSec) + 's' : '';
-          var firstLetterTid = dti.A || dti.B || dti.C || dti.D || tid;
           var dtiEnc = encodeURIComponent(JSON.stringify(dti || {{}}));
           var promptsClick = tid && typeof viewWorkflowRowDomainsFromEnc === 'function' ? 'cursor:pointer' : '';
+          var prOk = (mainSt !== '-' || ingSt !== '-');
+          var promptsHtml = '<span style="' + promptsClick + ';font-weight:600;color:' + (prOk ? '#15803d' : '#9ca3af') + '" onclick="' + (promptsClick ? 'event.stopPropagation();viewWorkflowRowDomainsFromEnc(\\'prompts\\',' + tid + ',\\'' + dtiEnc + '\\')' : '') + '" title="Open prompts (A–D)">' + (prOk ? '✓' : '—') + '</span>';
           var contentClick = tid && typeof viewWorkflowRowDomainsFromEnc === 'function' ? 'cursor:pointer' : '';
+          var contentHtmlInner;
+          if (contentErr) {{
+            contentHtmlInner = '<span style="' + contentClick + ';color:#dc2626;font-weight:600" onclick="' + (contentClick ? 'event.stopPropagation();viewWorkflowRowDomainsFromEnc(\\'domains\\',' + tid + ',\\'' + dtiEnc + '\\')' : '') + '" title="Content/HTML error on at least one domain">✗' + (contentElapsed ? ' ' + contentElapsed : '') + '</span>';
+          }} else if (contentDone) {{
+            contentHtmlInner = '<span style="' + contentClick + ';color:#15803d;font-weight:600" onclick="' + (contentClick ? 'event.stopPropagation();viewWorkflowRowDomainsFromEnc(\\'domains\\',' + tid + ',\\'' + dtiEnc + '\\')' : '') + '" title="All domain letters have HTML/content">' + '✓' + (contentElapsed ? ' ' + contentElapsed : '') + '</span>';
+          }} else if (contentDoneCount > 0) {{
+            contentHtmlInner = '<span style="' + contentClick + ';color:#b45309;font-weight:600" onclick="' + (contentClick ? 'event.stopPropagation();viewWorkflowRowDomainsFromEnc(\\'domains\\',' + tid + ',\\'' + dtiEnc + '\\')' : '') + '" title="Partial: some letters still pending">' + contentDoneCount + '/' + contentTotalLetters + ' ✓' + (contentElapsed ? ' · ' + contentElapsed : '') + '</span>';
+          }} else {{
+            contentHtmlInner = '<span style="' + contentClick + ';color:#6b7280" onclick="' + (contentClick ? 'event.stopPropagation();viewWorkflowRowDomainsFromEnc(\\'domains\\',' + tid + ',\\'' + dtiEnc + '\\')' : '') + '">—</span>';
+          }}
           var pinClick = tid && typeof viewPin === 'function' ? 'cursor:pointer' : '';
-          var promptsHtml = '<span style="' + promptsClick + '" onclick="' + (promptsClick ? 'event.stopPropagation();viewWorkflowRowDomainsFromEnc(\\'prompts\\',' + tid + ',\\'' + dtiEnc + '\\')' : '') + '" title="Main + ingredient prompts for each domain (A–D)">✓</span>';
-          var contentLabel = contentDone ? '✓' : (contentErr ? '✗' : '-');
-          var contentHtml = '<span style="' + contentClick + ';color:' + (contentDone ? '#198754' : (contentErr ? '#dc3545' : '#6b7280')) + '" onclick="' + (contentClick ? 'event.stopPropagation();viewWorkflowRowDomainsFromEnc(\\'domains\\',' + tid + ',\\'' + dtiEnc + '\\')' : '') + '" title="' + (contentElapsed ? contentElapsed + ' — Article, recipe & images per domain' : 'Article, recipe & images per domain') + '">' + contentLabel + (contentElapsed ? ' ' + contentElapsed : '') + '</span>';
-          var pinHtml = '<span style="' + pinClick + ';color:#9333ea" onclick="' + (pinClick ? 'event.stopPropagation();viewPin(' + tid + ')' : '') + '" title="Click to view pin">📌</span>';
-          var mainRetries = ret.main ? '(' + ret.main + ')' : '';
-          var ingRetries = ret.ingredient ? '(' + ret.ingredient + ')' : '';
+          var pinHtml = '<span style="' + pinClick + ';color:#9333ea;font-size:0.95rem" onclick="' + (pinClick ? 'event.stopPropagation();viewPin(' + tid + ')' : '') + '" title="Pin for domain A (title ' + tid + ')">📌</span>';
           var errTipLines = [];
           (retryErrs.main || []).forEach(function(e){{ errTipLines.push('🖼 ' + String(e).replace(/\\n/g,' ').trim()); }});
           (retryErrs.ingredient || []).forEach(function(e){{ errTipLines.push('🥗 ' + String(e).replace(/\\n/g,' ').trim()); }});
           if (mainErr && ir.main) errTipLines.push('Main: ' + String(ir.main).replace(/\\n/g,' ').trim());
           if (ingErr && ir.ingredient) errTipLines.push('Ingredient: ' + String(ir.ingredient).replace(/\\n/g,' ').trim());
+          letterListWS.forEach(function(l){{ if (dp[l] === 'error') errTipLines.push('Content ' + l + ': failed'); }});
           var errPopHtml = errTipLines.map(function(line){{ return String(line).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }}).join('<br>');
           var errDisplay;
           if (errTipLines.length === 0) {{
@@ -2904,31 +2931,47 @@ function renderProgressBody(s, body) {{
           }}
           var rowBg = (mainErr || ingErr || contentErr) ? '#fef2f2' : (idx % 2 === 0 ? '#fff' : '#f8fafc');
           var rowBorder = (mainErr || ingErr || contentErr) ? 'border-left:3px solid #ef4444;' : '';
-          var letterList = ('A,B,C,D').split(',');
-          var domainIcons = letterList.map(function(l){{
+          var gid = a.group_id != null ? 'G' + a.group_id : '';
+          var domUrl = String(a.domain_url || '—').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          var domShort = domUrl.length > 22 ? domUrl.substring(0, 20) + '…' : domUrl;
+          var domainMetaCell = '<div style="line-height:1.25"><div style="font-weight:600;color:#334155" title="' + domUrl + '">' + domShort + '</div>' + (gid ? '<div style="font-size:0.55rem;color:#64748b">' + gid + '</div>' : '') + '</div>';
+          var domainABCD = letterListWS.map(function(l){{
             var st = dp[l];
-            if (st === 'done' || st === 'skipped') return '<span style="color:#16a34a" title="' + l + ': done">✓</span>';
-            if (st === 'error') return '<span style="color:#dc2626" title="' + l + ': error">✗</span>';
-            if (st === 'running' || st === 'pending') return '<span style="color:#ca8a04" title="' + l + ': pending">⏳</span>';
-            return '<span style="color:#9ca3af" title="' + l + '">—</span>';
+            var sym = st === 'done' || st === 'skipped' ? '✓' : st === 'error' ? '✗' : st === 'running' ? '⏳' : '—';
+            var ltid = dti[l] || (l === 'A' ? tid : '');
+            return '<span style="display:inline-block;min-width:1.1em;text-align:center" title="' + l + (ltid ? ' · #' + ltid : '') + '">' + sym + '</span>';
           }}).join(' ');
-          var domainCell = '<span style="font-size:0.7rem;letter-spacing:0.5px;cursor:pointer" onclick="event.stopPropagation();viewWorkflowRowDomainsFromEnc(\\'domains\\',' + tid + ',\\'' + dtiEnc + '\\')" title="Open all domains A–D — full generation detail">' + domainIcons + '</span>';
-          var mainCell = mainSt !== '-' ? '<span style="' + (tid && typeof viewContent === 'function' ? 'cursor:pointer' : '') + '" onclick="' + (tid ? 'event.stopPropagation();viewContent(' + tid + ')' : '') + '" title="Click to view">' + mainIcon + ' ' + mainSt + (mainElapsed ? ' ' + mainElapsed : '') + (mainRetries ? ' ' + mainRetries : '') + '</span>' : '—';
-          var ingCell = ingSt !== '-' ? '<span style="' + (tid && typeof viewContent === 'function' ? 'cursor:pointer' : '') + '" onclick="' + (tid ? 'event.stopPropagation();viewContent(' + tid + ')' : '') + '" title="Click to view">' + ingIcon + ' ' + ingSt + (ingElapsed ? ' ' + ingElapsed : '') + (ingRetries ? ' ' + ingRetries : '') + '</span>' : '—';
+          var domainCell = '<span style="font-size:0.68rem;letter-spacing:0;cursor:pointer;white-space:nowrap" onclick="event.stopPropagation();viewWorkflowRowDomainsFromEnc(\\'domains\\',' + tid + ',\\'' + dtiEnc + '\\')" title="Open HTML/content detail A–D">' + domainABCD + '</span>';
+          var subParts = letterListWS.map(function(l){{
+            var st = dp[l] || 'pending';
+            var ltid = dti[l] || (l === 'A' ? tid : '');
+            var t0 = (dt[l] || {{}}).started_at;
+            var t1 = (dt[l] || {{}}).done_at;
+            var el = (t1 && t0) ? Math.round(t1 - t0) + 's' : (t0 && st === 'running' ? '…' : '');
+            var lab = st === 'done' || st === 'skipped' ? '✓ HTML' : st === 'error' ? '✗ err' : st === 'running' ? '⟳ gen' : '○ wait';
+            var col = st === 'done' || st === 'skipped' ? '#15803d' : st === 'error' ? '#b91c1c' : st === 'running' ? '#1d4ed8' : '#94a3b8';
+            var oc = (st === 'done' || st === 'skipped') && ltid && typeof viewContent === 'function' ? 'cursor:pointer' : '';
+            var oa = oc ? ' onclick="event.stopPropagation();viewContent(' + ltid + ')"' : '';
+            return '<span style="display:inline-flex;align-items:center;gap:3px;margin:2px 10px 2px 0;white-space:nowrap"' + oa + '><b style="color:#475569">' + l + '</b><span style="color:#64748b;font-size:0.55rem">#' + (ltid || '—') + '</span><span style="color:' + col + ';font-weight:600">' + lab + '</span>' + (el ? '<span style="color:#94a3b8">' + el + '</span>' : '') + '</span>';
+          }});
+          var subRowHtml = '<tr class="workflow-subrow"><td colspan="11" style="padding:5px 8px 6px 28px;line-height:1.45;border-bottom:1px solid #e2e8f0">'
+            + '<div style="font-size:0.58rem;font-weight:700;color:#475569;margin-bottom:2px">Content by domain (title ID · status · time)</div>'
+            + '<div style="display:flex;flex-wrap:wrap;align-items:center">' + subParts.join('') + '</div></td></tr>';
           articlesHtml += '<tr style="background:' + rowBg + ';border-bottom:1px solid #e2e8f0;' + rowBorder + '">'
-            + '<td style="padding:3px 6px;color:#94a3b8;font-weight:600">' + (idx+1) + '</td>'
-            + '<td style="padding:3px 6px;font-weight:700;color:#3b82f6">' + tid + '</td>'
-            + '<td style="padding:3px 6px;color:#334155;font-weight:500;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + ((a.title||'').replace(/"/g,'&quot;')) + '">' + ((a.title||'').replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0,35)) + '</td>'
-            + '<td style="padding:3px 6px;text-align:center" title="Per-domain content: A B C D">' + domainCell + '</td>'
-            + '<td style="padding:3px 6px;text-align:center" title="Click to view prompts">' + promptsHtml + '</td>'
-            + '<td style="padding:3px 6px;text-align:center">' + mainCell + '</td>'
-            + '<td style="padding:3px 6px;text-align:center">' + ingCell + '</td>'
-            + '<td style="padding:3px 6px;text-align:center">' + contentHtml + '</td>'
-            + '<td style="padding:3px 6px;text-align:center">' + pinHtml + '</td>'
-            + '<td style="padding:3px 6px;text-align:center;vertical-align:middle;white-space:nowrap">' + errDisplay + '</td>'
-            + '</tr>';
+            + '<td style="color:#94a3b8;font-weight:600">' + (idx+1) + '</td>'
+            + '<td style="font-weight:700;color:#3b82f6">' + tid + '</td>'
+            + '<td style="color:#334155;font-weight:500;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + ((a.title||'').replace(/"/g,'&quot;')) + '">' + ((a.title||'').replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0,42)) + '</td>'
+            + '<td style="font-size:0.58rem">' + domainMetaCell + '</td>'
+            + '<td style="text-align:center">' + domainCell + '</td>'
+            + '<td style="text-align:center">' + promptsHtml + '</td>'
+            + '<td style="text-align:center">' + mainCell + '</td>'
+            + '<td style="text-align:center">' + ingCell + '</td>'
+            + '<td style="text-align:center">' + contentHtmlInner + '</td>'
+            + '<td style="text-align:center">' + pinHtml + '</td>'
+            + '<td style="text-align:center;white-space:nowrap">' + errDisplay + '</td>'
+            + '</tr>' + subRowHtml;
         }});
-        articlesHtml += '</tbody></table></div>';
+        articlesHtml += '</tbody></table></div></div>';
       }}
       articlesHtml += '<div style="display:grid;gap:3px;max-height:30vh;overflow-y:auto">';
       if (completedArticles.length > 0) {{
@@ -7597,9 +7640,6 @@ def api_bulk_run():
             main_ok = False
             if prompt:
                 cfg = get_user_config_for_api(user_id) or {}
-                delay_sec = max(0, int(cfg.get("image_request_delay_sec", 15)))
-                if delay_sec > 0:
-                    time.sleep(delay_sec)
                 urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", user_config=cfg)
                 if not err:
                     from imagine import flip_image_vertical_and_upload
@@ -7629,9 +7669,6 @@ def api_bulk_run():
                                 db_execute(conn, "UPDATE article_content SET status_error = ? WHERE title_id = ? AND language_code = 'en'", (err_msg[:500], tid))
             if main_ok and prompt_ing:
                 cfg = get_user_config_for_api(user_id) or {}
-                delay_sec = cfg.get("image_request_delay_sec", 15)
-                if delay_sec > 0:
-                    time.sleep(delay_sec)
                 urls2, err2, _ = generate_4_images_multi_channel(prompt_ing, key_prefix="ingredient_image", user_config=cfg)
                 if not err2:
                     with get_connection() as conn:
@@ -7706,9 +7743,6 @@ def api_bulk_run():
         if not prompt:
             return jsonify({"success": False, "error": "Generate prompts first"}), 400
         cfg = get_user_config_for_api(user_id) or {}
-        delay_sec = max(0, int(cfg.get("image_request_delay_sec", 15)))
-        if delay_sec > 0:
-            time.sleep(delay_sec)
         urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", user_config=cfg)
         if err:
             return jsonify({"success": False, "error": err}), 500
@@ -7742,9 +7776,6 @@ def api_bulk_run():
         if not prompt_ing:
             return jsonify({"success": False, "error": "Generate prompts first"}), 400
         cfg = get_user_config_for_api(user_id) or {}
-        delay_sec = max(0, int(cfg.get("image_request_delay_sec", 15)))
-        if delay_sec > 0:
-            time.sleep(delay_sec)
         urls2, err2, _ = generate_4_images_multi_channel(prompt_ing, key_prefix="ingredient_image", user_config=cfg)
         if err2:
             return jsonify({"success": False, "error": err2}), 500
@@ -7865,9 +7896,6 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                     if job_id:
                         _bulk_progress.get(job_id, {})["current_phase"] = 2 if mode == "all" else 1
                     if prompt:
-                        delay_sec = max(0, int(user_config.get("image_request_delay_sec", 15)))
-                        if delay_sec > 0:
-                            time.sleep(delay_sec)
                         urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", cancel_check=cancel_check, user_config=user_config)
                         if err and err == "Cancelled":
                             break
@@ -7904,9 +7932,6 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                         row = dict_row(cur.fetchone())
                         main_ok = bool(row and (row.get("main_image") or "").strip().startswith("http"))
                     if prompt_ing and main_ok and not (job_id and _bulk_cancel.get(job_id)):
-                        delay_sec = max(0, int(user_config.get("image_request_delay_sec", 15)))
-                        if delay_sec > 0:
-                            time.sleep(delay_sec)
                         urls2, err2, _ = generate_4_images_multi_channel(prompt_ing, key_prefix="ingredient_image", cancel_check=cancel_check, user_config=user_config)
                         if err2 == "Cancelled":
                             break
@@ -8048,9 +8073,6 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                     row = dict_row(cur.fetchone())
                 prompt = (row.get("prompt") or "").strip() if row else ""
                 if prompt:
-                    delay_sec = max(0, int(user_config.get("image_request_delay_sec", 15)))
-                    if delay_sec > 0:
-                        time.sleep(delay_sec)
                     urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", cancel_check=cancel_check, user_config=user_config)
                     if err == "Cancelled":
                         break
@@ -8086,9 +8108,6 @@ def _bulk_run_one_group(group_id, mode, progress_updater=None, job_id=None, scop
                     row = dict_row(cur.fetchone())
                 prompt_ing = (row.get("prompt_image_ingredients") or "").strip() if row else ""
                 if prompt_ing:
-                    delay_sec = max(0, int(user_config.get("image_request_delay_sec", 15)))
-                    if delay_sec > 0:
-                        time.sleep(delay_sec)
                     urls2, err2, _ = generate_4_images_multi_channel(prompt_ing, key_prefix="ingredient_image", cancel_check=cancel_check, user_config=user_config)
                     if err2 == "Cancelled":
                         break
@@ -8533,6 +8552,7 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
                         except Exception as e:
                             return 0, 1, _bulk_fail_reason("Prompts (recipe + image prompts)", str(e))
             if mode in ("images", "all"):
+                err, err2 = None, None
                 if cancel_check and cancel_check():
                     return 0, 0, None
                 with get_connection() as conn:
@@ -8547,7 +8567,6 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
                 if not skip_images:
                     from imagine import generate_4_images_multi_channel
                     user_config = get_user_config_for_api(user_id) if user_id else {}
-                    err, err2 = None, None
                     with get_connection() as conn:
                         cur = db_execute(conn, "SELECT prompt, prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (title_id,))
                         row = dict_row(cur.fetchone())
@@ -8556,29 +8575,33 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
                     if not prompt and title_text:
                         prompt = f"Professional food photography of {title_text}, overhead shot, natural lighting, editorial style --v 6.1"
                     if prompt:
-                        delay_sec = _effective_image_delay_sec(user_config, image_delay_sec_override)
-                        if delay_sec > 0:
-                            time.sleep(delay_sec)
-                        _on_img(title_id, "main", "running")
                         urls, err, used_ch = None, None, None
                         max_attempts = 3
                         attempts_made = 0
                         retry_errors_main = []
                         for attempt in range(1, max_attempts + 1):
                             attempts_made = attempt
-                            urls, err, used_ch = generate_4_images_multi_channel(prompt, key_prefix="main_image", cancel_check=cancel_check, user_config=user_config)
+                            if attempt > 1:
+                                # 429/busy → longer backoff; other errors → shorter backoff before next attempt
+                                if "429" in str(err) or "busy" in str(err).lower():
+                                    backoff_sec = 30 * (attempt - 1)
+                                else:
+                                    backoff_sec = 10 * (attempt - 1)
+                                log.info("[bulk-img] main_image attempt %d/%d failed, waiting %ds...", attempt - 1, max_attempts, backoff_sec)
+                                time.sleep(backoff_sec)
+                            if attempt == 1:
+                                _on_img(title_id, "main", "running")
+                            urls, err, used_ch = generate_4_images_multi_channel(
+                                prompt,
+                                key_prefix="main_image",
+                                cancel_check=cancel_check,
+                                user_config=user_config,
+                                image_delay_sec_override=image_delay_sec_override,
+                            )
                             if not err or err == "Cancelled":
                                 break
                             ch_info = f" [ch ..{used_ch[-4:]}]" if used_ch else ""
                             retry_errors_main.append(f"Attempt {attempt}{ch_info}: {str(err)[:200]}")
-                            if attempt < max_attempts:
-                                # 429/busy → longer backoff; other errors → shorter backoff before trying next channel
-                                if "429" in str(err) or "busy" in str(err).lower():
-                                    backoff_sec = 30 * attempt  # 30s, 60s
-                                else:
-                                    backoff_sec = 10 * attempt  # 10s, 20s
-                                log.info("[bulk-img] main_image attempt %d/%d failed, waiting %ds...", attempt, max_attempts, backoff_sec)
-                                time.sleep(backoff_sec)
                         res = urls[0] if (not err and urls) else err
                         _on_img(title_id, "main", "done" if not err else "error", result=res, attempts=attempts_made, retry_errors=retry_errors_main)
                         if err == "Cancelled":
@@ -8602,32 +8625,40 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
                                         cur = db_execute(conn, "UPDATE article_content SET main_image = ?, top_image = ?, bottom_image = ? WHERE title_id = ? AND language_code = 'en'", (main_url, main_url, bottom_url, tid))
                                         if cur.rowcount == 0:
                                             db_execute(conn, "INSERT INTO article_content (title_id, language_code, main_image, top_image, bottom_image) VALUES (?, 'en', ?, ?, ?)", (tid, main_url, main_url, bottom_url))
+                    if prompt and err and err != "Cancelled" and mode == "all":
+                        _on_img(title_id, "ingredient", "skipped", result="skipped: main image failed after retries")
+                        for tid in ids[:4]:
+                            _update_article_html_images(tid)
+                        return 0, 1, _bulk_fail_reason("Images (main)", str(err))
                     if not prompt_ing and title_text:
                         prompt_ing = f"Flat-lay of ingredients for {title_text}, white surface, natural light, editorial style --v 6.1"
                     if prompt_ing and not (cancel_check and cancel_check()):
-                        delay_sec = _effective_image_delay_sec(user_config, image_delay_sec_override)
-                        if delay_sec > 0:
-                            time.sleep(delay_sec)
-                        _on_img(title_id, "ingredient", "running")
                         urls2, err2, used_ch2 = None, None, None
                         max_attempts = 3
                         attempts_made = 0
                         retry_errors_ing = []
                         for attempt in range(1, max_attempts + 1):
                             attempts_made = attempt
-                            urls2, err2, used_ch2 = generate_4_images_multi_channel(prompt_ing, key_prefix="ingredient_image", cancel_check=cancel_check, user_config=user_config)
+                            if attempt > 1:
+                                if "429" in str(err2) or "busy" in str(err2).lower():
+                                    backoff_sec = 30 * (attempt - 1)
+                                else:
+                                    backoff_sec = 10 * (attempt - 1)
+                                log.info("[bulk-img] ingredient_image attempt %d/%d failed, waiting %ds...", attempt - 1, max_attempts, backoff_sec)
+                                time.sleep(backoff_sec)
+                            if attempt == 1:
+                                _on_img(title_id, "ingredient", "running")
+                            urls2, err2, used_ch2 = generate_4_images_multi_channel(
+                                prompt_ing,
+                                key_prefix="ingredient_image",
+                                cancel_check=cancel_check,
+                                user_config=user_config,
+                                image_delay_sec_override=image_delay_sec_override,
+                            )
                             if not err2 or err2 == "Cancelled":
                                 break
                             ch_info2 = f" [ch ..{used_ch2[-4:]}]" if used_ch2 else ""
                             retry_errors_ing.append(f"Attempt {attempt}{ch_info2}: {str(err2)[:200]}")
-                            if attempt < max_attempts:
-                                # 429/busy → longer backoff; other errors → shorter backoff before trying next channel
-                                if "429" in str(err2) or "busy" in str(err2).lower():
-                                    backoff_sec = 30 * attempt  # 30s, 60s
-                                else:
-                                    backoff_sec = 10 * attempt  # 10s, 20s
-                                log.info("[bulk-img] ingredient_image attempt %d/%d failed, waiting %ds...", attempt, max_attempts, backoff_sec)
-                                time.sleep(backoff_sec)
                         res2 = urls2[0] if (not err2 and urls2) else err2
                         _on_img(title_id, "ingredient", "done" if not err2 else "error", result=res2, attempts=attempts_made, retry_errors=retry_errors_ing)
                         if err2 == "Cancelled":
@@ -8641,7 +8672,7 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
                                             db_execute(conn, "INSERT INTO article_content (title_id, language_code, ingredient_image) VALUES (?, 'en', ?)", (tid, urls2[i]))
                     for tid in ids[:4]:
                         _update_article_html_images(tid)
-                    if mode == "images" and (err or err2):
+                    if mode in ("images", "all") and (err or err2):
                         if err and err2:
                             return 0, 1, _bulk_fail_reason("Images (main + ingredient)", f"main: {err}; ingredient: {err2}")
                         if err:
@@ -8661,6 +8692,11 @@ def _bulk_run_one_row(title_id, mode, job_id=None, on_active=None, on_domain_pro
                     if not main_ok:
                         return 0, 1, _bulk_fail_reason("Article (needs images)", "Main image missing or not HTTP; run Images first or fix Midjourney errors")
                     if not ing_ok:
+                        if mode == "all":
+                            return 0, 1, _bulk_fail_reason(
+                                "Article (needs images)",
+                                "Ingredient image missing or not HTTP after image step; row stopped (no content/pin) until images succeed",
+                            )
                         log.warning("[bulk] tid=%s ingredient_image missing but main_image OK — proceeding with content generation", ids[0])
                     with get_connection() as conn:
                         gen_a = sc != "empty_only" or not _title_has_content(conn, ids[0])
@@ -10229,22 +10265,17 @@ def api_bulk_run_domain():
                         skip = False
                     if not skip:
                         from imagine import generate_4_images_multi_channel
-                        delay_sec = max(0, int(user_config.get("image_request_delay_sec", 15)))
                         with get_connection() as conn:
                             cur = db_execute(conn, "SELECT prompt, prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (tid,))
                             row = dict_row(cur.fetchone())
                         prompt = (row.get("prompt") or "").strip() if row else ""
                         prompt_ing = (row.get("prompt_image_ingredients") or "").strip() if row else ""
                         if prompt:
-                            if delay_sec > 0:
-                                time.sleep(delay_sec)
                             urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", user_config=user_config)
                             if not err and urls:
                                 with get_connection() as conn:
                                     db_execute(conn, "UPDATE article_content SET main_image = ?, top_image = ? WHERE title_id = ? AND language_code = 'en'", (urls[0], urls[0], tid))
                         if prompt_ing:
-                            if delay_sec > 0:
-                                time.sleep(delay_sec)
                             urls2, err2, _ = generate_4_images_multi_channel(prompt_ing, key_prefix="ingredient_image", user_config=user_config)
                             if not err2 and urls2:
                                 with get_connection() as conn:
@@ -10357,14 +10388,11 @@ def api_bulk_run_filtered():
                     elif mode == "main_image":
                         from imagine import generate_4_images_multi_channel
                         user_config = get_user_config_for_api(user_id) or {}
-                        delay_sec = max(0, int(user_config.get("image_request_delay_sec", 15)))
                         with get_connection() as conn:
                             cur = db_execute(conn, "SELECT prompt FROM article_content WHERE title_id = ? AND language_code = 'en'", (tid,))
                             row = dict_row(cur.fetchone())
                         prompt = (row.get("prompt") or "").strip() if row else ""
                         if prompt:
-                            if delay_sec > 0:
-                                time.sleep(delay_sec)
                             urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", user_config=user_config)
                             if not err and urls:
                                 with get_connection() as conn:
@@ -10372,14 +10400,11 @@ def api_bulk_run_filtered():
                     elif mode == "ingredient_image":
                         from imagine import generate_4_images_multi_channel
                         user_config = get_user_config_for_api(user_id) or {}
-                        delay_sec = max(0, int(user_config.get("image_request_delay_sec", 15)))
                         with get_connection() as conn:
                             cur = db_execute(conn, "SELECT prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (tid,))
                             row = dict_row(cur.fetchone())
                         prompt = (row.get("prompt_image_ingredients") or "").strip() if row else ""
                         if prompt:
-                            if delay_sec > 0:
-                                time.sleep(delay_sec)
                             urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="ingredient_image", user_config=user_config)
                             if not err and urls:
                                 with get_connection() as conn:
@@ -10387,22 +10412,17 @@ def api_bulk_run_filtered():
                     elif mode == "images":
                         from imagine import generate_4_images_multi_channel
                         user_config = get_user_config_for_api(user_id) or {}
-                        delay_sec = max(0, int(user_config.get("image_request_delay_sec", 15)))
                         with get_connection() as conn:
                             cur = db_execute(conn, "SELECT prompt, prompt_image_ingredients FROM article_content WHERE title_id = ? AND language_code = 'en'", (tid,))
                             row = dict_row(cur.fetchone())
                         prompt = (row.get("prompt") or "").strip() if row else ""
                         prompt_ing = (row.get("prompt_image_ingredients") or "").strip() if row else ""
                         if prompt:
-                            if delay_sec > 0:
-                                time.sleep(delay_sec)
                             urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", user_config=user_config)
                             if not err and urls:
                                 with get_connection() as conn:
                                     db_execute(conn, "UPDATE article_content SET main_image = ?, top_image = ? WHERE title_id = ? AND language_code = 'en'", (urls[0], urls[0], tid))
                         if prompt_ing:
-                            if delay_sec > 0:
-                                time.sleep(delay_sec)
                             urls2, err2, _ = generate_4_images_multi_channel(prompt_ing, key_prefix="ingredient_image", user_config=user_config)
                             if not err2 and urls2:
                                 with get_connection() as conn:
@@ -11153,9 +11173,6 @@ def _do_generate_main_image(title_id, user_id=None):
     if len(title_ids) < 1:
         raise ValueError("No titles found for this recipe in the group.")
     user_config = get_user_config_for_api(user_id) if user_id else {}
-    delay_sec = _effective_image_delay_sec(user_config, None)
-    if delay_sec > 0:
-        time.sleep(delay_sec)
     urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="main_image", user_config=user_config)
     if err:
         err_msg = f"main_image failed: {err}"
@@ -11248,9 +11265,6 @@ def _do_generate_ingredient_image(title_id, user_id=None):
     if len(title_ids) < 1:
         raise ValueError("No titles found for this recipe in the group.")
     user_config = get_user_config_for_api(user_id) if user_id else {}
-    delay_sec = _effective_image_delay_sec(user_config, None)
-    if delay_sec > 0:
-        time.sleep(delay_sec)
     urls, err, _ = generate_4_images_multi_channel(prompt, key_prefix="ingredient_image", user_config=user_config)
     if err:
         err_msg = f"ingredient_image failed: {err}"
@@ -14740,29 +14754,56 @@ def api_domains_delete_titles_group(group_id):
     return jsonify({"success": True, "count": len(title_ids), "message": f"Deleted {len(title_ids)} title(s) from this group (domains remain)"})
 
 
+def _parse_multi_action_id_list(val):
+    """Parse JSON list or comma/space-separated string into sorted unique positive ints."""
+    if val is None:
+        return []
+    if isinstance(val, str):
+        parts = val.replace(",", " ").split()
+        out = []
+        for p in parts:
+            p = p.strip()
+            if p.isdigit():
+                out.append(int(p))
+        return sorted(set(out))
+    if isinstance(val, list):
+        out = []
+        for x in val:
+            try:
+                s = str(x).strip()
+                if s.isdigit():
+                    out.append(int(s))
+            except (TypeError, ValueError):
+                pass
+        return sorted(set(out))
+    return []
+
+
 @app.route("/api/domains/multi-group-action", methods=["POST"])
 @login_required
 def api_domains_multi_group_action():
-    """Apply action to multiple groups. Body: { group_ids: [1,2,3], action: "ungroup"|"clear_articles"|"delete_titles"|"delete_domains" }."""
+    """Apply action to groups, specific domains, or specific titles.
+    Body: { action, group_ids?: [], domain_ids?: [], title_ids?: [] }
+    Exactly one targeting mode: non-empty group_ids, domain_ids, or title_ids.
+    """
     user = get_current_user()
     user_id = user["id"]
     is_admin = user.get("is_admin", 0)
     data = request.get_json(silent=True) or {}
-    raw_ids = data.get("group_ids") or []
     action = (data.get("action") or "").strip().lower()
     if action not in ("ungroup", "clear_articles", "delete_titles", "delete_domains", "clear_images", "clear_content", "clear_pins"):
         return jsonify({"success": False, "error": "Invalid action"}), 400
-    try:
-        group_ids = [int(x) for x in raw_ids if str(x).strip().isdigit()]
-    except (TypeError, ValueError):
-        return jsonify({"success": False, "error": "Invalid group_ids"}), 400
-    if not group_ids:
-        return jsonify({"success": False, "error": "No groups selected"}), 400
-    if not is_admin:
-        user_group_ids = get_user_group_ids(user_id, is_admin)
-        bad = [g for g in group_ids if g not in user_group_ids]
-        if bad:
-            return jsonify({"success": False, "error": "Access denied to some groups"}), 403
+
+    group_ids = _parse_multi_action_id_list(data.get("group_ids"))
+    domain_ids = _parse_multi_action_id_list(data.get("domain_ids"))
+    title_ids = _parse_multi_action_id_list(data.get("title_ids"))
+
+    modes = sum(1 for x in (group_ids, domain_ids, title_ids) if x)
+    if modes != 1:
+        return jsonify({"success": False, "error": "Send exactly one of: group_ids, domain_ids, or title_ids"}), 400
+
+    user_domain_ids = get_user_domain_ids(user_id, is_admin)
+    user_group_ids = get_user_group_ids(user_id, is_admin) if not is_admin else None
 
     def get_all_descendants(conn, gid):
         result = [gid]
@@ -14772,94 +14813,179 @@ def api_domains_multi_group_action():
             result.extend(get_all_descendants(conn, c))
         return result
 
+    def scope_label():
+        if title_ids:
+            return f"{len(title_ids)} title(s)"
+        if domain_ids:
+            return f"{len(domain_ids)} domain(s)"
+        return f"{len(group_ids)} group(s)"
+
     with get_connection() as conn:
-        all_gids = []
-        for gid in group_ids:
-            all_gids.extend(get_all_descendants(conn, gid))
-        all_gids = list(set(all_gids))
-        if not all_gids:
-            return jsonify({"success": True, "count": 0, "message": "No groups"})
-        ph = ",".join(["?"] * len(all_gids))
+        target_domain_ids = []
+        target_title_ids = []
+
+        if title_ids:
+            if action in ("ungroup", "delete_domains"):
+                return jsonify({"success": False, "error": "Ungroup and Delete Domains apply to domains, not title IDs. Use Delete Titles for specific titles."}), 400
+            t_ph = ",".join(["?"] * len(title_ids))
+            cur = db_execute(conn, f"SELECT id, domain_id FROM titles WHERE id IN ({t_ph})", tuple(title_ids))
+            rows = [dict_row(r) for r in cur.fetchall()]
+            found = {r["id"] for r in rows}
+            missing = [t for t in title_ids if t not in found]
+            if missing:
+                return jsonify({"success": False, "error": f"Unknown title_id(s): {missing[:10]}"}), 400
+            if not is_admin:
+                for r in rows:
+                    if r.get("domain_id") not in (user_domain_ids or []):
+                        return jsonify({"success": False, "error": "Access denied to one or more titles"}), 403
+            target_title_ids = list(title_ids)
+
+        elif domain_ids:
+            d_ph = ",".join(["?"] * len(domain_ids))
+            cur = db_execute(conn, f"SELECT id FROM domains WHERE id IN ({d_ph})", tuple(domain_ids))
+            found = {dict_row(r)["id"] for r in cur.fetchall()}
+            missing = [d for d in domain_ids if d not in found]
+            if missing:
+                return jsonify({"success": False, "error": f"Unknown domain_id(s): {missing[:10]}"}), 400
+            if not is_admin:
+                for did in domain_ids:
+                    if did not in (user_domain_ids or []):
+                        return jsonify({"success": False, "error": "Access denied to one or more domains"}), 403
+            target_domain_ids = list(domain_ids)
+
+        else:
+            if not is_admin:
+                bad = [g for g in group_ids if g not in user_group_ids]
+                if bad:
+                    return jsonify({"success": False, "error": "Access denied to some groups"}), 403
+            all_gids = []
+            for gid in group_ids:
+                all_gids.extend(get_all_descendants(conn, gid))
+            all_gids = list(set(all_gids))
+            if not all_gids:
+                return jsonify({"success": True, "count": 0, "message": "No groups"})
+            ph = ",".join(["?"] * len(all_gids))
+            if action == "ungroup":
+                if is_admin:
+                    cur = db_execute(conn, f"UPDATE domains SET group_id = NULL, domain_index = NULL WHERE group_id IN ({ph})", tuple(all_gids))
+                else:
+                    if not user_domain_ids:
+                        return jsonify({"success": True, "count": 0})
+                    ud_ph = ",".join(["?"] * len(user_domain_ids))
+                    cur = db_execute(conn, f"UPDATE domains SET group_id = NULL, domain_index = NULL WHERE group_id IN ({ph}) AND id IN ({ud_ph})", tuple(all_gids) + tuple(user_domain_ids))
+                count = cur.rowcount if hasattr(cur, "rowcount") else 0
+                return jsonify({"success": True, "count": count, "message": f"Unassigned {count} domain(s) from {len(group_ids)} group(s)"})
+
+            cur = db_execute(conn, f"SELECT id FROM domains WHERE group_id IN ({ph})", tuple(all_gids))
+            target_domain_ids = [dict_row(r)["id"] for r in cur.fetchall()]
+            if not target_domain_ids:
+                return jsonify({"success": True, "count": 0, "message": "No domains in selected groups"})
+
+        dom_ph = ",".join(["?"] * len(target_domain_ids)) if target_domain_ids else ""
+
+        def titles_for_domains():
+            if not target_domain_ids:
+                return []
+            cur2 = db_execute(conn, f"SELECT id FROM titles WHERE domain_id IN ({dom_ph})", tuple(target_domain_ids))
+            return [dict_row(r)["id"] for r in cur2.fetchall()]
+
+        effective_title_ids = target_title_ids if target_title_ids else titles_for_domains()
 
         if action == "ungroup":
+            if not target_domain_ids:
+                return jsonify({"success": False, "error": "No domains to ungroup"}), 400
             if is_admin:
-                cur = db_execute(conn, f"UPDATE domains SET group_id = NULL, domain_index = NULL WHERE group_id IN ({ph})", tuple(all_gids))
+                cur = db_execute(conn, f"UPDATE domains SET group_id = NULL, domain_index = NULL WHERE id IN ({dom_ph})", tuple(target_domain_ids))
             else:
-                user_domain_ids = get_user_domain_ids(user_id, is_admin)
-                if not user_domain_ids:
+                allowed = [d for d in target_domain_ids if d in user_domain_ids]
+                if not allowed:
                     return jsonify({"success": True, "count": 0})
-                ud_ph = ",".join(["?"] * len(user_domain_ids))
-                cur = db_execute(conn, f"UPDATE domains SET group_id = NULL, domain_index = NULL WHERE group_id IN ({ph}) AND id IN ({ud_ph})", tuple(all_gids) + tuple(user_domain_ids))
+                aph = ",".join(["?"] * len(allowed))
+                cur = db_execute(conn, f"UPDATE domains SET group_id = NULL, domain_index = NULL WHERE id IN ({aph})", tuple(allowed))
             count = cur.rowcount if hasattr(cur, "rowcount") else 0
-            return jsonify({"success": True, "count": count, "message": f"Unassigned {count} domain(s) from {len(group_ids)} group(s)"})
-
-        cur = db_execute(conn, f"SELECT id FROM domains WHERE group_id IN ({ph})", tuple(all_gids))
-        domain_ids = [dict_row(r)["id"] for r in cur.fetchall()]
-        if not domain_ids:
-            return jsonify({"success": True, "count": 0, "message": "No domains in selected groups"})
-        dom_ph = ",".join(["?"] * len(domain_ids))
+            return jsonify({"success": True, "count": count, "message": f"Unassigned {count} domain(s) ({scope_label()})"})
 
         if action == "clear_articles":
-            cur = db_execute(conn, f"SELECT id FROM titles WHERE domain_id IN ({dom_ph})", tuple(domain_ids))
-            title_ids = [dict_row(r)["id"] for r in cur.fetchall()]
-            if not title_ids:
+            if not effective_title_ids:
                 return jsonify({"success": True, "count": 0, "message": "No titles"})
-            t_ph = ",".join(["?"] * len(title_ids))
-            db_execute(conn, f"DELETE FROM article_content WHERE title_id IN ({t_ph})", tuple(title_ids))
-            return jsonify({"success": True, "count": len(title_ids), "message": f"Cleared articles for {len(title_ids)} title(s) in {len(group_ids)} group(s)"})
+            et_ph = ",".join(["?"] * len(effective_title_ids))
+            db_execute(conn, f"DELETE FROM article_content WHERE title_id IN ({et_ph})", tuple(effective_title_ids))
+            return jsonify({"success": True, "count": len(effective_title_ids), "message": f"Cleared articles for {len(effective_title_ids)} title(s) ({scope_label()})"})
 
         if action == "clear_images":
-            cur = db_execute(conn, f"SELECT ac.id FROM article_content ac JOIN titles t ON ac.title_id = t.id WHERE t.domain_id IN ({dom_ph}) AND ac.language_code = 'en'", tuple(domain_ids))
+            if not effective_title_ids:
+                return jsonify({"success": True, "count": 0, "message": "No titles"})
+            et_ph = ",".join(["?"] * len(effective_title_ids))
+            cur = db_execute(
+                conn,
+                f"SELECT ac.id FROM article_content ac WHERE ac.title_id IN ({et_ph}) AND ac.language_code = 'en'",
+                tuple(effective_title_ids),
+            )
             ac_ids = [dict_row(r)["id"] for r in cur.fetchall()]
             if not ac_ids:
                 return jsonify({"success": True, "count": 0, "message": "No article_content rows"})
             ac_ph = ",".join(["?"] * len(ac_ids))
             cur = db_execute(conn, f"UPDATE article_content SET main_image = NULL, ingredient_image = NULL, top_image = NULL, bottom_image = NULL WHERE id IN ({ac_ph})", tuple(ac_ids))
             count = cur.rowcount if hasattr(cur, "rowcount") else len(ac_ids)
-            return jsonify({"success": True, "count": count, "message": f"Cleared main+ingredient images for {count} article(s) in {len(group_ids)} group(s)"})
+            return jsonify({"success": True, "count": count, "message": f"Cleared main+ingredient images for {count} article row(s) ({scope_label()})"})
 
         if action == "clear_content":
-            cur = db_execute(conn, f"SELECT ac.id FROM article_content ac JOIN titles t ON ac.title_id = t.id WHERE t.domain_id IN ({dom_ph}) AND ac.language_code = 'en'", tuple(domain_ids))
+            if not effective_title_ids:
+                return jsonify({"success": True, "count": 0, "message": "No titles"})
+            et_ph = ",".join(["?"] * len(effective_title_ids))
+            cur = db_execute(
+                conn,
+                f"SELECT ac.id FROM article_content ac WHERE ac.title_id IN ({et_ph}) AND ac.language_code = 'en'",
+                tuple(effective_title_ids),
+            )
             ac_ids = [dict_row(r)["id"] for r in cur.fetchall()]
             if not ac_ids:
                 return jsonify({"success": True, "count": 0, "message": "No article_content rows"})
             ac_ph = ",".join(["?"] * len(ac_ids))
             cur = db_execute(conn, f"UPDATE article_content SET article_html = NULL, article_css = NULL WHERE id IN ({ac_ph})", tuple(ac_ids))
             count = cur.rowcount if hasattr(cur, "rowcount") else len(ac_ids)
-            return jsonify({"success": True, "count": count, "message": f"Cleared HTML+CSS content for {count} article(s) in {len(group_ids)} group(s)"})
+            return jsonify({"success": True, "count": count, "message": f"Cleared HTML+CSS for {count} article row(s) ({scope_label()})"})
 
         if action == "clear_pins":
-            cur = db_execute(conn, f"SELECT ac.id FROM article_content ac JOIN titles t ON ac.title_id = t.id WHERE t.domain_id IN ({dom_ph}) AND ac.language_code = 'en'", tuple(domain_ids))
+            if not effective_title_ids:
+                return jsonify({"success": True, "count": 0, "message": "No titles"})
+            et_ph = ",".join(["?"] * len(effective_title_ids))
+            cur = db_execute(
+                conn,
+                f"SELECT ac.id FROM article_content ac WHERE ac.title_id IN ({et_ph}) AND ac.language_code = 'en'",
+                tuple(effective_title_ids),
+            )
             ac_ids = [dict_row(r)["id"] for r in cur.fetchall()]
             if not ac_ids:
                 return jsonify({"success": True, "count": 0, "message": "No article_content rows"})
             ac_ph = ",".join(["?"] * len(ac_ids))
             cur = db_execute(conn, f"UPDATE article_content SET pin_image = NULL WHERE id IN ({ac_ph})", tuple(ac_ids))
             count = cur.rowcount if hasattr(cur, "rowcount") else len(ac_ids)
-            return jsonify({"success": True, "count": count, "message": f"Cleared pin images for {count} article(s) in {len(group_ids)} group(s)"})
+            return jsonify({"success": True, "count": count, "message": f"Cleared pin images for {count} article row(s) ({scope_label()})"})
 
         if action == "delete_titles":
-            cur = db_execute(conn, f"SELECT id FROM titles WHERE domain_id IN ({dom_ph})", tuple(domain_ids))
-            title_ids = [dict_row(r)["id"] for r in cur.fetchall()]
-            if not title_ids:
+            if not effective_title_ids:
                 return jsonify({"success": True, "count": 0, "message": "No titles"})
-            t_ph = ",".join(["?"] * len(title_ids))
-            db_execute(conn, f"DELETE FROM article_content WHERE title_id IN ({t_ph})", tuple(title_ids))
-            db_execute(conn, f"DELETE FROM titles WHERE id IN ({t_ph})", tuple(title_ids))
-            return jsonify({"success": True, "count": len(title_ids), "message": f"Deleted {len(title_ids)} title(s) in {len(group_ids)} group(s)"})
+            et_ph = ",".join(["?"] * len(effective_title_ids))
+            db_execute(conn, f"DELETE FROM article_content WHERE title_id IN ({et_ph})", tuple(effective_title_ids))
+            db_execute(conn, f"DELETE FROM titles WHERE id IN ({et_ph})", tuple(effective_title_ids))
+            return jsonify({"success": True, "count": len(effective_title_ids), "message": f"Deleted {len(effective_title_ids)} title(s) ({scope_label()})"})
 
         if action == "delete_domains":
-            cur = db_execute(conn, f"SELECT id FROM titles WHERE domain_id IN ({dom_ph})", tuple(domain_ids))
-            title_ids = [dict_row(r)["id"] for r in cur.fetchall()]
-            if title_ids:
-                t_ph = ",".join(["?"] * len(title_ids))
-                db_execute(conn, f"DELETE FROM article_content WHERE title_id IN ({t_ph})", tuple(title_ids))
-                db_execute(conn, f"DELETE FROM titles WHERE id IN ({t_ph})", tuple(title_ids))
-            db_execute(conn, f"DELETE FROM domain_template_assignments WHERE domain_id IN ({dom_ph})", tuple(domain_ids))
-            db_execute(conn, f"DELETE FROM domain_templates WHERE domain_id IN ({dom_ph})", tuple(domain_ids))
-            db_execute(conn, f"DELETE FROM user_domains WHERE domain_id IN ({dom_ph})", tuple(domain_ids))
-            db_execute(conn, f"DELETE FROM domains WHERE id IN ({dom_ph})", tuple(domain_ids))
-            return jsonify({"success": True, "count": len(domain_ids), "message": f"Deleted {len(domain_ids)} domain(s) from {len(group_ids)} group(s)"})
+            if not target_domain_ids:
+                return jsonify({"success": False, "error": "Delete Domains requires domain or group scope, not title IDs only"}), 400
+            cur = db_execute(conn, f"SELECT id FROM titles WHERE domain_id IN ({dom_ph})", tuple(target_domain_ids))
+            all_tids = [dict_row(r)["id"] for r in cur.fetchall()]
+            if all_tids:
+                t_ph2 = ",".join(["?"] * len(all_tids))
+                db_execute(conn, f"DELETE FROM article_content WHERE title_id IN ({t_ph2})", tuple(all_tids))
+                db_execute(conn, f"DELETE FROM titles WHERE id IN ({t_ph2})", tuple(all_tids))
+            db_execute(conn, f"DELETE FROM domain_template_assignments WHERE domain_id IN ({dom_ph})", tuple(target_domain_ids))
+            db_execute(conn, f"DELETE FROM domain_templates WHERE domain_id IN ({dom_ph})", tuple(target_domain_ids))
+            db_execute(conn, f"DELETE FROM user_domains WHERE domain_id IN ({dom_ph})", tuple(target_domain_ids))
+            db_execute(conn, f"DELETE FROM domains WHERE id IN ({dom_ph})", tuple(target_domain_ids))
+            return jsonify({"success": True, "count": len(target_domain_ids), "message": f"Deleted {len(target_domain_ids)} domain(s) ({scope_label()})"})
+
     return jsonify({"success": False, "error": "Unknown action"}), 400
 
 
@@ -19132,7 +19258,7 @@ def admin_domains():
       <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#bulkAddCard">Bulk add domains</button>
       <button type="button" class="btn btn-outline-info btn-sm" id="syncPinTemplatesBtn" title="Fetch Pin API templates and generate example images. Run once before bulk add." style="display:none">📌 Sync pin templates</button>
       {('<button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="collapse" data-bs-target="#distributeTitlesCard">📝 Distribute Titles</button>') if filter_group_id else ''}
-      {('<button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="collapse" data-bs-target="#multiGroupActionsCard" title="Ungroup, Clear articles, Delete titles/domains for all or selected groups">🔧 Multi-group actions</button>') if multi_group_checkboxes else ''}
+      <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="collapse" data-bs-target="#multiGroupActionsCard" title="Actions by groups, domain IDs, or title IDs">🔧 Multi-group actions</button>
       {('<button type="button" class="btn btn-primary btn-sm" onclick="openBulkAllGroupsModal()" title="Run for all groups (same as Database Management)">Run all groups</button>') if not filter_group_id and any(d.get("group_id") for d in domains) else ""}
       {run_this_group_btn_html}
       {group_prompts_link_html}
@@ -19273,10 +19399,10 @@ def admin_domains():
       <div class="card">
         <div class="card-body">
           <h6 class="mb-3">🔧 Multi-group Actions</h6>
-          <p class="small text-muted mb-2">Choose scope (all groups or selected groups), then run the action.</p>
+          <p class="small text-muted mb-2">Choose scope: groups in this table, or paste <strong>domain IDs</strong> / <strong>title IDs</strong> (comma, space, or newline). Send only one scope to the server.</p>
           <div class="mb-2">
-            <label class="form-label small fw-medium">Target groups</label>
-            <div class="d-flex gap-2 mb-2">
+            <label class="form-label small fw-medium">Target scope</label>
+            <div class="d-flex flex-wrap gap-3 mb-2">
               <div class="form-check">
                 <input class="form-check-input" type="radio" name="mg_scope_radio" id="mgScopeAll" value="all" checked>
                 <label class="form-check-label small" for="mgScopeAll">All groups in table</label>
@@ -19284,6 +19410,14 @@ def admin_domains():
               <div class="form-check">
                 <input class="form-check-input" type="radio" name="mg_scope_radio" id="mgScopeSelected" value="selected">
                 <label class="form-check-label small" for="mgScopeSelected">Selected groups only</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="mg_scope_radio" id="mgScopeDomains" value="domains">
+                <label class="form-check-label small" for="mgScopeDomains">Specific domain IDs</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="mg_scope_radio" id="mgScopeTitles" value="titles">
+                <label class="form-check-label small" for="mgScopeTitles">Specific title IDs</label>
               </div>
             </div>
             <div id="mgActionCheckboxes" class="border rounded p-2 mb-2" style="max-height: 180px; overflow-y: auto; display: none;">
@@ -19293,8 +19427,18 @@ def admin_domains():
               </div>
               {multi_group_checkboxes if multi_group_checkboxes else '<div class="text-muted small">No groups with domains in this view</div>'}
             </div>
+            <div id="mgDomainIdsWrap" class="mb-2" style="display:none">
+              <label class="form-label small" for="mgDomainIdsInput">Domain IDs</label>
+              <textarea id="mgDomainIdsInput" class="form-control form-control-sm font-monospace" rows="2" placeholder="e.g. 12, 15&#10;18"></textarea>
+            </div>
+            <div id="mgTitleIdsWrap" class="mb-2" style="display:none">
+              <label class="form-label small" for="mgTitleIdsInput">Title IDs</label>
+              <textarea id="mgTitleIdsInput" class="form-control form-control-sm font-monospace" rows="2" placeholder="e.g. 220 224, 301"></textarea>
+              <div class="form-text small">Clears/deletes only those titles. Ungroup and Delete Domains are not available for this scope.</div>
+            </div>
           </div>
           <div class="d-flex flex-wrap gap-2 mb-2">
+            <button type="button" class="btn btn-outline-warning btn-sm" onclick="runMultiGroupAction('ungroup')" title="Remove domains from their group (domains stay; use group or domain ID scope)">🔓 Ungroup</button>
             <button type="button" class="btn btn-outline-info btn-sm" onclick="runMultiGroupAction('clear_images')" title="Clear main+ingredient images only">🖼️ Clear Images</button>
             <button type="button" class="btn btn-outline-secondary btn-sm" onclick="runMultiGroupAction('clear_content')" title="Clear HTML+CSS content only">📄 Clear Content</button>
             <button type="button" class="btn btn-outline-primary btn-sm" onclick="runMultiGroupAction('clear_pins')" title="Clear pin images only">📌 Clear Pins</button>
@@ -19398,33 +19542,90 @@ def admin_domains():
       }}
     }})();
     window.MULTI_GROUP_ALL_IDS = {json.dumps(multi_group_all_ids)};
+    function parseMgIdList(s) {{
+      if (!s) return [];
+      var out = [];
+      String(s).split(/[\s,;]+/).forEach(function(p) {{
+        p = p.trim();
+        if (!p) return;
+        var n = parseInt(p, 10);
+        if (!isNaN(n) && n > 0) out.push(n);
+      }});
+      return out;
+    }}
     (function(){{
       var scopeAll = document.getElementById('mgScopeAll');
       var scopeSelected = document.getElementById('mgScopeSelected');
+      var scopeDomains = document.getElementById('mgScopeDomains');
+      var scopeTitles = document.getElementById('mgScopeTitles');
       var checkboxesDiv = document.getElementById('mgActionCheckboxes');
-      if (scopeAll && scopeSelected && checkboxesDiv) {{
-        function updateMgScope() {{
-          if (scopeSelected.checked) {{ checkboxesDiv.style.display = 'block'; }}
-          else {{ checkboxesDiv.style.display = 'none'; }}
-        }}
-        scopeAll.addEventListener('change', updateMgScope);
-        scopeSelected.addEventListener('change', updateMgScope);
+      var domWrap = document.getElementById('mgDomainIdsWrap');
+      var titWrap = document.getElementById('mgTitleIdsWrap');
+      function updateMgScope() {{
+        var sel = scopeSelected && scopeSelected.checked;
+        var dom = scopeDomains && scopeDomains.checked;
+        var tit = scopeTitles && scopeTitles.checked;
+        if (checkboxesDiv) checkboxesDiv.style.display = sel ? 'block' : 'none';
+        if (domWrap) domWrap.style.display = dom ? 'block' : 'none';
+        if (titWrap) titWrap.style.display = tit ? 'block' : 'none';
       }}
+      [scopeAll, scopeSelected, scopeDomains, scopeTitles].forEach(function(el) {{
+        if (el) el.addEventListener('change', updateMgScope);
+      }});
+      updateMgScope();
     }})();
     function runMultiGroupAction(action) {{
-      var ids = [];
-      if (document.getElementById('mgScopeAll') && document.getElementById('mgScopeAll').checked) {{
-        ids = window.MULTI_GROUP_ALL_IDS || [];
+      var body = {{ action: action }};
+      var scopeAll = document.getElementById('mgScopeAll');
+      var scopeSel = document.getElementById('mgScopeSelected');
+      var scopeDom = document.getElementById('mgScopeDomains');
+      var scopeTit = document.getElementById('mgScopeTitles');
+      var scope = 'all';
+      if (scopeSel && scopeSel.checked) scope = 'selected';
+      else if (scopeDom && scopeDom.checked) scope = 'domains';
+      else if (scopeTit && scopeTit.checked) scope = 'titles';
+
+      var confirmLabel = '';
+      if (scope === 'titles') {{
+        if (action === 'ungroup' || action === 'delete_domains') {{
+          alert('Ungroup and Delete Domains only apply to domains. Use group scope or paste domain IDs.');
+          return;
+        }}
+        var tids = parseMgIdList(document.getElementById('mgTitleIdsInput') ? document.getElementById('mgTitleIdsInput').value : '');
+        if (tids.length === 0) {{ alert('Enter at least one title ID'); return; }}
+        body.title_ids = tids;
+        confirmLabel = tids.length + ' title(s) by ID';
+      }} else if (scope === 'domains') {{
+        var dids = parseMgIdList(document.getElementById('mgDomainIdsInput') ? document.getElementById('mgDomainIdsInput').value : '');
+        if (dids.length === 0) {{ alert('Enter at least one domain ID'); return; }}
+        body.domain_ids = dids;
+        confirmLabel = dids.length + ' domain(s) by ID';
       }} else {{
-        var cbs = document.querySelectorAll('#mgActionCheckboxes .mg-action-cb:checked');
-        ids = Array.from(cbs).map(function(cb) {{ return parseInt(cb.value, 10); }});
+        var gids = [];
+        if (scopeAll && scopeAll.checked) {{
+          gids = window.MULTI_GROUP_ALL_IDS || [];
+        }} else {{
+          var cbs = document.querySelectorAll('#mgActionCheckboxes .mg-action-cb:checked');
+          gids = Array.from(cbs).map(function(cb) {{ return parseInt(cb.value, 10); }});
+        }}
+        if (gids.length === 0) {{ alert('Select at least one group (or choose "All groups in table")'); return; }}
+        body.group_ids = gids;
+        confirmLabel = gids.length + ' group(s)';
       }}
-      if (ids.length === 0) {{ alert('Select at least one group (or choose "All groups in table")'); return; }}
-      var msgs = {{ 'ungroup': 'Remove domains from ' + ids.length + ' group(s)?', 'clear_images': 'Clear main+ingredient images in ' + ids.length + ' group(s)?', 'clear_content': 'Clear HTML+CSS content in ' + ids.length + ' group(s)?', 'clear_pins': 'Clear pin images in ' + ids.length + ' group(s)?', 'clear_articles': 'Clear all article content in ' + ids.length + ' group(s)?', 'delete_titles': 'Delete ALL titles in ' + ids.length + ' group(s)?', 'delete_domains': 'Delete ALL domains in ' + ids.length + ' group(s)? This cannot be undone.' }};
+
+      var msgs = {{
+        'ungroup': 'Remove domains from their group for ' + confirmLabel + '?',
+        'clear_images': 'Clear main+ingredient images for ' + confirmLabel + '?',
+        'clear_content': 'Clear HTML+CSS content for ' + confirmLabel + '?',
+        'clear_pins': 'Clear pin images for ' + confirmLabel + '?',
+        'clear_articles': 'Clear all article content for ' + confirmLabel + '?',
+        'delete_titles': 'Permanently delete titles for ' + confirmLabel + '?',
+        'delete_domains': 'Permanently delete ALL domains for ' + confirmLabel + '? This cannot be undone.'
+      }};
       if (!confirm(msgs[action])) return;
       if ((action === 'delete_titles' || action === 'delete_domains') && !confirm('This cannot be undone. Continue?')) return;
       if (typeof showGlobalLoading === 'function') showGlobalLoading();
-      fetch('/api/domains/multi-group-action', {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }}, body: JSON.stringify({{ group_ids: ids, action: action }}) }})
+      fetch('/api/domains/multi-group-action', {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }}, body: JSON.stringify(body) }})
         .then(function(r) {{ return r.json(); }})
         .then(function(d) {{
           if (d.success) {{ alert(d.message || 'Done'); if (typeof refreshDomainsTable === 'function') refreshDomainsTable(); else location.reload(); }}
