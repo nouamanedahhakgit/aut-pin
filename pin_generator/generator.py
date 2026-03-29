@@ -512,9 +512,15 @@ def run_server(available_templates, host="0.0.0.0", port=5000):
     @app.errorhandler(Exception)
     def _handle_exception(exc):
         import traceback
+        from flask import request as flask_request
         tb = traceback.format_exc()
-        print(f"[pin_api] UNHANDLED EXCEPTION:\n{tb}", flush=True)
-        log.exception("Unhandled exception: %s", exc)
+        ep = ""
+        try:
+            ep = "%s %s" % (flask_request.method, flask_request.path)
+        except Exception:
+            pass
+        print(f"[pin_api] UNHANDLED {ep}:\n{tb}", flush=True)
+        log.exception("Unhandled exception %s: %s", ep or "request", exc)
         return jsonify({"success": False, "error": str(exc), "traceback": tb}), 500
 
     @app.route("/")
@@ -630,83 +636,98 @@ def run_server(available_templates, host="0.0.0.0", port=5000):
         Body: { "template_data": {...}, "variables": {...}, "elements": {...}, "title", "domain", "domain_colors", "domain_fonts", ... }
         Returns: { "success": True, "template_data": merged }. Used by JavaScript pin path (multi-domain-clean).
         """
+        import traceback
         from generators._base import template_from_data, apply_overrides, apply_domain_style
         body = request.get_json(silent=True) or {}
         tpl_data = body.get("template_data") or body
         if not isinstance(tpl_data, dict):
             return jsonify({"success": False, "error": "Missing or invalid template_data"}), 400
-        merged = copy.deepcopy(tpl_data)
-        # Normalize to template shape (skip for HTML templates - preserve html, template_type, field_prompts)
-        if merged.get("template_type") != "html":
-            tpl = template_from_data(merged)
-            merged = copy.deepcopy(tpl)
-        # Domain style
-        dc = body.get("domain_colors")
-        df = body.get("domain_fonts")
-        if dc or df:
-            style_slots = body.get("style_slots") or {}
-            font_slots = body.get("font_slots") or {}
-            try:
-                apply_domain_style(merged, style_slots, font_slots, dc, df)
-            except Exception as e:
-                log.warning("merge_template domain_style: %s", e)
-        _deep_merge(merged, {k: v for k, v in body.items() if k not in ("template_data", "style_slots", "font_slots") and v is not None})
-        # Build variables: merge body variables + domain color placeholders for HTML templates
-        variables = dict(body.get("variables") or {})
-        if merged.get("template_type") == "html" and dc:
-            variables.setdefault("domain_primary", dc.get("primary") or "#5D4037")
-            variables.setdefault("domain_secondary", dc.get("secondary") or "#8B5A2B")
-            variables.setdefault("domain_background", dc.get("background") or "#FFFFFF")
-            variables.setdefault("domain_text_primary", dc.get("text_primary") or "#000000")
-            variables.setdefault("domain_text_secondary", dc.get("text_secondary") or "#666666")
-            variables.setdefault("domain_on_primary", "#FFFFFF")
-            variables.setdefault("domain_on_secondary", "#FFFFFF")
-        if variables:
-            _apply_variables(merged, variables)
-        # Apply layout/position/domain overrides BEFORE AI, so AI-generated text is not overwritten (same as Python /generate)
-        apply_overrides(merged, body)
-        # OpenAI text for fields with field_prompts — runs after apply_overrides so generated text wins
-        _ai_keys = (
-            "openai_api_key",
-            "openrouter_api_key",
-            "groq_api_key",
-            "ai_provider",
-            "openai_model",
-            "openrouter_model",
-            "groq_model",
-            "local_api_url",
-            "local_model",
+        _tn = (tpl_data.get("name") or tpl_data.get("template_id") or "?")
+        _tt = tpl_data.get("template_type") or "canvas"
+        log.info(
+            "POST /merge-template | template_type=%s name=%r field_prompts=%s ai_provider=%s",
+            _tt,
+            _tn,
+            bool((tpl_data.get("field_prompts") or {})),
+            body.get("ai_provider"),
         )
-        ai_config = {k: body[k] for k in _ai_keys if k in body and body[k] is not None}
-        title = (body.get("variables") or {}).get("title") or body.get("title") or body.get("name")
-        domain = (body.get("variables") or {}).get("domain") or body.get("domain") or "example.com"
-        if title and isinstance(title, str):
-            elements = merged.get("elements") or {}
-            field_prompts = merged.get("field_prompts") or {}
-            if not field_prompts:
-                for ek, ev in elements.items():
-                    if isinstance(ev, dict) and ev.get("type") == "text" and ev.get("text_prompt"):
-                        field_prompts[ek] = ev["text_prompt"]
-            prompt = merged.get("prompt") or "Generate text for each field. Replace {{title}} with the recipe title; output a JSON object with one key per field."
-            field_examples = merged.get("field_examples") or {}
-            if field_prompts and prompt:
+        try:
+            merged = copy.deepcopy(tpl_data)
+            # Normalize to template shape (skip for HTML templates - preserve html, template_type, field_prompts)
+            if merged.get("template_type") != "html":
+                tpl = template_from_data(merged)
+                merged = copy.deepcopy(tpl)
+            # Domain style
+            dc = body.get("domain_colors")
+            df = body.get("domain_fonts")
+            if dc or df:
+                style_slots = body.get("style_slots") or {}
+                font_slots = body.get("font_slots") or {}
                 try:
-                    generated = _generate_texts_via_openai(title, prompt, field_prompts, config=ai_config, field_examples=field_examples if field_examples else None)
-                    if generated:
-                        if merged.get("template_type") == "html":
-                            # HTML templates: put generated text in variables for placeholder replacement
-                            merged.setdefault("variables", {})
-                            merged["variables"].update(generated)
-                            merged["variables"]["title"] = title
-                            merged["variables"]["domain"] = domain
-                        else:
-                            generated = _fit_generated_texts(generated, elements)
-                            for fn, text in generated.items():
-                                if fn in merged.get("elements", {}):
-                                    merged["elements"][fn]["text"] = text
-                except OpenAIServiceError as e:
-                    log.warning("merge_template OpenAI: %s", e)
-        return jsonify({"success": True, "template_data": merged})
+                    apply_domain_style(merged, style_slots, font_slots, dc, df)
+                except Exception as e:
+                    log.warning("merge_template domain_style: %s", e)
+            _deep_merge(merged, {k: v for k, v in body.items() if k not in ("template_data", "style_slots", "font_slots") and v is not None})
+            # Build variables: merge body variables + domain color placeholders for HTML templates
+            variables = dict(body.get("variables") or {})
+            if merged.get("template_type") == "html" and dc:
+                variables.setdefault("domain_primary", dc.get("primary") or "#5D4037")
+                variables.setdefault("domain_secondary", dc.get("secondary") or "#8B5A2B")
+                variables.setdefault("domain_background", dc.get("background") or "#FFFFFF")
+                variables.setdefault("domain_text_primary", dc.get("text_primary") or "#000000")
+                variables.setdefault("domain_text_secondary", dc.get("text_secondary") or "#666666")
+                variables.setdefault("domain_on_primary", "#FFFFFF")
+                variables.setdefault("domain_on_secondary", "#FFFFFF")
+            if variables:
+                _apply_variables(merged, variables)
+            # Apply layout/position/domain overrides BEFORE AI, so AI-generated text is not overwritten (same as Python /generate)
+            apply_overrides(merged, body)
+            # OpenAI text for fields with field_prompts — runs after apply_overrides so generated text wins
+            _ai_keys = (
+                "openai_api_key",
+                "openrouter_api_key",
+                "groq_api_key",
+                "ai_provider",
+                "openai_model",
+                "openrouter_model",
+                "groq_model",
+                "local_api_url",
+                "local_model",
+            )
+            ai_config = {k: body[k] for k in _ai_keys if k in body and body[k] is not None}
+            title = (body.get("variables") or {}).get("title") or body.get("title") or body.get("name")
+            domain = (body.get("variables") or {}).get("domain") or body.get("domain") or "example.com"
+            if title and isinstance(title, str):
+                elements = merged.get("elements") or {}
+                field_prompts = merged.get("field_prompts") or {}
+                if not field_prompts:
+                    for ek, ev in elements.items():
+                        if isinstance(ev, dict) and ev.get("type") == "text" and ev.get("text_prompt"):
+                            field_prompts[ek] = ev["text_prompt"]
+                prompt = merged.get("prompt") or "Generate text for each field. Replace {{title}} with the recipe title; output a JSON object with one key per field."
+                field_examples = merged.get("field_examples") or {}
+                if field_prompts and prompt:
+                    try:
+                        generated = _generate_texts_via_openai(title, prompt, field_prompts, config=ai_config, field_examples=field_examples if field_examples else None)
+                        if generated:
+                            if merged.get("template_type") == "html":
+                                # HTML templates: put generated text in variables for placeholder replacement
+                                merged.setdefault("variables", {})
+                                merged["variables"].update(generated)
+                                merged["variables"]["title"] = title
+                                merged["variables"]["domain"] = domain
+                            else:
+                                generated = _fit_generated_texts(generated, elements)
+                                for fn, text in generated.items():
+                                    if fn in merged.get("elements", {}):
+                                        merged["elements"][fn]["text"] = text
+                    except OpenAIServiceError as e:
+                        log.warning("merge_template OpenAI: %s", e)
+            return jsonify({"success": True, "template_data": merged})
+        except Exception as e:
+            tb = traceback.format_exc()
+            log.exception("merge_template failed | template_type=%s name=%r: %s", _tt, _tn, e)
+            return jsonify({"success": False, "error": str(e), "traceback": tb}), 500
 
     @app.route("/generate-from-html", methods=["POST"])
     def generate_from_html():

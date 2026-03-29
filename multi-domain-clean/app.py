@@ -371,6 +371,96 @@ def _bulk_append_failed_row(job_id, group_id, row_index, title_id, title, reason
     p["failed_rows"] = fr[-120:]
 
 
+def _conn_group_descendant_ids(conn, gid):
+    """Return all group IDs in the subtree rooted at gid (including gid)."""
+    result = [int(gid)]
+    cur = db_execute(conn, "SELECT id FROM `groups` WHERE parent_group_id = ?", (gid,))
+    for row in cur.fetchall():
+        cid = dict_row(row).get("id")
+        if cid:
+            result.extend(_conn_group_descendant_ids(conn, cid))
+    return result
+
+
+def _bulk_work_conflicts_domain_ids(conn, domain_ids_set):
+    """If any in-flight bulk workflow or deploy touches these domains, return a user-facing error string."""
+    if not domain_ids_set:
+        return None
+    domain_ids_set = {int(x) for x in domain_ids_set}
+    with BULK_DEPLOY_JOBS_LOCK:
+        for jid, j in list(BULK_DEPLOY_JOBS.items()):
+            if j.get("_cancelled"):
+                continue
+            total = int(j.get("total") or 0)
+            done = int(j.get("done") or 0)
+            if total > 0 and done >= total:
+                continue
+            stmap = j.get("status") or {}
+            for did, _url in (j.get("items") or []):
+                try:
+                    did = int(did)
+                except (TypeError, ValueError):
+                    continue
+                if did not in domain_ids_set:
+                    continue
+                st = stmap.get(did, "pending")
+                if st in ("pending", "running"):
+                    return (
+                        "Cloudflare bulk deploy is still in progress for at least one selected domain "
+                        f"(job {jid}). Finish or cancel it before moving domains."
+                    )
+    title_ids = set()
+    for jid, p in list(_bulk_progress.items()):
+        if p.get("status") != "running":
+            continue
+        did = p.get("domain_id")
+        if did is not None:
+            try:
+                if int(did) in domain_ids_set:
+                    return (
+                        f"A run is still in progress on domain id {int(did)} (job {jid}). "
+                        "Wait for it to finish or cancel before moving domains."
+                    )
+            except (TypeError, ValueError):
+                pass
+        gid = p.get("group_id")
+        if gid is not None:
+            try:
+                gids = _conn_group_descendant_ids(conn, int(gid))
+                if not gids:
+                    continue
+                ph = ",".join(["?"] * len(gids))
+                cur = db_execute(conn, f"SELECT id FROM domains WHERE group_id IN ({ph})", tuple(gids))
+                for row in cur.fetchall():
+                    if dict_row(row).get("id") in domain_ids_set:
+                        return (
+                            f"A bulk workflow is still running for a group that includes a selected domain "
+                            f"(job {jid}). Wait or cancel before moving."
+                        )
+            except (TypeError, ValueError):
+                pass
+        for art in (p.get("active_articles") or []):
+            if not isinstance(art, dict):
+                continue
+            for v in (art.get("domain_title_ids") or {}).values():
+                if v:
+                    try:
+                        title_ids.add(int(v))
+                    except (TypeError, ValueError):
+                        pass
+    if title_ids:
+        ph = ",".join(["?"] * len(title_ids))
+        cur = db_execute(conn, f"SELECT domain_id FROM titles WHERE id IN ({ph})", tuple(title_ids))
+        for row in cur.fetchall():
+            dom_id = dict_row(row).get("domain_id")
+            if dom_id is not None and int(dom_id) in domain_ids_set:
+                return (
+                    "A bulk workflow is still processing a row that uses one of these domains "
+                    "(A/B/C/D). Wait for it to finish or cancel before moving."
+                )
+    return None
+
+
 def _summarize_article_generator_http_error_body(err_body: str, max_len: int = 1000) -> str:
     """Make article-website-generator HTTP error bodies readable (JSON fields, strip HTML)."""
     s = (err_body or "").strip()
@@ -5253,8 +5343,13 @@ def api_database_management_groups():
 def api_render_title_row(title_id):
     """Render a single title-row <li> for database management."""
     with get_connection() as conn:
-        # Find group and title text for this title
-        cur = db_execute(conn, "SELECT group_id, title FROM titles WHERE id = ?", (title_id,))
+        # Effective group = domain batch (titles.group_id can be stale after domain moves)
+        cur = db_execute(
+            conn,
+            """SELECT t.title, COALESCE(t.group_id, d.group_id) AS group_id
+               FROM titles t JOIN domains d ON t.domain_id = d.id WHERE t.id = ?""",
+            (title_id,),
+        )
         row = cur.fetchone()
         if not row:
             return "Title not found", 404
@@ -5298,7 +5393,13 @@ def api_render_title_row(title_id):
             # because _render_groups_html iterates over sorted_titles from dom_a.
             # However, for simplicity, if we are refreshing ANY title in the group, we just want its row.
             # Let's find the Domain A title for this text.
-            cur = db_execute(conn, "SELECT id FROM titles WHERE group_id = ? AND title = ? AND domain_id IN (SELECT id FROM domains WHERE domain_index = 0 AND group_id = ?)", (gid, ttxt, gid))
+            cur = db_execute(
+                conn,
+                """SELECT t.id FROM titles t JOIN domains d ON t.domain_id = d.id
+                   WHERE COALESCE(t.group_id, d.group_id) = ? AND t.title = ?
+                   AND d.domain_index = 0 AND d.group_id = ?""",
+                (gid, ttxt, gid),
+            )
             row_a = cur.fetchone()
             if row_a:
                 ta_id = row_a[0]
@@ -11774,14 +11875,32 @@ def _do_generate_pin_image(
         merge_payload["template_data"] = base_tpl
         merge_payload.setdefault("style_slots", body.get("style_slots") or {})
         merge_payload.setdefault("font_slots", body.get("font_slots") or {})
+        r_merge = None
         try:
-            r = requests_lib.post(pin_api_base + "/merge-template", json=merge_payload, timeout=90)
-            r.raise_for_status()
-            merge_data = r.json()
+            r_merge = requests_lib.post(pin_api_base + "/merge-template", json=merge_payload, timeout=90)
+            r_merge.raise_for_status()
+            merge_data = r_merge.json()
         except requests_lib.RequestException as e:
-            raise ValueError("Pin API error (merge): " + str(e))
+            _detail = _pin_api_requests_error_detail(e, "merge-template")
+            log.error("[pin_image] title_id=%s merge-template HTTP failed: %s", title_id, _detail)
+            raise ValueError("Pin API error (merge): " + _detail)
+        except ValueError as e:
+            _txt = (getattr(r_merge, "text", None) or "")[:5000]
+            log.error("[pin_image] title_id=%s merge-template not JSON: %s body=%r", title_id, e, _txt[:2000])
+            raise ValueError("Pin API error (merge): response was not JSON (%s) | body=%s" % (e, _txt[:3000]))
         if not merge_data.get("success"):
-            raise ValueError(merge_data.get("error") or "Pin API merge-template returned failure")
+            _fail = merge_data.get("error") or "Pin API merge-template returned failure"
+            _tb = merge_data.get("traceback")
+            if _tb:
+                log.error(
+                    "[pin_image] title_id=%s merge-template success=false error=%r traceback=%r",
+                    title_id,
+                    _fail,
+                    str(_tb)[:8000],
+                )
+            else:
+                log.error("[pin_image] title_id=%s merge-template success=false error=%r keys=%s", title_id, _fail, list(merge_data.keys()))
+            raise ValueError(_fail + ((" | traceback: " + str(_tb)[:6000]) if _tb else ""))
         merged_tpl = merge_data.get("template_data") or {}
         # Build image_urls from our slot logic: first = main_image (current), second+ = sibling flipped (A<->B, C<->D)
         image_urls = {}
@@ -11838,15 +11957,9 @@ def _do_generate_pin_image(
             r2.raise_for_status()
             data = r2.json()
         except requests_lib.RequestException as e:
-            err_msg = str(e)
-            try:
-                if hasattr(e, "response") and e.response is not None and e.response.text:
-                    j = e.response.json()
-                    if isinstance(j, dict) and j.get("error"):
-                        err_msg = j.get("error")
-            except Exception:
-                pass
-            raise ValueError("Pin API generate-from-html error: " + err_msg)
+            _gd = _pin_api_requests_error_detail(e, "generate-from-html")
+            log.error("[pin_image] title_id=%s generate-from-html HTTP failed: %s", title_id, _gd)
+            raise ValueError("Pin API generate-from-html error: " + _gd)
         if not data.get("success"):
             raise ValueError(data.get("error") or "generate-from-html failed")
         pin_url = data.get("image_url")
@@ -12136,6 +12249,51 @@ def rss_domain_board_feed(domain_id, slug):
 
 
 # --- Pin Editor (in-app at /pin-editor): proxy to Kimi_Agent_Pin API ---
+def _pin_api_requests_error_detail(exc, log_label="pin_api"):
+    """Expand requests errors with HTTP status and response body (Pin API often returns JSON with error/traceback)."""
+    parts = [str(exc)]
+    resp = getattr(exc, "response", None)
+    if resp is None:
+        log.error("[%s] request failed (no response): %s", log_label, exc)
+        return " | ".join(parts)
+    parts.append("http_status=%s" % resp.status_code)
+    text = ""
+    try:
+        text = resp.text or ""
+    except Exception:
+        text = ""
+    head = text[:16000]
+    log.error(
+        "[%s] response status=%s len=%s head=%r",
+        log_label,
+        resp.status_code,
+        len(text),
+        head[:4000],
+    )
+    ct = (resp.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+    if ct == "application/json" or (text.strip()[:1] in ("{", "[")):
+        try:
+            j = resp.json()
+            if isinstance(j, dict):
+                err = j.get("error")
+                if err is not None:
+                    parts.append("api_error=%s" % err)
+                msg = j.get("message")
+                if msg and msg != err:
+                    parts.append("api_message=%s" % msg)
+                tb = j.get("traceback")
+                if tb:
+                    parts.append("api_traceback=%s" % (str(tb)[:8000] if len(str(tb)) > 8000 else str(tb)))
+                if not any(p.startswith("api_") for p in parts[2:]):
+                    parts.append("api_json=%s" % str(j)[:4000])
+        except Exception:
+            if head:
+                parts.append("body=%s" % head[:6000])
+    elif head:
+        parts.append("body=%s" % head[:6000])
+    return " | ".join(parts)
+
+
 def _pin_api_url():
     return (PIN_API_URL or "http://localhost:5000").rstrip("/")
 
@@ -14783,15 +14941,25 @@ def _parse_multi_action_id_list(val):
 @login_required
 def api_domains_multi_group_action():
     """Apply action to groups, specific domains, or specific titles.
-    Body: { action, group_ids?: [], domain_ids?: [], title_ids?: [] }
+    Body: { action, group_ids?: [], domain_ids?: [], title_ids?: [], target_group_id?: int }
     Exactly one targeting mode: non-empty group_ids, domain_ids, or title_ids.
+    For action move_to_group: target_group_id required; group or domain scope only; blocked if bulk/deploy busy.
     """
     user = get_current_user()
     user_id = user["id"]
     is_admin = user.get("is_admin", 0)
     data = request.get_json(silent=True) or {}
     action = (data.get("action") or "").strip().lower()
-    if action not in ("ungroup", "clear_articles", "delete_titles", "delete_domains", "clear_images", "clear_content", "clear_pins"):
+    if action not in (
+        "ungroup",
+        "clear_articles",
+        "delete_titles",
+        "delete_domains",
+        "clear_images",
+        "clear_content",
+        "clear_pins",
+        "move_to_group",
+    ):
         return jsonify({"success": False, "error": "Invalid action"}), 400
 
     group_ids = _parse_multi_action_id_list(data.get("group_ids"))
@@ -14825,8 +14993,13 @@ def api_domains_multi_group_action():
         target_title_ids = []
 
         if title_ids:
-            if action in ("ungroup", "delete_domains"):
-                return jsonify({"success": False, "error": "Ungroup and Delete Domains apply to domains, not title IDs. Use Delete Titles for specific titles."}), 400
+            if action in ("ungroup", "delete_domains", "move_to_group"):
+                return jsonify(
+                    {
+                        "success": False,
+                        "error": "Ungroup, Delete Domains, and Move to group use domain or group scope only—not title IDs.",
+                    }
+                ), 400
             t_ph = ",".join(["?"] * len(title_ids))
             cur = db_execute(conn, f"SELECT id, domain_id FROM titles WHERE id IN ({t_ph})", tuple(title_ids))
             rows = [dict_row(r) for r in cur.fetchall()]
@@ -14904,6 +15077,73 @@ def api_domains_multi_group_action():
                 cur = db_execute(conn, f"UPDATE domains SET group_id = NULL, domain_index = NULL WHERE id IN ({aph})", tuple(allowed))
             count = cur.rowcount if hasattr(cur, "rowcount") else 0
             return jsonify({"success": True, "count": count, "message": f"Unassigned {count} domain(s) ({scope_label()})"})
+
+        if action == "move_to_group":
+            try:
+                target_group_id = int(data.get("target_group_id"))
+            except (TypeError, ValueError):
+                return jsonify({"success": False, "error": "target_group_id required (integer group id)"}), 400
+            if target_group_id <= 0:
+                return jsonify({"success": False, "error": "Invalid target_group_id"}), 400
+            if not target_domain_ids:
+                return jsonify({"success": False, "error": "No domains to move"}), 400
+            cur = db_execute(conn, "SELECT id FROM `groups` WHERE id = ?", (target_group_id,))
+            if not cur.fetchone():
+                return jsonify({"success": False, "error": "Target group not found"}), 404
+            if not is_admin and target_group_id not in (user_group_ids or []):
+                return jsonify({"success": False, "error": "You do not have access to the target group"}), 403
+            if not is_admin:
+                for did in target_domain_ids:
+                    if did not in (user_domain_ids or []):
+                        return jsonify({"success": False, "error": "Access denied to one or more domains"}), 403
+            move_set = set(int(x) for x in target_domain_ids)
+            cur = db_execute(conn, "SELECT id FROM domains WHERE group_id = ?", (target_group_id,))
+            existing_in_target = {dict_row(r)["id"] for r in cur.fetchall()}
+            other = existing_in_target - move_set
+            if len(other) + len(move_set) > 4:
+                return jsonify(
+                    {
+                        "success": False,
+                        "error": (
+                            f"Target group would have more than 4 domains (A–D). "
+                            f"It already has {len(other)} other domain(s); you are moving {len(move_set)}."
+                        ),
+                    }
+                ), 400
+            busy = _bulk_work_conflicts_domain_ids(conn, move_set)
+            if busy:
+                return jsonify({"success": False, "error": busy}), 409
+            for did in target_domain_ids:
+                db_execute(conn, "UPDATE domains SET group_id = ? WHERE id = ?", (target_group_id, did))
+            # titles.group_id must follow the domain: bulk/group queries use COALESCE(t.group_id, d.group_id).
+            # If only domains moved, old title.group_id kept rows tied to the previous group for "Run group" counts and processing.
+            db_execute(
+                conn,
+                f"UPDATE titles SET group_id = ? WHERE domain_id IN ({dom_ph})",
+                (target_group_id,) + tuple(target_domain_ids),
+            )
+            cur = db_execute(
+                conn,
+                "SELECT id FROM domains WHERE group_id = ? ORDER BY COALESCE(domain_index, 999999), id",
+                (target_group_id,),
+            )
+            renum = [dict_row(r)["id"] for r in cur.fetchall()]
+            for i, did in enumerate(renum):
+                db_execute(conn, "UPDATE domains SET domain_index = ? WHERE id = ?", (i, did))
+            log.info(
+                "[multi-group] move_to_group user=%s count=%s -> group_id=%s (%s)",
+                user_id,
+                len(target_domain_ids),
+                target_group_id,
+                scope_label(),
+            )
+            return jsonify(
+                {
+                    "success": True,
+                    "count": len(target_domain_ids),
+                    "message": f"Moved {len(target_domain_ids)} domain(s) to group {target_group_id}. Domain order renumbered 0–{len(renum) - 1} in that group.",
+                }
+            )
 
         if action == "clear_articles":
             if not effective_title_ids:
@@ -15789,7 +16029,7 @@ def api_domain_articles_list(pk):
         row = dict_row(cur.fetchone())
         total = (row.get("total") or 0) or 0
         cur = db_execute(conn, """
-            SELECT t.id, t.title, t.domain_id, t.group_id, d.domain_index,
+            SELECT t.id, t.title, t.domain_id, t.group_id, d.group_id AS domain_group_id, d.domain_index,
                    ac.generated_at, ac.model_used, COALESCE(ac.validated, 0) AS validated,
                    ac.prompt, ac.prompt_image_ingredients, ac.main_image, ac.ingredient_image, ac.pin_image,
                    ac.article_html, ac.article_css
@@ -15803,10 +16043,13 @@ def api_domain_articles_list(pk):
     items = []
     for r in rows:
         row = dict_row(r)
-        gid = row.get("group_id")
+        # A–D siblings must use the domain's batch (domains.group_id). titles.group_id can stay stale after moves.
+        batch_gid = row.get("domain_group_id")
+        if batch_gid is None:
+            batch_gid = row.get("group_id")
         title_text = (row.get("title") or "").strip()
         siblings = {}
-        if gid is not None and title_text:
+        if batch_gid is not None and title_text:
             with get_connection() as conn2:
                 cur2 = db_execute(conn2, """
                     SELECT t.id, d.domain_index
@@ -15814,7 +16057,7 @@ def api_domain_articles_list(pk):
                     JOIN domains d ON t.domain_id = d.id
                     WHERE d.group_id = ? AND t.title = ? AND d.domain_index IN (0,1,2,3)
                     ORDER BY d.domain_index
-                """, (gid, row.get("title") or ""))
+                """, (batch_gid, row.get("title") or ""))
                 for r2 in cur2.fetchall():
                     d = dict_row(r2)
                     idx = d.get("domain_index")
@@ -15875,7 +16118,7 @@ def api_articles_list():
         row = dict_row(cur.fetchone())
         total = (row.get("total") or 0) or 0
         cur = db_execute(conn, """
-            SELECT t.id, t.title, t.domain_id, t.group_id, d.domain_index, d.domain_url, d.domain_name, d.website_template,
+            SELECT t.id, t.title, t.domain_id, t.group_id, d.group_id AS domain_group_id, d.domain_index, d.domain_url, d.domain_name, d.website_template,
                    ac.generated_at, ac.model_used, COALESCE(ac.validated, 0) AS validated
             FROM titles t
             JOIN domains d ON t.domain_id = d.id
@@ -15887,10 +16130,12 @@ def api_articles_list():
     items = []
     for r in rows:
         row = dict_row(r)
-        gid = row.get("group_id")
+        batch_gid = row.get("domain_group_id")
+        if batch_gid is None:
+            batch_gid = row.get("group_id")
         title_text = (row.get("title") or "").strip()
         siblings = {}
-        if gid is not None and title_text:
+        if batch_gid is not None and title_text:
             with get_connection() as conn2:
                 cur2 = db_execute(conn2, """
                     SELECT t.id, d.domain_index
@@ -15898,7 +16143,7 @@ def api_articles_list():
                     JOIN domains d ON t.domain_id = d.id
                     WHERE d.group_id = ? AND t.title = ? AND d.domain_index IN (0,1,2,3)
                     ORDER BY d.domain_index
-                """, (gid, row.get("title") or ""))
+                """, (batch_gid, row.get("title") or ""))
                 for r2 in cur2.fetchall():
                     d = dict_row(r2)
                     idx = d.get("domain_index")
@@ -18549,6 +18794,115 @@ def admin_domains():
                 domain_count = groups_with_space[g["id"]]
                 slots_left = 4 - domain_count
                 group_opts += f'<option value="{g["id"]}">{hierarchy} ({domain_count}/4 - {slots_left} slots left)</option>'
+        mg_move_groups_js = '{"context_group_id":null,"source_batches":[],"destination_parents":[]}'
+        if all_groups:
+            gid_set = {g["id"] for g in all_groups}
+            by_id = {g["id"]: g for g in all_groups}
+
+            def _mg_group_top_id(gid):
+                cur_id = gid
+                visited = set()
+                while cur_id is not None and cur_id not in visited:
+                    visited.add(cur_id)
+                    gr = by_id.get(cur_id)
+                    if not gr:
+                        return gid
+                    p = gr.get("parent_group_id")
+                    if p is None or p not in gid_set:
+                        return cur_id
+                    cur_id = p
+                return gid
+
+            seen_top = set()
+            top_ids_ordered = []
+            for g in all_groups:
+                t = _mg_group_top_id(g["id"])
+                if t not in seen_top:
+                    seen_top.add(t)
+                    top_ids_ordered.append(
+                        {"id": t, "label": build_full_hierarchy(t)}
+                    )
+            top_ids_ordered.sort(key=lambda x: (x.get("label") or "").lower())
+
+            ph_g = ",".join(["?"] * len(all_groups))
+            ids_tuple = tuple(g["id"] for g in all_groups)
+            cur = db_execute(
+                conn,
+                f"""SELECT id, group_id, domain_url, domain_name, COALESCE(domain_index, 0) AS di
+                    FROM domains WHERE group_id IN ({ph_g}) ORDER BY group_id, di, id""",
+                ids_tuple,
+            )
+            dom_rows_by_g = {}
+            for r in cur.fetchall():
+                row = dict_row(r)
+                gidd = row.get("group_id")
+                url = (row.get("domain_url") or "").strip()
+                name = (row.get("domain_name") or "").strip()
+                disp = url or name
+                if disp and "://" in disp:
+                    try:
+                        from urllib.parse import urlparse
+
+                        disp = urlparse(disp).netloc or disp
+                    except Exception:
+                        pass
+                if not disp:
+                    disp = "id:%s" % row.get("id")
+                if len(disp) > 64:
+                    disp = disp[:61] + "..."
+                dom_rows_by_g.setdefault(gidd, []).append({"id": row["id"], "label": disp})
+
+            ctx = filter_group_id
+            ordered_src = []
+            if ctx and ctx in gid_set:
+                # One dropdown row per A–D batch visible in the table. If the parent group has domains
+                # AND subgroups with domains, old logic used only direct children — batches on the
+                # parent group_id were missing from the move source list.
+                if domains:
+                    seen_batch = set()
+                    for d in domains:
+                        g = d.get("group_id")
+                        if g is not None:
+                            seen_batch.add(g)
+                    ordered_src = sorted(
+                        seen_batch,
+                        key=lambda gid: (build_full_hierarchy(gid).lower(), gid),
+                    )
+                if not ordered_src:
+                    cur = db_execute(conn, "SELECT id FROM `groups` WHERE parent_group_id = ? ORDER BY name, id", (ctx,))
+                    child_ids = [dict_row(r)["id"] for r in cur.fetchall()]
+                    child_ids = [c for c in child_ids if c in gid_set]
+                    if child_ids:
+                        ordered_src = child_ids
+                    else:
+                        ordered_src = [ctx]
+            else:
+                ordered_src = sorted(
+                    [gid for gid in dom_rows_by_g if dom_rows_by_g[gid]],
+                    key=lambda gid: (build_full_hierarchy(gid).lower(), gid),
+                )
+
+            source_batches = []
+            for bi, bgid in enumerate(ordered_src, start=1):
+                rows = dom_rows_by_g.get(bgid) or []
+                source_batches.append(
+                    {
+                        "id": bgid,
+                        "batch_index": bi,
+                        "hierarchy": build_full_hierarchy(bgid),
+                        "domain_ids": [x["id"] for x in rows],
+                        "domains": [x["label"] for x in rows],
+                        "count": len(rows),
+                    }
+                )
+
+            mg_move_groups_js = json.dumps(
+                {
+                    "context_group_id": ctx,
+                    "source_batches": source_batches,
+                    "destination_parents": top_ids_ordered,
+                }
+            )
     with get_connection() as conn:
         for d in domains:
             cur = db_execute(conn, "SELECT id, name, preview_image_url FROM domain_templates WHERE domain_id = ? ORDER BY sort_order, id", (d["id"],))
@@ -19434,7 +19788,25 @@ def admin_domains():
             <div id="mgTitleIdsWrap" class="mb-2" style="display:none">
               <label class="form-label small" for="mgTitleIdsInput">Title IDs</label>
               <textarea id="mgTitleIdsInput" class="form-control form-control-sm font-monospace" rows="2" placeholder="e.g. 220 224, 301"></textarea>
-              <div class="form-text small">Clears/deletes only those titles. Ungroup and Delete Domains are not available for this scope.</div>
+              <div class="form-text small">Clears/deletes only those titles. Ungroup, Move to group, and Delete Domains are not available for this scope.</div>
+            </div>
+            <div class="border rounded p-2 mb-2 bg-light">
+              <label class="form-label small fw-medium mb-1">Move domains to another group</label>
+              <p class="small text-muted mb-2 mb-0"><strong>1)</strong> Choose the <strong>source batch</strong> under this page&apos;s group (each line: A–D batch + domain names). <strong>2)</strong> Choose a <strong>destination parent group</strong> (same as opening <code>/admin/domains?group_id=…</code>). Does not use the radios above. Blocked while bulk run or deploy is active; target cannot exceed 4 domains.</p>
+              <script>window.MG_MOVE_UI = {mg_move_groups_js};</script>
+              <div class="row g-2 mt-1 align-items-end">
+                <div class="col-12 col-md-5">
+                  <label class="form-label small mb-0" for="mgMoveSourceGroup">Source batch (this <code>group_id</code> view)</label>
+                  <select id="mgMoveSourceGroup" class="form-select form-select-sm"></select>
+                </div>
+                <div class="col-12 col-md-4">
+                  <label class="form-label small mb-0" for="mgMoveTargetGroup">Destination parent group</label>
+                  <select id="mgMoveTargetGroup" class="form-select form-select-sm"></select>
+                </div>
+                <div class="col-12 col-md-3">
+                  <button type="button" class="btn btn-success btn-sm w-100" onclick="runMultiGroupMoveToGroup()">📁 Move to group</button>
+                </div>
+              </div>
             </div>
           </div>
           <div class="d-flex flex-wrap gap-2 mb-2">
@@ -19542,6 +19914,50 @@ def admin_domains():
       }}
     }})();
     window.MULTI_GROUP_ALL_IDS = {json.dumps(multi_group_all_ids)};
+    function initMgMoveUi() {{
+      var ui = window.MG_MOVE_UI || {{}};
+      if (!Array.isArray(ui.source_batches)) ui.source_batches = [];
+      if (!Array.isArray(ui.destination_parents)) ui.destination_parents = [];
+      var srcSel = document.getElementById('mgMoveSourceGroup');
+      var tgtSel = document.getElementById('mgMoveTargetGroup');
+      if (!srcSel || !tgtSel) return;
+      srcSel.innerHTML = '';
+      var batches = ui.source_batches || [];
+      if (batches.length === 0) {{
+        var ox = document.createElement('option');
+        ox.value = '';
+        ox.textContent = ui.context_group_id ? 'No sub-batches under this group (or no domains)' : 'Open a group (?group_id=…) to list A–D batches here';
+        srcSel.appendChild(ox);
+      }} else {{
+        var ds = document.createElement('option');
+        ds.value = '';
+        ds.textContent = '— Choose source (A–D) batch —';
+        srcSel.appendChild(ds);
+        batches.forEach(function(b) {{
+          var o = document.createElement('option');
+          o.value = String(b.id);
+          var d = (b.domains || []).join(', ');
+          if (!d) d = '(empty)';
+          var h = b.hierarchy || ('Group ' + b.id);
+          var n = b.batch_index || 0;
+          o.textContent = '(group A–D ' + n + ' : ' + d + ') ' + h + ' [' + (b.count || 0) + '/4]';
+          srcSel.appendChild(o);
+        }});
+      }}
+      tgtSel.innerHTML = '';
+      var dt = document.createElement('option');
+      dt.value = '';
+      dt.textContent = '— Destination parent (?group_id=…) —';
+      tgtSel.appendChild(dt);
+      (ui.destination_parents || []).forEach(function(p) {{
+        var o = document.createElement('option');
+        o.value = String(p.id);
+        o.textContent = (p.label || ('Group ' + p.id)) + '  →  /admin/domains?group_id=' + p.id;
+        tgtSel.appendChild(o);
+      }});
+    }}
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initMgMoveUi);
+    else initMgMoveUi();
     function parseMgIdList(s) {{
       if (!s) return [];
       var out = [];
@@ -19630,6 +20046,30 @@ def admin_domains():
         .then(function(d) {{
           if (d.success) {{ alert(d.message || 'Done'); if (typeof refreshDomainsTable === 'function') refreshDomainsTable(); else location.reload(); }}
           else {{ alert(d.error || 'Failed'); }}
+        }})
+        .catch(function(e) {{ alert('Error: ' + (e.message || e)); }})
+        .finally(function() {{ if (typeof hideGlobalLoading === 'function') hideGlobalLoading(); }});
+    }}
+    function runMultiGroupMoveToGroup() {{
+      var ui = window.MG_MOVE_UI || {{}};
+      var srcSel = document.getElementById('mgMoveSourceGroup');
+      var tgtSel = document.getElementById('mgMoveTargetGroup');
+      var sid = srcSel && srcSel.value ? parseInt(srcSel.value, 10) : NaN;
+      var tid = tgtSel && tgtSel.value ? parseInt(tgtSel.value, 10) : NaN;
+      if (isNaN(sid)) {{ alert('Choose a source A–D batch (first list).'); return; }}
+      if (isNaN(tid)) {{ alert('Choose a destination parent group (second list).'); return; }}
+      var batch = (ui.source_batches || []).find(function(b) {{ return b.id === sid; }});
+      if (!batch || !(batch.domain_ids || []).length) {{ alert('Selected batch has no domains to move.'); return; }}
+      var body = {{ action: 'move_to_group', target_group_id: tid, domain_ids: batch.domain_ids }};
+      var dlist = (batch.domains || []).join(', ');
+      if (!confirm('Move this batch (' + dlist + ') to parent group id ' + tid + '? Domains in the target group will be reindexed 0–3.')) return;
+      if (typeof showGlobalLoading === 'function') showGlobalLoading();
+      fetch('/api/domains/multi-group-action', {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }}, body: JSON.stringify(body) }})
+        .then(function(r) {{ return r.json().then(function(d) {{ return {{ ok: r.ok, status: r.status, d: d }}; }}); }})
+        .then(function(x) {{
+          var d = x.d;
+          if (d.success) {{ alert(d.message || 'Done'); if (typeof refreshDomainsTable === 'function') refreshDomainsTable(); else location.reload(); }}
+          else {{ alert((x.status >= 400 ? ('[' + x.status + '] ') : '') + (d.error || 'Failed')); }}
         }})
         .catch(function(e) {{ alert('Error: ' + (e.message || e)); }})
         .finally(function() {{ if (typeof hideGlobalLoading === 'function') hideGlobalLoading(); }});
