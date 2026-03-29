@@ -459,6 +459,29 @@ def main_cli():
     return 0
 
 
+def _wsgi_normalize_underscore_docker_host(app_wsgi):
+    """Wrap WSGI app so Host headers like pin_generator:5000 work.
+
+    Werkzeug 3.2+ validates Host with a pattern that does not allow underscores.
+    Docker Compose service names often use underscores, so internal POSTs fail with
+    SecurityError: Host 'pin_generator:5000' is not trusted.
+    Rewriting to 127.0.0.1 keeps routing unchanged for a single-container listener.
+    """
+    def middleware(environ, start_response):
+        h = environ.get("HTTP_HOST")
+        if h:
+            host_part = h.split(":", 1)[0]
+            if "_" in host_part:
+                environ = dict(environ)
+                if ":" in h:
+                    environ["HTTP_HOST"] = "127.0.0.1:" + h.split(":", 1)[1]
+                else:
+                    environ["HTTP_HOST"] = "127.0.0.1"
+        return app_wsgi(environ, start_response)
+
+    return middleware
+
+
 def run_server(available_templates, host="0.0.0.0", port=5000):
     try:
         from flask import Flask, request, jsonify, send_from_directory
@@ -470,6 +493,7 @@ def run_server(available_templates, host="0.0.0.0", port=5000):
 
     _load_env()
     app = Flask(__name__)
+    app.wsgi_app = _wsgi_normalize_underscore_docker_host(app.wsgi_app)
 
     # Enable werkzeug request logging even in non-debug mode
     wz_log = logging.getLogger("werkzeug")
