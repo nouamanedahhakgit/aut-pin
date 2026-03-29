@@ -41342,3 +41342,21 @@ INFO:     127.0.0.1:59408 - "GET /domain-page-themes HTTP/1.1" 200 OK
 INFO:     127.0.0.1:49676 - "GET /templates HTTP/1.1" 200 OK
 INFO:     127.0.0.1:53763 - "GET /domain-page-themes HTTP/1.1" 200 OK
 INFO:     127.0.0.1:59875 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64590 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63531 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52547 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63357 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59557 - "GET /templates HTTP/1.1" 200 OK
+
+--- Started ---
+INFO:     Started server process [5008]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5003 (Press CTRL+C to quit)
+INFO:     127.0.0.1:56161 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53119 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55604 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60278 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55451 - "GET /templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56006 - "GET /domain-page-themes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60639 - "GET /templates HTTP/1.1" 200 OK

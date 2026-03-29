@@ -6241,15 +6241,6 @@ def do_rewrite():
     return redirect(url_for("database_management", r=enc))
 
 
-def _build_group_filter_alert(group_hierarchy_path, domain_count):
-    """Build alert HTML for group filter without backslash in f-string."""
-    if not group_hierarchy_path:
-        return ""
-    path_str = " > ".join(bc['name'] for bc in group_hierarchy_path)
-    close_onclick = 'window.location.href="/admin/domains"'
-    return f"<div class='alert alert-info alert-dismissible'><strong>Filtered by group:</strong> {path_str} <span class='badge bg-primary'>{domain_count} domain(s)</span> <button type='button' class='btn-close' onclick='{close_onclick}'></button></div>"
-
-
 def _parse_groq_model(req):
     """Parse groq_model from request dict or query. Return None or stripped model id."""
     v = (req.get("groq_model") or "").strip()
@@ -14937,13 +14928,55 @@ def _parse_multi_action_id_list(val):
     return []
 
 
+def _parse_domain_id_sequence_preserving_order(item):
+    """Parse a JSON list of domain ids; preserve order; require unique positive ints within the batch."""
+    if not isinstance(item, list):
+        return None
+    out = []
+    seen = set()
+    for x in item:
+        try:
+            n = int(x)
+            if n <= 0:
+                return None
+            if n in seen:
+                return None
+            seen.add(n)
+            out.append(n)
+        except (TypeError, ValueError):
+            return None
+    return out if out else None
+
+
+def _normalize_multi_batch_domain_groups(raw):
+    """Parse batch_domain_groups JSON: list of domain-id lists. Returns list only if 2+ batches (multi-move)."""
+    if raw is None or not isinstance(raw, list) or len(raw) < 2:
+        return None
+    out = []
+    for item in raw:
+        ids = _parse_domain_id_sequence_preserving_order(item)
+        if not ids:
+            return None
+        if len(ids) > 4:
+            return None
+        out.append(ids)
+    if len(out) < 2:
+        return None
+    flat = [x for g in out for x in g]
+    if len(flat) != len(set(flat)):
+        return None
+    return out
+
+
 @app.route("/api/domains/multi-group-action", methods=["POST"])
 @login_required
 def api_domains_multi_group_action():
     """Apply action to groups, specific domains, or specific titles.
-    Body: { action, group_ids?: [], domain_ids?: [], title_ids?: [], target_group_id?: int }
+    Body: { action, group_ids?: [], domain_ids?: [], title_ids?: [], target_group_id?: int, batch_domain_groups?: [][] }
     Exactly one targeting mode: non-empty group_ids, domain_ids, or title_ids.
     For action move_to_group: target_group_id required; group or domain scope only; blocked if bulk/deploy busy.
+    Multi-batch move: send batch_domain_groups as 2+ lists of domain IDs (same IDs as domain_ids, each batch ≤4);
+    each batch becomes a new subgroup under target_group_id. Single-batch move merges into target (max 4 domains there).
     """
     user = get_current_user()
     user_id = user["id"]
@@ -14959,6 +14992,8 @@ def api_domains_multi_group_action():
         "clear_content",
         "clear_pins",
         "move_to_group",
+        "archive_group",
+        "unarchive_group",
     ):
         return jsonify({"success": False, "error": "Invalid action"}), 400
 
@@ -14993,11 +15028,11 @@ def api_domains_multi_group_action():
         target_title_ids = []
 
         if title_ids:
-            if action in ("ungroup", "delete_domains", "move_to_group"):
+            if action in ("ungroup", "delete_domains", "move_to_group", "archive_group", "unarchive_group"):
                 return jsonify(
                     {
                         "success": False,
-                        "error": "Ungroup, Delete Domains, and Move to group use domain or group scope only—not title IDs.",
+                        "error": "That action uses domain or group scope only—not title IDs.",
                     }
                 ), 400
             t_ph = ",".join(["?"] * len(title_ids))
@@ -15024,6 +15059,8 @@ def api_domains_multi_group_action():
                 for did in domain_ids:
                     if did not in (user_domain_ids or []):
                         return jsonify({"success": False, "error": "Access denied to one or more domains"}), 403
+            if action in ("archive_group", "unarchive_group"):
+                return jsonify({"success": False, "error": "Archive / unarchive uses group selection only—not domain IDs."}), 400
             target_domain_ids = list(domain_ids)
 
         else:
@@ -15048,6 +15085,30 @@ def api_domains_multi_group_action():
                     cur = db_execute(conn, f"UPDATE domains SET group_id = NULL, domain_index = NULL WHERE group_id IN ({ph}) AND id IN ({ud_ph})", tuple(all_gids) + tuple(user_domain_ids))
                 count = cur.rowcount if hasattr(cur, "rowcount") else 0
                 return jsonify({"success": True, "count": count, "message": f"Unassigned {count} domain(s) from {len(group_ids)} group(s)"})
+
+            if action == "archive_group":
+                for ag in all_gids:
+                    db_execute(conn, "UPDATE `groups` SET archived = 1 WHERE id = ?", (ag,))
+                log.info("[multi-group] archive_group user=%s roots=%s rows=%s", user_id, group_ids, len(all_gids))
+                return jsonify(
+                    {
+                        "success": True,
+                        "count": len(all_gids),
+                        "message": f"Archived {len(group_ids)} selected tree(s) ({len(all_gids)} group row(s)). They no longer appear on Domains home; open by URL or unarchive to restore.",
+                    }
+                )
+
+            if action == "unarchive_group":
+                for ag in all_gids:
+                    db_execute(conn, "UPDATE `groups` SET archived = 0 WHERE id = ?", (ag,))
+                log.info("[multi-group] unarchive_group user=%s roots=%s rows=%s", user_id, group_ids, len(all_gids))
+                return jsonify(
+                    {
+                        "success": True,
+                        "count": len(all_gids),
+                        "message": f"Restored {len(group_ids)} tree(s) ({len(all_gids)} group row(s)) to the active list.",
+                    }
+                )
 
             cur = db_execute(conn, f"SELECT id FROM domains WHERE group_id IN ({ph})", tuple(all_gids))
             target_domain_ids = [dict_row(r)["id"] for r in cur.fetchall()]
@@ -15097,6 +15158,97 @@ def api_domains_multi_group_action():
                     if did not in (user_domain_ids or []):
                         return jsonify({"success": False, "error": "Access denied to one or more domains"}), 403
             move_set = set(int(x) for x in target_domain_ids)
+            busy = _bulk_work_conflicts_domain_ids(conn, move_set)
+            if busy:
+                return jsonify({"success": False, "error": busy}), 409
+
+            batch_groups = _normalize_multi_batch_domain_groups(data.get("batch_domain_groups"))
+            if batch_groups:
+                flat_from_batches = sorted(x for g in batch_groups for x in g)
+                flat_from_body = sorted(int(x) for x in target_domain_ids)
+                if flat_from_batches != flat_from_body:
+                    return jsonify(
+                        {
+                            "success": False,
+                            "error": "batch_domain_groups must list the same domain IDs as domain_ids (each id once).",
+                        }
+                    ), 400
+
+                def _unique_child_group_name(parent_id, base_name):
+                    base = (base_name or "Batch").strip() or "Batch"
+                    cur_n = db_execute(conn, "SELECT name FROM `groups` WHERE parent_group_id = ?", (parent_id,))
+                    existing = {dict_row(r)["name"] for r in cur_n.fetchall()}
+                    name = base
+                    n = 1
+                    while name in existing:
+                        n += 1
+                        name = f"{base} ({n})"
+                    return name
+
+                created_ids = []
+                total_moved = 0
+                for idx, batch in enumerate(batch_groups):
+                    cur_src = db_execute(
+                        conn,
+                        "SELECT g.name FROM domains d JOIN `groups` g ON g.id = d.group_id WHERE d.id = ?",
+                        (batch[0],),
+                    )
+                    row_src = dict_row(cur_src.fetchone())
+                    src_name = (row_src.get("name") if row_src else None) or f"Batch {idx + 1}"
+                    child_name = _unique_child_group_name(target_group_id, src_name)
+                    cur_ins = db_execute(
+                        conn,
+                        "INSERT INTO `groups` (name, parent_group_id) VALUES (?, ?)",
+                        (child_name, target_group_id),
+                    )
+                    new_gid = last_insert_id(cur_ins)
+                    if not new_gid:
+                        fb = db_execute(
+                            conn,
+                            "SELECT id FROM `groups` WHERE name = ? AND parent_group_id = ? ORDER BY id DESC LIMIT 1",
+                            (child_name, target_group_id),
+                        )
+                        rfb = dict_row(fb.fetchone())
+                        new_gid = rfb.get("id") if rfb else None
+                    if not new_gid:
+                        return jsonify({"success": False, "error": "Could not create subgroup for multi-batch move"}), 500
+                    try:
+                        db_execute(conn, "INSERT INTO user_groups (user_id, group_id) VALUES (?, ?)", (user_id, new_gid))
+                    except Exception:
+                        pass
+                    b_ph = ",".join(["?"] * len(batch))
+                    for did in batch:
+                        db_execute(conn, "UPDATE domains SET group_id = ? WHERE id = ?", (new_gid, did))
+                    db_execute(
+                        conn,
+                        f"UPDATE titles SET group_id = ? WHERE domain_id IN ({b_ph})",
+                        (new_gid,) + tuple(batch),
+                    )
+                    for i, did in enumerate(batch):
+                        db_execute(conn, "UPDATE domains SET domain_index = ? WHERE id = ?", (i, did))
+                    created_ids.append(new_gid)
+                    total_moved += len(batch)
+
+                log.info(
+                    "[multi-group] move_to_group multi_batch user=%s batches=%s domains=%s parent=%s new_groups=%s",
+                    user_id,
+                    len(batch_groups),
+                    total_moved,
+                    target_group_id,
+                    created_ids,
+                )
+                return jsonify(
+                    {
+                        "success": True,
+                        "count": total_moved,
+                        "new_group_ids": created_ids,
+                        "message": (
+                            f"Moved {len(batch_groups)} batches ({total_moved} domain(s)) under group {target_group_id}: "
+                            f"created subgroups {created_ids}. Open that parent to see them."
+                        ),
+                    }
+                )
+
             cur = db_execute(conn, "SELECT id FROM domains WHERE group_id = ?", (target_group_id,))
             existing_in_target = {dict_row(r)["id"] for r in cur.fetchall()}
             other = existing_in_target - move_set
@@ -15110,9 +15262,6 @@ def api_domains_multi_group_action():
                         ),
                     }
                 ), 400
-            busy = _bulk_work_conflicts_domain_ids(conn, move_set)
-            if busy:
-                return jsonify({"success": False, "error": busy}), 409
             for did in target_domain_ids:
                 db_execute(conn, "UPDATE domains SET group_id = ? WHERE id = ?", (target_group_id, did))
             # titles.group_id must follow the domain: bulk/group queries use COALESCE(t.group_id, d.group_id).
@@ -18234,13 +18383,27 @@ def admin_article_templates():
 
 
 # --- Admin: Domains ---
-def _build_group_filter_alert(group_hierarchy_path, domain_count):
+def _build_group_filter_alert(group_hierarchy_path, domain_count, filter_group_id=None, archived=False):
     """Build the group filter alert HTML (extracted to avoid f-string backslash issues)."""
     if not group_hierarchy_path:
         return ""
-    path_str = " > ".join(bc['name'] for bc in group_hierarchy_path)
+    path_str = " > ".join(bc["name"] for bc in group_hierarchy_path)
     close_onclick = 'window.location.href="/admin/domains"'
-    return f"<div class='alert alert-info alert-dismissible'><strong>Filtered by group:</strong> {path_str} <span class='badge bg-primary'>{domain_count} domain(s)</span> <button type='button' class='btn-close' onclick='{close_onclick}'></button></div>"
+    arch_html = ""
+    if archived:
+        arch_html = "<div class='alert alert-secondary py-2 mb-2 small'><strong>Archived.</strong> This tree is hidden from the Domains home list. Use <strong>Unarchive</strong> below to show it again.</div>"
+    btns = ""
+    if filter_group_id:
+        if archived:
+            btns = f"""<button type="button" class="btn btn-success btn-sm ms-2" onclick="multiGroupArchiveCurrent({filter_group_id}, 'unarchive_group')" title="Show on Domains home again">Unarchive group</button>"""
+        else:
+            btns = f"""<button type="button" class="btn btn-outline-secondary btn-sm ms-2" onclick="multiGroupArchiveCurrent({filter_group_id}, 'archive_group')" title="Hide this group tree from Domains home (still reachable by URL)">Archive group</button>"""
+    return (
+        arch_html
+        + f"<div class='alert alert-info alert-dismissible d-flex flex-wrap align-items-center'><div class='flex-grow-1'><strong>Filtered by group:</strong> {html.escape(path_str)} <span class='badge bg-primary'>{domain_count} domain(s)</span></div><div class='d-flex align-items-center gap-1 mt-1 mt-md-0'>"
+        + btns
+        + f"<button type='button' class='btn-close ms-1' onclick='{close_onclick}'></button></div></div>"
+    )
 
 
 @app.route("/admin/css.css", methods=["GET"])
@@ -18275,6 +18438,7 @@ def admin_domains():
     """
     
     # Support filtering by group_id (including all subgroups recursively)
+    current_group_archived = False
     filter_group_id = request.args.get("group_id")
     filter_group_id = int(filter_group_id) if filter_group_id and str(filter_group_id).isdigit() else None
     filter_domain_id = request.args.get("domain_id", type=int)
@@ -18301,11 +18465,11 @@ def admin_domains():
             if not is_admin:
                 if user_group_ids:
                     placeholders = ",".join(["?"] * len(user_group_ids))
-                    cur = db_execute(conn, f"SELECT id, name, parent_group_id FROM `groups` WHERE id IN ({placeholders}) ORDER BY name", tuple(user_group_ids))
+                    cur = db_execute(conn, f"SELECT id, name, parent_group_id, COALESCE(archived,0) AS archived FROM `groups` WHERE id IN ({placeholders}) ORDER BY name", tuple(user_group_ids))
                 else:
-                    cur = db_execute(conn, "SELECT id, name, parent_group_id FROM `groups` WHERE 1=0")
+                    cur = db_execute(conn, "SELECT id, name, parent_group_id, COALESCE(archived,0) AS archived FROM `groups` WHERE 1=0")
             else:
-                cur = db_execute(conn, "SELECT id, name, parent_group_id FROM `groups` ORDER BY name")
+                cur = db_execute(conn, "SELECT id, name, parent_group_id, COALESCE(archived,0) AS archived FROM `groups` ORDER BY name")
             all_groups = [dict_row(r) for r in cur.fetchall()]
             
             # Build hierarchy for display
@@ -18342,8 +18506,8 @@ def admin_domains():
                 top_parent_id = get_top_parent(g["id"], all_groups)
                 top_parent_ids.add(top_parent_id)
             
-            # Keep only groups that are top-level parents
-            all_groups = [g for g in all_groups if g["id"] in top_parent_ids]
+            # Keep only groups that are top-level parents and not archived (hidden from Domains home)
+            all_groups = [g for g in all_groups if g["id"] in top_parent_ids and not int(g.get("archived") or 0)]
             
             for g in all_groups:
                 g["hierarchy"] = build_hierarchy(g["id"], all_groups)
@@ -18550,6 +18714,8 @@ def admin_domains():
               <button type="button" class="btn btn-outline-warning btn-sm" onclick="multiGroupAction('clear_articles')" title="Clear all article content">🧹 Clear Articles</button>
               <button type="button" class="btn btn-outline-danger btn-sm" onclick="multiGroupAction('delete_titles')" title="Delete all titles in selected groups">🗑️ Delete Titles</button>
               <button type="button" class="btn btn-outline-danger btn-sm" onclick="multiGroupAction('delete_domains')" title="Delete all domains in selected groups">🗑️ Delete Domains</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="multiGroupAction('archive_group')" title="Hide selected group trees from this page (still open via ?group_id=)">📦 Archive</button>
+              <button type="button" class="btn btn-outline-success btn-sm" onclick="multiGroupAction('unarchive_group')" title="Show archived trees on Domains home again">↩ Unarchive</button>
             </div>
             {group_cards_html if group_cards_html else '<div class="alert alert-warning">No groups yet. Create your first group to get started!</div>'}
             
@@ -18603,7 +18769,7 @@ def admin_domains():
             function multiGroupAction(action) {{
               var ids = getSelectedMultiGroupIds();
               if (ids.length === 0) {{ alert('Select at least one group'); return; }}
-              var msgs = {{ 'ungroup': 'Remove domains from ' + ids.length + ' group(s)? Domains will become standalone.', 'clear_images': 'Clear main+ingredient images in ' + ids.length + ' group(s)?', 'clear_content': 'Clear HTML+CSS content in ' + ids.length + ' group(s)?', 'clear_pins': 'Clear pin images in ' + ids.length + ' group(s)?', 'clear_articles': 'Clear all article content in ' + ids.length + ' group(s)?', 'delete_titles': 'Permanently delete ALL titles in ' + ids.length + ' group(s)?', 'delete_domains': 'Permanently delete ALL domains in ' + ids.length + ' group(s)? This cannot be undone.' }};
+              var msgs = {{ 'ungroup': 'Remove domains from ' + ids.length + ' group(s)? Domains will become standalone.', 'clear_images': 'Clear main+ingredient images in ' + ids.length + ' group(s)?', 'clear_content': 'Clear HTML+CSS content in ' + ids.length + ' group(s)?', 'clear_pins': 'Clear pin images in ' + ids.length + ' group(s)?', 'clear_articles': 'Clear all article content in ' + ids.length + ' group(s)?', 'delete_titles': 'Permanently delete ALL titles in ' + ids.length + ' group(s)?', 'delete_domains': 'Permanently delete ALL domains in ' + ids.length + ' group(s)? This cannot be undone.', 'archive_group': 'Archive ' + ids.length + ' group tree(s)? They disappear from Domains home until unarchived; you can still open them with ?group_id=.', 'unarchive_group': 'Unarchive ' + ids.length + ' group tree(s)? They will show on Domains home again.' }};
               if (!confirm(msgs[action] || 'Proceed?')) return;
               if ((action === 'delete_titles' || action === 'delete_domains') && !confirm('This action CANNOT be undone. Continue?')) return;
               if (typeof showGlobalLoading === 'function') showGlobalLoading();
@@ -18652,6 +18818,9 @@ def admin_domains():
                 return path
             
             group_hierarchy_path = build_group_path(filter_group_id)
+            cur_ar = db_execute(conn, "SELECT COALESCE(archived,0) AS archived FROM `groups` WHERE id = ?", (filter_group_id,))
+            row_ar = dict_row(cur_ar.fetchone())
+            current_group_archived = bool(int(row_ar.get("archived") or 0)) if row_ar else False
             
             # Get all descendant groups recursively
             def get_all_descendants(gid):
@@ -18734,12 +18903,16 @@ def admin_domains():
         if not is_admin:
             if user_group_ids:
                 placeholders = ",".join(["?"] * len(user_group_ids))
-                cur = db_execute(conn, f"SELECT id, name, parent_group_id FROM `groups` WHERE id IN ({placeholders}) ORDER BY name", tuple(user_group_ids))
+                cur = db_execute(
+                    conn,
+                    f"SELECT id, name, parent_group_id, COALESCE(archived,0) AS archived FROM `groups` WHERE id IN ({placeholders}) ORDER BY name",
+                    tuple(user_group_ids),
+                )
             else:
                 all_groups = []
                 group_map = {}
         else:
-            cur = db_execute(conn, "SELECT id, name, parent_group_id FROM `groups` ORDER BY name")
+            cur = db_execute(conn, "SELECT id, name, parent_group_id, COALESCE(archived,0) AS archived FROM `groups` ORDER BY name")
         
         if is_admin or user_group_ids:
             all_groups = [dict_row(r) for r in cur.fetchall()]
@@ -18824,6 +18997,20 @@ def admin_domains():
                     )
             top_ids_ordered.sort(key=lambda x: (x.get("label") or "").lower())
 
+            # Move destination: omit archived roots and the top-level group for the current ?group_id= view
+            ctx_top_for_dest = None
+            if filter_group_id and filter_group_id in gid_set:
+                ctx_top_for_dest = _mg_group_top_id(filter_group_id)
+            destination_parents = []
+            for item in top_ids_ordered:
+                tid = item.get("id")
+                gr = by_id.get(tid)
+                if gr and int(gr.get("archived") or 0):
+                    continue
+                if ctx_top_for_dest is not None and tid == ctx_top_for_dest:
+                    continue
+                destination_parents.append(item)
+
             ph_g = ",".join(["?"] * len(all_groups))
             ids_tuple = tuple(g["id"] for g in all_groups)
             cur = db_execute(
@@ -18900,7 +19087,7 @@ def admin_domains():
                 {
                     "context_group_id": ctx,
                     "source_batches": source_batches,
-                    "destination_parents": top_ids_ordered,
+                    "destination_parents": destination_parents,
                 }
             )
     with get_connection() as conn:
@@ -19594,7 +19781,7 @@ def admin_domains():
     </style>
     <h2 class="mb-4">Domains</h2>
     {breadcrumb_nav_html}
-    {_build_group_filter_alert(group_hierarchy_path, len(domains)) if group_hierarchy_path else ""}
+    {_build_group_filter_alert(group_hierarchy_path, len(domains), filter_group_id, current_group_archived) if group_hierarchy_path else ""}
     {domains_sync_prefs_html}
     <div id="running-tasks-panel" class="mb-3" style="display:none"></div>
     {bulk_deploy_panel_html}
@@ -19792,12 +19979,18 @@ def admin_domains():
             </div>
             <div class="border rounded p-2 mb-2 bg-light">
               <label class="form-label small fw-medium mb-1">Move domains to another group</label>
-              <p class="small text-muted mb-2 mb-0"><strong>1)</strong> Choose the <strong>source batch</strong> under this page&apos;s group (each line: A–D batch + domain names). <strong>2)</strong> Choose a <strong>destination parent group</strong> (same as opening <code>/admin/domains?group_id=…</code>). Does not use the radios above. Blocked while bulk run or deploy is active; target cannot exceed 4 domains.</p>
+              <p class="small text-muted mb-2 mb-0"><strong>1)</strong> Check one or more <strong>source A–D batches</strong> (same view as the domains table). <strong>2)</strong> Choose a <strong>destination parent</strong> (top-level group, same as <code>/admin/domains?group_id=…</code>). <strong>One batch:</strong> domains move into that group (max 4 total there). <strong>Multiple batches:</strong> creates one new subgroup under the destination per batch, each up to 4 domains. Does not use the radios above. Blocked while bulk run or deploy is active.</p>
               <script>window.MG_MOVE_UI = {mg_move_groups_js};</script>
               <div class="row g-2 mt-1 align-items-end">
                 <div class="col-12 col-md-5">
-                  <label class="form-label small mb-0" for="mgMoveSourceGroup">Source batch (this <code>group_id</code> view)</label>
-                  <select id="mgMoveSourceGroup" class="form-select form-select-sm"></select>
+                  <div class="d-flex align-items-center justify-content-between flex-wrap gap-1 mb-1">
+                    <label class="form-label small mb-0">Source batches (this <code>group_id</code> view)</label>
+                    <span class="small">
+                      <button type="button" class="btn btn-link btn-sm p-0 me-2" onclick="mgMoveSelectAllSrc(true)">All</button>
+                      <button type="button" class="btn btn-link btn-sm p-0" onclick="mgMoveSelectAllSrc(false)">None</button>
+                    </span>
+                  </div>
+                  <div id="mgMoveSourceBatches" class="border rounded p-2 bg-white" style="max-height:11rem;overflow-y:auto"></div>
                 </div>
                 <div class="col-12 col-md-4">
                   <label class="form-label small mb-0" for="mgMoveTargetGroup">Destination parent group</label>
@@ -19811,6 +20004,8 @@ def admin_domains():
           </div>
           <div class="d-flex flex-wrap gap-2 mb-2">
             <button type="button" class="btn btn-outline-warning btn-sm" onclick="runMultiGroupAction('ungroup')" title="Remove domains from their group (domains stay; use group or domain ID scope)">🔓 Ungroup</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="runMultiGroupAction('archive_group')" title="Group scope only: hide trees from Domains home">📦 Archive groups</button>
+            <button type="button" class="btn btn-outline-success btn-sm" onclick="runMultiGroupAction('unarchive_group')" title="Group scope only: show trees on Domains home">↩ Unarchive groups</button>
             <button type="button" class="btn btn-outline-info btn-sm" onclick="runMultiGroupAction('clear_images')" title="Clear main+ingredient images only">🖼️ Clear Images</button>
             <button type="button" class="btn btn-outline-secondary btn-sm" onclick="runMultiGroupAction('clear_content')" title="Clear HTML+CSS content only">📄 Clear Content</button>
             <button type="button" class="btn btn-outline-primary btn-sm" onclick="runMultiGroupAction('clear_pins')" title="Clear pin images only">📌 Clear Pins</button>
@@ -19914,34 +20109,43 @@ def admin_domains():
       }}
     }})();
     window.MULTI_GROUP_ALL_IDS = {json.dumps(multi_group_all_ids)};
+    function mgMoveSelectAllSrc(checked) {{
+      document.querySelectorAll('.mg-move-src-cb').forEach(function(cb) {{ cb.checked = !!checked; }});
+    }}
     function initMgMoveUi() {{
       var ui = window.MG_MOVE_UI || {{}};
       if (!Array.isArray(ui.source_batches)) ui.source_batches = [];
       if (!Array.isArray(ui.destination_parents)) ui.destination_parents = [];
-      var srcSel = document.getElementById('mgMoveSourceGroup');
+      var srcWrap = document.getElementById('mgMoveSourceBatches');
       var tgtSel = document.getElementById('mgMoveTargetGroup');
-      if (!srcSel || !tgtSel) return;
-      srcSel.innerHTML = '';
+      if (!srcWrap || !tgtSel) return;
+      srcWrap.innerHTML = '';
       var batches = ui.source_batches || [];
       if (batches.length === 0) {{
-        var ox = document.createElement('option');
-        ox.value = '';
-        ox.textContent = ui.context_group_id ? 'No sub-batches under this group (or no domains)' : 'Open a group (?group_id=…) to list A–D batches here';
-        srcSel.appendChild(ox);
+        var empty = document.createElement('div');
+        empty.className = 'small text-muted';
+        empty.textContent = ui.context_group_id ? 'No sub-batches under this group (or no domains)' : 'Open a group (?group_id=…) to list A–D batches here';
+        srcWrap.appendChild(empty);
       }} else {{
-        var ds = document.createElement('option');
-        ds.value = '';
-        ds.textContent = '— Choose source (A–D) batch —';
-        srcSel.appendChild(ds);
         batches.forEach(function(b) {{
-          var o = document.createElement('option');
-          o.value = String(b.id);
+          var row = document.createElement('div');
+          row.className = 'form-check mb-1';
+          var inp = document.createElement('input');
+          inp.type = 'checkbox';
+          inp.className = 'form-check-input mg-move-src-cb';
+          inp.id = 'mgMoveSrcBatch' + b.id;
+          inp.dataset.batchGroupId = String(b.id);
+          var lab = document.createElement('label');
+          lab.className = 'form-check-label small';
+          lab.htmlFor = inp.id;
           var d = (b.domains || []).join(', ');
           if (!d) d = '(empty)';
           var h = b.hierarchy || ('Group ' + b.id);
           var n = b.batch_index || 0;
-          o.textContent = '(group A–D ' + n + ' : ' + d + ') ' + h + ' [' + (b.count || 0) + '/4]';
-          srcSel.appendChild(o);
+          lab.textContent = '(group A–D ' + n + ' : ' + d + ') ' + h + ' [' + (b.count || 0) + '/4]';
+          row.appendChild(inp);
+          row.appendChild(lab);
+          srcWrap.appendChild(row);
         }});
       }}
       tgtSel.innerHTML = '';
@@ -19990,6 +20194,31 @@ def admin_domains():
       }});
       updateMgScope();
     }})();
+    function multiGroupArchiveCurrent(gid, action) {{
+      if (!gid) return;
+      var ok = action === 'unarchive_group'
+        ? confirm('Unarchive this group tree? It will show on Domains home again.')
+        : confirm('Archive this group tree? It will disappear from Domains home; you can still open it with ?group_id=' + gid);
+      if (!ok) return;
+      if (typeof showGlobalLoading === 'function') showGlobalLoading();
+      fetch('/api/domains/multi-group-action', {{
+        method: 'POST',
+        headers: {{ 'Content-Type': 'application/json' }},
+        body: JSON.stringify({{ group_ids: [gid], action: action }})
+      }})
+        .then(function(r) {{ return r.json(); }})
+        .then(function(d) {{
+          if (d.success) {{
+            if (typeof alert === 'function') alert(d.message || 'Done');
+            if (action === 'archive_group') window.location.href = '/admin/domains';
+            else window.location.reload();
+          }} else {{
+            alert(d.error || 'Failed');
+          }}
+        }})
+        .catch(function(e) {{ alert('Error: ' + (e.message || e)); }})
+        .finally(function() {{ if (typeof hideGlobalLoading === 'function') hideGlobalLoading(); }});
+    }}
     function runMultiGroupAction(action) {{
       var body = {{ action: action }};
       var scopeAll = document.getElementById('mgScopeAll');
@@ -20003,8 +20232,8 @@ def admin_domains():
 
       var confirmLabel = '';
       if (scope === 'titles') {{
-        if (action === 'ungroup' || action === 'delete_domains') {{
-          alert('Ungroup and Delete Domains only apply to domains. Use group scope or paste domain IDs.');
+        if (action === 'ungroup' || action === 'delete_domains' || action === 'archive_group' || action === 'unarchive_group') {{
+          alert('Ungroup and Delete Domains use group or domain scope; Archive/Unarchive use group scope only—not title IDs.');
           return;
         }}
         var tids = parseMgIdList(document.getElementById('mgTitleIdsInput') ? document.getElementById('mgTitleIdsInput').value : '');
@@ -20014,6 +20243,10 @@ def admin_domains():
       }} else if (scope === 'domains') {{
         var dids = parseMgIdList(document.getElementById('mgDomainIdsInput') ? document.getElementById('mgDomainIdsInput').value : '');
         if (dids.length === 0) {{ alert('Enter at least one domain ID'); return; }}
+        if (action === 'archive_group' || action === 'unarchive_group') {{
+          alert('Archive / unarchive uses group selection only—not domain IDs.');
+          return;
+        }}
         body.domain_ids = dids;
         confirmLabel = dids.length + ' domain(s) by ID';
       }} else {{
@@ -20036,7 +20269,9 @@ def admin_domains():
         'clear_pins': 'Clear pin images for ' + confirmLabel + '?',
         'clear_articles': 'Clear all article content for ' + confirmLabel + '?',
         'delete_titles': 'Permanently delete titles for ' + confirmLabel + '?',
-        'delete_domains': 'Permanently delete ALL domains for ' + confirmLabel + '? This cannot be undone.'
+        'delete_domains': 'Permanently delete ALL domains for ' + confirmLabel + '? This cannot be undone.',
+        'archive_group': 'Archive ' + confirmLabel + '? Trees disappear from Domains home until unarchived.',
+        'unarchive_group': 'Unarchive ' + confirmLabel + '? They will appear on Domains home again.'
       }};
       if (!confirm(msgs[action])) return;
       if ((action === 'delete_titles' || action === 'delete_domains') && !confirm('This cannot be undone. Continue?')) return;
@@ -20052,17 +20287,31 @@ def admin_domains():
     }}
     function runMultiGroupMoveToGroup() {{
       var ui = window.MG_MOVE_UI || {{}};
-      var srcSel = document.getElementById('mgMoveSourceGroup');
       var tgtSel = document.getElementById('mgMoveTargetGroup');
-      var sid = srcSel && srcSel.value ? parseInt(srcSel.value, 10) : NaN;
       var tid = tgtSel && tgtSel.value ? parseInt(tgtSel.value, 10) : NaN;
-      if (isNaN(sid)) {{ alert('Choose a source A–D batch (first list).'); return; }}
-      if (isNaN(tid)) {{ alert('Choose a destination parent group (second list).'); return; }}
-      var batch = (ui.source_batches || []).find(function(b) {{ return b.id === sid; }});
-      if (!batch || !(batch.domain_ids || []).length) {{ alert('Selected batch has no domains to move.'); return; }}
-      var body = {{ action: 'move_to_group', target_group_id: tid, domain_ids: batch.domain_ids }};
-      var dlist = (batch.domains || []).join(', ');
-      if (!confirm('Move this batch (' + dlist + ') to parent group id ' + tid + '? Domains in the target group will be reindexed 0–3.')) return;
+      if (isNaN(tid)) {{ alert('Choose a destination parent group.'); return; }}
+      var batches = ui.source_batches || [];
+      var selected = [];
+      batches.forEach(function(b) {{
+        var cb = document.getElementById('mgMoveSrcBatch' + b.id);
+        if (cb && cb.checked && (b.domain_ids || []).length) selected.push(b);
+      }});
+      if (selected.length === 0) {{ alert('Select at least one source batch with domains.'); return; }}
+      var body;
+      var confirmMsg;
+      if (selected.length === 1) {{
+        var batch = selected[0];
+        body = {{ action: 'move_to_group', target_group_id: tid, domain_ids: batch.domain_ids }};
+        var dlist = (batch.domains || []).join(', ');
+        confirmMsg = 'Move this batch (' + dlist + ') into group id ' + tid + '? Domains there are reindexed 0–3 (max 4 in that group).';
+      }} else {{
+        var batch_domain_groups = selected.map(function(b) {{ return b.domain_ids.slice(); }});
+        var flat = [];
+        batch_domain_groups.forEach(function(ids) {{ flat.push.apply(flat, ids); }});
+        body = {{ action: 'move_to_group', target_group_id: tid, domain_ids: flat, batch_domain_groups: batch_domain_groups }};
+        confirmMsg = 'Move ' + selected.length + ' batches (' + flat.length + ' domains) under parent group id ' + tid + '? Creates ' + selected.length + ' new subgroups (one per batch).';
+      }}
+      if (!confirm(confirmMsg)) return;
       if (typeof showGlobalLoading === 'function') showGlobalLoading();
       fetch('/api/domains/multi-group-action', {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }}, body: JSON.stringify(body) }})
         .then(function(r) {{ return r.json().then(function(d) {{ return {{ ok: r.ok, status: r.status, d: d }}; }}); }})
@@ -25352,15 +25601,6 @@ def api_domains_random_distribute_site_templates():
 
 
 # --- Full Website Preview ---
-def _build_group_filter_alert(group_hierarchy_path, domain_count):
-    """Build the group filter alert HTML without backslashes in f-string."""
-    if not group_hierarchy_path:
-        return ""
-    path_str = " > ".join(bc['name'] for bc in group_hierarchy_path)
-    close_onclick = 'window.location.href="/admin/domains"'
-    return f"<div class='alert alert-info alert-dismissible'><strong>Filtered by group:</strong> {path_str} <span class='badge bg-primary'>{domain_count} domain(s)</span> <button type='button' class='btn-close' onclick='{close_onclick}'></button></div>"
-
-
 def _get_domain_page_theme(domain_row):
     """Extract the active domain-page theme from any saved domain page JSON."""
     for slug in ("domain_page_about_us", "domain_page_terms_of_use", "domain_page_privacy_policy",
@@ -25377,17 +25617,6 @@ def _get_domain_page_theme(domain_row):
         except (json.JSONDecodeError, AttributeError):
             pass
     return ""
-
-
-def _build_group_filter_alert(group_hierarchy_path, domain_count):
-    """Build the group filter alert HTML without f-string backslashes."""
-    if not group_hierarchy_path:
-        return ""
-    hierarchy_text = " > ".join(bc['name'] for bc in group_hierarchy_path)
-    close_onclick = 'window.location.href="/admin/domains"'
-    return (f"<div class='alert alert-info alert-dismissible'><strong>Filtered by group:</strong> {hierarchy_text} "
-            f"<span class='badge bg-primary'>{domain_count} domain(s)</span> "
-            f"<button type='button' class='btn-close' onclick='{close_onclick}'></button></div>")
 
 
 def _get_customizations_script(domain_id):
