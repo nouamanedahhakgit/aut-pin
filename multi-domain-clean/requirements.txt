@@ -6,3 +6,5 @@ requests>=2.31.0
 Pillow>=10.0.0
 openai>=1.0.0
 python-dotenv>=1.0.0
+# Cloudflare R2 uploads (S3-compatible API) — imagine.py / r2_upload.py
+boto3>=1.28.0
