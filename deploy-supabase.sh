@@ -14,7 +14,7 @@ curl -sSLo docker-compose.hub.yml "$GITHUB_RAW/docker-compose.hub.yml"
 if [ -n "$DOCKERHUB_TOKEN" ]; then
   echo "$DOCKERHUB_TOKEN" | docker login -u "${DOCKERHUB_USERNAME:-boarddash31}" --password-stdin 2>/dev/null || true
 fi
-mkdir -p output/static-projects articles-website-generator/generators
+mkdir -p output/static-projects
 docker volume create aut-pin_env-config 2>/dev/null || true
 
 docker run --rm -v aut-pin_env-config:/data -e URL="$URL" alpine sh -c '

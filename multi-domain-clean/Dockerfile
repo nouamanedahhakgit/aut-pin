@@ -13,6 +13,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Writable path for ARTICLE_GENERATORS_DIR (create-new-generator); list is from API when empty
+RUN mkdir -p /app/shared/generators
+
 # Copy application
 COPY . .
 

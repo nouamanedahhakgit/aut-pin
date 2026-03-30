@@ -8,6 +8,8 @@ name: aut-pin
 #   docker compose -f docker-compose.hub.yml up -d
 #
 # All services communicate via Docker network (service names as hostnames).
+# Do not bind-mount an empty host ./articles-website-generator/generators over /app/generators:
+# that hides generator-*.py baked into images (404 + empty template dropdowns on Hub deploy).
 
 services:
   # ─── Orchestrator Setup Wizard (starts first) ────────────────────
@@ -36,7 +38,6 @@ services:
       - STATIC_PROJECT_OUTPUT_DIR=/app/output/static-projects
     volumes:
       - ./output/static-projects:/app/output/static-projects
-      - ./articles-website-generator/generators:/app/shared/generators
       - env-config:/app/env-config:ro
     env_file:
       - path: ./env-config/multi-domain-clean.env
@@ -67,7 +68,6 @@ services:
     environment:
       - LLAMACPP_MANAGER_URL=http://llamacpp_manager:5004
     volumes:
-      - ./articles-website-generator/generators:/app/generators
       - env-config:/app/env-config:ro
     env_file:
       - path: ./env-config/articles-website-generator.env

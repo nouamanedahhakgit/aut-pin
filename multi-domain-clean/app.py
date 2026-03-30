@@ -3236,7 +3236,7 @@ function renderProgressBody(s, body) {{
   window._currentProgressData = s;
   var errorDetailText = s.error_detail || (st === 'error' ? (s.message || '') : '') || '';
   var errorDetailEsc = String(errorDetailText).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  var errorBlock = errorDetailText ? '<div class="progress-workflow-section mt-2 border border-danger rounded p-2"><div class="d-flex justify-content-between align-items-center mb-1"><span class="workflow-label text-danger">Error details</span><button type="button" class="btn btn-sm btn-outline-secondary" onclick="var e=document.getElementById(\\'progressErrorDetail\\');if(e)navigator.clipboard.writeText(e.innerText).then(function(){{alert(\\'Copied!\\');}}).catch(function(){{alert(\\'Copy failed\\');}});">Copy</button></div><pre id="progressErrorDetail" class="small font-monospace mb-0" style="white-space:pre-wrap;word-break:break-word;max-height:20vh;overflow-y:auto;background:#fff3cd;padding:6px;">' + errorDetailEsc + '</pre></div>' : '';
+  var errorBlock = errorDetailText ? '<div class="progress-workflow-section mt-2 border border-danger rounded p-2"><div class="d-flex justify-content-between align-items-center mb-1"><span class="workflow-label text-danger">Error details</span><button type="button" class="btn btn-sm btn-outline-secondary" onclick="_copyProgressErrorDetail()">Copy</button></div><pre id="progressErrorDetail" class="small font-monospace mb-0" style="white-space:pre-wrap;word-break:break-word;max-height:20vh;overflow-y:auto;background:#fff3cd;padding:6px;">' + errorDetailEsc + '</pre></div>' : '';
   
   var showSteps = (s.type==='deploy' && steps.length) || steps.length > 0;
   var stepsLabel = s.type==='deploy' ? 'Domains' : ('Steps (' + steps.length + ')');
@@ -3307,22 +3307,41 @@ document.addEventListener('keyup', function(ev) {{
   if(!ev) return;
   if(ev.key === 'Escape' || ev.key === 'Enter') setTimeout(_flushPendingProgressRender, 120);
 }});
+/** Clipboard API needs a secure context (HTTPS or localhost). On plain HTTP, use fallback. */
+function _copyTextToClipboard(text, successMsg) {{
+  var msg = successMsg || 'Copied!';
+  function fallbackCopy() {{
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;left:0;top:0;width:2em;height:2em;padding:0;border:0;outline:none;opacity:0;z-index:99999;';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {{ ta.setSelectionRange(0, text.length); }} catch (e) {{}}
+    var ok = false;
+    try {{ ok = document.execCommand('copy'); }} catch (e) {{}}
+    document.body.removeChild(ta);
+    if (ok) {{ alert(msg); }}
+    else {{ try {{ window.prompt('Copy blocked on this page. Select the text below and copy (Ctrl+C):', text); }} catch (e2) {{ alert('Copy failed. Use HTTPS for one-click copy, or copy the text from the dialog manually.'); }} }}
+  }}
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {{
+    navigator.clipboard.writeText(text).then(function() {{ alert(msg); }}).catch(fallbackCopy);
+  }} else {{
+    fallbackCopy();
+  }}
+}}
+function _copyProgressErrorDetail() {{
+  var e = document.getElementById('progressErrorDetail');
+  if (!e) return;
+  _copyTextToClipboard(e.innerText || '', 'Copied!');
+}}
 function _copyProgressSteps() {{
   var s = window._currentProgressData;
   if(!s) return;
   var steps = (s.steps || []);
   var text = steps.join('\\n') || 'No steps.';
-  navigator.clipboard.writeText(text).then(function() {{
-    alert('Steps copied! (' + steps.length + ' lines)');
-  }}).catch(function() {{
-    var ta = document.createElement('textarea');
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    alert('Steps copied! (' + steps.length + ' lines)');
-  }});
+  _copyTextToClipboard(text, 'Steps copied! (' + steps.length + ' lines)');
 }}
 function _copyProgressDebugReport() {{
   var s = window._currentProgressData;
@@ -3391,17 +3410,7 @@ function _copyProgressDebugReport() {{
   lines.push('--- Raw JSON ---');
   try {{ lines.push(JSON.stringify(s, null, 2)); }} catch(e) {{ lines.push('[JSON error]'); }}
   var text = lines.join('\\n');
-  navigator.clipboard.writeText(text).then(function() {{
-    alert('Debug report copied! You can paste it to send to the developer.');
-  }}).catch(function() {{
-    var ta = document.createElement('textarea');
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    alert('Debug report copied!');
-  }});
+  _copyTextToClipboard(text, 'Debug report copied! You can paste it to send to the developer.');
 }}
 function _copyFailedRowsDetails() {{
   var s = window._currentProgressData;
@@ -3419,17 +3428,7 @@ function _copyFailedRowsDetails() {{
     var reason = (r.reason || '').trim();
     return gid + ridx + tid + title + (reason ? (' | ' + reason) : '');
   }}).join('\\n');
-  navigator.clipboard.writeText(lines).then(function() {{
-    alert('Failed rows details copied! (' + rows.length + ')');
-  }}).catch(function() {{
-    var ta = document.createElement('textarea');
-    ta.value = lines;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    alert('Failed rows details copied! (' + rows.length + ')');
-  }});
+  _copyTextToClipboard(lines, 'Failed rows details copied! (' + rows.length + ')');
 }}
 function _sendDebugToWhatsApp() {{
   var s = window._currentProgressData;
