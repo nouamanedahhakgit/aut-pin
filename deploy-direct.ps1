@@ -1,7 +1,8 @@
 # Deploy directly from local to server (no Docker Hub - faster)
 # Usage: .\deploy-direct.ps1
 #   $env:SERVER = "root@72.61.197.144" (default)
-#   $env:SUPABASE_DB_URL = "postgresql://..." (required for first deploy)
+#   $env:SUPABASE_DB_URL = "postgresql://...:6543/postgres" (required — transaction pooler on servers)
+#   $env:SUPABASE_POOL_MAX = "10" (optional)
 #
 # Builds images locally, transfers via SSH, runs compose on server.
 # No docker login needed. No Docker Hub rate limits.
@@ -11,7 +12,11 @@ $Server = if ($env:SERVER) { $env:SERVER } else { "root@72.61.197.144" }
 $Username = if ($env:DOCKERHUB_USERNAME) { $env:DOCKERHUB_USERNAME } else { "boarddash31" }
 $Tag = "latest"
 $DbUrl = $env:SUPABASE_DB_URL
-if (-not $DbUrl) { $DbUrl = "postgresql://postgres.rlfsnobastwcrttdbbag:Supabase101@aws-1-eu-north-1.pooler.supabase.com:5432/postgres" }
+if (-not $DbUrl) {
+    Write-Error "Set `$env:SUPABASE_DB_URL to your Supabase Postgres URI (use transaction pooler port 6543 on production)."
+    exit 1
+}
+$PoolMax = if ($env:SUPABASE_POOL_MAX) { $env:SUPABASE_POOL_MAX } else { "12" }
 
 $Services = @(
     @{ Name = "orchestrator"; Context = "./orchestrator"; Dockerfile = "./orchestrator/Dockerfile"; Image = "aut-pin-orchestrator" }
@@ -48,9 +53,10 @@ set -e
 mkdir -p ~/aut-pin && cd ~/aut-pin
 mkdir -p output/static-projects articles-website-generator/generators
 docker volume create aut-pin_env-config 2>/dev/null || true
-docker run --rm -v aut-pin_env-config:/data -e URL='$DbUrl' alpine sh -c '
+docker run --rm -v aut-pin_env-config:/data -e URL='$DbUrl' -e POOL_MAX='$PoolMax' alpine sh -c '
   echo DB_BACKEND=supabase > /data/multi-domain-clean.env
   echo SUPABASE_DB_URL="`$URL" >> /data/multi-domain-clean.env
+  echo SUPABASE_POOL_MAX="`$POOL_MAX" >> /data/multi-domain-clean.env
   echo SECRET_KEY=change-me-in-production >> /data/multi-domain-clean.env
   echo PIN_API_URL=http://pin_generator:5000 >> /data/multi-domain-clean.env
   echo GENERATE_ARTICLE_API_URL=http://articles-website-generator:5002 >> /data/multi-domain-clean.env

@@ -120,6 +120,8 @@ def _generate_env_files(cfg):
         mdc_lines.append(f"SUPABASE_DB_URL={db.get('supabase_db_url', '')}")
         if db.get("supabase_pooler_url"):
             mdc_lines.append(f"SUPABASE_POOLER_URL={db.get('supabase_pooler_url', '')}")
+        pool_max = str(db.get("supabase_pool_max") or "12").strip() or "12"
+        mdc_lines.append(f"SUPABASE_POOL_MAX={pool_max}")
 
     # AI keys
     ai = cfg.get("ai", {})
@@ -227,9 +229,28 @@ def api_test_db():
             return jsonify({"ok": True, "message": "MySQL connection successful!"})
         elif backend == "supabase":
             import psycopg2
-            conn = psycopg2.connect(data.get("supabase_db_url", ""), connect_timeout=5)
-            conn.close()
-            return jsonify({"ok": True, "message": "Supabase/PostgreSQL connection successful!"})
+            urls = [
+                u.strip()
+                for u in (data.get("supabase_db_url") or "", data.get("supabase_pooler_url") or "")
+                if u and str(u).strip()
+            ]
+            if not urls:
+                return jsonify({"ok": False, "error": "Enter a Supabase DB URL and/or pooler URL."})
+            last_err = None
+            for url in urls:
+                try:
+                    conn = psycopg2.connect(url, connect_timeout=5)
+                    conn.close()
+                    return jsonify(
+                        {
+                            "ok": True,
+                            "message": "Supabase/PostgreSQL connection successful!"
+                            + (" (via pooler URL)" if url == urls[-1] and len(urls) > 1 else ""),
+                        }
+                    )
+                except Exception as e:
+                    last_err = e
+            return jsonify({"ok": False, "error": str(last_err)})
         else:
             return jsonify({"ok": True, "message": "SQLite requires no connection test."})
     except ImportError as e:

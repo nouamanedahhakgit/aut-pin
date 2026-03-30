@@ -707,9 +707,16 @@
                             placeholder="postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/postgres">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Pooler URL (Optional fallback)</label>
+                        <label class="form-label">Pooler URL (optional — use transaction mode :6543 on busy servers)</label>
                         <input class="form-input" id="supabase_pooler_url" type="text"
                             placeholder="postgresql://postgres.[PROJECT]:[PASSWORD]@...pooler.supabase.com:6543/postgres">
+                        <p style="font-size: 12px; color: var(--text-secondary); margin: 6px 0 0 0;">Session pooler :5432 hits “max clients” quickly with parallel bulk jobs; prefer port <strong>6543</strong>.</p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Max DB connections (this app process)</label>
+                        <input class="form-input" id="supabase_pool_max" type="number" min="2" max="40" placeholder="12"
+                            value="12">
+                        <p style="font-size: 12px; color: var(--text-secondary); margin: 6px 0 0 0;">Caps PostgreSQL pool size. Lower if you still see connection errors; multiply by worker count under load.</p>
                     </div>
                     <button class="btn btn-test" onclick="testDB()">🔍 Test Connection</button>
                 </div>
@@ -876,6 +883,7 @@
                 payload.mysql_database = document.getElementById('mysql_database').value;
             } else if (selectedDB === 'supabase') {
                 payload.supabase_db_url = document.getElementById('supabase_db_url').value;
+                payload.supabase_pooler_url = document.getElementById('supabase_pooler_url').value;
             }
             try {
                 const resp = await fetch('/api/test-db', {
@@ -931,6 +939,7 @@
             } else if (selectedDB === 'supabase') {
                 cfg.database.supabase_db_url = document.getElementById('supabase_db_url').value;
                 cfg.database.supabase_pooler_url = document.getElementById('supabase_pooler_url').value;
+                cfg.database.supabase_pool_max = document.getElementById('supabase_pool_max').value || '12';
             }
             cfg.database.secret_key = document.getElementById('secret_key').value;
 
@@ -1011,6 +1020,7 @@
                     if (cfg.database.mysql_database) document.getElementById('mysql_database').value = cfg.database.mysql_database;
                     if (cfg.database.supabase_db_url) document.getElementById('supabase_db_url').value = cfg.database.supabase_db_url;
                     if (cfg.database.supabase_pooler_url) document.getElementById('supabase_pooler_url').value = cfg.database.supabase_pooler_url;
+                    if (cfg.database.supabase_pool_max) document.getElementById('supabase_pool_max').value = cfg.database.supabase_pool_max;
                     if (cfg.database.secret_key) document.getElementById('secret_key').value = cfg.database.secret_key;
                 }
                 if (cfg && cfg.services) {

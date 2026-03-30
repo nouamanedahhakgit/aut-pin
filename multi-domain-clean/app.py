@@ -2713,6 +2713,8 @@ function renderProgressBody(s, body) {{
     + (aiLabel ? '<div style="font-size:0.68rem;color:#555;margin-top:3px">🤖 ' + aiLabel.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>' : '')
     + '</div>';
   var rowDone = (typeof done==='number' ? done : processedCount);
+  if (st === 'done' && typeof totalRows==='number' && (s.failed||0) === 0 && typeof s.ok === 'number' && s.ok === totalRows)
+    rowDone = totalRows;
   var progressBarHtml = '';
   if (typeof totalRows==='number' && totalRows>0 && (rowDone!==undefined || processedCount!==undefined)) {{
     var filled = Math.min(totalRows, typeof rowDone==='number' ? rowDone : (processedCount||0));
@@ -2895,9 +2897,17 @@ function renderProgressBody(s, body) {{
       if (completedArticles.length > 0) {{
         doneOk = completedArticles.filter(function(a){{ var dp = a.domain_progress || {{}}; return Object.keys(dp).length === 0 || Object.keys(dp).every(function(l){{ return dp[l]==='done'||dp[l]==='skipped'; }}); }}).length;
         doneFail = completedArticles.length - doneOk;
+        if (st === 'done' && typeof s.ok === 'number' && s.ok >= doneOk) {{
+          doneOk = s.ok;
+          doneFail = typeof s.failed === 'number' ? s.failed : 0;
+        }}
       }} else {{
         doneOk = completedSteps.filter(function(x){{ return /✓/.test(x); }}).length;
         doneFail = completedSteps.filter(function(x){{ return /✗/.test(x); }}).length;
+        if (st === 'done' && typeof s.ok === 'number' && s.ok >= doneOk) {{
+          doneOk = s.ok;
+          doneFail = typeof s.failed === 'number' ? s.failed : 0;
+        }}
       }}
       articlesHtml += '<div class="d-flex align-items-center gap-2 mb-1 mt-1"><span class="workflow-label mb-0">Completed</span>'
         + (doneOk ? '<span class="badge bg-success" style="font-size:0.65rem">✓ ' + doneOk + ' ok</span>' : '')
@@ -8928,6 +8938,7 @@ def _run_bulk_all_groups_async(job_id, mode, concurrency_type="row", concurrency
             _bulk_progress[job_id].update({"status": "error", "message": "No groups", "error_detail": "No groups"})
             return
         total_ok, total_failed = 0, 0
+        last_row_snapshot = None  # (done, processed_count, total_rows) for bulk-all row mode
         n = max(1, min(int(concurrency_n), 20 if concurrency_type == "row" else 10))
         num_groups = len(group_ids)
         _bulk_progress[job_id].update({"status": "running", "message": f"Loading {num_groups} groups...", "current_title": ""})
@@ -9042,7 +9053,6 @@ def _run_bulk_all_groups_async(job_id, mode, concurrency_type="row", concurrency
                     _bulk_progress[job_id]["current_title"] = active_str
                     _bulk_progress[job_id]["active_titles"] = [f"{x.get('tid','')}:{x.get('title','')}" if isinstance(x, dict) else x for x in lst]
                     _bulk_progress[job_id]["active_articles"] = [x for x in lst if isinstance(x, dict)]
-                    _bulk_progress[job_id]["done"] = processed_count
             done = 0
             processed_count = 0
             _bulk_progress[job_id]["steps"] = _bulk_progress[job_id].get("steps", [])
@@ -9066,8 +9076,8 @@ def _run_bulk_all_groups_async(job_id, mode, concurrency_type="row", concurrency
                             total_ok += ok
                             total_failed += failed
                             done += 1
+                            processed_count += 1
                             if ok or failed:
-                                processed_count += 1
                                 sym = "✓" if ok else "✗"
                                 st = f"G{gid} R{processed_count}: [{tid}] {title} {sym}"
                                 if not ok and reason:
@@ -9081,6 +9091,11 @@ def _run_bulk_all_groups_async(job_id, mode, concurrency_type="row", concurrency
                                         "reason": str(reason)[:BULK_FAIL_REASON_MAX],
                                     })
                                     _bulk_progress[job_id]["failed_rows"] = fr[-120:]
+                                steps = _bulk_progress[job_id].get("steps", [])
+                                steps.append(st)
+                                _bulk_progress[job_id]["steps"] = steps[-80:]
+                            else:
+                                st = f"G{gid} R{processed_count}: [{tid}] {title} ·"
                                 steps = _bulk_progress[job_id].get("steps", [])
                                 steps.append(st)
                                 _bulk_progress[job_id]["steps"] = steps[-80:]
@@ -9114,10 +9129,34 @@ def _run_bulk_all_groups_async(job_id, mode, concurrency_type="row", concurrency
                                 "reason": str(e)[:BULK_FAIL_REASON_MAX],
                             })
                             _bulk_progress[job_id]["failed_rows"] = fr[-120:]
+                            lst = list(active_items.values())[:5]
+                            _bulk_progress[job_id]["active_titles"] = [f"{x.get('tid','')}:{x.get('title','')}" if isinstance(x, dict) else x for x in lst]
+                            _bulk_progress[job_id]["active_articles"] = [x for x in lst if isinstance(x, dict)]
+                            _bulk_progress[job_id].update({
+                                "status": "running",
+                                "message": f"Row {done}/{total_rows} ({total_ok}✓ {total_failed}✗)",
+                                "current_title": "",
+                                "total_rows": total_rows,
+                                "done": done,
+                                "processed_count": processed_count,
+                            })
+            last_row_snapshot = (done, processed_count, total_rows)
         if _bulk_cancel.get(job_id):
-            _bulk_progress[job_id].update({"status": "cancelled", "message": f"Cancelled. {total_ok} rows done" + (f", {total_failed} failed" if total_failed else ""), "ok": total_ok, "failed": total_failed})
+            upd = {"status": "cancelled", "message": f"Cancelled. {total_ok} rows done" + (f", {total_failed} failed" if total_failed else ""), "ok": total_ok, "failed": total_failed}
+            if last_row_snapshot is not None:
+                d, pc, tr = last_row_snapshot
+                upd["done"] = d
+                upd["processed_count"] = pc
+                upd["total_rows"] = tr
+            _bulk_progress[job_id].update(upd)
         else:
-            _bulk_progress[job_id].update({"status": "done", "message": f"{total_ok} rows done" + (f", {total_failed} failed" if total_failed else ""), "ok": total_ok, "failed": total_failed})
+            upd = {"status": "done", "message": f"{total_ok} rows done" + (f", {total_failed} failed" if total_failed else ""), "ok": total_ok, "failed": total_failed}
+            if last_row_snapshot is not None:
+                d, pc, tr = last_row_snapshot
+                upd["done"] = d
+                upd["processed_count"] = pc
+                upd["total_rows"] = tr
+            _bulk_progress[job_id].update(upd)
     except Exception as e:
         err = str(e)[:BULK_ERROR_DETAIL_MAX]
         _bulk_progress[job_id].update({"status": "error", "message": err, "error_detail": err})
@@ -18397,6 +18436,7 @@ def _build_group_filter_alert(group_hierarchy_path, domain_count, filter_group_i
             btns = f"""<button type="button" class="btn btn-success btn-sm ms-2" onclick="multiGroupArchiveCurrent({filter_group_id}, 'unarchive_group')" title="Show on Domains home again">Unarchive group</button>"""
         else:
             btns = f"""<button type="button" class="btn btn-outline-secondary btn-sm ms-2" onclick="multiGroupArchiveCurrent({filter_group_id}, 'archive_group')" title="Hide this group tree from Domains home (still reachable by URL)">Archive group</button>"""
+        btns += f"""<button type="button" class="btn btn-danger btn-sm ms-2" onclick="deleteGroupTreeFromDomains({filter_group_id})" title="Permanently delete this group, all subgroups, all domains and titles (cannot undo)">Delete group tree</button>"""
     return (
         arch_html
         + f"<div class='alert alert-info alert-dismissible d-flex flex-wrap align-items-center'><div class='flex-grow-1'><strong>Filtered by group:</strong> {html.escape(path_str)} <span class='badge bg-primary'>{domain_count} domain(s)</span></div><div class='d-flex align-items-center gap-1 mt-1 mt-md-0'>"
@@ -19612,13 +19652,17 @@ def admin_domains():
     bulk_deploy_panel_html = ""
     if bulk_job_id:
         job_id_js = json.dumps(bulk_job_id)
-        bulk_deploy_panel_html = f'''<div id="bulkDeployProgressPanel" class="card mb-3 border-info"><div class="card-header bg-info text-white py-2"><strong>☁️ Bulk Deploy in Progress</strong></div><div class="card-body py-2"><div class="progress mb-2" style="height:24px"><div id="bulkDeployProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-info" role="progressbar" style="width:0%">0%</div></div><p class="mb-1 small"><strong>Current:</strong> <span id="bulkDeployCurrent">Starting...</span></p><p class="mb-1 small text-muted"><strong>Generated:</strong> <span id="bulkDeployGenerated">—</span></p><p id="bulkDeployErrors" class="mb-0 small text-danger" style="display:none"></p></div></div><script>
+        bulk_deploy_panel_html = f'''<div id="bulkDeployProgressPanel" class="card mb-3 border-info"><div class="card-header bg-info text-white py-2"><strong>☁️ Bulk Deploy in Progress</strong></div><div class="card-body py-2"><div class="progress mb-2" style="height:24px"><div id="bulkDeployProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-info" role="progressbar" style="width:0%">0%</div></div><p class="mb-1 small text-muted" id="bulkDeploySummaryWrap" style="display:none"><strong>Queue:</strong> <span id="bulkDeploySummary">—</span></p><p class="mb-1 small"><strong>Current:</strong> <span id="bulkDeployCurrent">Starting...</span></p><div id="bulkDeployActivity" class="mb-2 small" style="display:none;border-left:3px solid #0dcaf0;padding-left:8px;background:#f8fafc;border-radius:0 4px 4px 0"></div><p class="mb-1 small text-muted"><strong>Finished:</strong> <span id="bulkDeployGenerated">—</span></p><p class="mb-0 small text-muted" style="font-size:0.72rem">Steps per domain: generate site → Cloudflare project → Wrangler upload → custom domain. Wrangler can take several minutes the first time.</p><p id="bulkDeployErrors" class="mb-0 small text-danger" style="display:none"></p></div></div><script>
 (function(){{
   var jobId = {job_id_js};
   var bar = document.getElementById("bulkDeployProgressBar");
   var curEl = document.getElementById("bulkDeployCurrent");
   var genEl = document.getElementById("bulkDeployGenerated");
   var errEl = document.getElementById("bulkDeployErrors");
+  var sumWrap = document.getElementById("bulkDeploySummaryWrap");
+  var sumEl = document.getElementById("bulkDeploySummary");
+  var actEl = document.getElementById("bulkDeployActivity");
+  function esc(s){{ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }}
   function hidePanelAndCleanUrl(){{
     var panel = document.getElementById("bulkDeployProgressPanel");
     if(panel) panel.style.display = "none";
@@ -19632,12 +19676,49 @@ def admin_domains():
     fetch("/api/bulk-deploy-job/"+jobId).then(r=>r.json()).then(function(d){{
       if(!d.found){{ hidePanelAndCleanUrl(); return; }}
       if(bar){{ bar.style.width = (d.percent||0)+"%"; bar.textContent = (d.percent||0)+"%"; }}
-      if(curEl) curEl.textContent = d.current ? "Generating "+d.current+"..." : (d.complete ? "Done" : "Starting...");
-      if(genEl) genEl.textContent = (d.generated||[]).length ? (d.generated||[]).join(", ") : "—";
-      if(d.errors&&d.errors.length&&errEl){{ errEl.style.display="block"; errEl.innerHTML="Errors: "+d.errors.map(function(x){{return x.url+": "+x.error;}}).join("; "); }}
+      var c = d.counts || {{}};
+      var hasCounts = c && (typeof c.running === "number" || typeof c.pending === "number");
+      if(sumWrap && sumEl) {{
+        if(hasCounts && (c.running > 0 || c.pending > 0 || c.done > 0 || c.error > 0 || c.cancelled > 0)) {{
+          sumWrap.style.display = "block";
+          sumEl.textContent = (c.running||0) + " running · " + (c.pending||0) + " queued · " + (c.done||0) + " done" + ((c.error||0) ? " · " + c.error + " failed" : "") + ((c.cancelled||0) ? " · " + c.cancelled + " cancelled" : "");
+        }} else {{ sumWrap.style.display = "none"; }}
+      }}
+      var rd = d.running_detail || [];
+      if(actEl) {{
+        if(rd.length) {{
+          actEl.style.display = "block";
+          actEl.innerHTML = rd.map(function(r) {{
+            var pct = typeof r.percent === "number" ? r.percent : 0;
+            var step = r.step ? " [" + esc(r.step) + "]" : "";
+            return "<div class=\\"mb-1\\"><strong>" + esc(r.url) + "</strong>" + step + " · <span class=\\"text-primary fw-semibold\\">" + pct + "%</span><br><span class=\\"text-secondary\\" style=\\"font-size:0.9em\\">" + esc(r.message || "…") + "</span></div>";
+          }}).join("");
+        }} else {{ actEl.style.display = "none"; actEl.innerHTML = ""; }}
+      }}
+      if(curEl) {{
+        if(rd.length === 1) {{
+          curEl.textContent = rd[0].url + " — " + (rd[0].message || "…");
+        }} else if(rd.length > 1) {{
+          curEl.textContent = rd.length + " domains deploying in parallel (see activity below)";
+        }} else if(d.current) {{
+          curEl.textContent = "Working on " + d.current + "…";
+        }} else {{
+          curEl.textContent = d.complete ? "Done" : "Starting…";
+        }}
+      }}
+      var gen = d.generated || [];
+      if(genEl) {{
+        if(gen.length) {{
+          var show = gen.slice(0, 5).join(", ");
+          if(gen.length > 5) show += " +" + (gen.length - 5) + " more";
+          genEl.textContent = show;
+        }} else genEl.textContent = "— (none yet — each site finishes Wrangler upload before it appears here)";
+      }}
+      if(d.errors&&d.errors.length&&errEl){{ errEl.style.display="block"; errEl.innerHTML="Errors: "+d.errors.map(function(x){{return esc(x.url)+": "+esc(x.error);}}).join("; "); }}
       if(d.complete && bar){{ bar.classList.remove("progress-bar-animated"); bar.classList.add("bg-success"); }}
       if(d.complete) {{ hidePanelAndCleanUrl(); return; }}
-      setTimeout(poll, 2000);
+      var delay = (rd.length > 0) ? 1200 : 2000;
+      setTimeout(poll, delay);
     }}).catch(function(){{ setTimeout(poll, 3000); }});
   }}
   poll();
@@ -20213,6 +20294,24 @@ def admin_domains():
             else window.location.reload();
           }} else {{
             alert(d.error || 'Failed');
+          }}
+        }})
+        .catch(function(e) {{ alert('Error: ' + (e.message || e)); }})
+        .finally(function() {{ if (typeof hideGlobalLoading === 'function') hideGlobalLoading(); }});
+    }}
+    function deleteGroupTreeFromDomains(gid) {{
+      if (!gid) return;
+      if (!confirm('DELETE ENTIRE GROUP TREE (id ' + gid + ')?\\n\\nThis removes this group, ALL subgroups, ALL domains, titles, and article content. This cannot be undone.')) return;
+      if (!confirm('Final confirmation: permanently delete this whole tree?')) return;
+      if (typeof showGlobalLoading === 'function') showGlobalLoading();
+      fetch('/api/groups/delete-tree/' + gid, {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }}, body: '{{}}' }})
+        .then(function(r) {{ return r.json().then(function(d) {{ return {{ ok: r.ok, d: d }}; }}); }})
+        .then(function(x) {{
+          if (x.d && x.d.success) {{
+            alert(x.d.message || 'Deleted');
+            window.location.href = '/admin/domains';
+          }} else {{
+            alert((x.d && x.d.error) ? x.d.error : 'Failed');
           }}
         }})
         .catch(function(e) {{ alert('Error: ' + (e.message || e)); }})
@@ -24767,6 +24866,15 @@ def _deploy_domain_background_with_job(domain_id, user_id, job_id, url):
                 job["done"] = job.get("done", 0) + 1
                 job["_cancelled"] = True
         return
+    with DEPLOY_CF_PROGRESS_LOCK:
+        DEPLOY_CF_PROGRESS[domain_id] = {
+            "step": "starting",
+            "percent": 0,
+            "message": "Starting deploy…",
+            "done": False,
+            "result": None,
+            "error": None,
+        }
     with BULK_DEPLOY_JOBS_LOCK:
         job = BULK_DEPLOY_JOBS.get(job_id)
         if job:
@@ -24775,16 +24883,55 @@ def _deploy_domain_background_with_job(domain_id, user_id, job_id, url):
     log.info("[bulk_deploy] Deploying domain %s (%s)", domain_id, url)
     try:
         with app.app_context():
-            _do_deploy_cloudflare(domain_id, user_id)
+            ret = _do_deploy_cloudflare(domain_id, user_id, progress_domain_id=domain_id)
+        resp = ret[0] if isinstance(ret, tuple) else ret
+        data = resp.get_json() if resp and hasattr(resp, "get_json") else {}
+        ok = bool(data.get("success"))
+        err_msg = (data.get("error") or "Deploy failed")[:500] if not ok else None
+        with DEPLOY_CF_PROGRESS_LOCK:
+            if ok:
+                DEPLOY_CF_PROGRESS[domain_id] = {
+                    "step": "complete",
+                    "percent": 100,
+                    "message": "Done",
+                    "done": True,
+                    "result": data,
+                    "error": None,
+                }
+            else:
+                DEPLOY_CF_PROGRESS[domain_id] = {
+                    "step": "error",
+                    "percent": 0,
+                    "message": err_msg or "Error",
+                    "done": True,
+                    "result": data,
+                    "error": err_msg,
+                }
         with BULK_DEPLOY_JOBS_LOCK:
             job = BULK_DEPLOY_JOBS.get(job_id)
             if job:
-                job["status"][domain_id] = "done"
+                if ok:
+                    job["status"][domain_id] = "done"
+                else:
+                    job["status"][domain_id] = "error"
+                    job["errors"][domain_id] = str(err_msg)[:200] if err_msg else "Deploy failed"
                 job["current"] = None
                 job["done"] = job.get("done", 0) + 1
-        log.info("[bulk_deploy] Done domain %s (%s)", domain_id, url)
+        if ok:
+            log.info("[bulk_deploy] Done domain %s (%s)", domain_id, url)
+        else:
+            log.warning("[bulk_deploy] Domain %s (%s) failed: %s", domain_id, url, err_msg)
     except Exception as e:
         log.warning("[bulk_deploy] Domain %s (%s) failed: %s", domain_id, url, e)
+        with DEPLOY_CF_PROGRESS_LOCK:
+            DEPLOY_CF_PROGRESS[domain_id] = {
+                "step": "error",
+                "percent": 0,
+                "message": str(e),
+                "done": True,
+                "result": None,
+                "error": str(e),
+            }
         with BULK_DEPLOY_JOBS_LOCK:
             job = BULK_DEPLOY_JOBS.get(job_id)
             if job:
@@ -25038,10 +25185,39 @@ def api_bulk_deploy_job_status(job_id):
     done_list = [url for did, url in items if status_map.get(did) == "done"]
     running = current
     error_list = [(did, url, errors.get(did, "")) for did, url in items if status_map.get(did) == "error"]
+    counts = {"pending": 0, "running": 0, "done": 0, "error": 0, "cancelled": 0}
+    for did, _u in items:
+        st = status_map.get(did, "pending")
+        if st in counts:
+            counts[st] += 1
+    running_detail = []
+    with DEPLOY_CF_PROGRESS_LOCK:
+        for did, url in items:
+            if status_map.get(did) != "running":
+                continue
+            p = DEPLOY_CF_PROGRESS.get(did)
+            if p and not p.get("done"):
+                running_detail.append({
+                    "domain_id": did,
+                    "url": url,
+                    "step": p.get("step"),
+                    "percent": p.get("percent", 0),
+                    "message": p.get("message") or "",
+                })
+            else:
+                running_detail.append({
+                    "domain_id": did,
+                    "url": url,
+                    "step": "working",
+                    "percent": 0,
+                    "message": "Deploy in progress…",
+                })
     return jsonify({
         "found": True, "job_id": job_id,
         "total": total, "done": done, "percent": pct,
         "current": running,
+        "counts": counts,
+        "running_detail": running_detail,
         "generated": done_list,
         "errors": [{"domain_id": did, "url": url, "error": err} for did, url, err in error_list],
         "complete": done >= total,
@@ -30125,40 +30301,81 @@ def api_groups_delete_all():
     return jsonify({"success": True, "groups_count": groups_count, "domains_count": domains_count})
 
 
+def _all_group_descendants_ids_list(conn, gid):
+    """Return [gid, ...] for this group and all nested subgroups."""
+    result = [gid]
+    cur = db_execute(conn, "SELECT id FROM `groups` WHERE parent_group_id = ?", (gid,))
+    for r in cur.fetchall():
+        cid = dict_row(r)["id"]
+        result.extend(_all_group_descendants_ids_list(conn, cid))
+    return result
+
+
+def _delete_group_tree_cascade(conn, root_id, user_id, is_admin):
+    """
+    Delete root group and all descendants: domains (titles, article_content, templates),
+    user_groups rows, then group rows. Returns (ok, error_message or None, stats dict or None).
+    """
+    all_gids = _all_group_descendants_ids_list(conn, root_id)
+    if not is_admin:
+        ug = set(get_user_group_ids(user_id, False) or [])
+        if not set(all_gids).issubset(ug):
+            return False, "Access denied: you cannot delete this entire group tree.", None
+    ph = ",".join(["?"] * len(all_gids))
+    cur = db_execute(conn, f"SELECT id FROM domains WHERE group_id IN ({ph})", tuple(all_gids))
+    domain_ids = [dict_row(r)["id"] for r in cur.fetchall()]
+    n_domains = len(domain_ids)
+    if domain_ids:
+        dph = ",".join(["?"] * len(domain_ids))
+        cur = db_execute(conn, f"SELECT id FROM titles WHERE domain_id IN ({dph})", tuple(domain_ids))
+        title_ids = [dict_row(r)["id"] for r in cur.fetchall()]
+        if title_ids:
+            tph = ",".join(["?"] * len(title_ids))
+            db_execute(conn, f"DELETE FROM article_content WHERE title_id IN ({tph})", tuple(title_ids))
+            db_execute(conn, f"DELETE FROM titles WHERE id IN ({tph})", tuple(title_ids))
+        db_execute(conn, f"DELETE FROM domain_template_assignments WHERE domain_id IN ({dph})", tuple(domain_ids))
+        db_execute(conn, f"DELETE FROM domain_templates WHERE domain_id IN ({dph})", tuple(domain_ids))
+        db_execute(conn, f"DELETE FROM user_domains WHERE domain_id IN ({dph})", tuple(domain_ids))
+        db_execute(conn, f"DELETE FROM domains WHERE id IN ({dph})", tuple(domain_ids))
+    db_execute(conn, f"DELETE FROM user_groups WHERE group_id IN ({ph})", tuple(all_gids))
+    for gid in reversed(all_gids):
+        db_execute(conn, "DELETE FROM `groups` WHERE id = ?", (gid,))
+    return True, None, {"groups": len(all_gids), "domains": n_domains}
+
+
+@app.route("/api/groups/delete-tree/<int:group_id>", methods=["POST"])
+@login_required
+def api_groups_delete_tree(group_id):
+    """Delete a group and all subgroups, domains, titles, and templates. Same logic as /admin/groups/delete/."""
+    user = get_current_user()
+    user_id = user["id"]
+    is_admin = user.get("is_admin", 0)
+    with get_connection() as conn:
+        ok, err, stats = _delete_group_tree_cascade(conn, group_id, user_id, is_admin)
+        if not ok:
+            return jsonify({"success": False, "error": err or "Failed"}), 403
+    return jsonify(
+        {
+            "success": True,
+            "message": f"Deleted {stats['groups']} group(s) and {stats['domains']} domain(s).",
+            "groups_deleted": stats["groups"],
+            "domains_deleted": stats["domains"],
+        }
+    )
+
+
 @app.route("/admin/groups/delete/<int:pk>")
 @login_required
 def admin_groups_delete(pk):
     """Delete group with all its subgroups, domains, and articles (cascade)."""
+    user = get_current_user()
+    user_id = user["id"]
+    is_admin = user.get("is_admin", 0)
     with get_connection() as conn:
-        # Get all descendant groups recursively
-        def get_all_group_descendants(gid):
-            result = [gid]
-            cur = db_execute(conn, "SELECT id FROM `groups` WHERE parent_group_id = ?", (gid,))
-            children = [dict_row(r)["id"] for r in cur.fetchall()]
-            for child_id in children:
-                result.extend(get_all_group_descendants(child_id))
-            return result
-        
-        all_group_ids = get_all_group_descendants(pk)
-        
-        # Get all domains in these groups
-        if all_group_ids:
-            placeholders = ",".join(["?"] * len(all_group_ids))
-            cur = db_execute(conn, f"SELECT id FROM domains WHERE group_id IN ({placeholders})", tuple(all_group_ids))
-            domain_ids = [dict_row(r)["id"] for r in cur.fetchall()]
-            
-            # Delete all titles for these domains (cascade will delete article_content)
-            if domain_ids:
-                placeholders = ",".join(["?"] * len(domain_ids))
-                db_execute(conn, f"DELETE FROM titles WHERE domain_id IN ({placeholders})", tuple(domain_ids))
-                
-                # Delete all domains
-                db_execute(conn, f"DELETE FROM domains WHERE id IN ({placeholders})", tuple(domain_ids))
-            
-            # Delete all groups (children first, then parent)
-            for gid in reversed(all_group_ids):
-                db_execute(conn, "DELETE FROM `groups` WHERE id = ?", (gid,))
-        
+        ok, err, stats = _delete_group_tree_cascade(conn, pk, user_id, is_admin)
+        if not ok:
+            q = urllib.parse.quote((err or "Access denied")[:500])
+            return redirect(url_for("admin_groups") + f"?error={q}")
     return redirect(url_for("admin_groups"))
 
 

@@ -1,12 +1,18 @@
 #!/bin/bash
 # Deploy aut-pin with Supabase. Pulls images from Docker Hub. Fetches compose from GitHub.
-# Usage: SUPABASE_DB_URL='...' curl -sSL URL | bash
+# Usage: SUPABASE_DB_URL='postgresql://...pooler...:6543/postgres' curl -sSL URL | bash
+# Prefer Supabase Transaction pooler (port 6543) to avoid MaxClientsInSessionMode on :5432.
+# Optional: SUPABASE_POOL_MAX (default 12) — cap DB connections per app process; see multi-domain-clean/db.py
 
 set -e
 GITHUB_RAW="https://raw.githubusercontent.com/nouamanedahhakgit/aut-pin/main"
-DEFAULT_URL="postgresql://postgres.rlfsnobastwcrttdbbag:Supabase101@aws-1-eu-north-1.pooler.supabase.com:5432/postgres"
 URL="${SUPABASE_DB_URL:-$1}"
-URL="${URL:-$DEFAULT_URL}"
+POOL_MAX="${SUPABASE_POOL_MAX:-12}"
+if [ -z "$URL" ]; then
+  echo "Set SUPABASE_DB_URL to your Postgres URI (transaction pooler :6543 recommended), e.g.:" >&2
+  echo "  export SUPABASE_DB_URL='postgresql://postgres.[ref]:[pass]@aws-0-[region].pooler.supabase.com:6543/postgres'" >&2
+  exit 1
+fi
 
 mkdir -p ~/aut-pin && cd ~/aut-pin
 curl -sSLo docker-compose.hub.yml "$GITHUB_RAW/docker-compose.hub.yml"
@@ -17,9 +23,10 @@ fi
 mkdir -p output/static-projects
 docker volume create aut-pin_env-config 2>/dev/null || true
 
-docker run --rm -v aut-pin_env-config:/data -e URL="$URL" alpine sh -c '
+docker run --rm -v aut-pin_env-config:/data -e URL="$URL" -e POOL_MAX="$POOL_MAX" alpine sh -c '
   echo DB_BACKEND=supabase > /data/multi-domain-clean.env
   echo SUPABASE_DB_URL="$URL" >> /data/multi-domain-clean.env
+  echo SUPABASE_POOL_MAX="$POOL_MAX" >> /data/multi-domain-clean.env
   echo SECRET_KEY=change-me-in-production >> /data/multi-domain-clean.env
   echo PIN_API_URL=http://pin_generator:5000 >> /data/multi-domain-clean.env
   echo GENERATE_ARTICLE_API_URL=http://articles-website-generator:5002 >> /data/multi-domain-clean.env

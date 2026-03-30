@@ -1,6 +1,7 @@
 """Database connection and schema. Supports MySQL or Supabase (PostgreSQL) via DB_BACKEND in .env."""
 import os
 import re
+import threading
 import time
 from contextlib import contextmanager
 
@@ -36,6 +37,12 @@ if os.path.exists("/.dockerenv") and MYSQL_CONFIG["host"] == "localhost":
 SUPABASE_DB_URL = os.getenv("SUPABASE_DB_URL", "")
 # Optional: use when direct host fails (Dashboard → Project Settings → Database → Connection pooling → Session mode)
 SUPABASE_POOLER_URL = os.getenv("SUPABASE_POOLER_URL", "")
+# Max connections kept open by this process (Supabase only). Prevents "Max client connections" / MaxClientsInSessionMode
+# when many threads (bulk deploy, bulk run) hit the DB at once. Lower if you still see pooler errors.
+try:
+    SUPABASE_POOL_MAX = int((os.getenv("SUPABASE_POOL_MAX") or "12").strip())
+except ValueError:
+    SUPABASE_POOL_MAX = 12
 
 # Pre-import cryptography for pymysql
 try:
@@ -49,63 +56,94 @@ def _get_mysql_connection():
     return pymysql.connect(**MYSQL_CONFIG, cursorclass=pymysql.cursors.DictCursor)
 
 
-def _get_supabase_connection():
+_supabase_pool = None
+_supabase_pool_lock = threading.Lock()
+
+
+def _get_supabase_pool():
+    """Bounded thread-safe pool so parallel workers do not exhaust Supabase session/connection limits."""
+    global _supabase_pool
+    import logging
     import psycopg2
+    from psycopg2 import pool as pg_pool
     from psycopg2.extras import RealDictCursor
-    urls_to_try = [u for u in (SUPABASE_DB_URL, SUPABASE_POOLER_URL) if u and u.strip()]
-    if not urls_to_try:
-        raise ValueError(
-            "DB_BACKEND=supabase requires SUPABASE_DB_URL (or SUPABASE_POOLER_URL) in .env. "
-            "If direct host fails, use Connection pooling URL from Dashboard → Database."
-        )
-    last_error = None
-    for url in urls_to_try:
-        url = url.strip()
-        for attempt in range(3):  # retry transient DNS/network failures
-            try:
-                return psycopg2.connect(url, cursor_factory=RealDictCursor)
-            except Exception as e:
-                last_error = e
-                err_msg = str(e).lower()
-                is_transient = (
-                    "could not translate host name" in err_msg
-                    or "resolve" in err_msg
-                    or "connection refused" in err_msg
-                    or "timed out" in err_msg
-                )
-                if is_transient and attempt < 2:
-                    time.sleep(2 + attempt)  # 2s, 3s
-                    continue
-                if "could not translate host name" in err_msg or "resolve" in err_msg:
-                    continue  # try next URL (e.g. direct vs pooler)
-                raise
-    # Log failure for diagnostics (avoid logging full URL with password)
-    try:
-        import logging
-        _log = logging.getLogger(__name__)
-        _host = "?"
-        if urls_to_try:
-            m = re.search(r"@([^:/]+)", urls_to_try[-1])
-            if m:
-                _host = m.group(1)
-        _log.error("[Supabase] Connection failed to %s: %s", _host, last_error)
-    except Exception:
-        pass
-    raise last_error
+
+    with _supabase_pool_lock:
+        if _supabase_pool is not None:
+            return _supabase_pool
+        urls_to_try = [u for u in (SUPABASE_DB_URL, SUPABASE_POOLER_URL) if u and u.strip()]
+        if not urls_to_try:
+            raise ValueError(
+                "DB_BACKEND=supabase requires SUPABASE_DB_URL (or SUPABASE_POOLER_URL) in .env. "
+                "If direct host fails, use Connection pooling URL from Dashboard → Database."
+            )
+        maxc = max(2, min(SUPABASE_POOL_MAX, 40))
+        last_error = None
+        for url in urls_to_try:
+            url = url.strip()
+            for attempt in range(3):
+                try:
+                    _supabase_pool = pg_pool.ThreadedConnectionPool(
+                        1, maxc, url, cursor_factory=RealDictCursor
+                    )
+                    log = logging.getLogger(__name__)
+                    m = re.search(r"@([^:/]+)", url)
+                    host_hint = m.group(1) if m else "?"
+                    log.info(
+                        "[Supabase] ThreadedConnectionPool ready (max %s conns) via host %s — "
+                        "if you see MaxClientsInSessionMode, use Transaction pooler (port 6543) in .env",
+                        maxc,
+                        host_hint,
+                    )
+                    return _supabase_pool
+                except Exception as e:
+                    last_error = e
+                    err_msg = str(e).lower()
+                    is_transient = (
+                        "could not translate host name" in err_msg
+                        or "resolve" in err_msg
+                        or "connection refused" in err_msg
+                        or "timed out" in err_msg
+                    )
+                    if is_transient and attempt < 2:
+                        time.sleep(2 + attempt)
+                        continue
+                    if "could not translate host name" in err_msg or "resolve" in err_msg:
+                        break  # try next URL
+                    break
+        try:
+            _log = logging.getLogger(__name__)
+            _host = "?"
+            if urls_to_try:
+                m = re.search(r"@([^:/]+)", urls_to_try[-1])
+                if m:
+                    _host = m.group(1)
+            _log.error("[Supabase] Pool init failed for %s: %s", _host, last_error)
+        except Exception:
+            pass
+        raise last_error
 
 
 @contextmanager
 def get_connection():
     conn = None
+    pool_ref = None
+    conn_broken = False
     try:
         if DB_BACKEND == "supabase":
-            conn = _get_supabase_connection()
+            pool_ref = _get_supabase_pool()
+            conn = pool_ref.getconn()
         else:
             conn = _get_mysql_connection()
         yield conn
         if conn:
             conn.commit()
     except RuntimeError as e:
+        if conn:
+            try:
+                conn.rollback()
+            except Exception:
+                conn_broken = True
         if "cryptography" in str(e).lower():
             raise RuntimeError(
                 "MySQL requires the 'cryptography' package. Install it with: pip install cryptography\n"
@@ -113,15 +151,25 @@ def get_connection():
             ) from e
         raise
     except Exception:
+        conn_broken = True
         if conn:
             try:
                 conn.rollback()
             except Exception:
-                pass
+                conn_broken = True
         raise
     finally:
         if conn:
-            conn.close()
+            if DB_BACKEND == "supabase" and pool_ref is not None:
+                try:
+                    pool_ref.putconn(conn, close=conn_broken)
+                except Exception:
+                    try:
+                        conn.close()
+                    except Exception:
+                        pass
+            else:
+                conn.close()
 
 
 def init_db():

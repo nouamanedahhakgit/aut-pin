@@ -10077,3 +10077,119 @@ INFO:     Started server process [26592]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:5002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:53316 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60359 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54365 - "POST /generate-article-preview/generator-10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54366 - "POST /generate-article-preview/generator-12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54368 - "POST /generate-article-preview/generator-13 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54367 - "POST /generate-article-preview/generator-14 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54369 - "POST /generate-article-preview/generator-11 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54364 - "POST /generate-article-preview/generator-1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49236 - "POST /generate-article-preview/generator-15 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49237 - "POST /generate-article-preview/generator-16 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49238 - "POST /generate-article-preview/generator-17 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54715 - "POST /generate-article-preview/generator-2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54714 - "POST /generate-article-preview/generator-19 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54713 - "POST /generate-article-preview/generator-18 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63559 - "POST /generate-article-preview/generator-21 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63561 - "POST /generate-article-preview/generator-3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63560 - "POST /generate-article-preview/generator-20 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53143 - "POST /generate-article-preview/generator-5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53145 - "POST /generate-article-preview/generator-4 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 304, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 306, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:53144 - "POST /generate-article-preview/generator-6 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61957 - "POST /generate-article-preview/generator-9 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61956 - "POST /generate-article-preview/generator-8 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 304, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 306, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:61955 - "POST /generate-article-preview/generator-7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55231 - "POST /generate-article-preview/generator-1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57436 - "POST /generate-article-preview/generator-12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57434 - "POST /generate-article-preview/generator-10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57435 - "POST /generate-article-preview/generator-13 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57437 - "POST /generate-article-preview/generator-11 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51347 - "POST /generate-article-preview/generator-14 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55913 - "POST /generate-article-preview/generator-15 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59787 - "POST /generate-article-preview/generator-18 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59786 - "POST /generate-article-preview/generator-16 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59785 - "POST /generate-article-preview/generator-19 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59788 - "POST /generate-article-preview/generator-17 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56141 - "POST /generate-article-preview/generator-2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65177 - "POST /generate-article-preview/generator-20 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61578 - "POST /generate-article-preview/generator-21 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61577 - "POST /generate-article-preview/generator-3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61579 - "POST /generate-article-preview/generator-4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "POST /generate-article-preview/generator-5 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 304, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 306, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-6.py", line 1243, in generate_html
+    title      = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:64197 - "POST /generate-article-preview/generator-6 HTTP/1.1" 200 OK
+[generate-article-preview] native preview failed, falling back to generic: 'title'
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 304, in generate_article_preview
+    html = html_method(sections)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+TypeError: list indices must be integers or slices, not str
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\route.py", line 306, in generate_article_preview
+    html = html_method(data)
+  File "C:\Users\leno\Documents\GitHub\aut-pin\articles-website-generator\generators\generator-7.py", line 1202, in generate_html
+    title    = content_data["title"]
+KeyError: 'title'
+
+INFO:     127.0.0.1:49846 - "POST /generate-article-preview/generator-7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49849 - "POST /generate-article-preview/generator-8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49850 - "POST /generate-article-preview/generator-9 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55312 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53690 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57252 - "GET /generators HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49855 - "GET /generators HTTP/1.1" 200 OK
