@@ -43,6 +43,11 @@ try:
     SUPABASE_POOL_MAX = int((os.getenv("SUPABASE_POOL_MAX") or "12").strip())
 except ValueError:
     SUPABASE_POOL_MAX = 12
+# Max seconds to wait for a free pool connection (ThreadedConnectionPool does not queue; it raises PoolError).
+try:
+    SUPABASE_POOL_WAIT_SEC = float((os.getenv("SUPABASE_POOL_WAIT_SEC") or "120").strip())
+except ValueError:
+    SUPABASE_POOL_WAIT_SEC = 120.0
 
 # Pre-import cryptography for pymysql
 try:
@@ -124,6 +129,27 @@ def _get_supabase_pool():
         raise last_error
 
 
+def _supabase_pool_getconn(pool_ref):
+    """Checkout from ThreadedConnectionPool; retry on PoolError (pool does not block by default)."""
+    from psycopg2 import pool as pg_pool
+
+    deadline = time.time() + max(5.0, SUPABASE_POOL_WAIT_SEC)
+    delay = 0.05
+    last_err = None
+    while time.time() < deadline:
+        try:
+            return pool_ref.getconn()
+        except pg_pool.PoolError as e:
+            last_err = e
+            time.sleep(delay)
+            delay = min(delay * 1.2, 0.75)
+    msg = str(last_err) if last_err else "connection pool exhausted"
+    raise RuntimeError(
+        f"{msg} (waited {SUPABASE_POOL_WAIT_SEC:.0f}s). "
+        "Raise SUPABASE_POOL_MAX, use Supabase transaction pooler :6543, or lower bulk concurrency."
+    ) from last_err
+
+
 @contextmanager
 def get_connection():
     conn = None
@@ -132,7 +158,7 @@ def get_connection():
     try:
         if DB_BACKEND == "supabase":
             pool_ref = _get_supabase_pool()
-            conn = pool_ref.getconn()
+            conn = _supabase_pool_getconn(pool_ref)
         else:
             conn = _get_mysql_connection()
         yield conn

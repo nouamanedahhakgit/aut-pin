@@ -87,6 +87,34 @@ BULK_DEPLOY_JOBS = {}
 BULK_DEPLOY_JOBS_LOCK = threading.Lock()
 BULK_DEPLOY_CANCEL = {}  # job_id -> True if cancel requested
 
+# Limit parallel Cloudflare deploy threads: each deploy uses nested DB connections and exhausts
+# ThreadedConnectionPool if we start one thread per domain (e.g. 12 at once).
+_BULK_DEPLOY_CONCURRENCY_SEM = None
+_BULK_DEPLOY_CONCURRENCY_SEM_LOCK = threading.Lock()
+
+
+def _bulk_deploy_max_concurrent():
+    """How many group/bulk-add deploys may run at once. Override with BULK_DEPLOY_MAX_WORKERS."""
+    raw = (os.getenv("BULK_DEPLOY_MAX_WORKERS") or "").strip()
+    if raw.isdigit():
+        return max(1, min(int(raw), 32))
+    try:
+        from db import SUPABASE_POOL_MAX as _pm
+
+        return max(1, min(max(_pm // 3, 1), 8))
+    except Exception:
+        return 4
+
+
+def _get_bulk_deploy_concurrency_sem():
+    global _BULK_DEPLOY_CONCURRENCY_SEM
+    with _BULK_DEPLOY_CONCURRENCY_SEM_LOCK:
+        if _BULK_DEPLOY_CONCURRENCY_SEM is None:
+            n = _bulk_deploy_max_concurrent()
+            _BULK_DEPLOY_CONCURRENCY_SEM = threading.BoundedSemaphore(n)
+            log.info("[bulk_deploy] Concurrent deploy cap: %s (set BULK_DEPLOY_MAX_WORKERS or SUPABASE_POOL_MAX to tune)", n)
+        return _BULK_DEPLOY_CONCURRENCY_SEM
+
 # Per-domain Cloudflare deploy progress (in-memory): domain_id -> {step, percent, message, done, result, error}
 DEPLOY_CF_PROGRESS = {}
 DEPLOY_CF_PROGRESS_LOCK = threading.Lock()
@@ -24866,6 +24894,16 @@ def _deploy_domain_background_with_job(domain_id, user_id, job_id, url):
                 job["done"] = job.get("done", 0) + 1
                 job["_cancelled"] = True
         return
+    _sem = _get_bulk_deploy_concurrency_sem()
+    _sem.acquire()
+    try:
+        _deploy_domain_background_with_job_inner(domain_id, user_id, job_id, url)
+    finally:
+        _sem.release()
+
+
+def _deploy_domain_background_with_job_inner(domain_id, user_id, job_id, url):
+    """Core deploy work (runs under bulk deploy concurrency semaphore)."""
     with DEPLOY_CF_PROGRESS_LOCK:
         DEPLOY_CF_PROGRESS[domain_id] = {
             "step": "starting",
